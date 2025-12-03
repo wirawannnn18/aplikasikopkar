@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pengajuan Modal Approval & Rejection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Pengajuan Modal Approval & Rejection</h2>
+        <p class="text-muted">Testing Task 3.1 Implementation</p>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+                <button class="btn btn-warning" onclick="clearTestData()">Clear Test Data</button>
+                <button class="btn btn-info" onclick="setupTestData()">Setup Test Data</button>
+            </div>
+        </div>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/app.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    
+    <script>
+        let testResults = [];
+        let testPengajuanId = null;
+        
+        function logTest(name, passed, message) {
+            testResults.push({ name, passed, message });
+            displayResults();
+        }
+        
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = testResults.map(test => `
+                <div class="test-result ${test.passed ? 'test-pass' : 'test-fail'}">
+                    <strong>${test.passed ? '✓' : '✗'} ${test.name}</strong><br>
+                    <small>${test.message}</small>
+                </div>
+            `).join('');
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pengajuanModal');
+            localStorage.removeItem('pengajuanModalSettings');
+            localStorage.removeItem('pengajuanModalAudit');
+            localStorage.removeItem('notifications');
+            sessionStorage.clear();
+            testResults = [];
+            testPengajuanId = null;
+            displayResults();
+            alert('Test data cleared!');
+        }
+        
+        function setupTestData() {
+            // Initialize data structures
+            initializePengajuanModalData();
+            
+            // Set current user as admin for testing
+            window.currentUser = {
+                id: 'admin-001',
+                name: 'Test Admin',
+                role: 'admin'
+            };
+            
+            // Create a test pengajuan
+            const kasirUser = {
+                id: 'kasir-001',
+                name: 'Test Kasir',
+                role: 'kasir'
+            };
+            
+            // Temporarily set as kasir to create pengajuan
+            const tempUser = window.currentUser;
+            window.currentUser = kasirUser;
+            
+            const result = createPengajuanModal(
+                kasirUser.id,
+                kasirUser.name,
+                2000000,
+                'Modal untuk shift pagi'
+            );
+            
+            if (result.success) {
+                testPengajuanId = result.data.id;
+                console.log('Test pengajuan created:', testPengajuanId);
+            }
+            
+            // Restore admin user
+            window.currentUser = tempUser;
+            
+            alert('Test data setup complete!');
+        }
+        
+        function runAllTests() {
+            testResults = [];
+            
+            // Setup
+            clearTestData();
+            setupTestData();
+            
+            console.log('Starting approval tests...');
+            
+            // Test 1: Approve pengajuan
+            testApprovePengajuan();
+            
+            // Test 2: Reject pengajuan (create new one first)
+            testRejectPengajuan();
+            
+            // Test 3: Validate role for approval
+            testValidateRoleApproval();
+            
+            // Test 4: Validate alasan for rejection
+            testValidateAlasanRejection();
+            
+            // Test 5: Mark pengajuan as used
+            testMarkPengajuanAsUsed();
+            
+            // Test 6: Notification creation
+            testNotificationCreation();
+            
+            // Test 7: Get approved pengajuan for kasir
+            testGetApprovedPengajuan();
+            
+            console.log('All tests completed!');
+        }
+        
+        function testApprovePengajuan() {
+            try {
+                if (!testPengajuanId) {
+                    logTest('Approve Pengajuan', false, 'No test pengajuan ID');
+                    return;
+                }
+                
+                const result = approvePengajuan(
+                    testPengajuanId,
+                    currentUser.id,
+                    currentUser.name
+                );
+                
+                if (result.success && result.data.status === 'approved') {
+                    logTest('Approve Pengajuan', true, 
+                        `Pengajuan approved successfully. Admin: ${result.data.adminName}`);
+                } else {
+                    logTest('Approve Pengajuan', false, result.message);
+                }
+            } catch (error) {
+                logTest('Approve Pengajuan', false, error.message);
+            }
+        }
+        
+        function testRejectPengajuan() {
+            try {
+                // Create new pengajuan for rejection test
+                const tempUser = window.currentUser;
+                window.currentUser = {
+                    id: 'kasir-002',
+                    name: 'Test Kasir 2',
+                    role: 'kasir'
+                };
+                
+                const createResult = createPengajuanModal(
+                    'kasir-002',
+                    'Test Kasir 2',
+                    1500000,
+                    'Modal untuk shift siang'
+                );
+                
+                window.currentUser = tempUser;
+                
+                if (!createResult.success) {
+                    logTest('Reject Pengajuan', false, 'Failed to create test pengajuan');
+                    return;
+                }
+                
+                const result = rejectPengajuan(
+                    createResult.data.id,
+                    currentUser.id,
+                    currentUser.name,
+                    'Jumlah terlalu besar untuk shift siang'
+                );
+                
+                if (result.success && result.data.status === 'rejected') {
+                    logTest('Reject Pengajuan', true, 
+                        `Pengajuan rejected successfully. Alasan: ${result.data.alasanPenolakan}`);
+                } else {
+                    logTest('Reject Pengajuan', false, result.message);
+                }
+            } catch (error) {
+                logTest('Reject Pengajuan', false, error.message);
+            }
+        }
+        
+        function testValidateRoleApproval() {
+            try {
+                // Create new pengajuan
+                const tempUser = window.currentUser;
+                window.currentUser = {
+                    id: 'kasir-003',
+                    name: 'Test Kasir 3',
+                    role: 'kasir'
+                };
+                
+                const createResult = createPengajuanModal(
+                    'kasir-003',
+                    'Test Kasir 3',
+                    1000000,
+                    'Test role validation'
+                );
+                
+                if (!createResult.success) {
+                    logTest('Validate Role Approval', false, 'Failed to create test pengajuan');
+                    return;
+                }
+                
+                // Try to approve as kasir (should fail)
+                const result = approvePengajuan(
+                    createResult.data.id,
+                    'kasir-003',
+                    'Test Kasir 3'
+                );
+                
+                window.currentUser = tempUser;
+                
+                if (!result.success && result.message.includes('tidak memiliki izin')) {
+                    logTest('Validate Role Approval', true, 
+                        'Role validation working correctly - kasir cannot approve');
+                } else {
+                    logTest('Validate Role Approval', false, 
+                        'Role validation failed - kasir should not be able to approve');
+                }
+            } catch (error) {
+                logTest('Validate Role Approval', false, error.message);
+            }
+        }
+        
+        function testValidateAlasanRejection() {
+            try {
+                // Create new pengajuan
+                const tempUser = window.currentUser;
+                window.currentUser = {
+                    id: 'kasir-004',
+                    name: 'Test Kasir 4',
+                    role: 'kasir'
+                };
+                
+                const createResult = createPengajuanModal(
+                    'kasir-004',
+                    'Test Kasir 4',
+                    1000000,
+                    'Test alasan validation'
+                );
+                
+                window.currentUser = tempUser;
+                
+                if (!createResult.success) {
+                    logTest('Validate Alasan Rejection', false, 'Failed to create test pengajuan');
+                    return;
+                }
+                
+                // Try to reject without alasan (should fail)
+                const result = rejectPengajuan(
+                    createResult.data.id,
+                    currentUser.id,
+                    currentUser.name,
+                    ''
+                );
+                
+                if (!result.success && result.message.includes('Alasan penolakan harus diisi')) {
+                    logTest('Validate Alasan Rejection', true, 
+                        'Alasan validation working correctly - empty alasan rejected');
+                } else {
+                    logTest('Validate Alasan Rejection', false, 
+                        'Alasan validation failed - empty alasan should be rejected');
+                }
+            } catch (error) {
+                logTest('Validate Alasan Rejection', false, error.message);
+            }
+        }
+        
+        function testMarkPengajuanAsUsed() {
+            try {
+                // Get the approved pengajuan from first test
+                const pengajuanList = getAllPengajuanModal();
+                const approved = pengajuanList.find(p => p.status === 'approved');
+                
+                if (!approved) {
+                    logTest('Mark Pengajuan As Used', false, 'No approved pengajuan found');
+                    return;
+                }
+                
+                const result = markPengajuanAsUsed(approved.id, 'shift-001');
+                
+                if (result.success && result.data.status === 'used') {
+                    logTest('Mark Pengajuan As Used', true, 
+                        `Pengajuan marked as used. Shift ID: ${result.data.shiftId}`);
+                } else {
+                    logTest('Mark Pengajuan As Used', false, result.message);
+                }
+            } catch (error) {
+                logTest('Mark Pengajuan As Used', false, error.message);
+            }
+        }
+        
+        function testNotificationCreation() {
+            try {
+                const notifications = getNotificationsByUser('kasir-001');
+                
+                if (notifications.length > 0) {
+                    logTest('Notification Creation', true, 
+                        `Found ${notifications.length} notification(s) for kasir-001`);
+                } else {
+                    logTest('Notification Creation', false, 
+                        'No notifications found for kasir-001');
+                }
+            } catch (error) {
+                logTest('Notification Creation', false, error.message);
+            }
+        }
+        
+        function testGetApprovedPengajuan() {
+            try {
+                // Create and approve a new pengajuan
+                const tempUser = window.currentUser;
+                window.currentUser = {
+                    id: 'kasir-005',
+                    name: 'Test Kasir 5',
+                    role: 'kasir'
+                };
+                
+                const createResult = createPengajuanModal(
+                    'kasir-005',
+                    'Test Kasir 5',
+                    1000000,
+                    'Test get approved'
+                );
+                
+                window.currentUser = tempUser;
+                
+                if (!createResult.success) {
+                    logTest('Get Approved Pengajuan', false, 'Failed to create test pengajuan');
+                    return;
+                }
+                
+                // Approve it
+                approvePengajuan(
+                    createResult.data.id,
+                    currentUser.id,
+                    currentUser.name
+                );
+                
+                // Get approved pengajuan
+                const approved = getApprovedPengajuanForKasir('kasir-005');
+                
+                if (approved && approved.status === 'approved') {
+                    logTest('Get Approved Pengajuan', true, 
+                        `Found approved pengajuan for kasir-005: ${formatRupiah(approved.jumlahDiminta)}`);
+                } else {
+                    logTest('Get Approved Pengajuan', false, 
+                        'No approved pengajuan found for kasir-005');
+                }
+            } catch (error) {
+                logTest('Get Approved Pengajuan', false, error.message);
+            }
+        }
+    </script>
+</body>
+</html>

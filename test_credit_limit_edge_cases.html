@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Tests - Credit Limit Edge Cases</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5 mb-5">
+        <h1 class="mb-4">
+            <i class="bi bi-bug me-2"></i>
+            Unit Tests - Credit Limit Edge Cases
+        </h1>
+        
+        <div class="alert alert-info">
+            <strong><i class="bi bi-info-circle me-2"></i>Task 7: Edge Case Testing</strong><br>
+            Testing edge cases and boundary conditions for credit limit validation.
+        </div>
+
+        <div class="mb-4">
+            <button class="btn btn-primary btn-lg" onclick="runAllTests()">
+                <i class="bi bi-play-circle me-2"></i>Run All Tests
+            </button>
+        </div>
+
+        <div id="testResults"></div>
+        <div id="summary" class="mt-4"></div>
+    </div>
+
+    <script src="js/creditLimit.js"></script>
+    <script>
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function testPass(name, message) {
+            totalTests++;
+            passedTests++;
+            return `
+                <div class="alert alert-success">
+                    <strong><i class="bi bi-check-circle me-2"></i>${name}</strong><br>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function testFail(name, message) {
+            totalTests++;
+            failedTests++;
+            return `
+                <div class="alert alert-danger">
+                    <strong><i class="bi bi-x-circle me-2"></i>${name}</strong><br>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function runAllTests() {
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            
+            let html = '<h3>Test Results:</h3>';
+            
+            // Test 1: Member with no transactions
+            html += testMemberNoTransactions();
+            
+            // Test 2: Member with only cash transactions
+            html += testMemberOnlyCash();
+            
+            // Test 3: Member with only paid transactions
+            html += testMemberOnlyPaid();
+            
+            // Test 4: Transaction exactly at limit
+            html += testTransactionExactlyAtLimit();
+            
+            // Test 5: Empty member ID handling
+            html += testEmptyMemberId();
+            
+            // Test 6: Invalid transaction amounts
+            html += testInvalidAmounts();
+            
+            // Test 7: Corrupted localStorage data
+            html += testCorruptedData();
+            
+            document.getElementById('testResults').innerHTML = html;
+            updateSummary();
+        }
+
+        function testMemberNoTransactions() {
+            try {
+                const testId = 'no-transactions-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([]));
+                
+                const balance = creditLimitValidator.calculateOutstandingBalance(testId);
+                const available = creditLimitValidator.getAvailableCredit(testId);
+                
+                if (balance === 0 && available === 2000000) {
+                    return testPass(
+                        'Test 1: Member with no transactions',
+                        `Outstanding: ${formatRupiah(balance)}, Available: ${formatRupiah(available)}`
+                    );
+                } else {
+                    return testFail(
+                        'Test 1: Member with no transactions',
+                        `Expected balance=0, available=2000000. Got balance=${balance}, available=${available}`
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 1: Member with no transactions', error.message);
+            }
+        }
+
+        function testMemberOnlyCash() {
+            try {
+                const testId = 'only-cash-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'cash', status: 'lunas', total: 500000 },
+                    { anggotaId: testId, metode: 'cash', status: 'lunas', total: 300000 }
+                ]));
+                
+                const balance = creditLimitValidator.calculateOutstandingBalance(testId);
+                const available = creditLimitValidator.getAvailableCredit(testId);
+                
+                if (balance === 0 && available === 2000000) {
+                    return testPass(
+                        'Test 2: Member with only cash transactions',
+                        `Outstanding: ${formatRupiah(balance)}, Available: ${formatRupiah(available)}`
+                    );
+                } else {
+                    return testFail(
+                        'Test 2: Member with only cash transactions',
+                        `Expected balance=0. Got balance=${balance}`
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 2: Member with only cash transactions', error.message);
+            }
+        }
+
+        function testMemberOnlyPaid() {
+            try {
+                const testId = 'only-paid-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'bon', status: 'lunas', total: 500000 },
+                    { anggotaId: testId, metode: 'bon', status: 'lunas', total: 300000 }
+                ]));
+                
+                const balance = creditLimitValidator.calculateOutstandingBalance(testId);
+                const available = creditLimitValidator.getAvailableCredit(testId);
+                
+                if (balance === 0 && available === 2000000) {
+                    return testPass(
+                        'Test 3: Member with only paid transactions',
+                        `Outstanding: ${formatRupiah(balance)}, Available: ${formatRupiah(available)}`
+                    );
+                } else {
+                    return testFail(
+                        'Test 3: Member with only paid transactions',
+                        `Expected balance=0. Got balance=${balance}`
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 3: Member with only paid transactions', error.message);
+            }
+        }
+
+        function testTransactionExactlyAtLimit() {
+            try {
+                const testId = 'exact-limit-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'bon', status: 'kredit', total: 1500000 }
+                ]));
+                
+                // Test transaction that brings total to exactly 2000000
+                const validation = creditLimitValidator.validateCreditTransaction(testId, 500000);
+                
+                if (validation.valid && validation.details.totalExposure === 2000000) {
+                    return testPass(
+                        'Test 4: Transaction exactly at Rp 2.000.000 limit',
+                        `Valid: ${validation.valid}, Total: ${formatRupiah(validation.details.totalExposure)}`
+                    );
+                } else {
+                    return testFail(
+                        'Test 4: Transaction exactly at limit',
+                        `Expected valid=true, total=2000000. Got valid=${validation.valid}, total=${validation.details.totalExposure}`
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 4: Transaction exactly at limit', error.message);
+            }
+        }
+
+        function testEmptyMemberId() {
+            try {
+                // Test with empty string
+                const balance1 = creditLimitValidator.calculateOutstandingBalance('');
+                const available1 = creditLimitValidator.getAvailableCredit('');
+                const unpaid1 = creditLimitValidator.getUnpaidTransactions('');
+                
+                // Test with null (converted to empty)
+                const balance2 = creditLimitValidator.calculateOutstandingBalance(null);
+                const available2 = creditLimitValidator.getAvailableCredit(null);
+                
+                // Test validation with empty ID
+                const validation = creditLimitValidator.validateCreditTransaction('', 100000);
+                
+                if (balance1 === 0 && available1 === 2000000 && unpaid1.length === 0 &&
+                    balance2 === 0 && available2 === 2000000 &&
+                    !validation.valid && validation.message.includes('Pilih anggota')) {
+                    return testPass(
+                        'Test 5: Empty member ID handling',
+                        'All empty ID cases handled correctly'
+                    );
+                } else {
+                    return testFail(
+                        'Test 5: Empty member ID handling',
+                        'Empty ID not handled correctly'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 5: Empty member ID handling', error.message);
+            }
+        }
+
+        function testInvalidAmounts() {
+            try {
+                const testId = 'invalid-amounts-' + Date.now();
+                
+                // Test negative amount
+                const validation1 = creditLimitValidator.validateCreditTransaction(testId, -100000);
+                
+                // Test zero amount
+                const validation2 = creditLimitValidator.validateCreditTransaction(testId, 0);
+                
+                // Test null amount
+                const validation3 = creditLimitValidator.validateCreditTransaction(testId, null);
+                
+                if (!validation1.valid && validation1.message.includes('tidak valid') &&
+                    !validation2.valid && validation2.message.includes('tidak valid') &&
+                    !validation3.valid && validation3.message.includes('tidak valid')) {
+                    return testPass(
+                        'Test 6: Invalid transaction amounts',
+                        'Negative, zero, and null amounts rejected correctly'
+                    );
+                } else {
+                    return testFail(
+                        'Test 6: Invalid transaction amounts',
+                        'Invalid amounts not handled correctly'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 6: Invalid transaction amounts', error.message);
+            }
+        }
+
+        function testCorruptedData() {
+            try {
+                const testId = 'corrupted-' + Date.now();
+                
+                // Test with corrupted JSON
+                localStorage.setItem('penjualan', 'invalid json {{{');
+                const balance1 = creditLimitValidator.calculateOutstandingBalance(testId);
+                
+                // Test with non-array data
+                localStorage.setItem('penjualan', JSON.stringify({ not: 'an array' }));
+                const balance2 = creditLimitValidator.calculateOutstandingBalance(testId);
+                
+                // Test with missing localStorage
+                localStorage.removeItem('penjualan');
+                const balance3 = creditLimitValidator.calculateOutstandingBalance(testId);
+                
+                if (balance1 === 0 && balance2 === 0 && balance3 === 0) {
+                    return testPass(
+                        'Test 7: Corrupted localStorage data handling',
+                        'All corrupted data cases return safe default (0)'
+                    );
+                } else {
+                    return testFail(
+                        'Test 7: Corrupted localStorage data',
+                        `Expected all to return 0. Got ${balance1}, ${balance2}, ${balance3}`
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 7: Corrupted localStorage data', error.message);
+            }
+        }
+
+        function updateSummary() {
+            const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : 0;
+            const statusClass = failedTests === 0 ? 'success' : 'warning';
+            const statusIcon = failedTests === 0 ? 'check-circle' : 'exclamation-triangle';
+            
+            document.getElementById('summary').innerHTML = `
+                <div class="card border-${statusClass}">
+                    <div class="card-body">
+                        <h4><i class="bi bi-${statusIcon} me-2"></i>Test Summary</h4>
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <h5>${totalTests}</h5>
+                                <p class="text-muted">Total Tests</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-success">${passedTests}</h5>
+                                <p class="text-muted">Passed</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-danger">${failedTests}</h5>
+                                <p class="text-muted">Failed</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h5>${passRate}%</h5>
+                                <p class="text-muted">Pass Rate</p>
+                            </div>
+                        </div>
+                        ${failedTests === 0 ? 
+                            '<div class="alert alert-success mt-3">✅ All edge case tests passed!</div>' :
+                            '<div class="alert alert-warning mt-3">⚠️ Some tests failed. Please review.</div>'
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto-run on load
+        window.onload = function() {
+            console.log('Edge Case Test Page Loaded');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Closed Shift Deletion Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check me-2"></i>
+            Test Closed Shift Deletion Flow
+        </h1>
+
+        <!-- Test Setup -->
+        <div class="test-section">
+            <h3><i class="bi bi-gear me-2"></i>Setup Test Data</h3>
+            <p>This will create test data including users, transactions, and closed shifts.</p>
+            <button class="btn btn-primary" onclick="setupTestData()">
+                <i class="bi bi-database-add me-1"></i>Setup Test Data
+            </button>
+            <div id="setupResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 1: Non-Admin Access -->
+        <div class="test-section">
+            <h3><i class="bi bi-shield-x me-2"></i>Test 1: Non-Admin Access</h3>
+            <p>Verify that non-admin users cannot delete closed transactions.</p>
+            <button class="btn btn-warning" onclick="testNonAdminAccess()">
+                <i class="bi bi-play-fill me-1"></i>Run Test
+            </button>
+            <div id="test1Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Admin Access with Closed Transaction -->
+        <div class="test-section">
+            <h3><i class="bi bi-shield-check me-2"></i>Test 2: Admin Access Flow</h3>
+            <p>Verify that admin users can access the closed shift deletion flow.</p>
+            <button class="btn btn-success" onclick="testAdminAccess()">
+                <i class="bi bi-play-fill me-1"></i>Run Test (Opens Dialogs)
+            </button>
+            <div id="test2Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Regular Transaction (Not Closed) -->
+        <div class="test-section">
+            <h3><i class="bi bi-check-circle me-2"></i>Test 3: Regular Transaction Flow</h3>
+            <p>Verify that regular transactions use the normal deletion flow.</p>
+            <button class="btn btn-info" onclick="testRegularTransaction()">
+                <i class="bi bi-play-fill me-1"></i>Run Test (Opens Dialog)
+            </button>
+            <div id="test3Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
+
+        <!-- Main Content (for rendering) -->
+        <div id="mainContent" style="display: none;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/hapusTransaksiTutupKasir.js"></script>
+    <script src="js/hapusTransaksi.js"></script>
+    
+    <script>
+        // Mock currentUser for testing
+        let currentUser = null;
+
+        // Helper function to show alerts
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Helper function to format currency
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Setup test data
+        function setupTestData() {
+            const resultDiv = document.getElementById('setupResult');
+            
+            try {
+                // Create test users
+                const users = [
+                    {
+                        username: 'admin',
+                        password: 'admin123',
+                        name: 'Admin User',
+                        role: 'administrator'
+                    },
+                    {
+                        username: 'kasir',
+                        password: 'kasir123',
+                        name: 'Kasir User',
+                        role: 'kasir'
+                    }
+                ];
+                localStorage.setItem('users', JSON.stringify(users));
+
+                // Create test transactions
+                const now = new Date();
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                const transactions = [
+                    {
+                        id: 'TRX-CLOSED-001',
+                        noTransaksi: 'TRX-CLOSED-001',
+                        tanggal: yesterday.toISOString(),
+                        kasir: 'Kasir User',
+                        tipeAnggota: 'Anggota',
+                        metode: 'cash',
+                        status: 'lunas',
+                        total: 50000,
+                        items: [
+                            { id: 'ITEM-001', nama: 'Test Item 1', qty: 2, harga: 15000, hpp: 10000 },
+                            { id: 'ITEM-002', nama: 'Test Item 2', qty: 1, harga: 20000, hpp: 15000 }
+                        ]
+                    },
+                    {
+                        id: 'TRX-REGULAR-001',
+                        noTransaksi: 'TRX-REGULAR-001',
+                        tanggal: now.toISOString(),
+                        kasir: 'Kasir User',
+                        tipeAnggota: 'Umum',
+                        metode: 'cash',
+                        status: 'lunas',
+                        total: 30000,
+                        items: [
+                            { id: 'ITEM-003', nama: 'Test Item 3', qty: 3, harga: 10000, hpp: 7000 }
+                        ]
+                    }
+                ];
+                localStorage.setItem('penjualan', JSON.stringify(transactions));
+
+                // Create closed shift
+                const shiftStart = new Date(yesterday);
+                shiftStart.setHours(8, 0, 0, 0);
+                const shiftEnd = new Date(yesterday);
+                shiftEnd.setHours(17, 0, 0, 0);
+                
+                const closedShifts = [
+                    {
+                        id: 'SHIFT-001',
+                        waktuBuka: shiftStart.toISOString(),
+                        waktuTutup: shiftEnd.toISOString(),
+                        kasir: 'Kasir User',
+                        totalPenjualan: 50000,
+                        totalKas: 50000,
+                        totalPiutang: 0,
+                        nomorLaporan: 'LAP-001'
+                    }
+                ];
+                localStorage.setItem('riwayatTutupKas', JSON.stringify(closedShifts));
+
+                // Create test items
+                const items = [
+                    { id: 'ITEM-001', nama: 'Test Item 1', stok: 100, harga: 15000, hpp: 10000 },
+                    { id: 'ITEM-002', nama: 'Test Item 2', stok: 50, harga: 20000, hpp: 15000 },
+                    { id: 'ITEM-003', nama: 'Test Item 3', stok: 75, harga: 10000, hpp: 7000 }
+                ];
+                localStorage.setItem('barang', JSON.stringify(items));
+
+                // Create test COA
+                const coa = [
+                    { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 },
+                    { kode: '1-1200', nama: 'Piutang Anggota', tipe: 'Aset', saldo: 0 },
+                    { kode: '1-1300', nama: 'Persediaan Barang', tipe: 'Aset', saldo: 500000 },
+                    { kode: '4-1000', nama: 'Pendapatan Penjualan', tipe: 'Pendapatan', saldo: 0 },
+                    { kode: '5-1000', nama: 'Harga Pokok Penjualan', tipe: 'Beban', saldo: 0 }
+                ];
+                localStorage.setItem('coa', JSON.stringify(coa));
+
+                resultDiv.className = 'test-result success';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Success!</strong> Test data created:
+                    <ul class="mb-0 mt-2">
+                        <li>2 users (admin/admin123, kasir/kasir123)</li>
+                        <li>2 transactions (1 closed, 1 regular)</li>
+                        <li>1 closed shift</li>
+                        <li>3 test items</li>
+                        <li>5 COA accounts</li>
+                    </ul>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-x-circle me-2"></i>
+                    <strong>Error!</strong> ${error.message}
+                `;
+            }
+        }
+
+        // Test 1: Non-admin access
+        function testNonAdminAccess() {
+            const resultDiv = document.getElementById('test1Result');
+            
+            try {
+                // Set current user as kasir (non-admin)
+                currentUser = {
+                    username: 'kasir',
+                    name: 'Kasir User',
+                    role: 'kasir'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // Try to delete closed transaction
+                handleDeleteTransaction('TRX-CLOSED-001');
+
+                // Check if error was shown
+                setTimeout(() => {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>Test Passed!</strong> Non-admin user was correctly blocked from deleting closed transaction.
+                        Check the alert message above.
+                    `;
+                }, 100);
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-x-circle me-2"></i>
+                    <strong>Test Failed!</strong> ${error.message}
+                `;
+            }
+        }
+
+        // Test 2: Admin access
+        function testAdminAccess() {
+            const resultDiv = document.getElementById('test2Result');
+            
+            try {
+                // Set current user as admin
+                currentUser = {
+                    username: 'admin',
+                    name: 'Admin User',
+                    role: 'administrator'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // Try to delete closed transaction
+                handleDeleteTransaction('TRX-CLOSED-001');
+
+                resultDiv.className = 'test-result success';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Test Running!</strong> Admin user can access closed shift deletion flow.
+                    The warning dialog should appear. Follow the flow:
+                    <ol class="mb-0 mt-2">
+                        <li>Check the "I understand" checkbox</li>
+                        <li>Click "Lanjutkan"</li>
+                        <li>Enter password: admin123</li>
+                        <li>Select category and enter reason (min 20 chars)</li>
+                        <li>Confirm deletion</li>
+                    </ol>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-x-circle me-2"></i>
+                    <strong>Test Failed!</strong> ${error.message}
+                `;
+            }
+        }
+
+        // Test 3: Regular transaction
+        function testRegularTransaction() {
+            const resultDiv = document.getElementById('test3Result');
+            
+            try {
+                // Set current user as admin
+                currentUser = {
+                    username: 'admin',
+                    name: 'Admin User',
+                    role: 'administrator'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // Try to delete regular transaction
+                handleDeleteTransaction('TRX-REGULAR-001');
+
+                resultDiv.className = 'test-result success';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Test Running!</strong> Regular transaction uses normal deletion flow.
+                    The regular confirmation dialog should appear (not the closed shift warning).
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-x-circle me-2"></i>
+                    <strong>Test Failed!</strong> ${error.message}
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

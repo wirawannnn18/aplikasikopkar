@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Journal Pembelian Functions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Journal Pembelian Functions</h1>
+        <p>Testing createJurnalKoreksi and createJurnalPembalik functions</p>
+        
+        <button class="btn btn-primary mb-3" onclick="runTests()">Run All Tests</button>
+        <button class="btn btn-secondary mb-3" onclick="clearStorage()">Clear Storage</button>
+        <button class="btn btn-info mb-3" onclick="viewJournals()">View Journals</button>
+        
+        <div id="testResults"></div>
+        <div id="journalView" class="mt-4"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/inventory.js"></script>
+    
+    <script>
+        function clearStorage() {
+            localStorage.removeItem('jurnal');
+            localStorage.removeItem('coa');
+            showResult('Storage cleared', 'info');
+        }
+        
+        function showResult(message, type = 'pass') {
+            const div = document.createElement('div');
+            div.className = `test-result test-${type}`;
+            div.textContent = message;
+            document.getElementById('testResults').appendChild(div);
+        }
+        
+        function setupCOA() {
+            // Setup COA accounts needed for testing
+            const coa = [
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 },
+                { kode: '1-1300', nama: 'Persediaan Barang', tipe: 'Aset', saldo: 500000 }
+            ];
+            localStorage.setItem('coa', JSON.stringify(coa));
+        }
+        
+        function testJurnalKoreksiPositive() {
+            showResult('Test 1: createJurnalKoreksi with positive difference (pembelian bertambah)', 'info');
+            
+            const oldTotal = 100000;
+            const newTotal = 150000;
+            const tanggal = '2024-01-15';
+            const description = 'Test Koreksi Positif';
+            
+            const result = createJurnalKoreksi(oldTotal, newTotal, tanggal, description);
+            
+            if (result.success) {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const lastJurnal = jurnal[jurnal.length - 1];
+                
+                // Check entries
+                const debitPersediaan = lastJurnal.entries.find(e => e.akun === '1-1300' && e.debit > 0);
+                const kreditKas = lastJurnal.entries.find(e => e.akun === '1-1000' && e.kredit > 0);
+                
+                if (debitPersediaan && kreditKas && debitPersediaan.debit === 50000 && kreditKas.kredit === 50000) {
+                    showResult('✓ Test 1 PASSED: Jurnal koreksi positif created correctly', 'pass');
+                } else {
+                    showResult('✗ Test 1 FAILED: Jurnal entries incorrect', 'fail');
+                }
+            } else {
+                showResult('✗ Test 1 FAILED: ' + result.message, 'fail');
+            }
+        }
+        
+        function testJurnalKoreksiNegative() {
+            showResult('Test 2: createJurnalKoreksi with negative difference (pembelian berkurang)', 'info');
+            
+            const oldTotal = 200000;
+            const newTotal = 150000;
+            const tanggal = '2024-01-16';
+            const description = 'Test Koreksi Negatif';
+            
+            const result = createJurnalKoreksi(oldTotal, newTotal, tanggal, description);
+            
+            if (result.success) {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const lastJurnal = jurnal[jurnal.length - 1];
+                
+                // Check entries
+                const debitKas = lastJurnal.entries.find(e => e.akun === '1-1000' && e.debit > 0);
+                const kreditPersediaan = lastJurnal.entries.find(e => e.akun === '1-1300' && e.kredit > 0);
+                
+                if (debitKas && kreditPersediaan && debitKas.debit === 50000 && kreditPersediaan.kredit === 50000) {
+                    showResult('✓ Test 2 PASSED: Jurnal koreksi negatif created correctly', 'pass');
+                } else {
+                    showResult('✗ Test 2 FAILED: Jurnal entries incorrect', 'fail');
+                }
+            } else {
+                showResult('✗ Test 2 FAILED: ' + result.message, 'fail');
+            }
+        }
+        
+        function testJurnalKoreksiZero() {
+            showResult('Test 3: createJurnalKoreksi with zero difference (no change)', 'info');
+            
+            const oldTotal = 100000;
+            const newTotal = 100000;
+            const tanggal = '2024-01-17';
+            const description = 'Test Koreksi Zero';
+            
+            const jurnalCountBefore = JSON.parse(localStorage.getItem('jurnal') || '[]').length;
+            const result = createJurnalKoreksi(oldTotal, newTotal, tanggal, description);
+            const jurnalCountAfter = JSON.parse(localStorage.getItem('jurnal') || '[]').length;
+            
+            if (result.success && jurnalCountBefore === jurnalCountAfter) {
+                showResult('✓ Test 3 PASSED: No jurnal created for zero difference', 'pass');
+            } else {
+                showResult('✗ Test 3 FAILED: Unexpected behavior for zero difference', 'fail');
+            }
+        }
+        
+        function testJurnalPembalik() {
+            showResult('Test 4: createJurnalPembalik (reversing entry)', 'info');
+            
+            const total = 250000;
+            const tanggal = '2024-01-18';
+            const description = 'Test Jurnal Pembalik';
+            
+            const result = createJurnalPembalik(total, tanggal, description);
+            
+            if (result.success) {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const lastJurnal = jurnal[jurnal.length - 1];
+                
+                // Check entries
+                const debitKas = lastJurnal.entries.find(e => e.akun === '1-1000' && e.debit > 0);
+                const kreditPersediaan = lastJurnal.entries.find(e => e.akun === '1-1300' && e.kredit > 0);
+                
+                if (debitKas && kreditPersediaan && debitKas.debit === 250000 && kreditPersediaan.kredit === 250000) {
+                    showResult('✓ Test 4 PASSED: Jurnal pembalik created correctly', 'pass');
+                } else {
+                    showResult('✗ Test 4 FAILED: Jurnal entries incorrect', 'fail');
+                }
+            } else {
+                showResult('✗ Test 4 FAILED: ' + result.message, 'fail');
+            }
+        }
+        
+        function testJurnalBalance() {
+            showResult('Test 5: Verify all journals are balanced (debit = kredit)', 'info');
+            
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            let allBalanced = true;
+            
+            jurnal.forEach((j, index) => {
+                const totalDebit = j.entries.reduce((sum, e) => sum + e.debit, 0);
+                const totalKredit = j.entries.reduce((sum, e) => sum + e.kredit, 0);
+                
+                if (Math.abs(totalDebit - totalKredit) > 0.01) {
+                    allBalanced = false;
+                    showResult(`✗ Journal ${index + 1} not balanced: Debit=${totalDebit}, Kredit=${totalKredit}`, 'fail');
+                }
+            });
+            
+            if (allBalanced) {
+                showResult('✓ Test 5 PASSED: All journals are balanced', 'pass');
+            }
+        }
+        
+        function viewJournals() {
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+            
+            let html = '<h3>Journal Entries</h3>';
+            
+            if (jurnal.length === 0) {
+                html += '<p>No journal entries found</p>';
+            } else {
+                html += '<table class="table table-bordered"><thead><tr><th>Date</th><th>Description</th><th>Account</th><th>Debit</th><th>Kredit</th></tr></thead><tbody>';
+                
+                jurnal.forEach(j => {
+                    j.entries.forEach((e, idx) => {
+                        const akun = coa.find(c => c.kode === e.akun);
+                        html += `<tr>`;
+                        if (idx === 0) {
+                            html += `<td rowspan="${j.entries.length}">${j.tanggal}</td>`;
+                            html += `<td rowspan="${j.entries.length}">${j.keterangan}</td>`;
+                        }
+                        html += `<td>${e.akun} - ${akun ? akun.nama : 'Unknown'}</td>`;
+                        html += `<td>${e.debit > 0 ? formatRupiah(e.debit) : '-'}</td>`;
+                        html += `<td>${e.kredit > 0 ? formatRupiah(e.kredit) : '-'}</td>`;
+                        html += `</tr>`;
+                    });
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('journalView').innerHTML = html;
+        }
+        
+        function runTests() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('journalView').innerHTML = '';
+            
+            // Setup
+            clearStorage();
+            setupCOA();
+            
+            // Run tests
+            testJurnalKoreksiPositive();
+            testJurnalKoreksiNegative();
+            testJurnalKoreksiZero();
+            testJurnalPembalik();
+            testJurnalBalance();
+            
+            // Show results
+            viewJournals();
+        }
+    </script>
+</body>
+</html>

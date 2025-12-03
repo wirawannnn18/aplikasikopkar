@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Reset Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Simple Reset Test</h1>
+        
+        <div class="alert alert-info">
+            <h5>Test Steps:</h5>
+            <ol>
+                <li>Check if all scripts loaded</li>
+                <li>Setup test user</li>
+                <li>Try to render reset page</li>
+            </ol>
+        </div>
+
+        <button class="btn btn-primary mb-3" onclick="runDiagnostics()">Run Diagnostics</button>
+        <button class="btn btn-success mb-3" onclick="setupAndRender()">Setup & Render</button>
+        
+        <div id="diagnostics" class="mb-3"></div>
+        <div id="mainContent"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load dependencies in order -->
+    <script src="js/backup.js"></script>
+    <script src="js/auditLogger.js"></script>
+    <script src="js/resetDataKoperasi.js"></script>
+    <script src="js/resetDataUI.js"></script>
+
+    <script>
+        function runDiagnostics() {
+            const diag = document.getElementById('diagnostics');
+            let html = '<div class="card"><div class="card-body">';
+            html += '<h5>Diagnostics Results:</h5>';
+            
+            // Check if scripts loaded
+            const checks = [
+                { name: 'CategoryManager', obj: typeof CategoryManager !== 'undefined' },
+                { name: 'ResetService', obj: typeof ResetService !== 'undefined' },
+                { name: 'ResetValidationService', obj: typeof ResetValidationService !== 'undefined' },
+                { name: 'SetupWizardService', obj: typeof SetupWizardService !== 'undefined' },
+                { name: 'RESET_CONSTANTS', obj: typeof RESET_CONSTANTS !== 'undefined' },
+                { name: 'renderResetDataPage', obj: typeof renderResetDataPage !== 'undefined' },
+                { name: 'BackupService', obj: typeof BackupService !== 'undefined' },
+                { name: 'AuditLogger', obj: typeof AuditLogger !== 'undefined' }
+            ];
+            
+            checks.forEach(check => {
+                const status = check.obj ? '✅' : '❌';
+                const color = check.obj ? 'success' : 'danger';
+                html += `<div class="alert alert-${color} py-2 mb-2">${status} ${check.name}: ${check.obj ? 'Loaded' : 'NOT LOADED'}</div>`;
+            });
+            
+            // Check localStorage
+            html += '<hr><h6>LocalStorage Check:</h6>';
+            const currentUser = localStorage.getItem('currentUser');
+            html += `<div class="alert alert-${currentUser ? 'success' : 'warning'} py-2">Current User: ${currentUser ? 'Set' : 'Not Set'}</div>`;
+            
+            if (currentUser) {
+                try {
+                    const user = JSON.parse(currentUser);
+                    html += `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                } catch (e) {
+                    html += `<div class="alert alert-danger">Error parsing user: ${e.message}</div>`;
+                }
+            }
+            
+            html += '</div></div>';
+            diag.innerHTML = html;
+        }
+
+        function setupAndRender() {
+            console.log('Setting up test data...');
+            
+            // Setup test user
+            const testUser = {
+                id: 1,
+                username: 'superadmin',
+                password: 'super123',
+                name: 'Super Administrator',
+                nama: 'Super Administrator',
+                role: 'super_admin',
+                active: true
+            };
+            localStorage.setItem('currentUser', JSON.stringify(testUser));
+            window.currentUser = testUser;
+            console.log('Test user set:', testUser);
+            
+            // Setup test koperasi
+            const testKoperasi = {
+                id: 'KOP001',
+                nama: 'Koperasi Test',
+                alamat: 'Jl. Test No. 123',
+                telepon: '021-12345678',
+                modalAwal: 10000000
+            };
+            localStorage.setItem('koperasi', JSON.stringify(testKoperasi));
+            console.log('Test koperasi set:', testKoperasi);
+            
+            // Setup some test data
+            localStorage.setItem('anggota', JSON.stringify([
+                { id: 'A001', nama: 'Anggota 1', noKTP: '1234567890' },
+                { id: 'A002', nama: 'Anggota 2', noKTP: '0987654321' }
+            ]));
+            
+            console.log('Attempting to render reset page...');
+            
+            try {
+                if (typeof renderResetDataPage === 'function') {
+                    renderResetDataPage();
+                    console.log('✅ Reset page rendered successfully!');
+                    alert('Reset page rendered! Check below.');
+                } else {
+                    console.error('❌ renderResetDataPage function not found!');
+                    alert('ERROR: renderResetDataPage function not found!');
+                }
+            } catch (e) {
+                console.error('❌ Error rendering:', e);
+                alert('ERROR: ' + e.message);
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5>Error:</h5>
+                        <pre>${e.message}\n\n${e.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-run diagnostics on load
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, running diagnostics...');
+            runDiagnostics();
+        });
+    </script>
+</body>
+</html>
+

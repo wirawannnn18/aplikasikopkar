@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pengajuan Modal UI Kasir</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Pengajuan Modal UI Kasir</h2>
+        <p class="text-muted">Testing Task 4.1 & 4.3 Implementation</p>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Test Scenarios</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Setup</h6>
+                        <button class="btn btn-sm btn-info mb-2 w-100" onclick="setupTestData()">Setup Test Data</button>
+                        <button class="btn btn-sm btn-warning mb-2 w-100" onclick="clearTestData()">Clear Test Data</button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Test Scenarios</h6>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testScenario1()">Scenario 1: No Pengajuan</button>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testScenario2()">Scenario 2: Pending Pengajuan</button>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testScenario3()">Scenario 3: Approved Pengajuan</button>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testScenario4()">Scenario 4: Rejected Pengajuan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Test Output</h5>
+            </div>
+            <div class="card-body">
+                <div id="mainContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    <script src="js/pos.js"></script>
+    
+    <script>
+        function setupTestData() {
+            // Initialize data structures
+            initializePengajuanModalData();
+            
+            // Set current user as kasir
+            window.currentUser = {
+                id: 'kasir-test-001',
+                name: 'Test Kasir',
+                role: 'kasir'
+            };
+            
+            alert('Test data setup complete!\nUser: Test Kasir (kasir)');
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pengajuanModal');
+            localStorage.removeItem('pengajuanModalSettings');
+            localStorage.removeItem('pengajuanModalAudit');
+            localStorage.removeItem('notifications');
+            sessionStorage.clear();
+            document.getElementById('mainContent').innerHTML = '';
+            alert('Test data cleared!');
+        }
+        
+        function testScenario1() {
+            // Scenario 1: No pengajuan - kasir can create new pengajuan or buka kas manually
+            setupTestData();
+            showBukaKasModal();
+            console.log('Scenario 1: No pengajuan - Form should show normal buka kas with "Ajukan Modal" button');
+        }
+        
+        function testScenario2() {
+            // Scenario 2: Pending pengajuan - kasir cannot buka kas or create new pengajuan
+            setupTestData();
+            
+            // Create pending pengajuan
+            createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                2000000,
+                'Modal untuk shift pagi'
+            );
+            
+            showBukaKasModal();
+            console.log('Scenario 2: Pending pengajuan - Buka kas button should be disabled');
+        }
+        
+        function testScenario3() {
+            // Scenario 3: Approved pengajuan - modal auto-filled, kasir can buka kas
+            setupTestData();
+            
+            // Create and approve pengajuan
+            const result = createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                2500000,
+                'Modal untuk shift siang'
+            );
+            
+            if (result.success) {
+                // Approve as admin
+                const tempUser = window.currentUser;
+                window.currentUser = {
+                    id: 'admin-001',
+                    name: 'Test Admin',
+                    role: 'admin'
+                };
+                
+                approvePengajuan(result.data.id, 'admin-001', 'Test Admin');
+                
+                // Restore kasir user
+                window.currentUser = tempUser;
+            }
+            
+            showBukaKasModal();
+            console.log('Scenario 3: Approved pengajuan - Modal should be auto-filled with approved amount');
+        }
+        
+        function testScenario4() {
+            // Scenario 4: Rejected pengajuan - kasir can create new pengajuan or buka kas manually
+            setupTestData();
+            
+            // Create and reject pengajuan
+            const result = createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                6000000,
+                'Modal terlalu besar'
+            );
+            
+            if (result.success) {
+                // Reject as admin
+                const tempUser = window.currentUser;
+                window.currentUser = {
+                    id: 'admin-001',
+                    name: 'Test Admin',
+                    role: 'admin'
+                };
+                
+                rejectPengajuan(
+                    result.data.id,
+                    'admin-001',
+                    'Test Admin',
+                    'Jumlah melebihi batas maksimum yang diizinkan'
+                );
+                
+                // Restore kasir user
+                window.currentUser = tempUser;
+            }
+            
+            showBukaKasModal();
+            console.log('Scenario 4: Rejected pengajuan - Should show rejection alert with reason');
+        }
+        
+        function testRiwayatPengajuan() {
+            setupTestData();
+            
+            // Create multiple pengajuan with different statuses
+            const p1 = createPengajuanModal(currentUser.id, currentUser.name, 1000000, 'Pengajuan 1');
+            const p2 = createPengajuanModal(currentUser.id, currentUser.name, 1500000, 'Pengajuan 2');
+            
+            // Approve p1
+            const tempUser = window.currentUser;
+            window.currentUser = { id: 'admin-001', name: 'Test Admin', role: 'admin' };
+            if (p1.success) approvePengajuan(p1.data.id, 'admin-001', 'Test Admin');
+            window.currentUser = tempUser;
+            
+            // Show riwayat
+            renderRiwayatPengajuanKasir();
+            console.log('Test Riwayat: Should show list of pengajuan with different statuses');
+        }
+    </script>
+</body>
+</html>

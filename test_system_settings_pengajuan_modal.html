@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test System Settings - Pengajuan Modal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test System Settings - Pengajuan Modal</h2>
+        <p class="text-muted">Testing Task 9.1 Implementation</p>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Setup</h6>
+                        <button class="btn btn-sm btn-info mb-2 w-100" onclick="setupTestData()">Setup Test Data</button>
+                        <button class="btn btn-sm btn-warning mb-2 w-100" onclick="clearTestData()">Clear Test Data</button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Test Actions</h6>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testRenderSettings()">Test Render Settings</button>
+                        <button class="btn btn-sm btn-success mb-2 w-100" onclick="testSaveSettings()">Test Save Settings</button>
+                        <button class="btn btn-sm btn-danger mb-2 w-100" onclick="testValidation()">Test Validation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Test Output</h5>
+            </div>
+            <div class="card-body">
+                <div id="mainContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    <script src="js/systemSettings.js"></script>
+    
+    <script>
+        function setupTestData() {
+            // Initialize data structures
+            initializePengajuanModalData();
+            
+            // Set current user as super_admin
+            window.currentUser = {
+                id: 'admin-001',
+                name: 'Super Admin',
+                role: 'super_admin'
+            };
+            
+            alert('Test data setup complete!\nUser: Super Admin (super_admin)');
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pengajuanModalSettings');
+            document.getElementById('mainContent').innerHTML = '';
+            alert('Test data cleared!');
+        }
+        
+        function testRenderSettings() {
+            setupTestData();
+            renderSystemSettings();
+            console.log('Test Render: Settings page should be displayed');
+        }
+        
+        function testSaveSettings() {
+            setupTestData();
+            renderSystemSettings();
+            
+            setTimeout(() => {
+                // Modify settings
+                document.getElementById('pengajuanEnabled').checked = true;
+                document.getElementById('requireApproval').checked = false;
+                document.getElementById('batasMaximum').value = '10000000';
+                document.getElementById('autoApproveAmount').value = '2000000';
+                
+                // Save
+                savePengajuanModalSettings();
+                
+                console.log('Test Save: Settings should be saved');
+                
+                // Verify
+                setTimeout(() => {
+                    const settings = getPengajuanModalSettings();
+                    console.log('Saved settings:', settings);
+                    
+                    if (settings.batasMaximum === 10000000 && settings.autoApproveAmount === 2000000) {
+                        alert('✅ Save test passed!');
+                    } else {
+                        alert('❌ Save test failed!');
+                    }
+                }, 1500);
+            }, 500);
+        }
+        
+        function testValidation() {
+            setupTestData();
+            renderSystemSettings();
+            
+            setTimeout(() => {
+                // Test 1: Negative batas maksimum
+                document.getElementById('batasMaximum').value = '-1000';
+                savePengajuanModalSettings();
+                console.log('Test Validation 1: Should show error for negative value');
+                
+                setTimeout(() => {
+                    // Test 2: Auto-approve > batas maksimum
+                    document.getElementById('batasMaximum').value = '1000000';
+                    document.getElementById('autoApproveAmount').value = '2000000';
+                    savePengajuanModalSettings();
+                    console.log('Test Validation 2: Should show warning for auto-approve > max');
+                }, 1000);
+            }, 500);
+        }
+        
+        function testRealTimeFormat() {
+            setupTestData();
+            renderSystemSettings();
+            
+            setTimeout(() => {
+                const input = document.getElementById('batasMaximum');
+                input.value = '5000000';
+                input.dispatchEvent(new Event('input'));
+                
+                console.log('Test Real-time Format: Format display should update');
+            }, 500);
+        }
+    </script>
+</body>
+</html>

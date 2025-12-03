@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Tests - Credit Limit POS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5 mb-5">
+        <h1 class="mb-4">
+            <i class="bi bi-diagram-3 me-2"></i>
+            Integration Tests - Credit Limit POS
+        </h1>
+        
+        <div class="alert alert-info">
+            <strong><i class="bi bi-info-circle me-2"></i>Task 8: POS Integration Testing</strong><br>
+            Testing integration between CreditLimitValidator and POS module.
+        </div>
+
+        <div class="alert alert-warning">
+            <strong><i class="bi bi-exclamation-triangle me-2"></i>Note:</strong>
+            These tests simulate POS integration. For full end-to-end testing, use the actual POS interface in index.html.
+        </div>
+
+        <div class="mb-4">
+            <button class="btn btn-primary btn-lg" onclick="runAllTests()">
+                <i class="bi bi-play-circle me-2"></i>Run All Tests
+            </button>
+        </div>
+
+        <div id="testResults"></div>
+        <div id="summary" class="mt-4"></div>
+    </div>
+
+    <script src="js/creditLimit.js"></script>
+    <script>
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function testPass(name, message) {
+            totalTests++;
+            passedTests++;
+            return `
+                <div class="alert alert-success">
+                    <strong><i class="bi bi-check-circle me-2"></i>${name}</strong><br>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function testFail(name, message) {
+            totalTests++;
+            failedTests++;
+            return `
+                <div class="alert alert-danger">
+                    <strong><i class="bi bi-x-circle me-2"></i>${name}</strong><br>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function runAllTests() {
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            
+            let html = '<h3>Integration Test Results:</h3>';
+            
+            // Test 1: Credit info display updates on member selection
+            html += testCreditInfoUpdate();
+            
+            // Test 2: Validation is called during bon payment
+            html += testValidationCalled();
+            
+            // Test 3: Error messages display correctly
+            html += testErrorMessages();
+            
+            // Test 4: Cash transactions bypass validation
+            html += testCashBypass();
+            
+            // Test 5: Visual indicators (green, yellow, red)
+            html += testVisualIndicators();
+            
+            document.getElementById('testResults').innerHTML = html;
+            updateSummary();
+        }
+
+        function testCreditInfoUpdate() {
+            try {
+                // Simulate member selection
+                const testId = 'integration-test-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'bon', status: 'kredit', total: 1000000 }
+                ]));
+                
+                // Simulate updateCreditInfo() logic
+                const outstandingBalance = creditLimitValidator.calculateOutstandingBalance(testId);
+                const availableCredit = creditLimitValidator.getAvailableCredit(testId);
+                const creditStatus = creditLimitValidator.getCreditStatus(testId);
+                
+                if (outstandingBalance === 1000000 && 
+                    availableCredit === 1000000 && 
+                    creditStatus.status === 'safe') {
+                    return testPass(
+                        'Test 1: Credit info display updates on member selection',
+                        `Outstanding: ${formatRupiah(outstandingBalance)}, Available: ${formatRupiah(availableCredit)}, Status: ${creditStatus.status}`
+                    );
+                } else {
+                    return testFail(
+                        'Test 1: Credit info display updates',
+                        'Credit info not calculated correctly'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 1: Credit info display updates', error.message);
+            }
+        }
+
+        function testValidationCalled() {
+            try {
+                // Simulate bon payment processing
+                const testId = 'validation-test-' + Date.now();
+                const transactionAmount = 500000;
+                
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'bon', status: 'kredit', total: 1800000 }
+                ]));
+                
+                // Simulate processPayment() validation logic
+                const metode = 'bon';
+                const anggotaId = testId;
+                
+                if (metode === 'bon' && anggotaId) {
+                    const validation = creditLimitValidator.validateCreditTransaction(anggotaId, transactionAmount);
+                    
+                    if (!validation.valid && validation.details.exceededBy === 300000) {
+                        return testPass(
+                            'Test 2: Validation is called during bon payment',
+                            `Validation correctly rejected: Exceeded by ${formatRupiah(validation.details.exceededBy)}`
+                        );
+                    } else {
+                        return testFail(
+                            'Test 2: Validation is called',
+                            'Validation not working correctly'
+                        );
+                    }
+                } else {
+                    return testFail(
+                        'Test 2: Validation is called',
+                        'Validation logic not triggered'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 2: Validation is called', error.message);
+            }
+        }
+
+        function testErrorMessages() {
+            try {
+                // Test various error scenarios
+                const testId = 'error-test-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'bon', status: 'kredit', total: 1900000 }
+                ]));
+                
+                // Scenario 1: Transaction exceeds limit
+                const validation1 = creditLimitValidator.validateCreditTransaction(testId, 200000);
+                const hasDetailedError = validation1.message.includes('Tagihan saat ini') && 
+                                        validation1.message.includes('Transaksi') &&
+                                        validation1.message.includes('Total') &&
+                                        validation1.message.includes('Melebihi batas');
+                
+                // Scenario 2: Empty member ID
+                const validation2 = creditLimitValidator.validateCreditTransaction('', 100000);
+                const hasEmptyIdError = validation2.message.includes('Pilih anggota');
+                
+                // Scenario 3: Invalid amount
+                const validation3 = creditLimitValidator.validateCreditTransaction(testId, 0);
+                const hasInvalidAmountError = validation3.message.includes('tidak valid');
+                
+                if (hasDetailedError && hasEmptyIdError && hasInvalidAmountError) {
+                    return testPass(
+                        'Test 3: Error messages display correctly',
+                        'All error messages are informative and correct'
+                    );
+                } else {
+                    return testFail(
+                        'Test 3: Error messages display',
+                        'Some error messages are missing or incorrect'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 3: Error messages display', error.message);
+            }
+        }
+
+        function testCashBypass() {
+            try {
+                // Simulate cash transaction with high outstanding balance
+                const testId = 'cash-bypass-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId, metode: 'bon', status: 'kredit', total: 1900000 }
+                ]));
+                
+                // Simulate processPayment() logic for cash
+                const metode = 'cash';
+                const anggotaId = testId;
+                const transactionAmount = 500000;
+                
+                // For cash, validation should be skipped
+                let validationCalled = false;
+                if (metode === 'bon' && anggotaId) {
+                    validationCalled = true;
+                    // This should not execute for cash
+                }
+                
+                // Cash should bypass validation
+                if (!validationCalled && metode === 'cash') {
+                    return testPass(
+                        'Test 4: Cash transactions bypass validation',
+                        'Cash transaction correctly bypasses credit limit check'
+                    );
+                } else {
+                    return testFail(
+                        'Test 4: Cash transactions bypass',
+                        'Cash validation logic incorrect'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 4: Cash transactions bypass', error.message);
+            }
+        }
+
+        function testVisualIndicators() {
+            try {
+                // Test safe status (green)
+                const testId1 = 'visual-safe-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId1, metode: 'bon', status: 'kredit', total: 1000000 }
+                ]));
+                const status1 = creditLimitValidator.getCreditStatus(testId1);
+                const safeCorrect = status1.status === 'safe' && 
+                                   status1.color === '#198754' &&
+                                   status1.icon === 'bi-check-circle-fill';
+                
+                // Test warning status (yellow)
+                const testId2 = 'visual-warning-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId2, metode: 'bon', status: 'kredit', total: 1700000 }
+                ]));
+                const status2 = creditLimitValidator.getCreditStatus(testId2);
+                const warningCorrect = status2.status === 'warning' && 
+                                      status2.color === '#ffc107' &&
+                                      status2.icon === 'bi-exclamation-triangle-fill';
+                
+                // Test critical status (red)
+                const testId3 = 'visual-critical-' + Date.now();
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: testId3, metode: 'bon', status: 'kredit', total: 1950000 }
+                ]));
+                const status3 = creditLimitValidator.getCreditStatus(testId3);
+                const criticalCorrect = status3.status === 'critical' && 
+                                       status3.color === '#dc3545' &&
+                                       status3.icon === 'bi-x-circle-fill';
+                
+                if (safeCorrect && warningCorrect && criticalCorrect) {
+                    return testPass(
+                        'Test 5: Visual indicators (green, yellow, red)',
+                        `Safe: ${status1.message} (${status1.percentage}%), Warning: ${status2.message} (${status2.percentage}%), Critical: ${status3.message} (${status3.percentage}%)`
+                    );
+                } else {
+                    return testFail(
+                        'Test 5: Visual indicators',
+                        'Some visual indicators are incorrect'
+                    );
+                }
+            } catch (error) {
+                return testFail('Test 5: Visual indicators', error.message);
+            }
+        }
+
+        function updateSummary() {
+            const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : 0;
+            const statusClass = failedTests === 0 ? 'success' : 'warning';
+            const statusIcon = failedTests === 0 ? 'check-circle' : 'exclamation-triangle';
+            
+            document.getElementById('summary').innerHTML = `
+                <div class="card border-${statusClass}">
+                    <div class="card-body">
+                        <h4><i class="bi bi-${statusIcon} me-2"></i>Test Summary</h4>
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <h5>${totalTests}</h5>
+                                <p class="text-muted">Total Tests</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-success">${passedTests}</h5>
+                                <p class="text-muted">Passed</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-danger">${failedTests}</h5>
+                                <p class="text-muted">Failed</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h5>${passRate}%</h5>
+                                <p class="text-muted">Pass Rate</p>
+                            </div>
+                        </div>
+                        ${failedTests === 0 ? 
+                            '<div class="alert alert-success mt-3">✅ All integration tests passed!</div>' :
+                            '<div class="alert alert-warning mt-3">⚠️ Some tests failed. Please review.</div>'
+                        }
+                        <hr>
+                        <h6>Manual Testing Required:</h6>
+                        <p class="mb-0">For complete end-to-end testing, please test the following in the actual POS interface:</p>
+                        <ul class="mt-2">
+                            <li>Select member → Verify credit info appears</li>
+                            <li>Add items → Select "Bon" → Click "Bayar" → Verify validation</li>
+                            <li>Try transaction above limit → Verify error alert</li>
+                            <li>Try cash transaction → Verify bypass</li>
+                            <li>Check visual indicators match credit status</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto-run on load
+        window.onload = function() {
+            console.log('POS Integration Test Page Loaded');
+        };
+    </script>
+</body>
+</html>

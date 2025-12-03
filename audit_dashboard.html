@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Audit & Perbaikan - Aplikasi Koperasi</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/audit.css">
+    
+    <style>
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-title {
+            font-size: 2rem;
+            margin: 0 0 10px 0;
+        }
+        
+        .dashboard-subtitle {
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn-audit {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #117a8b;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+        
+        .tab:hover {
+            color: #007bff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1400px; margin: 0 auto; padding: 20px;">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">🔍 Dashboard Audit & Perbaikan</h1>
+            <p class="dashboard-subtitle">Sistem Audit dan Perbaikan Aplikasi Koperasi Karyawan</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn-audit btn-primary" onclick="runFullAudit()">
+                🔄 Jalankan Audit Lengkap
+            </button>
+            <button class="btn-audit btn-success" onclick="validateAccounting()">
+                ✓ Validasi Akuntansi
+            </button>
+            <button class="btn-audit btn-warning" onclick="validateData()">
+                📊 Validasi Data
+            </button>
+            <button class="btn-audit btn-info" onclick="exportReport()">
+                📥 Export Laporan
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">Overview</button>
+            <button class="tab" onclick="switchTab('specs')">Audit Spec</button>
+            <button class="tab" onclick="switchTab('accounting')">Validasi Akuntansi</button>
+            <button class="tab" onclick="switchTab('data')">Validasi Data</button>
+            <button class="tab" onclick="switchTab('performance')">Performa</button>
+            <button class="tab" onclick="switchTab('logs')">Audit Logs</button>
+        </div>
+
+        <!-- Tab Contents -->
+        
+        <!-- Overview Tab -->
+        <div id="overview-tab" class="tab-content active">
+            <div class="alert alert-info">
+                <strong>ℹ️ Informasi:</strong> Dashboard ini menyediakan tools untuk mengaudit dan memperbaiki aplikasi koperasi. 
+                Gunakan tombol di atas untuk menjalankan audit atau validasi.
+            </div>
+
+            <div id="overviewContent">
+                <div class="audit-card">
+                    <div class="audit-card-header">
+                        <h2 class="audit-card-title">Status Sistem</h2>
+                    </div>
+                    <div class="audit-card-body">
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalSpecsCount">-</div>
+                                <div class="stat-label">Total Spec</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="completionRate">-</div>
+                                <div class="stat-label">Completion Rate</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="issuesCount">-</div>
+                                <div class="stat-label">Issues Found</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="lastAuditDate">-</div>
+                                <div class="stat-label">Last Audit</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Specs Tab -->
+        <div id="specs-tab" class="tab-content">
+            <div id="auditReportContainer">
+                <p>Klik "Jalankan Audit Lengkap" untuk melihat status semua spec.</p>
+            </div>
+        </div>
+
+        <!-- Accounting Tab -->
+        <div id="accounting-tab" class="tab-content">
+            <div id="accountingValidationContainer">
+                <p>Klik "Validasi Akuntansi" untuk memeriksa integrasi akuntansi.</p>
+            </div>
+        </div>
+
+        <!-- Data Tab -->
+        <div id="data-tab" class="tab-content">
+            <div id="dataValidationContainer">
+                <p>Klik "Validasi Data" untuk memeriksa konsistensi data.</p>
+            </div>
+        </div>
+
+        <!-- Performance Tab -->
+        <div id="performance-tab" class="tab-content">
+            <div id="performanceContainer">
+                <div class="audit-card">
+                    <div class="audit-card-header">
+                        <h2 class="audit-card-title">Metrik Performa</h2>
+                    </div>
+                    <div class="audit-card-body">
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="storageUsed">-</div>
+                                <div class="stat-label">Storage Used</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="cacheHitRate">-</div>
+                                <div class="stat-label">Cache Hit Rate</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="avgLoadTime">-</div>
+                                <div class="stat-label">Avg Load Time</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalRecords">-</div>
+                                <div class="stat-label">Total Records</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="logs-tab" class="tab-content">
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h2 class="audit-card-title">Recent Audit Logs</h2>
+                    <button class="btn-audit btn-info" onclick="exportAuditLogs()">Export Logs</button>
+                </div>
+                <div class="audit-card-body">
+                    <div id="auditLogsContainer">
+                        <p>Loading audit logs...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auditUtils.js"></script>
+    <script src="js/auditLogger.js"></script>
+    <script src="js/errorHandler.js"></script>
+    <script src="js/reportGenerator.js"></script>
+    <script src="js/specAuditor.js"></script>
+    <script src="js/accountingValidator.js"></script>
+    <script src="js/dataValidator.js"></script>
+    
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all tab buttons
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Activate button
+            event.target.classList.add('active');
+            
+            // Load tab content if needed
+            if (tabName === 'logs') {
+                loadAuditLogs();
+            } else if (tabName === 'performance') {
+                loadPerformanceMetrics();
+            }
+        }
+
+        // Run full audit
+        async function runFullAudit() {
+            const loading = errorHandler.showLoading('Menjalankan audit lengkap...');
+            
+            try {
+                // Read all specs
+                await specAuditor.readAllSpecs();
+                
+                // Generate report
+                const report = specAuditor.generateAuditReport(specAuditor.specs);
+                
+                // Display in UI
+                specAuditor.displayAuditReport('auditReportContainer');
+                
+                // Update overview
+                updateOverview(report);
+                
+                // Log audit
+                auditLogger.logOperation('AUDIT', 'SYSTEM', 'FULL_AUDIT', report);
+                
+                loading.hide();
+                errorHandler.showSuccess('Audit lengkap selesai!');
+                
+                // Switch to specs tab
+                switchTab('specs');
+                
+            } catch (error) {
+                loading.hide();
+                errorHandler.handleError(error, 'Full Audit');
+            }
+        }
+
+        // Validate accounting
+        function validateAccounting() {
+            const loading = errorHandler.showLoading('Memvalidasi integrasi akuntansi...');
+            
+            try {
+                const html = accountingValidator.generateValidationReportHtml();
+                document.getElementById('accountingValidationContainer').innerHTML = html;
+                
+                // Log audit
+                auditLogger.logOperation('VALIDATION', 'ACCOUNTING', 'FULL_VALIDATION', {
+                    timestamp: new Date().toISOString()
+                });
+                
+                loading.hide();
+                errorHandler.showSuccess('Validasi akuntansi selesai!');
+                
+                // Switch to accounting tab
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+                document.getElementById('accounting-tab').classList.add('active');
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                
+            } catch (error) {
+                loading.hide();
+                errorHandler.handleError(error, 'Validate Accounting');
+            }
+        }
+
+        // Validate data
+        function validateData() {
+            const loading = errorHandler.showLoading('Memvalidasi konsistensi data...');
+            
+            try {
+                const html = dataValidator.generateValidationReportHtml();
+                document.getElementById('dataValidationContainer').innerHTML = html;
+                
+                // Log audit
+                auditLogger.logOperation('VALIDATION', 'DATA', 'FULL_VALIDATION', {
+                    timestamp: new Date().toISOString()
+                });
+                
+                loading.hide();
+                errorHandler.showSuccess('Validasi data selesai!');
+                
+                // Switch to data tab
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+                document.getElementById('data-tab').classList.add('active');
+                document.querySelectorAll('.tab')[3].classList.add('active');
+                
+            } catch (error) {
+                loading.hide();
+                errorHandler.handleError(error, 'Validate Data');
+            }
+        }
+
+        // Export report
+        function exportReport() {
+            try {
+                const report = specAuditor.generateAuditReport(specAuditor.specs);
+                const fullReport = reportGenerator.generateAuditReport(report);
+                reportGenerator.exportToHtml(fullReport);
+                errorHandler.showSuccess('Laporan berhasil diexport!');
+            } catch (error) {
+                errorHandler.handleError(error, 'Export Report');
+            }
+        }
+
+        // Export audit logs
+        function exportAuditLogs() {
+            try {
+                auditLogger.exportLogs();
+                errorHandler.showSuccess('Audit logs berhasil diexport!');
+            } catch (error) {
+                errorHandler.handleError(error, 'Export Logs');
+            }
+        }
+
+        // Update overview
+        function updateOverview(report) {
+            document.getElementById('totalSpecsCount').textContent = report.totalSpecs;
+            document.getElementById('completionRate').textContent = report.overallCompletion.toFixed(1) + '%';
+            document.getElementById('issuesCount').textContent = report.incompleteSpecs.length;
+            document.getElementById('lastAuditDate').textContent = new Date().toLocaleDateString('id-ID');
+        }
+
+        // Load audit logs
+        function loadAuditLogs() {
+            const logs = auditLogger.getRecentLogs(20);
+            const container = document.getElementById('auditLogsContainer');
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<p>Belum ada audit logs.</p>';
+                return;
+            }
+            
+            let html = '<table class="audit-table"><thead><tr><th>Timestamp</th><th>User</th><th>Operation</th><th>Entity</th></tr></thead><tbody>';
+            
+            logs.forEach(log => {
+                const date = new Date(log.timestamp).toLocaleString('id-ID');
+                html += `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${log.userName}</td>
+                        <td><span class="status-badge info">${log.operation}</span></td>
+                        <td>${log.entityType}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Load performance metrics
+        function loadPerformanceMetrics() {
+            // Calculate storage usage
+            let totalSize = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    totalSize += localStorage[key].length + key.length;
+                }
+            }
+            
+            const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+            document.getElementById('storageUsed').textContent = sizeInMB + ' MB';
+            
+            // Count total records
+            let totalRecords = 0;
+            const dataKeys = ['anggota', 'transaksi', 'barang', 'simpanan', 'pinjaman'];
+            dataKeys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed)) {
+                            totalRecords += parsed.length;
+                        }
+                    } catch (e) {}
+                }
+            });
+            
+            document.getElementById('totalRecords').textContent = totalRecords.toLocaleString('id-ID');
+            document.getElementById('cacheHitRate').textContent = 'N/A';
+            document.getElementById('avgLoadTime').textContent = 'N/A';
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            errorHandler.showInfo('Dashboard audit siap digunakan');
+            loadPerformanceMetrics();
+        });
+    </script>
+</body>
+</html>

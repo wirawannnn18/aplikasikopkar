@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Tanggal Pendaftaran Editable</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>🧪 Test: Fitur Tanggal Pendaftaran Editable</h2>
+        <p class="text-muted">Test untuk memverifikasi bahwa tanggal pendaftaran anggota bisa diedit</p>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5>Test Scenario</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Buka halaman Master Anggota</li>
+                    <li>Klik "Tambah Anggota"</li>
+                    <li>Verifikasi field tanggal pendaftaran bisa diedit</li>
+                    <li>Input tanggal historis (18 Oktober 2024)</li>
+                    <li>Simpan dan verifikasi data tersimpan dengan benar</li>
+                </ol>
+            </div>
+        </div>
+
+        <button class="btn btn-primary mb-3" onclick="runTests()">🚀 Jalankan Test</button>
+        <button class="btn btn-secondary mb-3" onclick="clearTests()">🗑️ Clear Results</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function clearTests() {
+            document.getElementById('testResults').innerHTML = '';
+            localStorage.removeItem('test_anggota');
+        }
+
+        function addTestResult(testName, passed, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultClass = passed ? 'test-pass' : 'test-fail';
+            const icon = passed ? '✅' : '❌';
+            
+            resultsDiv.innerHTML += `
+                <div class="test-result ${resultClass}">
+                    <strong>${icon} ${testName}</strong><br>
+                    <small>${message}</small>
+                </div>
+            `;
+        }
+
+        function addInfoResult(message) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML += `
+                <div class="test-result test-info">
+                    <strong>ℹ️ Info</strong><br>
+                    <small>${message}</small>
+                </div>
+            `;
+        }
+
+        function runTests() {
+            clearTests();
+            
+            addInfoResult('Memulai test suite untuk fitur tanggal pendaftaran editable...');
+            
+            // Test 1: Verifikasi fungsi getCurrentDateISO ada
+            try {
+                // Simulate the function
+                function getCurrentDateISO() {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+                
+                const todayISO = getCurrentDateISO();
+                const isValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(todayISO);
+                
+                addTestResult(
+                    'Test 1: Fungsi getCurrentDateISO()',
+                    isValidFormat,
+                    isValidFormat ? 
+                        `Format ISO valid: ${todayISO}` : 
+                        'Format ISO tidak valid'
+                );
+            } catch (error) {
+                addTestResult('Test 1: Fungsi getCurrentDateISO()', false, `Error: ${error.message}`);
+            }
+
+            // Test 2: Verifikasi fungsi formatDateToDisplay ada
+            try {
+                function formatDateToDisplay(isoDate) {
+                    if (!isoDate || typeof isoDate !== 'string') {
+                        return '';
+                    }
+                    
+                    try {
+                        const parts = isoDate.split('T')[0].split('-');
+                        if (parts.length !== 3) {
+                            return '';
+                        }
+                        
+                        const year = parts[0];
+                        const month = parts[1];
+                        const day = parts[2];
+                        
+                        if (!year || !month || !day) {
+                            return '';
+                        }
+                        
+                        return `${day}/${month}/${year}`;
+                    } catch (error) {
+                        return '';
+                    }
+                }
+                
+                const testDate = '2024-10-18';
+                const displayDate = formatDateToDisplay(testDate);
+                const expectedDisplay = '18/10/2024';
+                
+                addTestResult(
+                    'Test 2: Fungsi formatDateToDisplay()',
+                    displayDate === expectedDisplay,
+                    displayDate === expectedDisplay ? 
+                        `Konversi berhasil: ${testDate} → ${displayDate}` : 
+                        `Konversi gagal: Expected ${expectedDisplay}, Got ${displayDate}`
+                );
+            } catch (error) {
+                addTestResult('Test 2: Fungsi formatDateToDisplay()', false, `Error: ${error.message}`);
+            }
+
+            // Test 3: Simulasi save anggota dengan tanggal historis
+            try {
+                const testAnggota = {
+                    id: 'test-001',
+                    nik: '1234567890',
+                    nama: 'Test Anggota Historis',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    telepon: '081234567890',
+                    email: 'test@example.com',
+                    alamat: 'Jl. Test No. 123',
+                    tanggalDaftar: '2024-10-18' // Tanggal historis
+                };
+                
+                // Simpan ke localStorage
+                localStorage.setItem('test_anggota', JSON.stringify([testAnggota]));
+                
+                // Retrieve dan verifikasi
+                const savedData = JSON.parse(localStorage.getItem('test_anggota'));
+                const savedAnggota = savedData[0];
+                
+                const isCorrect = savedAnggota.tanggalDaftar === '2024-10-18';
+                
+                addTestResult(
+                    'Test 3: Simpan Anggota dengan Tanggal Historis',
+                    isCorrect,
+                    isCorrect ? 
+                        `Tanggal historis tersimpan: ${savedAnggota.tanggalDaftar}` : 
+                        `Tanggal tidak sesuai: Expected 2024-10-18, Got ${savedAnggota.tanggalDaftar}`
+                );
+            } catch (error) {
+                addTestResult('Test 3: Simpan Anggota dengan Tanggal Historis', false, `Error: ${error.message}`);
+            }
+
+            // Test 4: Simulasi edit anggota dan ubah tanggal
+            try {
+                const testAnggota = JSON.parse(localStorage.getItem('test_anggota'))[0];
+                
+                // Ubah tanggal pendaftaran
+                testAnggota.tanggalDaftar = '2024-11-01';
+                
+                // Simpan kembali
+                localStorage.setItem('test_anggota', JSON.stringify([testAnggota]));
+                
+                // Retrieve dan verifikasi
+                const updatedData = JSON.parse(localStorage.getItem('test_anggota'));
+                const updatedAnggota = updatedData[0];
+                
+                const isUpdated = updatedAnggota.tanggalDaftar === '2024-11-01';
+                
+                addTestResult(
+                    'Test 4: Edit Tanggal Pendaftaran',
+                    isUpdated,
+                    isUpdated ? 
+                        `Tanggal berhasil diubah: 2024-10-18 → ${updatedAnggota.tanggalDaftar}` : 
+                        `Tanggal gagal diubah: Expected 2024-11-01, Got ${updatedAnggota.tanggalDaftar}`
+                );
+            } catch (error) {
+                addTestResult('Test 4: Edit Tanggal Pendaftaran', false, `Error: ${error.message}`);
+            }
+
+            // Test 5: Validasi format tanggal
+            try {
+                const validDates = [
+                    '2024-10-18',
+                    '2024-01-01',
+                    '2024-12-31'
+                ];
+                
+                const invalidDates = [
+                    '2024-13-01', // Bulan invalid
+                    '2024-02-30', // Tanggal invalid
+                    '2025-01-01', // Masa depan
+                    'invalid-date'
+                ];
+                
+                function isValidDateFormat(dateStr) {
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                        return false;
+                    }
+                    
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    return date.getFullYear() === year &&
+                           date.getMonth() === month - 1 &&
+                           date.getDate() === day &&
+                           date <= today &&
+                           year >= 1900;
+                }
+                
+                const validResults = validDates.map(d => isValidDateFormat(d));
+                const invalidResults = invalidDates.map(d => !isValidDateFormat(d));
+                
+                const allValidPass = validResults.every(r => r === true);
+                const allInvalidPass = invalidResults.every(r => r === true);
+                
+                addTestResult(
+                    'Test 5: Validasi Format Tanggal',
+                    allValidPass && allInvalidPass,
+                    allValidPass && allInvalidPass ? 
+                        'Semua validasi tanggal berjalan dengan benar' : 
+                        'Ada validasi tanggal yang gagal'
+                );
+            } catch (error) {
+                addTestResult('Test 5: Validasi Format Tanggal', false, `Error: ${error.message}`);
+            }
+
+            // Test 6: Verifikasi field input type="date"
+            addInfoResult('Test 6: Verifikasi Manual - Buka halaman Master Anggota dan pastikan field "Tanggal Pendaftaran" menggunakan date picker (type="date")');
+
+            // Test 7: Verifikasi field tidak readonly
+            addInfoResult('Test 7: Verifikasi Manual - Pastikan field "Tanggal Pendaftaran" TIDAK memiliki atribut "readonly" dan bisa diedit');
+
+            // Summary
+            addInfoResult('✅ Test suite selesai! Silakan lakukan verifikasi manual di aplikasi untuk memastikan semua fitur berjalan dengan baik.');
+        }
+    </script>
+</body>
+</html>

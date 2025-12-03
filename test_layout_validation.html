@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Validation Tests</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .test-results {
+            padding: 20px;
+            margin: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #ccc;
+            background: #f8f9fa;
+        }
+        .test-item.pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-item.fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .viewport-test {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Test Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark" id="testNavbar">
+        <div class="container-fluid">
+            <button class="btn btn-sm d-lg-none me-2" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="navbar-brand">Test Navbar</span>
+        </div>
+    </nav>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Test Sidebar -->
+    <nav id="sidebar" class="sidebar">
+        <div class="position-sticky pt-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="#"><i class="bi bi-house"></i> Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"><i class="bi bi-people"></i> Anggota</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="testMain">
+        <div class="container-fluid">
+            <div class="test-results">
+                <h2 class="mb-4"><i class="bi bi-clipboard-check"></i> Layout Validation Tests</h2>
+                <p class="text-muted">Testing layout improvements for Requirements 1.1-4.5</p>
+                
+                <div id="testResults"></div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-primary" onclick="runAllTests()">
+                        <i class="bi bi-play-fill"></i> Run All Tests
+                    </button>
+                    <button class="btn btn-secondary" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Test Results Storage
+        let testResults = [];
+
+        // Helper Functions
+        function addTestResult(section, name, passed, expected, actual, requirement) {
+            testResults.push({
+                section,
+                name,
+                passed,
+                expected,
+                actual,
+                requirement
+            });
+        }
+
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = '';
+            
+            // Group by section
+            const sections = {};
+            testResults.forEach(result => {
+                if (!sections[result.section]) {
+                    sections[result.section] = [];
+                }
+                sections[result.section].push(result);
+            });
+            
+            // Display each section
+            Object.keys(sections).forEach(sectionName => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'test-section';
+                
+                const sectionTests = sections[sectionName];
+                const passedCount = sectionTests.filter(t => t.passed).length;
+                const totalCount = sectionTests.length;
+                
+                sectionDiv.innerHTML = `
+                    <h4>${sectionName} <span class="badge ${passedCount === totalCount ? 'bg-success' : 'bg-danger'}">${passedCount}/${totalCount}</span></h4>
+                `;
+                
+                sectionTests.forEach(test => {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = `test-item ${test.passed ? 'pass' : 'fail'}`;
+                    testDiv.innerHTML = `
+                        <strong>${test.passed ? '✓' : '✗'} ${test.name}</strong>
+                        <div class="small text-muted">Requirement: ${test.requirement}</div>
+                        <div class="small">Expected: ${test.expected}</div>
+                        <div class="small">Actual: ${test.actual}</div>
+                    `;
+                    sectionDiv.appendChild(testDiv);
+                });
+                
+                container.appendChild(sectionDiv);
+            });
+            
+            // Summary
+            const totalPassed = testResults.filter(t => t.passed).length;
+            const totalTests = testResults.length;
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `alert ${totalPassed === totalTests ? 'alert-success' : 'alert-warning'} mt-3`;
+            summaryDiv.innerHTML = `
+                <h5><i class="bi bi-info-circle"></i> Summary</h5>
+                <p>Total Tests: ${totalTests}</p>
+                <p>Passed: ${totalPassed}</p>
+                <p>Failed: ${totalTests - totalPassed}</p>
+                <p>Success Rate: ${((totalPassed / totalTests) * 100).toFixed(1)}%</p>
+            `;
+            container.appendChild(summaryDiv);
+        }
+
+        // Test Functions
+        function testNavbarProperties() {
+            const navbar = document.getElementById('testNavbar');
+            const styles = window.getComputedStyle(navbar);
+            
+            // Property 1: Navbar visibility consistency
+            // Test 1.1: Fixed positioning
+            addTestResult(
+                'Navbar Properties',
+                'Navbar has fixed positioning',
+                styles.position === 'fixed',
+                'fixed',
+                styles.position,
+                '1.1, 1.4'
+            );
+            
+            // Test 1.2: Height is 56px
+            addTestResult(
+                'Navbar Properties',
+                'Navbar height is 56px',
+                styles.height === '56px',
+                '56px',
+                styles.height,
+                '1.1'
+            );
+            
+            // Test 1.3: Top position is 0
+            addTestResult(
+                'Navbar Properties',
+                'Navbar is at top (top: 0)',
+                styles.top === '0px',
+                '0px',
+                styles.top,
+                '1.4'
+            );
+            
+            // Test 1.4: Z-index is 1030
+            const zIndex = parseInt(styles.zIndex);
+            addTestResult(
+                'Navbar Properties',
+                'Navbar z-index is 1030',
+                zIndex === 1030,
+                '1030',
+                zIndex.toString(),
+                '4.3'
+            );
+        }
+
+        function testMainContentProperties() {
+            const main = document.getElementById('testMain');
+            const styles = window.getComputedStyle(main);
+            
+            // Property 2: Content not obscured by navbar
+            // Test 2.1: Margin-top is at least 56px
+            const marginTop = parseInt(styles.marginTop);
+            addTestResult(
+                'Main Content Properties',
+                'Main content margin-top >= 56px',
+                marginTop >= 56,
+                '>= 56px',
+                `${marginTop}px`,
+                '1.2, 3.4'
+            );
+            
+            // Test 2.2: Min-height is set
+            addTestResult(
+                'Main Content Properties',
+                'Main content has min-height',
+                styles.minHeight !== '' && styles.minHeight !== 'auto',
+                'calc(100vh - 56px) or equivalent',
+                styles.minHeight,
+                '3.4'
+            );
+        }
+
+        function testSidebarProperties() {
+            const sidebar = document.getElementById('sidebar');
+            const styles = window.getComputedStyle(sidebar);
+            
+            // Property 3: Desktop sidebar spacing
+            // Test 3.1: Width is 250px
+            addTestResult(
+                'Sidebar Properties',
+                'Sidebar width is 250px',
+                styles.width === '250px',
+                '250px',
+                styles.width,
+                '1.3, 3.2'
+            );
+            
+            // Test 3.2: Fixed positioning
+            addTestResult(
+                'Sidebar Properties',
+                'Sidebar has fixed positioning',
+                styles.position === 'fixed',
+                'fixed',
+                styles.position,
+                '3.1'
+            );
+            
+            // Test 3.3: Top is 56px (below navbar)
+            addTestResult(
+                'Sidebar Properties',
+                'Sidebar top is 56px',
+                styles.top === '56px',
+                '56px',
+                styles.top,
+                '3.1'
+            );
+            
+            // Test 3.4: Z-index is 100
+            const zIndex = parseInt(styles.zIndex);
+            addTestResult(
+                'Sidebar Properties',
+                'Sidebar z-index is 100',
+                zIndex === 100,
+                '100',
+                zIndex.toString(),
+                '4.3'
+            );
+        }
+
+        function testSidebarOverlayProperties() {
+            const overlay = document.getElementById('sidebarOverlay');
+            const styles = window.getComputedStyle(overlay);
+            
+            // Test overlay properties
+            // Test 4.1: Z-index is 99
+            const zIndex = parseInt(styles.zIndex);
+            addTestResult(
+                'Sidebar Overlay Properties',
+                'Overlay z-index is 99',
+                zIndex === 99,
+                '99',
+                zIndex.toString(),
+                '4.3'
+            );
+            
+            // Test 4.2: Fixed positioning
+            addTestResult(
+                'Sidebar Overlay Properties',
+                'Overlay has fixed positioning',
+                styles.position === 'fixed',
+                'fixed',
+                styles.position,
+                '2.2'
+            );
+            
+            // Test 4.3: Top is 56px
+            addTestResult(
+                'Sidebar Overlay Properties',
+                'Overlay top is 56px',
+                styles.top === '56px',
+                '56px',
+                styles.top,
+                '2.2'
+            );
+        }
+
+        function testZIndexHierarchy() {
+            const navbar = document.getElementById('testNavbar');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            const navbarZ = parseInt(window.getComputedStyle(navbar).zIndex);
+            const sidebarZ = parseInt(window.getComputedStyle(sidebar).zIndex);
+            const overlayZ = parseInt(window.getComputedStyle(overlay).zIndex);
+            
+            // Property 6: Z-index hierarchy
+            // Test 6.1: Navbar > Sidebar
+            addTestResult(
+                'Z-Index Hierarchy',
+                'Navbar z-index > Sidebar z-index',
+                navbarZ > sidebarZ,
+                `${navbarZ} > ${sidebarZ}`,
+                `${navbarZ} ${navbarZ > sidebarZ ? '>' : '<='} ${sidebarZ}`,
+                '4.3'
+            );
+            
+            // Test 6.2: Sidebar > Overlay
+            addTestResult(
+                'Z-Index Hierarchy',
+                'Sidebar z-index > Overlay z-index',
+                sidebarZ > overlayZ,
+                `${sidebarZ} > ${overlayZ}`,
+                `${sidebarZ} ${sidebarZ > overlayZ ? '>' : '<='} ${overlayZ}`,
+                '4.3'
+            );
+        }
+
+        function testResponsiveSpacing() {
+            const body = document.body;
+            const html = document.documentElement;
+            
+            const bodyStyles = window.getComputedStyle(body);
+            const htmlStyles = window.getComputedStyle(html);
+            
+            // Property 5: Responsive spacing consistency
+            // Test 5.1: No horizontal overflow
+            addTestResult(
+                'Responsive Spacing',
+                'Body overflow-x is hidden',
+                bodyStyles.overflowX === 'hidden',
+                'hidden',
+                bodyStyles.overflowX,
+                '2.1, 4.4'
+            );
+            
+            addTestResult(
+                'Responsive Spacing',
+                'HTML overflow-x is hidden',
+                htmlStyles.overflowX === 'hidden',
+                'hidden',
+                htmlStyles.overflowX,
+                '2.1, 4.4'
+            );
+        }
+
+        function testCSSVariables() {
+            const root = document.documentElement;
+            const styles = window.getComputedStyle(root);
+            
+            const navbarZ = styles.getPropertyValue('--z-index-navbar').trim();
+            const sidebarZ = styles.getPropertyValue('--z-index-sidebar').trim();
+            const overlayZ = styles.getPropertyValue('--z-index-overlay').trim();
+            
+            // Test CSS variables
+            addTestResult(
+                'CSS Organization',
+                'CSS variable --z-index-navbar is defined',
+                navbarZ !== '',
+                'defined (1030)',
+                navbarZ || 'undefined',
+                '4.1, 4.3'
+            );
+            
+            addTestResult(
+                'CSS Organization',
+                'CSS variable --z-index-sidebar is defined',
+                sidebarZ !== '',
+                'defined (100)',
+                sidebarZ || 'undefined',
+                '4.1, 4.3'
+            );
+            
+            addTestResult(
+                'CSS Organization',
+                'CSS variable --z-index-overlay is defined',
+                overlayZ !== '',
+                'defined (99)',
+                overlayZ || 'undefined',
+                '4.1, 4.3'
+            );
+        }
+
+        function testSidebarToggle() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggle = document.getElementById('sidebarToggle');
+            
+            // Test toggle functionality
+            const initialSidebarClass = sidebar.className;
+            const initialOverlayClass = overlay.className;
+            
+            // Simulate click
+            toggle.click();
+            
+            const afterClickSidebarClass = sidebar.className;
+            const afterClickOverlayClass = overlay.className;
+            
+            addTestResult(
+                'Sidebar Toggle Functionality',
+                'Sidebar toggle adds "show" class',
+                afterClickSidebarClass.includes('show'),
+                'class includes "show"',
+                afterClickSidebarClass,
+                '2.2, 2.3'
+            );
+            
+            addTestResult(
+                'Sidebar Toggle Functionality',
+                'Overlay toggle adds "show" class',
+                afterClickOverlayClass.includes('show'),
+                'class includes "show"',
+                afterClickOverlayClass,
+                '2.2'
+            );
+            
+            // Click overlay to close
+            overlay.click();
+            
+            const afterOverlayClickSidebarClass = sidebar.className;
+            const afterOverlayClickOverlayClass = overlay.className;
+            
+            addTestResult(
+                'Sidebar Toggle Functionality',
+                'Clicking overlay removes "show" from sidebar',
+                !afterOverlayClickSidebarClass.includes('show'),
+                'class does not include "show"',
+                afterOverlayClickSidebarClass,
+                '2.3'
+            );
+            
+            addTestResult(
+                'Sidebar Toggle Functionality',
+                'Clicking overlay removes "show" from overlay',
+                !afterOverlayClickOverlayClass.includes('show'),
+                'class does not include "show"',
+                afterOverlayClickOverlayClass,
+                '2.3'
+            );
+        }
+
+        // Run All Tests
+        function runAllTests() {
+            testResults = [];
+            
+            testNavbarProperties();
+            testMainContentProperties();
+            testSidebarProperties();
+            testSidebarOverlayProperties();
+            testZIndexHierarchy();
+            testResponsiveSpacing();
+            testCSSVariables();
+            testSidebarToggle();
+            
+            displayResults();
+        }
+
+        // Initialize sidebar toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            if (sidebarToggle && sidebar && sidebarOverlay) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('show');
+                    sidebarOverlay.classList.toggle('show');
+                });
+                
+                sidebarOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    sidebarOverlay.classList.remove('show');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

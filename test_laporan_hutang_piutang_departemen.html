@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Laporan Hutang Piutang dengan Departemen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">Test Laporan Hutang Piutang dengan Departemen</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Setup Test Data</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success" onclick="setupTestData()">
+                    <i class="bi bi-database-fill-add"></i> Setup Test Data
+                </button>
+                <button class="btn btn-danger ms-2" onclick="clearTestData()">
+                    <i class="bi bi-trash"></i> Clear Test Data
+                </button>
+                <button class="btn btn-info ms-2" onclick="viewTestData()">
+                    <i class="bi bi-eye"></i> View Test Data
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Laporan Hutang Piutang</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="loadReport()">
+                    <i class="bi bi-file-earmark-text"></i> Load Report
+                </button>
+                <div id="laporanContent" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="testResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        function setupTestData() {
+            // Setup departemen data
+            const departemen = [
+                { id: 'dept-1', nama: 'IT', kode: 'IT' },
+                { id: 'dept-2', nama: 'Finance', kode: 'FIN' },
+                { id: 'dept-3', nama: 'Marketing', kode: 'MKT' },
+                { id: 'dept-4', nama: 'HR', kode: 'HR' }
+            ];
+            localStorage.setItem('departemen', JSON.stringify(departemen));
+
+            // Setup anggota data with departments
+            const anggota = [
+                { 
+                    id: 'ang-1', 
+                    nik: '001', 
+                    nama: 'Ahmad Santoso', 
+                    departemen: 'dept-1',
+                    noKartu: 'K001',
+                    status: 'Aktif'
+                },
+                { 
+                    id: 'ang-2', 
+                    nik: '002', 
+                    nama: 'Budi Hartono', 
+                    departemen: 'dept-2',
+                    noKartu: 'K002',
+                    status: 'Aktif'
+                },
+                { 
+                    id: 'ang-3', 
+                    nik: '003', 
+                    nama: 'Citra Dewi', 
+                    departemen: 'dept-3',
+                    noKartu: 'K003',
+                    status: 'Aktif'
+                },
+                { 
+                    id: 'ang-4', 
+                    nik: '004', 
+                    nama: 'Dedi Kurniawan', 
+                    departemen: '',  // No department
+                    noKartu: 'K004',
+                    status: 'Aktif'
+                },
+                { 
+                    id: 'ang-5', 
+                    nik: '005', 
+                    nama: 'Eka Putri', 
+                    departemen: 'dept-1',
+                    noKartu: 'K005',
+                    status: 'Aktif'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+
+            // Setup penjualan data (kredit sales)
+            const penjualan = [
+                {
+                    id: 'pj-1',
+                    anggotaId: 'ang-1',
+                    total: 500000,
+                    status: 'kredit',
+                    tanggal: '2024-01-15'
+                },
+                {
+                    id: 'pj-2',
+                    anggotaId: 'ang-1',
+                    total: 300000,
+                    status: 'kredit',
+                    tanggal: '2024-01-20'
+                },
+                {
+                    id: 'pj-3',
+                    anggotaId: 'ang-2',
+                    total: 750000,
+                    status: 'kredit',
+                    tanggal: '2024-01-18'
+                },
+                {
+                    id: 'pj-4',
+                    anggotaId: 'ang-3',
+                    total: 0,
+                    status: 'lunas',
+                    tanggal: '2024-01-10'
+                },
+                {
+                    id: 'pj-5',
+                    anggotaId: 'ang-4',
+                    total: 1200000,
+                    status: 'kredit',
+                    tanggal: '2024-01-22'
+                },
+                {
+                    id: 'pj-6',
+                    anggotaId: 'ang-5',
+                    total: 450000,
+                    status: 'kredit',
+                    tanggal: '2024-01-25'
+                }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+
+            showAlert('✅ Test data berhasil di-setup!', 'success');
+        }
+
+        function clearTestData() {
+            localStorage.removeItem('departemen');
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('penjualan');
+            document.getElementById('laporanContent').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '';
+            showAlert('🗑️ Test data berhasil dihapus!', 'info');
+        }
+
+        function viewTestData() {
+            const departemen = JSON.parse(localStorage.getItem('departemen') || '[]');
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+
+            const html = `
+                <h6>Departemen (${departemen.length}):</h6>
+                <pre>${JSON.stringify(departemen, null, 2)}</pre>
+                <h6>Anggota (${anggota.length}):</h6>
+                <pre>${JSON.stringify(anggota, null, 2)}</pre>
+                <h6>Penjualan Kredit (${penjualan.filter(p => p.status === 'kredit').length}):</h6>
+                <pre>${JSON.stringify(penjualan.filter(p => p.status === 'kredit'), null, 2)}</pre>
+            `;
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        function loadReport() {
+            try {
+                laporanHutangPiutang();
+                runTests();
+                testFilterFunctionality();
+                showAlert('✅ Laporan berhasil dimuat!', 'success');
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'danger');
+                console.error(error);
+            }
+        }
+        
+        function testFilterFunctionality() {
+            const filterTests = [];
+            
+            // Test 1: Check if filter dropdown exists
+            const filterDropdown = document.getElementById('filterDepartemenHutangPiutang');
+            filterTests.push({
+                test: 'Filter dropdown exists',
+                passed: filterDropdown !== null,
+                details: filterDropdown ? 'Found' : 'Not found'
+            });
+            
+            // Test 2: Check if filter has options
+            if (filterDropdown) {
+                const options = Array.from(filterDropdown.options).map(opt => opt.value);
+                filterTests.push({
+                    test: 'Filter has options',
+                    passed: options.length > 1, // Should have at least "Semua Departemen" + departments
+                    details: `${options.length} options: ${options.join(', ')}`
+                });
+                
+                // Test 3: Check if "Semua Departemen" option exists
+                const hasSemua = options.includes('');
+                filterTests.push({
+                    test: 'Has "Semua Departemen" option',
+                    passed: hasSemua,
+                    details: hasSemua ? 'Found' : 'Not found'
+                });
+                
+                // Test 4: Test filter functionality
+                if (options.length > 1) {
+                    // Select first department
+                    const firstDept = options.find(opt => opt !== '' && opt !== '-');
+                    if (firstDept) {
+                        filterDropdown.value = firstDept;
+                        filterHutangPiutangByDepartemen();
+                        
+                        // Check if table was filtered
+                        const rows = document.querySelectorAll('#hutangPiutangTableCard tbody tr');
+                        const allMatchFilter = Array.from(rows).every(row => {
+                            const deptCell = row.cells[2];
+                            return deptCell && deptCell.textContent.includes(firstDept);
+                        });
+                        
+                        filterTests.push({
+                            test: 'Filter functionality works',
+                            passed: allMatchFilter,
+                            details: `Filtered by ${firstDept}, ${rows.length} rows shown`
+                        });
+                        
+                        // Reset filter
+                        resetFilterHutangPiutang();
+                    }
+                }
+                
+                // Test 5: Check reset functionality
+                const countAfterReset = document.getElementById('countFilteredHutangPiutang');
+                const totalCount = hutangPiutangReportData.length;
+                filterTests.push({
+                    test: 'Reset filter works',
+                    passed: countAfterReset && parseInt(countAfterReset.textContent) === totalCount,
+                    details: `Count after reset: ${countAfterReset ? countAfterReset.textContent : 'N/A'}`
+                });
+            }
+            
+            // Display filter test results
+            const filterResultsHtml = `
+                <h6 class="mt-4">Filter Functionality Tests:</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Test</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filterTests.map(r => `
+                            <tr class="${r.passed ? 'table-success' : 'table-danger'}">
+                                <td>${r.test}</td>
+                                <td>${r.passed ? '✅ PASS' : '❌ FAIL'}</td>
+                                <td><small>${r.details}</small></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="alert ${filterTests.every(r => r.passed) ? 'alert-success' : 'alert-warning'}">
+                    <strong>Filter Tests Summary:</strong> ${filterTests.filter(r => r.passed).length} / ${filterTests.length} tests passed
+                </div>
+            `;
+            
+            const existingResults = document.getElementById('testResults').innerHTML;
+            document.getElementById('testResults').innerHTML = existingResults + filterResultsHtml;
+        }
+
+        function runTests() {
+            const results = [];
+            
+            // Test 1: Check if department column exists
+            const table = document.querySelector('#laporanContent table');
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            const hasDepartemenColumn = headers.some(h => h.includes('Departemen'));
+            results.push({
+                test: 'Department column exists',
+                passed: hasDepartemenColumn,
+                details: `Headers: ${headers.join(', ')}`
+            });
+
+            // Test 2: Check if NIK column exists
+            const hasNIKColumn = headers.some(h => h.includes('NIK'));
+            results.push({
+                test: 'NIK column exists',
+                passed: hasNIKColumn,
+                details: `Headers: ${headers.join(', ')}`
+            });
+
+            // Test 3: Check if all rows have department data
+            const rows = table.querySelectorAll('tbody tr');
+            let allRowsHaveDepartment = true;
+            let departmentValues = [];
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const deptCell = cells[2]; // Department is 3rd column (index 2)
+                if (deptCell) {
+                    departmentValues.push(deptCell.textContent);
+                    if (!deptCell.textContent || deptCell.textContent.trim() === '') {
+                        allRowsHaveDepartment = false;
+                    }
+                }
+            });
+            results.push({
+                test: 'All rows have department value',
+                passed: allRowsHaveDepartment,
+                details: `Department values: ${departmentValues.join(', ')}`
+            });
+
+            // Test 4: Check if members without department show "-" or "Tidak Ada Departemen"
+            const hasDashForMissingDept = departmentValues.some(v => v.includes('-') || v.includes('Tidak Ada Departemen'));
+            results.push({
+                test: 'Members without department show "-" or "Tidak Ada Departemen"',
+                passed: hasDashForMissingDept,
+                details: `Found missing dept indicator: ${hasDashForMissingDept}`
+            });
+
+            // Test 5: Check if total hutang is calculated correctly
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+            
+            // Calculate expected hutang for ang-1 (Ahmad)
+            const expectedHutangAhmad = penjualan
+                .filter(p => p.anggotaId === 'ang-1' && p.status === 'kredit')
+                .reduce((sum, p) => sum + p.total, 0);
+            
+            results.push({
+                test: 'Total hutang calculation',
+                passed: expectedHutangAhmad === 800000,
+                details: `Expected: Rp 800,000, Calculated: Rp ${expectedHutangAhmad.toLocaleString('id-ID')}`
+            });
+
+            // Display results
+            const resultsHtml = `
+                <h6>Test Results:</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Test</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(r => `
+                            <tr class="${r.passed ? 'table-success' : 'table-danger'}">
+                                <td>${r.test}</td>
+                                <td>${r.passed ? '✅ PASS' : '❌ FAIL'}</td>
+                                <td><small>${r.details}</small></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="alert ${results.every(r => r.passed) ? 'alert-success' : 'alert-warning'}">
+                    <strong>Summary:</strong> ${results.filter(r => r.passed).length} / ${results.length} tests passed
+                </div>
+            `;
+            document.getElementById('testResults').innerHTML = resultsHtml;
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Auto-load on page load if data exists
+        window.addEventListener('load', () => {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            if (anggota.length > 0) {
+                loadReport();
+            }
+        });
+    </script>
+</body>
+</html>

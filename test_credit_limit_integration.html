@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Credit Limit Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Credit Limit Integration</h2>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5>Test 1: Script Loading</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="testScriptLoading()">Run Test</button>
+                <div id="test1Result" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5>Test 2: CreditLimitValidator Instance</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success" onclick="testValidatorInstance()">Run Test</button>
+                <div id="test2Result" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5>Test 3: Calculate Outstanding Balance</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-info" onclick="testCalculateBalance()">Run Test</button>
+                <div id="test3Result" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h5>Test 4: Validate Credit Transaction</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-warning" onclick="testValidateTransaction()">Run Test</button>
+                <div id="test4Result" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h5>Test 5: Get Credit Status</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-secondary" onclick="testCreditStatus()">Run Test</button>
+                <div id="test5Result" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/creditLimit.js"></script>
+    <script>
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function testScriptLoading() {
+            const result = document.getElementById('test1Result');
+            try {
+                if (typeof CreditLimitValidator !== 'undefined') {
+                    result.innerHTML = '<div class="alert alert-success">✅ CreditLimitValidator class loaded successfully</div>';
+                } else {
+                    result.innerHTML = '<div class="alert alert-danger">❌ CreditLimitValidator class not found</div>';
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testValidatorInstance() {
+            const result = document.getElementById('test2Result');
+            try {
+                if (typeof creditLimitValidator !== 'undefined') {
+                    result.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ creditLimitValidator instance exists<br>
+                            <strong>Credit Limit:</strong> ${formatRupiah(creditLimitValidator.CREDIT_LIMIT)}
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = '<div class="alert alert-danger">❌ creditLimitValidator instance not found</div>';
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testCalculateBalance() {
+            const result = document.getElementById('test3Result');
+            try {
+                // Setup test data
+                const testAnggotaId = 'test-member-001';
+                const testTransactions = [
+                    {
+                        id: '1',
+                        anggotaId: testAnggotaId,
+                        metode: 'bon',
+                        status: 'kredit',
+                        total: 500000
+                    },
+                    {
+                        id: '2',
+                        anggotaId: testAnggotaId,
+                        metode: 'bon',
+                        status: 'kredit',
+                        total: 300000
+                    },
+                    {
+                        id: '3',
+                        anggotaId: testAnggotaId,
+                        metode: 'bon',
+                        status: 'lunas',
+                        total: 200000
+                    }
+                ];
+                
+                localStorage.setItem('penjualan', JSON.stringify(testTransactions));
+                
+                const balance = creditLimitValidator.calculateOutstandingBalance(testAnggotaId);
+                const expected = 800000; // 500000 + 300000 (lunas tidak dihitung)
+                
+                if (balance === expected) {
+                    result.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Calculate Outstanding Balance works correctly<br>
+                            <strong>Expected:</strong> ${formatRupiah(expected)}<br>
+                            <strong>Actual:</strong> ${formatRupiah(balance)}
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="alert alert-danger">
+                            ❌ Calculate Outstanding Balance failed<br>
+                            <strong>Expected:</strong> ${formatRupiah(expected)}<br>
+                            <strong>Actual:</strong> ${formatRupiah(balance)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testValidateTransaction() {
+            const result = document.getElementById('test4Result');
+            try {
+                // Setup test data
+                const testAnggotaId = 'test-member-002';
+                const testTransactions = [
+                    {
+                        id: '1',
+                        anggotaId: testAnggotaId,
+                        metode: 'bon',
+                        status: 'kredit',
+                        total: 1800000
+                    }
+                ];
+                
+                localStorage.setItem('penjualan', JSON.stringify(testTransactions));
+                
+                // Test 1: Transaction that should be rejected
+                const validation1 = creditLimitValidator.validateCreditTransaction(testAnggotaId, 500000);
+                
+                // Test 2: Transaction that should be accepted
+                const validation2 = creditLimitValidator.validateCreditTransaction(testAnggotaId, 100000);
+                
+                let html = '<div class="alert alert-success">';
+                
+                if (!validation1.valid) {
+                    html += '✅ Test 1 PASSED: Transaction exceeding limit rejected<br>';
+                    html += `<small>Outstanding: ${formatRupiah(validation1.details.outstandingBalance)}, `;
+                    html += `Transaction: ${formatRupiah(validation1.details.transactionAmount)}, `;
+                    html += `Exceeded by: ${formatRupiah(validation1.details.exceededBy)}</small><br><br>`;
+                } else {
+                    html += '❌ Test 1 FAILED: Transaction should be rejected<br><br>';
+                }
+                
+                if (validation2.valid) {
+                    html += '✅ Test 2 PASSED: Transaction within limit accepted<br>';
+                    html += `<small>Outstanding: ${formatRupiah(validation2.details.outstandingBalance)}, `;
+                    html += `Transaction: ${formatRupiah(validation2.details.transactionAmount)}, `;
+                    html += `Remaining: ${formatRupiah(validation2.details.remainingCredit)}</small>`;
+                } else {
+                    html += '❌ Test 2 FAILED: Transaction should be accepted';
+                }
+                
+                html += '</div>';
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testCreditStatus() {
+            const result = document.getElementById('test5Result');
+            try {
+                // Setup test data for different status levels
+                const testCases = [
+                    { id: 'safe-member', balance: 1000000, expectedStatus: 'safe' },
+                    { id: 'warning-member', balance: 1700000, expectedStatus: 'warning' },
+                    { id: 'critical-member', balance: 1950000, expectedStatus: 'critical' }
+                ];
+                
+                let html = '<div class="alert alert-success">';
+                let allPassed = true;
+                
+                testCases.forEach(testCase => {
+                    const transactions = [{
+                        id: '1',
+                        anggotaId: testCase.id,
+                        metode: 'bon',
+                        status: 'kredit',
+                        total: testCase.balance
+                    }];
+                    
+                    localStorage.setItem('penjualan', JSON.stringify(transactions));
+                    const status = creditLimitValidator.getCreditStatus(testCase.id);
+                    
+                    if (status.status === testCase.expectedStatus) {
+                        html += `✅ ${testCase.expectedStatus.toUpperCase()}: ${status.message} (${status.percentage}%)<br>`;
+                    } else {
+                        html += `❌ Expected ${testCase.expectedStatus}, got ${status.status}<br>`;
+                        allPassed = false;
+                    }
+                });
+                
+                html += '</div>';
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-run all tests on load
+        window.onload = function() {
+            console.log('Credit Limit Integration Test Page Loaded');
+            console.log('creditLimitValidator available:', typeof creditLimitValidator !== 'undefined');
+        };
+    </script>
+</body>
+</html>

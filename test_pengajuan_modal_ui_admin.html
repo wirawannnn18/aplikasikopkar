@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pengajuan Modal UI Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Pengajuan Modal UI Admin</h2>
+        <p class="text-muted">Testing Task 5.1, 5.3, 5.5 Implementation</p>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Test Scenarios</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Setup</h6>
+                        <button class="btn btn-sm btn-info mb-2 w-100" onclick="setupTestData()">Setup Test Data</button>
+                        <button class="btn btn-sm btn-warning mb-2 w-100" onclick="clearTestData()">Clear Test Data</button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Test Pages</h6>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testKelolaPengajuan()">Test Kelola Pengajuan</button>
+                        <button class="btn btn-sm btn-primary mb-2 w-100" onclick="testRiwayatPengajuan()">Test Riwayat Pengajuan</button>
+                        <button class="btn btn-sm btn-success mb-2 w-100" onclick="testApprovalFlow()">Test Approval Flow</button>
+                        <button class="btn btn-sm btn-danger mb-2 w-100" onclick="testRejectionFlow()">Test Rejection Flow</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Test Output</h5>
+            </div>
+            <div class="card-body">
+                <div id="mainContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    <script src="js/pengajuanModalAdmin.js"></script>
+    
+    <script>
+        function setupTestData() {
+            // Initialize data structures
+            initializePengajuanModalData();
+            
+            // Set current user as admin
+            window.currentUser = {
+                id: 'admin-test-001',
+                name: 'Test Admin',
+                role: 'admin'
+            };
+            
+            // Create some test pengajuan with different statuses
+            const kasir1 = { id: 'kasir-001', name: 'Kasir Satu', role: 'kasir' };
+            const kasir2 = { id: 'kasir-002', name: 'Kasir Dua', role: 'kasir' };
+            const kasir3 = { id: 'kasir-003', name: 'Kasir Tiga', role: 'kasir' };
+            
+            // Create pending pengajuan
+            createPengajuanModal(kasir1.id, kasir1.name, 2000000, 'Modal untuk shift pagi');
+            createPengajuanModal(kasir2.id, kasir2.name, 1500000, 'Modal untuk shift siang');
+            
+            // Create and approve pengajuan
+            const p3 = createPengajuanModal(kasir3.id, kasir3.name, 2500000, 'Modal untuk shift malam');
+            if (p3.success) {
+                approvePengajuan(p3.data.id, currentUser.id, currentUser.name);
+            }
+            
+            // Create and reject pengajuan
+            const kasir4 = { id: 'kasir-004', name: 'Kasir Empat', role: 'kasir' };
+            const p4 = createPengajuanModal(kasir4.id, kasir4.name, 6000000, 'Modal terlalu besar');
+            if (p4.success) {
+                rejectPengajuan(p4.data.id, currentUser.id, currentUser.name, 'Jumlah melebihi batas maksimum');
+            }
+            
+            alert('Test data setup complete!\nUser: Test Admin (admin)\n- 2 Pending\n- 1 Approved\n- 1 Rejected');
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pengajuanModal');
+            localStorage.removeItem('pengajuanModalSettings');
+            localStorage.removeItem('pengajuanModalAudit');
+            localStorage.removeItem('notifications');
+            sessionStorage.clear();
+            document.getElementById('mainContent').innerHTML = '';
+            alert('Test data cleared!');
+        }
+        
+        function testKelolaPengajuan() {
+            setupTestData();
+            renderKelolaPengajuanModal();
+            console.log('Test Kelola Pengajuan: Should show pending list with approve/reject buttons');
+        }
+        
+        function testRiwayatPengajuan() {
+            setupTestData();
+            renderRiwayatPengajuanAdmin();
+            console.log('Test Riwayat Pengajuan: Should show history with statistics and export button');
+        }
+        
+        function testApprovalFlow() {
+            setupTestData();
+            renderKelolaPengajuanModal();
+            
+            // Get first pending pengajuan
+            const pendingList = getPengajuanPending();
+            if (pendingList.length > 0) {
+                setTimeout(() => {
+                    showApprovalModal(pendingList[0].id);
+                    console.log('Test Approval Flow: Approval modal should be shown');
+                }, 500);
+            } else {
+                alert('No pending pengajuan to test approval');
+            }
+        }
+        
+        function testRejectionFlow() {
+            setupTestData();
+            renderKelolaPengajuanModal();
+            
+            // Get first pending pengajuan
+            const pendingList = getPengajuanPending();
+            if (pendingList.length > 0) {
+                setTimeout(() => {
+                    showRejectionModal(pendingList[0].id);
+                    console.log('Test Rejection Flow: Rejection modal should be shown with reason textarea');
+                }, 500);
+            } else {
+                alert('No pending pengajuan to test rejection');
+            }
+        }
+        
+        function testFilterAndSearch() {
+            setupTestData();
+            renderKelolaPengajuanModal();
+            
+            console.log('Test Filter: Try changing filter status, date range, and search kasir name');
+        }
+        
+        function testExportCSV() {
+            setupTestData();
+            renderRiwayatPengajuanAdmin();
+            
+            setTimeout(() => {
+                exportPengajuanToCSV();
+                console.log('Test Export CSV: CSV file should be downloaded');
+            }, 500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Backup & Restore</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Test Backup & Restore Functionality</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Test Status</h5>
+            </div>
+            <div class="card-body">
+                <div id="testResults"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Manual Test</h5>
+            </div>
+            <div class="card-body">
+                <p>Untuk menguji fitur Backup & Restore:</p>
+                <ol>
+                    <li>Login sebagai Super Admin atau Administrator</li>
+                    <li>Klik menu "Backup & Restore" di sidebar</li>
+                    <li>Verifikasi bahwa halaman menampilkan:
+                        <ul>
+                            <li>Statistik data (Total Records, Kategori Data, dll)</li>
+                            <li>Tombol "Buat Backup"</li>
+                            <li>Tombol "Restore dari Backup"</li>
+                            <li>Daftar kategori data</li>
+                            <li>Riwayat backup</li>
+                        </ul>
+                    </li>
+                    <li>Klik "Buat Backup" dan verifikasi file JSON terdownload</li>
+                    <li>Klik "Restore dari Backup" dan upload file backup yang baru dibuat</li>
+                </ol>
+                
+                <a href="index.html" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Buka Aplikasi
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Test if backup.js exports are available
+        const testResults = document.getElementById('testResults');
+        const tests = [];
+        
+        // Test 1: Check if backup.js file exists
+        tests.push({
+            name: 'Backup.js file exists',
+            status: 'checking',
+            message: 'Checking if backup.js is accessible...'
+        });
+        
+        // Test 2: Check if renderBackupRestore function exists
+        tests.push({
+            name: 'renderBackupRestore function exists',
+            status: 'checking',
+            message: 'Checking if renderBackupRestore is defined...'
+        });
+        
+        // Test 3: Check if menu includes backup-restore
+        tests.push({
+            name: 'Menu includes backup-restore',
+            status: 'checking',
+            message: 'Checking if menu configuration includes backup-restore...'
+        });
+        
+        function updateTestResults() {
+            testResults.innerHTML = tests.map(test => `
+                <div class="alert alert-${test.status === 'pass' ? 'success' : test.status === 'fail' ? 'danger' : 'warning'} mb-2">
+                    <strong>${test.name}:</strong> 
+                    ${test.status === 'pass' ? '<i class="bi bi-check-circle-fill"></i>' : 
+                      test.status === 'fail' ? '<i class="bi bi-x-circle-fill"></i>' : 
+                      '<i class="bi bi-hourglass-split"></i>'}
+                    ${test.message}
+                </div>
+            `).join('');
+        }
+        
+        updateTestResults();
+        
+        // Run tests
+        setTimeout(async () => {
+            try {
+                // Test 1: Try to import backup.js
+                const backupModule = await import('./js/backup.js');
+                tests[0].status = 'pass';
+                tests[0].message = 'backup.js loaded successfully';
+                
+                // Test 2: Check if classes are exported
+                if (backupModule.BackupService && backupModule.RestoreService) {
+                    tests[1].status = 'pass';
+                    tests[1].message = 'BackupService and RestoreService classes are available';
+                } else {
+                    tests[1].status = 'fail';
+                    tests[1].message = 'Required classes not found in backup.js';
+                }
+                
+                // Test 3: Check if renderBackupRestore is globally available
+                if (typeof window.renderBackupRestore === 'function') {
+                    tests[2].status = 'pass';
+                    tests[2].message = 'renderBackupRestore function is globally available';
+                } else {
+                    tests[2].status = 'warning';
+                    tests[2].message = 'renderBackupRestore is not globally available (this is OK if it\'s called from auth.js)';
+                }
+                
+            } catch (error) {
+                tests[0].status = 'fail';
+                tests[0].message = `Error loading backup.js: ${error.message}`;
+                tests[1].status = 'fail';
+                tests[1].message = 'Cannot test - backup.js failed to load';
+                tests[2].status = 'fail';
+                tests[2].message = 'Cannot test - backup.js failed to load';
+            }
+            
+            updateTestResults();
+        }, 500);
+    </script>
+</body>
+</html>

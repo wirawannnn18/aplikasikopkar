@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Console Commands</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">🧪 Test Console Commands</h1>
+        
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle-fill me-2"></i>Instruksi</h5>
+            <ol class="mb-0">
+                <li>Pastikan Anda sudah login di aplikasi utama (http://localhost:3000)</li>
+                <li>Login sebagai <strong>Super Admin</strong> (superadmin / super123)</li>
+                <li>Klik tombol "Run All Tests" di bawah</li>
+                <li>Lihat hasil test</li>
+            </ol>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Automated Tests</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success btn-lg w-100 mb-3" onclick="runAllTests()">
+                    <i class="bi bi-play-fill me-2"></i>Run All Tests
+                </button>
+                
+                <div id="testResults"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Manual Test</h5>
+            </div>
+            <div class="card-body">
+                <p>Jika automated test tidak bisa dijalankan, test manual:</p>
+                <ol>
+                    <li>Buka aplikasi: <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+                    <li>Login sebagai Super Admin</li>
+                    <li>Buka Developer Console (F12)</li>
+                    <li>Jalankan command berikut satu per satu:</li>
+                </ol>
+                
+                <div class="mb-3">
+                    <label class="form-label"><strong>1. Cek user saat ini:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="cmd1" value="JSON.parse(localStorage.getItem('currentUser'))" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyCmd('cmd1')">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><strong>2. Cek fungsi renderSystemSettings:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="cmd2" value="typeof renderSystemSettings" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyCmd('cmd2')">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><strong>3. Cek fungsi isSuperAdmin:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="cmd3" value="typeof isSuperAdmin" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyCmd('cmd3')">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><strong>4. Test isSuperAdmin:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="cmd4" value="isSuperAdmin()" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyCmd('cmd4')">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><strong>5. Panggil renderSystemSettings:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="cmd5" value="renderSystemSettings()" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyCmd('cmd5')">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copyCmd(id) {
+            const input = document.getElementById(id);
+            input.select();
+            document.execCommand('copy');
+            alert('Command copied to clipboard!');
+        }
+        
+        function addTestResult(testName, status, message, details = '') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultClass = status === 'pass' ? 'test-pass' : status === 'fail' ? 'test-fail' : 'test-info';
+            const icon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : 'ℹ️';
+            
+            const resultHTML = `
+                <div class="test-result ${resultClass}">
+                    <strong>${icon} ${testName}</strong><br>
+                    ${message}
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+            
+            resultsDiv.innerHTML += resultHTML;
+        }
+        
+        function runAllTests() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<h6>Running tests...</h6>';
+            
+            try {
+                // Test 1: Check localStorage
+                addTestResult(
+                    'Test 1: localStorage Available',
+                    typeof(Storage) !== "undefined" ? 'pass' : 'fail',
+                    typeof(Storage) !== "undefined" ? 'localStorage is available' : 'localStorage is NOT available'
+                );
+                
+                // Test 2: Check if user is logged in
+                const currentUser = localStorage.getItem('currentUser');
+                if (currentUser) {
+                    const user = JSON.parse(currentUser);
+                    addTestResult(
+                        'Test 2: User Logged In',
+                        'pass',
+                        `User: ${user.name} (${user.role})`,
+                        user.role === 'super_admin' ? 'Role is Super Admin ✓' : 'Role is NOT Super Admin ✗'
+                    );
+                } else {
+                    addTestResult(
+                        'Test 2: User Logged In',
+                        'fail',
+                        'No user logged in',
+                        'Please login at http://localhost:3000 first'
+                    );
+                }
+                
+                // Test 3: Check if we can access parent window functions
+                if (window.opener || window.parent !== window) {
+                    addTestResult(
+                        'Test 3: Access to Main App',
+                        'info',
+                        'Cannot access main app functions from this window',
+                        'This is expected. Please use manual test method below.'
+                    );
+                } else {
+                    addTestResult(
+                        'Test 3: Access to Main App',
+                        'info',
+                        'This page is standalone',
+                        'Please open http://localhost:3000 and use Developer Console (F12) for function tests'
+                    );
+                }
+                
+                // Test 4: Server connectivity
+                fetch('http://localhost:3000')
+                    .then(response => {
+                        if (response.ok) {
+                            addTestResult(
+                                'Test 4: Server Connectivity',
+                                'pass',
+                                'Server is running at http://localhost:3000'
+                            );
+                        } else {
+                            addTestResult(
+                                'Test 4: Server Connectivity',
+                                'fail',
+                                'Server responded with error: ' + response.status
+                            );
+                        }
+                    })
+                    .catch(error => {
+                        addTestResult(
+                            'Test 4: Server Connectivity',
+                            'fail',
+                            'Cannot connect to server',
+                            'Make sure server is running: node server.js'
+                        );
+                    });
+                
+                // Summary
+                setTimeout(() => {
+                    addTestResult(
+                        'Summary',
+                        'info',
+                        'Automated tests completed',
+                        'For complete testing, please use manual test method and Developer Console'
+                    );
+                }, 1000);
+                
+            } catch (error) {
+                addTestResult(
+                    'Error',
+                    'fail',
+                    'Test execution failed: ' + error.message
+                );
+            }
+        }
+    </script>
+</body>
+</html>

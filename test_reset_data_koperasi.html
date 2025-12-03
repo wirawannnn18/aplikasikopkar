@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Reset Data Koperasi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4">
+            <i class="bi bi-bug-fill me-2"></i>Test Reset Data Koperasi
+        </h1>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <div class="btn-group mb-3" role="group">
+                <button class="btn btn-primary" onclick="runAllTests()">
+                    <i class="bi bi-play-fill me-1"></i>Run All Tests
+                </button>
+                <button class="btn btn-secondary" onclick="clearResults()">
+                    <i class="bi bi-x-circle me-1"></i>Clear Results
+                </button>
+                <button class="btn btn-info" onclick="setupTestData()">
+                    <i class="bi bi-database-fill me-1"></i>Setup Test Data
+                </button>
+                <button class="btn btn-warning" onclick="clearTestData()">
+                    <i class="bi bi-trash me-1"></i>Clear Test Data
+                </button>
+            </div>
+            <div id="testSummary" class="alert alert-info">
+                <strong>Status:</strong> Ready to run tests
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+
+        <!-- Main Content Area (for rendering) -->
+        <div id="mainContent"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/backup.js"></script>
+    <script src="js/auditLogger.js"></script>
+    <script src="js/resetDataKoperasi.js"></script>
+    <script src="js/resetDataUI.js"></script>
+
+    <script>
+        let testResults = [];
+
+        // ====================================================================
+        // Test Utilities
+        // ====================================================================
+
+        function logTest(name, passed, message, details = null) {
+            testResults.push({ name, passed, message, details });
+            displayTestResult(name, passed, message, details);
+        }
+
+        function displayTestResult(name, passed, message, details) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-section';
+            resultDiv.innerHTML = `
+                <h5>
+                    <i class="bi bi-${passed ? 'check-circle-fill text-success' : 'x-circle-fill text-danger'} me-2"></i>
+                    ${name}
+                </h5>
+                <div class="test-result ${passed ? 'test-pass' : 'test-fail'}">
+                    ${message}
+                </div>
+                ${details ? `<pre>${JSON.stringify(details, null, 2)}</pre>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('testSummary').innerHTML = '<strong>Status:</strong> Ready to run tests';
+        }
+
+        function updateSummary() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.passed).length;
+            const failed = total - passed;
+
+            document.getElementById('testSummary').innerHTML = `
+                <strong>Test Summary:</strong> 
+                Total: ${total} | 
+                <span class="text-success">Passed: ${passed}</span> | 
+                <span class="text-danger">Failed: ${failed}</span>
+            `;
+        }
+
+        // ====================================================================
+        // Test Data Setup
+        // ====================================================================
+
+        function setupTestData() {
+            // Create test user
+            const testUser = {
+                username: 'admin',
+                nama: 'Test Admin',
+                role: 'super_admin'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(testUser));
+
+            // Create test koperasi
+            const testKoperasi = {
+                id: 'KOP001',
+                nama: 'Koperasi Test',
+                alamat: 'Jl. Test No. 123'
+            };
+            localStorage.setItem('koperasi', JSON.stringify(testKoperasi));
+
+            // Create test anggota
+            const testAnggota = [
+                { id: 'A001', nama: 'Anggota 1', noKTP: '1234567890' },
+                { id: 'A002', nama: 'Anggota 2', noKTP: '0987654321' }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+
+            // Create test simpanan
+            const testSimpanan = [
+                { id: 'S001', anggotaId: 'A001', jumlah: 100000 },
+                { id: 'S002', anggotaId: 'A002', jumlah: 200000 }
+            ];
+            localStorage.setItem('simpananPokok', JSON.stringify(testSimpanan));
+
+            logTest('Setup Test Data', true, 'Test data created successfully');
+        }
+
+        function clearTestData() {
+            const keysToKeep = ['currentUser'];
+            const allKeys = Object.keys(localStorage);
+
+            allKeys.forEach(key => {
+                if (!keysToKeep.includes(key)) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            logTest('Clear Test Data', true, 'Test data cleared (except currentUser)');
+        }
+
+        // ====================================================================
+        // Unit Tests
+        // ====================================================================
+
+        function testCategoryManager() {
+            console.log('Testing CategoryManager...');
+
+            const categoryManager = new CategoryManager();
+
+            // Test 1: Get all categories
+            const categories = categoryManager.getAllCategories();
+            logTest(
+                'CategoryManager.getAllCategories()',
+                categories.length > 0,
+                `Retrieved ${categories.length} categories`,
+                { sampleCategories: categories.slice(0, 3) }
+            );
+
+            // Test 2: Get category groups
+            const groups = categoryManager.getCategoryGroups();
+            logTest(
+                'CategoryManager.getCategoryGroups()',
+                Object.keys(groups).length > 0,
+                `Retrieved ${Object.keys(groups).length} category groups`,
+                { groups: Object.keys(groups) }
+            );
+
+            // Test 3: Get keys for category
+            const keys = categoryManager.getKeysForCategory('anggota');
+            logTest(
+                'CategoryManager.getKeysForCategory()',
+                keys.length > 0,
+                `Retrieved ${keys.length} keys for 'anggota'`,
+                { keys }
+            );
+
+            // Test 4: Calculate size
+            const size = categoryManager.calculateSize(['anggota', 'koperasi']);
+            logTest(
+                'CategoryManager.calculateSize()',
+                size >= 0,
+                `Calculated size: ${size} bytes`,
+                { size }
+            );
+        }
+
+        function testResetValidationService() {
+            console.log('Testing ResetValidationService...');
+
+            const validationService = new ResetValidationService();
+
+            // Test 1: Validate permissions - super admin
+            const superAdmin = { username: 'admin', role: 'super_admin' };
+            const hasPerm = validationService.validatePermissions(superAdmin);
+            logTest(
+                'ResetValidationService.validatePermissions() - super_admin',
+                hasPerm === true,
+                'Super admin has permission',
+                { user: superAdmin, hasPermission: hasPerm }
+            );
+
+            // Test 2: Validate permissions - regular user
+            const regularUser = { username: 'user', role: 'kasir' };
+            const noPerm = validationService.validatePermissions(regularUser);
+            logTest(
+                'ResetValidationService.validatePermissions() - kasir',
+                noPerm === false,
+                'Regular user does not have permission',
+                { user: regularUser, hasPermission: noPerm }
+            );
+
+            // Test 3: Validate category selection - valid
+            const validSelection = validationService.validateCategorySelection(['anggota', 'koperasi']);
+            logTest(
+                'ResetValidationService.validateCategorySelection() - valid',
+                validSelection.valid === true,
+                'Valid category selection',
+                validSelection
+            );
+
+            // Test 4: Validate category selection - empty
+            const emptySelection = validationService.validateCategorySelection([]);
+            logTest(
+                'ResetValidationService.validateCategorySelection() - empty',
+                emptySelection.valid === false,
+                'Empty category selection is invalid',
+                emptySelection
+            );
+
+            // Test 5: Validate confirmation text
+            const correctText = validationService.validateConfirmation('HAPUS SEMUA DATA', 'HAPUS SEMUA DATA');
+            logTest(
+                'ResetValidationService.validateConfirmation() - correct',
+                correctText === true,
+                'Correct confirmation text',
+                { input: 'HAPUS SEMUA DATA', expected: 'HAPUS SEMUA DATA', valid: correctText }
+            );
+
+            // Test 6: Validate confirmation text - wrong
+            const wrongText = validationService.validateConfirmation('hapus semua data', 'HAPUS SEMUA DATA');
+            logTest(
+                'ResetValidationService.validateConfirmation() - wrong',
+                wrongText === false,
+                'Wrong confirmation text (case sensitive)',
+                { input: 'hapus semua data', expected: 'HAPUS SEMUA DATA', valid: wrongText }
+            );
+        }
+
+        function testResetService() {
+            console.log('Testing ResetService...');
+
+            const resetService = new ResetService();
+
+            // Test 1: Get available categories
+            const categories = resetService.getAvailableCategories();
+            logTest(
+                'ResetService.getAvailableCategories()',
+                categories.length > 0,
+                `Retrieved ${categories.length} available categories`,
+                { count: categories.length }
+            );
+
+            // Test 2: Validate reset request - valid
+            const validRequest = {
+                type: 'selective',
+                categories: ['anggota'],
+                createBackup: true,
+                testMode: false,
+                userId: 'admin',
+                timestamp: new Date().toISOString()
+            };
+            const validValidation = resetService.validateResetRequest(validRequest);
+            logTest(
+                'ResetService.validateResetRequest() - valid',
+                validValidation.valid === true,
+                'Valid reset request',
+                validValidation
+            );
+
+            // Test 3: Perform dry run
+            const dryRunRequest = {
+                type: 'selective',
+                categories: ['anggota', 'koperasi'],
+                createBackup: true,
+                testMode: true,
+                userId: 'admin',
+                timestamp: new Date().toISOString()
+            };
+            const dryRunResult = resetService.performDryRun(dryRunRequest);
+            logTest(
+                'ResetService.performDryRun()',
+                dryRunResult.success === true,
+                'Dry run completed successfully',
+                {
+                    recordCount: dryRunResult.simulation.recordCount,
+                    categories: dryRunResult.simulation.categories.length,
+                    log: dryRunResult.simulation.log.slice(0, 3)
+                }
+            );
+        }
+
+        function testSetupWizardService() {
+            console.log('Testing SetupWizardService...');
+
+            const wizardService = new SetupWizardService();
+
+            // Test 1: Get setup steps
+            const steps = wizardService.getSetupSteps();
+            logTest(
+                'SetupWizardService.getSetupSteps()',
+                steps.length > 0,
+                `Retrieved ${steps.length} setup steps`,
+                { count: steps.length, sampleSteps: steps.slice(0, 2).map(s => s.title) }
+            );
+
+            // Test 2: Complete a step
+            wizardService.completeStep('koperasi');
+            const isCompleted = wizardService.isStepCompleted('koperasi');
+            logTest(
+                'SetupWizardService.completeStep() & isStepCompleted()',
+                isCompleted === true,
+                'Step marked as completed',
+                { stepId: 'koperasi', completed: isCompleted }
+            );
+
+            // Test 3: Get progress
+            const progress = wizardService.getProgress();
+            logTest(
+                'SetupWizardService.getProgress()',
+                progress.completedSteps > 0,
+                `Progress: ${progress.completedSteps}/${progress.totalSteps} steps completed`,
+                progress
+            );
+
+            // Test 4: Reset wizard
+            wizardService.resetWizard();
+            const progressAfterReset = wizardService.getProgress();
+            logTest(
+                'SetupWizardService.resetWizard()',
+                progressAfterReset.completedSteps === 0,
+                'Wizard reset successfully',
+                progressAfterReset
+            );
+        }
+
+        // ====================================================================
+        // Integration Tests
+        // ====================================================================
+
+        async function testFullResetFlow() {
+            console.log('Testing Full Reset Flow...');
+
+            setupTestData();
+
+            const resetService = new ResetService();
+
+            // Create reset request
+            const request = {
+                type: 'selective',
+                categories: ['anggota'],
+                createBackup: true,
+                testMode: true, // Use test mode to avoid actual deletion
+                userId: 'admin',
+                timestamp: new Date().toISOString()
+            };
+
+            // Execute reset
+            const result = await resetService.executeReset(request, (progress, category, processed, total) => {
+                console.log(`Progress: ${progress}% - ${category} (${processed}/${total})`);
+            });
+
+            logTest(
+                'Full Reset Flow (Test Mode)',
+                result.success === true,
+                'Reset flow completed successfully',
+                {
+                    success: result.success,
+                    message: result.message,
+                    recordCount: result.deleted.recordCount,
+                    categories: result.deleted.categories.length,
+                    duration: result.duration
+                }
+            );
+        }
+
+        // ====================================================================
+        // Run All Tests
+        // ====================================================================
+
+        async function runAllTests() {
+            clearResults();
+
+            console.log('Starting all tests...');
+
+            // Setup test data first
+            setupTestData();
+
+            // Run unit tests
+            testCategoryManager();
+            testResetValidationService();
+            testResetService();
+            testSetupWizardService();
+
+            // Run integration tests
+            await testFullResetFlow();
+
+            // Update summary
+            updateSummary();
+
+            console.log('All tests completed!');
+        }
+
+        // ====================================================================
+        // Auto-run on load (optional)
+        // ====================================================================
+
+        // Uncomment to auto-run tests on page load
+        // window.addEventListener('DOMContentLoaded', runAllTests);
+    </script>
+</body>
+</html>
+

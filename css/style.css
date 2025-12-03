@@ -1,0 +1,1657 @@
+/* ========================================
+   KOPERASI KARYAWAN - MAIN STYLESHEET
+   ======================================== 
+   
+   Organization:
+   1. CSS Variables & Root Styles
+   2. Base & Reset Styles
+   3. Layout Components (Navbar, Sidebar, Main Content)
+   4. UI Components (Cards, Tables, Forms, Buttons, Modals)
+   5. Feature-Specific Styles (Login, POS, Dashboard)
+   6. Responsive Breakpoints
+   7. Utility Classes & Animations
+   
+   Requirements: 4.1, 4.5
+*/
+
+/* ========================================
+   1. CSS VARIABLES & ROOT STYLES
+   ======================================== */
+:root {
+    /* Color Variables */
+    --primary-green: #2d6a4f;
+    --secondary-green: #40916c;
+    --light-green: #52b788;
+    --lighter-green: #74c69d;
+    --lightest-green: #95d5b2;
+    --dark-green: #1b4332;
+    --accent-gold: #ffd60a;
+    
+    /* Z-Index Hierarchy
+     * Purpose: Define clear stacking order for all positioned elements
+     * Higher values appear above lower values
+     * 
+     * Hierarchy (from top to bottom):
+     * 1. Navbar (1030) - Always on top for navigation access
+     * 2. Sidebar (100) - Below navbar, above content
+     * 3. Sidebar Overlay (99) - Below sidebar, dims background
+     * 4. Content (default/0) - Base layer
+     */
+    --z-index-navbar: 1030;
+    --z-index-sidebar: 100;
+    --z-index-overlay: 99;
+}
+
+/* ========================================
+   Z-INDEX HIERARCHY DOCUMENTATION
+   ======================================== */
+/*
+ * This application uses a clear z-index hierarchy to prevent stacking conflicts.
+ * All z-index values are defined as CSS variables for consistency and maintainability.
+ * 
+ * STACKING ORDER (highest to lowest):
+ * ====================================
+ * 
+ * Layer 1: NAVBAR (z-index: 1030)
+ * - Element: .navbar
+ * - Purpose: Top navigation bar with logo, user info, and logout
+ * - Behavior: Fixed position at top, always visible
+ * - Reason for value: Bootstrap modals use z-index 1050-1060, so 1030 keeps navbar
+ *   below modals but above all other content
+ * 
+ * Layer 2: SIDEBAR (z-index: 100)
+ * - Element: .sidebar
+ * - Purpose: Side navigation menu
+ * - Behavior: Fixed position, slides in/out on mobile
+ * - Reason for value: Must be above overlay (99) and content (0) but below navbar (1030)
+ * 
+ * Layer 3: SIDEBAR OVERLAY (z-index: 99)
+ * - Element: .sidebar-overlay
+ * - Purpose: Semi-transparent backdrop when sidebar is open on mobile
+ * - Behavior: Covers content, allows clicking to close sidebar
+ * - Reason for value: Must be below sidebar (100) but above content (0)
+ * 
+ * Layer 4: CONTENT (z-index: default/0)
+ * - Elements: main, cards, tables, forms, etc.
+ * - Purpose: Main application content
+ * - Behavior: Normal document flow
+ * - Reason for value: Base layer, no explicit z-index needed
+ * 
+ * SPECIAL CASES:
+ * ==============
+ * - Login page container (z-index: 1): Only used to position above decorative
+ *   background elements on the login page, not part of main app hierarchy
+ * - Bootstrap modals (z-index: 1050+): Managed by Bootstrap, intentionally above navbar
+ * 
+ * USAGE GUIDELINES:
+ * =================
+ * 1. Always use CSS variables (--z-index-*) instead of hardcoded values
+ * 2. Never add arbitrary z-index values without updating this documentation
+ * 3. If you need a new layer, add it to the CSS variables and document it here
+ * 4. Test stacking order at all breakpoints (mobile, tablet, desktop)
+ * 5. Verify no conflicts with Bootstrap components (modals, dropdowns, tooltips)
+ * 
+ * VALIDATION: Requirements 4.3
+ */
+
+/* ========================================
+   2. BASE & RESET STYLES
+   ======================================== */
+html {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9f5f0 100%);
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--light-green);
+    outline-offset: 2px;
+}
+
+/* Typography */
+h2, h3, h4, h5 {
+    color: var(--primary-green);
+}
+
+/* Prevent overflow for all media elements */
+img, video, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
+}
+
+table {
+    max-width: 100%;
+}
+
+pre, code {
+    max-width: 100%;
+    overflow-x: auto;
+    word-wrap: break-word;
+}
+
+/* ========================================
+   3. LAYOUT COMPONENTS
+   ======================================== */
+
+/* ----------------------------------------
+   3.1 NAVBAR
+   Z-Index: 1030 (var(--z-index-navbar))
+   Purpose: Top navigation bar, always visible on top
+   ---------------------------------------- */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: var(--z-index-navbar);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+}
+
+.navbar-toggler {
+    border: none;
+    padding: 8px 12px;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+/* Navbar Logo Animation */
+#navbarLogo img {
+    transition: transform 0.3s ease;
+}
+
+#navbarLogo:hover img {
+    transform: scale(1.1);
+}
+
+/* ----------------------------------------
+   3.2 SIDEBAR
+   Z-Index: 100 (var(--z-index-sidebar))
+   Purpose: Navigation menu, positioned below navbar
+   ---------------------------------------- */
+.sidebar {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    width: 250px;
+    z-index: var(--z-index-sidebar);
+    padding: 0;
+    background: linear-gradient(180deg, var(--dark-green) 0%, var(--primary-green) 100%);
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: transform 0.3s ease;
+    max-width: 250px;
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #ffffff;
+    padding: 14px 20px;
+    border-left: 4px solid transparent;
+    transition: background-color 0.3s ease, border-left-color 0.3s ease;
+    white-space: nowrap;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--accent-gold);
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--secondary-green);
+    color: white;
+    border-left-color: var(--accent-gold);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar .nav-link i {
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+/* ----------------------------------------
+   3.3 SIDEBAR OVERLAY (Mobile)
+   Z-Index: 99 (var(--z-index-overlay))
+   Purpose: Dims background when sidebar is open on mobile
+   ---------------------------------------- */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: var(--z-index-overlay);
+}
+
+/* ----------------------------------------
+   3.4 MAIN CONTENT AREA
+   Purpose: Primary content container with proper spacing
+   ---------------------------------------- */
+main {
+    margin-top: 56px;
+    min-height: calc(100vh - 56px);
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* ----------------------------------------
+   3.5 CONTAINER & GRID
+   Purpose: Responsive container and grid system
+   ---------------------------------------- */
+.container, .container-fluid {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.row {
+    max-width: 100%;
+    overflow-x: hidden;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.row > * {
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+/* ========================================
+   4. UI COMPONENTS
+   ======================================== */
+
+/* ----------------------------------------
+   4.1 CARDS
+   Purpose: Content containers with shadow and hover effects
+   ---------------------------------------- */
+.card {
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(45, 106, 79, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    max-width: 100%;
+    overflow-x: hidden;
+    animation: fadeIn 0.5s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(45, 106, 79, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    font-weight: 600;
+}
+
+.card-header i {
+    color: var(--accent-gold);
+}
+
+.card, .card-body, .card-header, .card-footer {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+/* ----------------------------------------
+   4.2 TABLES
+   Purpose: Data display with responsive behavior
+   ---------------------------------------- */
+.table-responsive {
+    margin-top: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.table {
+    border-radius: 15px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+.table thead {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    color: white;
+}
+
+.table thead th {
+    border: none;
+    padding: 15px;
+    font-weight: 600;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(149, 213, 178, 0.2);
+}
+
+.table tbody td {
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr {
+    cursor: pointer;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(82, 183, 136, 0.1);
+}
+
+/* ----------------------------------------
+   4.3 FORMS
+   Purpose: Input fields and form controls
+   ---------------------------------------- */
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid var(--lightest-green);
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+    max-width: 100%;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 0.25rem rgba(82, 183, 136, 0.25);
+    outline: 2px solid var(--light-green);
+    outline-offset: 2px;
+}
+
+.form-label {
+    color: var(--primary-green);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.form-select {
+    cursor: pointer;
+}
+
+.form-select:hover {
+    border-color: var(--light-green);
+}
+
+/* File Input Custom */
+input[type="file"]::file-selector-button {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
+}
+
+/* ----------------------------------------
+   4.4 BUTTONS
+   Purpose: Action buttons with gradient effects
+   ---------------------------------------- */
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn:focus {
+    outline: 2px solid var(--light-green);
+    outline-offset: 2px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    border: none;
+    padding: 10px 25px;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(45, 106, 79, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--light-green) 0%, var(--lighter-green) 100%);
+    border: none;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--lighter-green) 0%, var(--lightest-green) 100%);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #ffc300 100%);
+    border: none;
+    color: var(--dark-green);
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #ffc300 0%, #ffb700 100%);
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    border: none;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    border: none;
+    color: white;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    color: white;
+}
+
+.btn-print {
+    background: linear-gradient(135deg, var(--light-green) 0%, var(--secondary-green) 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, var(--secondary-green) 0%, var(--primary-green) 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(82, 183, 136, 0.3);
+}
+
+.btn-action {
+    margin-right: 5px;
+}
+
+/* Button Loading State */
+.btn.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spinner 0.6s linear infinite;
+}
+
+/* ----------------------------------------
+   4.5 MODALS
+   Purpose: Dialog boxes and overlays
+   ---------------------------------------- */
+.modal-content {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(45, 106, 79, 0.3);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    color: white;
+    border-radius: 20px 20px 0 0;
+    border: none;
+}
+
+.modal-footer {
+    border-top: 2px solid var(--lightest-green);
+}
+
+.modal-footer .btn {
+    min-width: 120px;
+}
+
+.modal-lg {
+    max-width: 900px;
+}
+
+.modal-dialog {
+    max-width: calc(100vw - 20px);
+    margin: 10px auto;
+}
+
+/* ----------------------------------------
+   4.6 BADGES
+   Purpose: Status indicators and labels
+   ---------------------------------------- */
+.badge {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.badge.bg-success {
+    background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #ffc300 100%);
+    color: var(--dark-green);
+}
+
+.badge.bg-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.badge.bg-primary {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+}
+
+.badge.bg-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+}
+
+/* ----------------------------------------
+   4.7 ALERTS
+   Purpose: Notification messages
+   ---------------------------------------- */
+.alert {
+    border-radius: 12px;
+    border: none;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, var(--lighter-green) 0%, var(--lightest-green) 100%);
+    color: var(--dark-green);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+}
+
+.alert ol {
+    padding-left: 20px;
+}
+
+.alert ol li {
+    margin-bottom: 5px;
+}
+
+/* ========================================
+   5. FEATURE-SPECIFIC STYLES
+   ======================================== */
+
+/* ----------------------------------------
+   5.1 LOGIN PAGE
+   Purpose: Authentication page with decorative background
+   ---------------------------------------- */
+#loginPage {
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%);
+    min-height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Decorative background effects */
+#loginPage::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(255, 214, 10, 0.1) 0%, transparent 50%);
+    animation: backgroundMove 20s ease-in-out infinite;
+}
+
+#loginPage::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: linear-gradient(to top, rgba(27, 67, 50, 0.3) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+/* Login page container - positioned above background effects */
+#loginPage .container {
+    position: relative;
+    z-index: 1;
+}
+
+#loginPage .card {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: floatCard 3s ease-in-out infinite;
+}
+
+/* Login Input Focus Effect */
+#loginPage .form-control {
+    transition: all 0.3s ease;
+}
+
+#loginPage .form-control:focus {
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 0.25rem rgba(82, 183, 136, 0.25), 0 5px 15px rgba(82, 183, 136, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Login Button Hover Effect */
+#loginPage .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(45, 106, 79, 0.4);
+}
+
+#loginPage .btn-primary:active {
+    transform: translateY(-1px);
+}
+
+/* Login Card Header Animation */
+#loginPage .card-header i {
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+/* ----------------------------------------
+   5.2 DASHBOARD
+   Purpose: Dashboard cards and statistics
+   ---------------------------------------- */
+.dashboard-card {
+    border-radius: 15px;
+    padding: 20px;
+    color: white;
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    box-shadow: 0 5px 20px rgba(45, 106, 79, 0.3);
+    animation: fadeIn 0.5s ease;
+}
+
+.dashboard-card.success {
+    background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
+}
+
+.dashboard-card.info {
+    background: linear-gradient(135deg, var(--light-green) 0%, var(--lighter-green) 100%);
+}
+
+.dashboard-card.warning {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #ffc300 100%);
+}
+
+/* ----------------------------------------
+   5.3 POS (Point of Sale)
+   Purpose: Product items and cart display
+   ---------------------------------------- */
+.pos-item {
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    border-radius: 12px;
+}
+
+.pos-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(45, 106, 79, 0.3);
+    border-color: var(--light-green);
+}
+
+.pos-item .card-body {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.pos-item:hover .card-body {
+    background: linear-gradient(135deg, var(--lightest-green) 0%, #ffffff 100%);
+}
+
+.cart-item {
+    border-bottom: 1px solid #dee2e6;
+    padding: 10px 0;
+}
+
+.total-display {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-green);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ----------------------------------------
+   5.4 IMPORT/EXPORT
+   Purpose: Data import and export functionality
+   ---------------------------------------- */
+#importFile {
+    border: 2px dashed var(--light-green);
+    padding: 15px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+#importFile:hover {
+    border-color: var(--primary-green);
+    background-color: rgba(149, 213, 178, 0.1);
+}
+
+#pasteData {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    border: 2px solid var(--lightest-green);
+}
+
+#pasteData:focus {
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 0.25rem rgba(82, 183, 136, 0.25);
+}
+
+#importPreview {
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9f5f0 100%);
+    border-radius: 10px;
+    border: 2px solid var(--lightest-green);
+}
+
+#importPreview h6 {
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+#importPreview .table {
+    background: white;
+    margin-top: 10px;
+}
+
+#importPreview .table-bordered th {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    color: white;
+    font-weight: 600;
+}
+
+#importPreview .table-bordered td {
+    vertical-align: middle;
+}
+
+#totalImport {
+    font-size: 1.2rem;
+    color: var(--primary-green);
+    font-weight: 700;
+}
+
+/* ----------------------------------------
+   5.5 USER MANAGEMENT
+   Purpose: User viewing and management
+   ---------------------------------------- */
+#viewUserContent {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9f5f0 100%);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+#viewUserContent .row > div {
+    padding: 5px 10px;
+}
+
+#viewUserContent strong {
+    color: var(--primary-green);
+}
+
+/* ----------------------------------------
+   5.6 LOGO MANAGEMENT
+   Purpose: Logo upload and preview
+   ---------------------------------------- */
+#logoPreview {
+    transition: all 0.3s ease;
+}
+
+#logoPreview:hover {
+    border-color: var(--light-green);
+    box-shadow: 0 5px 15px rgba(82, 183, 136, 0.2);
+}
+
+#logoInput {
+    border: 2px solid var(--lightest-green);
+    transition: all 0.3s ease;
+}
+
+#logoInput:hover {
+    border-color: var(--light-green);
+}
+
+/* ========================================
+   6. RESPONSIVE BREAKPOINTS
+   ======================================== 
+   
+   Breakpoint Strategy:
+   - Desktop: ≥992px (sidebar visible, full spacing)
+   - Tablet: 768px - 991px (sidebar hidden, medium spacing)
+   - Mobile: <768px (sidebar overlay, compact spacing)
+   - Small Mobile: <576px (minimal spacing)
+   
+   Requirements: 2.1, 2.4, 4.2
+*/
+
+/* ----------------------------------------
+   6.1 DESKTOP (≥992px)
+   ---------------------------------------- */
+@media (min-width: 992px) {
+    /* Sidebar always visible */
+    .sidebar {
+        transform: translateX(0);
+    }
+    
+    /* Main content with sidebar margin */
+    main {
+        margin-left: 250px;
+        padding: 24px;
+        width: calc(100% - 250px);
+    }
+    
+    /* Container adjustments */
+    .container, .container-fluid {
+        max-width: calc(100vw - 250px);
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    
+    /* Grid spacing */
+    .row {
+        margin-left: -15px;
+        margin-right: -15px;
+    }
+    
+    .row > * {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* ----------------------------------------
+   6.2 TABLET (768px - 991px)
+   ---------------------------------------- */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    /* Sidebar hidden by default */
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    /* Main content full width */
+    main {
+        margin-left: 0;
+        padding: 20px;
+        width: 100%;
+    }
+    
+    /* Container adjustments */
+    .container, .container-fluid {
+        max-width: 100vw;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Grid spacing */
+    .row {
+        margin-left: -12px;
+        margin-right: -12px;
+    }
+    
+    .row > * {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
+/* ----------------------------------------
+   6.3 MOBILE (<768px)
+   ---------------------------------------- */
+@media (max-width: 767.98px) {
+    /* Navbar height consistency */
+    .navbar {
+        height: 56px;
+    }
+    
+    /* Sidebar hidden by default */
+    .sidebar {
+        transform: translateX(-100%);
+        width: 250px;
+        max-width: 80vw;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    /* Sidebar overlay visible when sidebar is open */
+    .sidebar-overlay.show {
+        display: block;
+    }
+    
+    /* Main content full width */
+    main {
+        margin-left: 0;
+        padding: 15px;
+        width: 100%;
+    }
+    
+    /* Container adjustments */
+    .container, .container-fluid {
+        max-width: 100vw;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    /* Grid spacing */
+    .row {
+        margin-left: -10px;
+        margin-right: -10px;
+    }
+    
+    .row > * {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Card adjustments */
+    .card {
+        margin-bottom: 15px;
+    }
+    
+    .card:hover {
+        transform: none;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .card-header {
+        padding: 12px 15px;
+        font-size: 0.95rem;
+    }
+    
+    /* Table adjustments */
+    .table {
+        font-size: 0.85rem;
+    }
+    
+    .table thead th {
+        padding: 10px 8px;
+        font-size: 0.8rem;
+    }
+    
+    .table tbody td {
+        padding: 10px 8px;
+    }
+    
+    .table tbody tr {
+        cursor: default;
+    }
+    
+    /* Button adjustments */
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+    }
+    
+    .btn-group .btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    /* Form adjustments */
+    .form-control, .form-select {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+    
+    /* Modal adjustments */
+    .modal-dialog {
+        margin: 10px;
+    }
+    
+    .modal-lg {
+        max-width: 100%;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .modal-header {
+        padding: 12px 15px;
+    }
+    
+    .modal-footer {
+        padding: 12px 15px;
+    }
+    
+    /* Typography adjustments */
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    h3 {
+        font-size: 1.3rem;
+    }
+    
+    h4 {
+        font-size: 1.1rem;
+    }
+    
+    h5 {
+        font-size: 1rem;
+    }
+    
+    /* Dashboard card adjustments */
+    .dashboard-card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .dashboard-card h2 {
+        font-size: 1.5rem;
+    }
+    
+    .dashboard-card h6 {
+        font-size: 0.85rem;
+    }
+    
+    /* POS adjustments */
+    .pos-item {
+        margin-bottom: 10px;
+    }
+    
+    .pos-item:hover {
+        transform: scale(1.02);
+    }
+    
+    .pos-item .card-body {
+        padding: 10px;
+    }
+    
+    .pos-item h6 {
+        font-size: 0.85rem;
+    }
+    
+    .pos-item p {
+        font-size: 0.8rem;
+    }
+    
+    .pos-item small {
+        font-size: 0.75rem;
+    }
+    
+    /* Cart adjustments */
+    .cart-item {
+        padding: 8px 0;
+    }
+    
+    .cart-item strong {
+        font-size: 0.9rem;
+    }
+    
+    .cart-item small {
+        font-size: 0.75rem;
+    }
+    
+    .total-display {
+        font-size: 1.5rem;
+    }
+    
+    /* Login page adjustments */
+    #loginPage {
+        padding: 15px;
+    }
+    
+    #loginPage .card-body {
+        padding: 2rem;
+    }
+    
+    #loginPage .card-header {
+        padding: 1.5rem;
+    }
+    
+    #loginPage h3 {
+        font-size: 1.5rem;
+    }
+    
+    #loginPage h4 {
+        font-size: 1.2rem;
+    }
+    
+    /* Touch target improvements */
+    .nav-link, a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* ----------------------------------------
+   6.4 SMALL MOBILE (<576px)
+   ---------------------------------------- */
+@media (max-width: 575.98px) {
+    /* Main content minimal padding */
+    main {
+        padding: 12px;
+    }
+    
+    /* Container minimal padding */
+    .container, .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Grid minimal spacing */
+    .row {
+        margin-left: -5px;
+        margin-right: -5px;
+    }
+    
+    .row > * {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    /* Card minimal padding */
+    .card-body {
+        padding: 12px;
+    }
+    
+    .card-header {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    /* Table minimal spacing */
+    .table {
+        font-size: 0.75rem;
+    }
+    
+    .table thead th {
+        padding: 8px 5px;
+        font-size: 0.75rem;
+    }
+    
+    .table tbody td {
+        padding: 8px 5px;
+    }
+    
+    /* Button minimal sizing */
+    .btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    
+    /* Form minimal sizing */
+    .form-control, .form-select {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+    
+    .form-label {
+        font-size: 0.85rem;
+    }
+    
+    /* Modal minimal spacing */
+    .modal-dialog {
+        margin: 5px;
+    }
+    
+    .modal-body {
+        padding: 12px;
+    }
+    
+    .modal-header {
+        padding: 10px 12px;
+    }
+    
+    .modal-footer {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+    }
+    
+    .modal-footer .btn {
+        margin-bottom: 5px;
+        width: 100%;
+    }
+    
+    /* Typography minimal sizing */
+    h2 {
+        font-size: 1.3rem;
+    }
+    
+    h3 {
+        font-size: 1.2rem;
+    }
+    
+    h4 {
+        font-size: 1rem;
+    }
+    
+    h5 {
+        font-size: 0.95rem;
+    }
+    
+    /* Badge minimal sizing */
+    .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+    
+    /* Alert minimal sizing */
+    .alert {
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+    
+    /* Dashboard card minimal sizing */
+    .dashboard-card {
+        padding: 12px;
+    }
+    
+    .dashboard-card h2 {
+        font-size: 1.3rem;
+    }
+    
+    .dashboard-card h6 {
+        font-size: 0.8rem;
+    }
+    
+    .dashboard-card i {
+        font-size: 2rem;
+    }
+    
+    /* POS minimal sizing */
+    .pos-item .card-body {
+        padding: 8px;
+    }
+    
+    .pos-item h6 {
+        font-size: 0.8rem;
+    }
+    
+    /* Cart minimal sizing */
+    .cart-item {
+        padding: 6px 0;
+    }
+    
+    .cart-item strong {
+        font-size: 0.85rem;
+    }
+    
+    .total-display {
+        font-size: 1.3rem;
+    }
+    
+    /* Login page minimal sizing */
+    #loginPage {
+        padding: 10px;
+    }
+    
+    #loginPage .card {
+        animation: none;
+    }
+    
+    #loginPage .card-body {
+        padding: 1.5rem;
+    }
+    
+    #loginPage .card-header i {
+        font-size: 2.5rem;
+    }
+    
+    #loginPage h3 {
+        font-size: 1.2rem;
+    }
+    
+    #loginPage .card-header p {
+        font-size: 0.85rem;
+    }
+    
+    #loginPage small {
+        font-size: 0.75rem;
+    }
+    
+    #loginPage .btn {
+        font-size: 1rem;
+    }
+}
+
+/* ----------------------------------------
+   6.5 EXTRA SMALL MOBILE (<480px)
+   ---------------------------------------- */
+@media (max-width: 480px) {
+    #loginPage .card-header i {
+        font-size: 2.5rem;
+    }
+    
+    #loginPage h3 {
+        font-size: 1.2rem;
+    }
+    
+    #loginPage .card-header p {
+        font-size: 0.85rem;
+    }
+    
+    #loginPage small {
+        font-size: 0.75rem;
+    }
+}
+
+/* ----------------------------------------
+   6.6 LANDSCAPE MOBILE
+   Purpose: Optimize for mobile landscape orientation
+   ---------------------------------------- */
+@media (max-height: 600px) and (orientation: landscape) {
+    .sidebar {
+        top: 50px;
+    }
+    
+    main {
+        margin-top: 50px;
+    }
+    
+    .navbar {
+        min-height: 50px;
+    }
+    
+    .card {
+        margin-bottom: 10px;
+    }
+    
+    /* Login page landscape adjustments */
+    #loginPage {
+        padding: 10px;
+    }
+    
+    #loginPage .card-header {
+        padding: 1rem;
+    }
+    
+    #loginPage .card-header i {
+        font-size: 2rem;
+    }
+    
+    #loginPage h3 {
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+    }
+    
+    #loginPage .card-header p {
+        display: none;
+    }
+    
+    #loginPage .card-body {
+        padding: 1.5rem;
+    }
+    
+    #loginPage h4 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    #loginPage .mb-3, #loginPage .mb-md-4 {
+        margin-bottom: 0.75rem;
+    }
+    
+    #loginPage .mt-3, #loginPage .mt-md-4 {
+        margin-top: 0.75rem;
+    }
+}
+
+/* ----------------------------------------
+   6.7 PERFORMANCE OPTIMIZATION FOR MOBILE
+   Purpose: Disable animations on mobile for better performance
+   ---------------------------------------- */
+@media (max-width: 768px) {
+    * {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+    }
+    
+    .card, .dashboard-card {
+        animation: none;
+    }
+}
+
+/* ========================================
+   7. UTILITY CLASSES & ANIMATIONS
+   ======================================== */
+
+/* ----------------------------------------
+   7.1 SCROLLBAR STYLING
+   Purpose: Custom scrollbar for better aesthetics
+   ---------------------------------------- */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--secondary-green) 0%, var(--light-green) 100%);
+}
+
+/* ----------------------------------------
+   7.2 ANIMATIONS
+   Purpose: Keyframe animations used throughout the app
+   ---------------------------------------- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes backgroundMove {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes floatCard {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ----------------------------------------
+   7.3 PRINT STYLES
+   Purpose: Optimize layout for printing
+   ---------------------------------------- */
+@media print {
+    @page {
+        margin: 1cm;
+    }
+    
+    body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .sidebar, .navbar, .btn, .no-print {
+        display: none;
+    }
+    
+    main {
+        margin-left: 0;
+        margin-top: 0;
+    }
+    
+    .card {
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+}
+
+/* ----------------------------------------
+   7.4 UTILITY CLASSES
+   Purpose: Helper classes for common patterns
+   ---------------------------------------- */
+.btn-group-custom {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-group-custom .btn {
+    flex: 0 0 auto;
+}
+
+small.text-muted {
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* ========================================
+   END OF STYLESHEET
+   ======================================== */
+
+
+/* Task 4.1: Clickable table row styles for payment history */
+.table-row-clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.table-row-clickable:hover {
+    background-color: rgba(45, 106, 79, 0.08) !important;
+}
+
+.table-row-clickable:active {
+    background-color: rgba(45, 106, 79, 0.15) !important;
+}

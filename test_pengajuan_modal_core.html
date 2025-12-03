@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pengajuan Modal Core Functions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Pengajuan Modal Core Functions</h2>
+        <p class="text-muted">Testing Task 2.1 Implementation</p>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+                <button class="btn btn-warning" onclick="clearTestData()">Clear Test Data</button>
+                <button class="btn btn-info" onclick="setupTestData()">Setup Test Data</button>
+            </div>
+        </div>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/app.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    
+    <script>
+        let testResults = [];
+        
+        function logTest(name, passed, message) {
+            testResults.push({ name, passed, message });
+            displayResults();
+        }
+        
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = testResults.map(test => `
+                <div class="test-result ${test.passed ? 'test-pass' : 'test-fail'}">
+                    <strong>${test.passed ? '✓' : '✗'} ${test.name}</strong><br>
+                    <small>${test.message}</small>
+                </div>
+            `).join('');
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pengajuanModal');
+            localStorage.removeItem('pengajuanModalSettings');
+            localStorage.removeItem('pengajuanModalAudit');
+            localStorage.removeItem('notifications');
+            sessionStorage.clear();
+            testResults = [];
+            displayResults();
+            alert('Test data cleared!');
+        }
+        
+        function setupTestData() {
+            // Initialize data structures
+            initializePengajuanModalData();
+            
+            // Set current user for testing
+            window.currentUser = {
+                id: 'kasir-001',
+                name: 'Test Kasir',
+                role: 'kasir'
+            };
+            
+            alert('Test data setup complete!');
+        }
+        
+        function runAllTests() {
+            testResults = [];
+            
+            // Setup
+            clearTestData();
+            setupTestData();
+            
+            console.log('Starting tests...');
+            
+            // Test 1: Initialize data structures
+            testInitialization();
+            
+            // Test 2: Validate jumlah modal
+            testValidateJumlahModal();
+            
+            // Test 3: Create pengajuan modal
+            testCreatePengajuanModal();
+            
+            // Test 4: Check pending pengajuan
+            testHasPendingPengajuan();
+            
+            // Test 5: Get pengajuan by kasir
+            testGetPengajuanByKasir();
+            
+            // Test 6: Get pending pengajuan
+            testGetPengajuanPending();
+            
+            // Test 7: Get pengajuan history with filters
+            testGetPengajuanHistory();
+            
+            // Test 8: Prevent duplicate pending
+            testPreventDuplicatePending();
+            
+            console.log('All tests completed!');
+        }
+        
+        function testInitialization() {
+            try {
+                initializePengajuanModalData();
+                
+                const pengajuan = localStorage.getItem('pengajuanModal');
+                const settings = localStorage.getItem('pengajuanModalSettings');
+                const audit = localStorage.getItem('pengajuanModalAudit');
+                
+                if (pengajuan && settings && audit) {
+                    logTest('Initialization', true, 'All data structures initialized correctly');
+                } else {
+                    logTest('Initialization', false, 'Some data structures missing');
+                }
+            } catch (error) {
+                logTest('Initialization', false, error.message);
+            }
+        }
+        
+        function testValidateJumlahModal() {
+            try {
+                // Test valid amount
+                let result = validateJumlahModal(1000000);
+                if (result.valid) {
+                    logTest('Validate Valid Amount', true, 'Valid amount accepted');
+                } else {
+                    logTest('Validate Valid Amount', false, 'Valid amount rejected: ' + result.error);
+                }
+                
+                // Test zero amount
+                result = validateJumlahModal(0);
+                if (!result.valid && result.error.includes('lebih besar dari 0')) {
+                    logTest('Validate Zero Amount', true, 'Zero amount rejected correctly');
+                } else {
+                    logTest('Validate Zero Amount', false, 'Zero amount not rejected');
+                }
+                
+                // Test negative amount
+                result = validateJumlahModal(-1000);
+                if (!result.valid) {
+                    logTest('Validate Negative Amount', true, 'Negative amount rejected correctly');
+                } else {
+                    logTest('Validate Negative Amount', false, 'Negative amount not rejected');
+                }
+                
+                // Test exceeding maximum
+                result = validateJumlahModal(10000000);
+                if (!result.valid && result.error.includes('melebihi batas maksimum')) {
+                    logTest('Validate Exceeding Maximum', true, 'Amount exceeding maximum rejected correctly');
+                } else {
+                    logTest('Validate Exceeding Maximum', false, 'Amount exceeding maximum not rejected');
+                }
+                
+            } catch (error) {
+                logTest('Validate Jumlah Modal', false, error.message);
+            }
+        }
+        
+        function testCreatePengajuanModal() {
+            try {
+                const result = createPengajuanModal(
+                    'kasir-001',
+                    'Test Kasir',
+                    2000000,
+                    'Modal untuk shift pagi'
+                );
+                
+                if (result.success && result.data) {
+                    logTest('Create Pengajuan Modal', true, 
+                        `Pengajuan created with ID: ${result.data.id}, Status: ${result.data.status}`);
+                } else {
+                    logTest('Create Pengajuan Modal', false, result.message);
+                }
+            } catch (error) {
+                logTest('Create Pengajuan Modal', false, error.message);
+            }
+        }
+        
+        function testHasPendingPengajuan() {
+            try {
+                const pending = hasPendingPengajuan('kasir-001');
+                
+                if (pending && pending.status === 'pending') {
+                    logTest('Has Pending Pengajuan', true, 
+                        `Found pending pengajuan: ${pending.id}`);
+                } else {
+                    logTest('Has Pending Pengajuan', false, 'No pending pengajuan found');
+                }
+            } catch (error) {
+                logTest('Has Pending Pengajuan', false, error.message);
+            }
+        }
+        
+        function testGetPengajuanByKasir() {
+            try {
+                const pengajuanList = getPengajuanByKasir('kasir-001');
+                
+                if (pengajuanList.length > 0) {
+                    logTest('Get Pengajuan By Kasir', true, 
+                        `Found ${pengajuanList.length} pengajuan for kasir-001`);
+                } else {
+                    logTest('Get Pengajuan By Kasir', false, 'No pengajuan found');
+                }
+            } catch (error) {
+                logTest('Get Pengajuan By Kasir', false, error.message);
+            }
+        }
+        
+        function testGetPengajuanPending() {
+            try {
+                const pendingList = getPengajuanPending();
+                
+                if (pendingList.length > 0) {
+                    logTest('Get Pengajuan Pending', true, 
+                        `Found ${pendingList.length} pending pengajuan`);
+                } else {
+                    logTest('Get Pengajuan Pending', false, 'No pending pengajuan found');
+                }
+            } catch (error) {
+                logTest('Get Pengajuan Pending', false, error.message);
+            }
+        }
+        
+        function testGetPengajuanHistory() {
+            try {
+                // Test without filters
+                let history = getPengajuanHistory();
+                logTest('Get History (No Filter)', history.length > 0, 
+                    `Found ${history.length} pengajuan in history`);
+                
+                // Test with status filter
+                history = getPengajuanHistory({ status: 'pending' });
+                logTest('Get History (Status Filter)', history.length > 0, 
+                    `Found ${history.length} pending pengajuan`);
+                
+                // Test with kasir filter
+                history = getPengajuanHistory({ kasirId: 'kasir-001' });
+                logTest('Get History (Kasir Filter)', history.length > 0, 
+                    `Found ${history.length} pengajuan for kasir-001`);
+                
+            } catch (error) {
+                logTest('Get Pengajuan History', false, error.message);
+            }
+        }
+        
+        function testPreventDuplicatePending() {
+            try {
+                // Try to create another pending pengajuan
+                const result = createPengajuanModal(
+                    'kasir-001',
+                    'Test Kasir',
+                    1500000,
+                    'Pengajuan kedua'
+                );
+                
+                if (!result.success && result.message.includes('menunggu persetujuan')) {
+                    logTest('Prevent Duplicate Pending', true, 
+                        'Duplicate pending pengajuan prevented correctly');
+                } else {
+                    logTest('Prevent Duplicate Pending', false, 
+                        'Duplicate pending pengajuan not prevented');
+                }
+            } catch (error) {
+                logTest('Prevent Duplicate Pending', false, error.message);
+            }
+        }
+    </script>
+</body>
+</html>

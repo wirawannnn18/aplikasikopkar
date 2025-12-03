@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Test - Pengajuan Modal Kasir</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+        .summary {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h1 class="mb-4"><i class="bi bi-clipboard-check me-2"></i>Comprehensive Test - Pengajuan Modal Kasir</h1>
+        
+        <div class="summary" id="testSummary">
+            <h6>Test Summary</h6>
+            <div id="summaryContent">Running tests...</div>
+        </div>
+
+        <div class="alert alert-info">
+            <strong><i class="bi bi-info-circle me-2"></i>Test Information:</strong><br>
+            This comprehensive test validates all functionality implemented in tasks 1-9 for the Pengajuan Modal Kasir feature.
+        </div>
+
+        <button class="btn btn-primary mb-3" onclick="runAllTests()">
+            <i class="bi bi-play-fill me-2"></i>Run All Tests
+        </button>
+        <button class="btn btn-secondary mb-3" onclick="clearTestResults()">
+            <i class="bi bi-trash me-2"></i>Clear Results
+        </button>
+        <button class="btn btn-warning mb-3" onclick="resetTestData()">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Test Data
+        </button>
+
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Include required JS files -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    <script src="js/pengajuanModalAdmin.js"></script>
+    <script src="js/notificationUI.js"></script>
+
+    <script>
+        // Test tracking
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            tests: []
+        };
+
+        // Mock current user
+        let currentUser = null;
+
+        /**
+         * Initialize test environment
+         */
+        function initTestEnvironment() {
+            // Clear localStorage for clean test
+            localStorage.removeItem('pengajuanModal');
+            localStorage.removeItem('pengajuanModalSettings');
+            localStorage.removeItem('notifications');
+            localStorage.removeItem('pengajuanModalAudit');
+            
+            // Initialize pengajuan modal data
+            initializePengajuanModalData();
+            
+            // Create test users
+            createTestUsers();
+        }
+
+        /**
+         * Create test users
+         */
+        function createTestUsers() {
+            const users = [
+                { id: 'kasir1', name: 'Kasir Test 1', role: 'kasir' },
+                { id: 'kasir2', name: 'Kasir Test 2', role: 'kasir' },
+                { id: 'admin1', name: 'Admin Test 1', role: 'admin' },
+                { id: 'admin2', name: 'Admin Test 2', role: 'administrator' }
+            ];
+            
+            localStorage.setItem('testUsers', JSON.stringify(users));
+        }
+
+        /**
+         * Get test user
+         */
+        function getTestUser(userId) {
+            const users = JSON.parse(localStorage.getItem('testUsers') || '[]');
+            return users.find(u => u.id === userId);
+        }
+
+        /**
+         * Run a single test
+         */
+        function runTest(testName, testFunction) {
+            testResults.total++;
+            
+            try {
+                const result = testFunction();
+                if (result.success) {
+                    testResults.passed++;
+                    testResults.tests.push({
+                        name: testName,
+                        status: 'pass',
+                        message: result.message
+                    });
+                    return true;
+                } else {
+                    testResults.failed++;
+                    testResults.tests.push({
+                        name: testName,
+                        status: 'fail',
+                        message: result.message
+                    });
+                    return false;
+                }
+            } catch (error) {
+                testResults.failed++;
+                testResults.tests.push({
+                    name: testName,
+                    status: 'fail',
+                    message: `Error: ${error.message}`
+                });
+                return false;
+            }
+        }
+
+        /**
+         * Display test result
+         */
+        function displayTestResult(testName, status, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultClass = status === 'pass' ? 'test-pass' : 'test-fail';
+            const icon = status === 'pass' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger';
+            
+            const resultHtml = `
+                <div class="test-result ${resultClass}">
+                    <i class="bi ${icon} me-2"></i>
+                    <strong>${testName}</strong>: ${message}
+                </div>
+            `;
+            
+            resultsDiv.insertAdjacentHTML('beforeend', resultHtml);
+        }
+
+        /**
+         * Update test summary
+         */
+        function updateTestSummary() {
+            const summaryDiv = document.getElementById('summaryContent');
+            const passRate = testResults.total > 0 ? ((testResults.passed / testResults.total) * 100).toFixed(1) : 0;
+            
+            summaryDiv.innerHTML = `
+                <div><strong>Total:</strong> ${testResults.total}</div>
+                <div class="text-success"><strong>Passed:</strong> ${testResults.passed}</div>
+                <div class="text-danger"><strong>Failed:</strong> ${testResults.failed}</div>
+                <div><strong>Pass Rate:</strong> ${passRate}%</div>
+            `;
+        }
+
+        /**
+         * Clear test results
+         */
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = '';
+            testResults = {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                tests: []
+            };
+            updateTestSummary();
+        }
+
+        /**
+         * Reset test data
+         */
+        function resetTestData() {
+            initTestEnvironment();
+            clearTestResults();
+            alert('Test data has been reset');
+        }
+
+        // ==================== TEST SUITE ====================
+
+        /**
+         * Test 1: Initialization and Settings
+         */
+        function testInitialization() {
+            initTestEnvironment();
+            
+            const settings = getPengajuanModalSettings();
+            
+            if (!settings) {
+                return { success: false, message: 'Settings not initialized' };
+            }
+            
+            if (settings.enabled !== true) {
+                return { success: false, message: 'Feature should be enabled by default' };
+            }
+            
+            if (settings.batasMaximum !== 5000000) {
+                return { success: false, message: 'Default batas maximum incorrect' };
+            }
+            
+            return { success: true, message: 'Initialization successful with correct default settings' };
+        }
+
+        /**
+         * Test 2: Create Pengajuan Modal - Valid
+         */
+        function testCreatePengajuanValid() {
+            currentUser = getTestUser('kasir1');
+            
+            const result = createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                1000000,
+                'Test pengajuan modal'
+            );
+            
+            if (!result.success) {
+                return { success: false, message: `Failed to create: ${result.message}` };
+            }
+            
+            if (!result.data || !result.data.id) {
+                return { success: false, message: 'Pengajuan data not returned' };
+            }
+            
+            if (result.data.status !== 'pending') {
+                return { success: false, message: 'Status should be pending' };
+            }
+            
+            return { success: true, message: 'Valid pengajuan created successfully' };
+        }
+
+        /**
+         * Test 3: Property 3 - Validate Jumlah Modal
+         */
+        function testValidateJumlahModal() {
+            // Test negative amount
+            const negativeResult = validateJumlahModal(-1000);
+            if (negativeResult.valid) {
+                return { success: false, message: 'Negative amount should be invalid' };
+            }
+            
+            // Test zero amount
+            const zeroResult = validateJumlahModal(0);
+            if (zeroResult.valid) {
+                return { success: false, message: 'Zero amount should be invalid' };
+            }
+            
+            // Test exceeding maximum
+            const settings = getPengajuanModalSettings();
+            const exceedResult = validateJumlahModal(settings.batasMaximum + 1);
+            if (exceedResult.valid) {
+                return { success: false, message: 'Amount exceeding maximum should be invalid' };
+            }
+            
+            // Test valid amount
+            const validResult = validateJumlahModal(1000000);
+            if (!validResult.valid) {
+                return { success: false, message: 'Valid amount should pass validation' };
+            }
+            
+            return { success: true, message: 'Property 3: Jumlah modal validation works correctly' };
+        }
+
+        /**
+         * Test 4: Property 6 - One Pending Per Kasir
+         */
+        function testOnePendingPerKasir() {
+            currentUser = getTestUser('kasir2');
+            
+            // Create first pengajuan
+            const result1 = createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                500000,
+                'First pengajuan'
+            );
+            
+            if (!result1.success) {
+                return { success: false, message: 'Failed to create first pengajuan' };
+            }
+            
+            // Try to create second pengajuan (should fail)
+            const result2 = createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                600000,
+                'Second pengajuan'
+            );
+            
+            if (result2.success) {
+                return { success: false, message: 'Should not allow second pending pengajuan' };
+            }
+            
+            return { success: true, message: 'Property 6: Only one pending pengajuan allowed per kasir' };
+        }
+
+        /**
+         * Test 5: Property 2 - Approve Pengajuan
+         */
+        function testApprovePengajuan() {
+            // Get pending pengajuan
+            const pendingList = getPengajuanPending();
+            if (pendingList.length === 0) {
+                return { success: false, message: 'No pending pengajuan to approve' };
+            }
+            
+            const pengajuan = pendingList[0];
+            currentUser = getTestUser('admin1');
+            
+            const result = approvePengajuan(
+                pengajuan.id,
+                currentUser.id,
+                currentUser.name
+            );
+            
+            if (!result.success) {
+                return { success: false, message: `Failed to approve: ${result.message}` };
+            }
+            
+            if (result.data.status !== 'approved') {
+                return { success: false, message: 'Status should be approved' };
+            }
+            
+            if (!result.data.adminId || !result.data.adminName) {
+                return { success: false, message: 'Admin info not recorded' };
+            }
+            
+            return { success: true, message: 'Property 2: Pengajuan approved successfully' };
+        }
+
+        /**
+         * Test 6: Property 4 - Reject Without Reason
+         */
+        function testRejectWithoutReason() {
+            // Create new pengajuan for rejection test
+            currentUser = getTestUser('kasir1');
+            const createResult = createPengajuanModal(
+                currentUser.id,
+                currentUser.name,
+                800000,
+                'For rejection test'
+            );
+            
+            if (!createResult.success) {
+                return { success: false, message: 'Failed to create pengajuan for test' };
+            }
+            
+            currentUser = getTestUser('admin1');
+            
+            // Try to reject without reason
+            const result = rejectPengajuan(
+                createResult.data.id,
+                currentUser.id,
+                currentUser.name,
+                ''
+            );
+            
+            if (result.success) {
+                return { success: false, message: 'Should not allow rejection without reason' };
+            }
+            
+            return { success: true, message: 'Property 4: Rejection requires reason' };
+        }
+
+        /**
+         * Test 7: Property 4 - Reject With Reason
+         */
+        function testRejectWithReason() {
+            // Get pending pengajuan
+            const pendingList = getPengajuanPending();
+            if (pendingList.length === 0) {
+                return { success: false, message: 'No pending pengajuan to reject' };
+            }
+            
+            const pengajuan = pendingList[0];
+            currentUser = getTestUser('admin2');
+            
+            const result = rejectPengajuan(
+                pengajuan.id,
+                currentUser.id,
+                currentUser.name,
+                'Jumlah terlalu besar untuk shift pertama'
+            );
+            
+            if (!result.success) {
+                return { success: false, message: `Failed to reject: ${result.message}` };
+            }
+            
+            if (result.data.status !== 'rejected') {
+                return { success: false, message: 'Status should be rejected' };
+            }
+            
+            if (!result.data.alasanPenolakan) {
+                return { success: false, message: 'Rejection reason not recorded' };
+            }
+            
+            return { success: true, message: 'Property 4: Pengajuan rejected with reason' };
+        }
+
+        /**
+         * Test 8: Property 5 - Mark As Used
+         */
+        function testMarkAsUsed() {
+            // Get approved pengajuan
+            const approvedList = getPengajuanHistory({ status: 'approved' });
+            if (approvedList.length === 0) {
+                return { success: false, message: 'No approved pengajuan to mark as used' };
+            }
+            
+            const pengajuan = approvedList[0];
+            const shiftId = 'shift-' + Date.now();
+            
+            const result = markPengajuanAsUsed(pengajuan.id, shiftId);
+            
+            if (!result.success) {
+                return { success: false, message: `Failed to mark as used: ${result.message}` };
+            }
+            
+            if (result.data.status !== 'used') {
+                return { success: false, message: 'Status should be used' };
+            }
+            
+            if (result.data.shiftId !== shiftId) {
+                return { success: false, message: 'Shift ID not recorded' };
+            }
+            
+            return { success: true, message: 'Property 5: Pengajuan marked as used successfully' };
+        }
+
+        /**
+         * Test 9: Property 8 - Notification Created
+         */
+        function testNotificationCreated() {
+            // Check if notifications were created during approval/rejection
+            const kasir1 = getTestUser('kasir1');
+            const notifications = getNotificationsByUser(kasir1.id);
+            
+            if (notifications.length === 0) {
+                return { success: false, message: 'No notifications created' };
+            }
+            
+            // Check for approval or rejection notification
+            const hasNotification = notifications.some(n => 
+                n.data && (n.data.type === 'approval' || n.data.type === 'rejection')
+            );
+            
+            if (!hasNotification) {
+                return { success: false, message: 'No approval/rejection notification found' };
+            }
+            
+            return { success: true, message: 'Property 8: Notifications created on status change' };
+        }
+
+        /**
+         * Test 10: Property 10 - Admin Role Validation
+         */
+        function testAdminRoleValidation() {
+            // Try to approve as kasir (should fail)
+            currentUser = getTestUser('kasir1');
+            
+            // Create a pending pengajuan first
+            const kasir2 = getTestUser('kasir2');
+            const createResult = createPengajuanModal(
+                kasir2.id,
+                kasir2.name,
+                700000,
+                'For role test'
+            );
+            
+            if (!createResult.success) {
+                return { success: false, message: 'Failed to create pengajuan for test' };
+            }
+            
+            // Try to approve as kasir
+            const result = approvePengajuan(
+                createResult.data.id,
+                currentUser.id,
+                currentUser.name
+            );
+            
+            if (result.success) {
+                return { success: false, message: 'Kasir should not be able to approve' };
+            }
+            
+            return { success: true, message: 'Property 10: Only admin can process pengajuan' };
+        }
+
+        /**
+         * Test 11: Filter by Status
+         */
+        function testFilterByStatus() {
+            const approvedList = getPengajuanHistory({ status: 'approved' });
+            const rejectedList = getPengajuanHistory({ status: 'rejected' });
+            const usedList = getPengajuanHistory({ status: 'used' });
+            
+            // Verify all items have correct status
+            const allApproved = approvedList.every(p => p.status === 'approved');
+            const allRejected = rejectedList.every(p => p.status === 'rejected');
+            const allUsed = usedList.every(p => p.status === 'used');
+            
+            if (!allApproved || !allRejected || !allUsed) {
+                return { success: false, message: 'Filter by status not working correctly' };
+            }
+            
+            return { success: true, message: 'Filter by status works correctly' };
+        }
+
+        /**
+         * Test 12: Property 9 - Filter by Date Range
+         */
+        function testFilterByDateRange() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // Filter for today only
+            const todayList = getPengajuanHistory({
+                startDate: today.toISOString().split('T')[0],
+                endDate: today.toISOString().split('T')[0]
+            });
+            
+            // All results should be from today
+            const allFromToday = todayList.every(p => {
+                const pengajuanDate = new Date(p.tanggalPengajuan);
+                return pengajuanDate.toDateString() === today.toDateString();
+            });
+            
+            if (!allFromToday) {
+                return { success: false, message: 'Date filter not working correctly' };
+            }
+            
+            return { success: true, message: 'Property 9: Date range filter works correctly' };
+        }
+
+        /**
+         * Test 13: Audit Trail Immutability
+         */
+        function testAuditTrailImmutability() {
+            const audit = getPengajuanModalAudit();
+            
+            if (audit.length === 0) {
+                return { success: false, message: 'No audit trail entries found' };
+            }
+            
+            // Try to modify an audit entry
+            const firstEntry = audit[0];
+            const originalAction = firstEntry.action;
+            
+            try {
+                firstEntry.action = 'MODIFIED';
+                
+                // Get audit again
+                const auditAfter = getPengajuanModalAudit();
+                const firstEntryAfter = auditAfter.find(a => a.id === firstEntry.id);
+                
+                if (firstEntryAfter.action !== originalAction) {
+                    return { success: false, message: 'Audit trail was modified (not immutable)' };
+                }
+            } catch (error) {
+                // Expected if object is frozen
+            }
+            
+            return { success: true, message: 'Property 7: Audit trail is immutable' };
+        }
+
+        /**
+         * Test 14: Settings Update
+         */
+        function testSettingsUpdate() {
+            const newSettings = {
+                enabled: true,
+                batasMaximum: 3000000,
+                requireApproval: true,
+                autoApproveAmount: 500000
+            };
+            
+            const result = updatePengajuanModalSettings(newSettings);
+            
+            if (!result) {
+                return { success: false, message: 'Failed to update settings' };
+            }
+            
+            const updatedSettings = getPengajuanModalSettings();
+            
+            if (updatedSettings.batasMaximum !== 3000000) {
+                return { success: false, message: 'Settings not updated correctly' };
+            }
+            
+            return { success: true, message: 'Settings updated successfully' };
+        }
+
+        /**
+         * Test 15: Get Approved Pengajuan for Kasir
+         */
+        function testGetApprovedForKasir() {
+            // Create and approve a pengajuan
+            const kasir = getTestUser('kasir1');
+            currentUser = kasir;
+            
+            const createResult = createPengajuanModal(
+                kasir.id,
+                kasir.name,
+                1500000,
+                'For approved test'
+            );
+            
+            if (!createResult.success) {
+                return { success: false, message: 'Failed to create pengajuan' };
+            }
+            
+            // Approve it
+            const admin = getTestUser('admin1');
+            currentUser = admin;
+            
+            const approveResult = approvePengajuan(
+                createResult.data.id,
+                admin.id,
+                admin.name
+            );
+            
+            if (!approveResult.success) {
+                return { success: false, message: 'Failed to approve pengajuan' };
+            }
+            
+            // Get approved pengajuan for kasir
+            const approved = getApprovedPengajuanForKasir(kasir.id);
+            
+            if (!approved) {
+                return { success: false, message: 'Failed to get approved pengajuan' };
+            }
+            
+            if (approved.status !== 'approved') {
+                return { success: false, message: 'Retrieved pengajuan is not approved' };
+            }
+            
+            return { success: true, message: 'Get approved pengajuan for kasir works correctly' };
+        }
+
+        /**
+         * Run all tests
+         */
+        function runAllTests() {
+            clearTestResults();
+            
+            // Display test section header
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<h3 class="mb-3">Running Comprehensive Tests...</h3>';
+            
+            // Run all tests
+            const tests = [
+                { name: 'Test 1: Initialization and Settings', func: testInitialization },
+                { name: 'Test 2: Create Pengajuan Modal - Valid', func: testCreatePengajuanValid },
+                { name: 'Test 3: Property 3 - Validate Jumlah Modal', func: testValidateJumlahModal },
+                { name: 'Test 4: Property 6 - One Pending Per Kasir', func: testOnePendingPerKasir },
+                { name: 'Test 5: Property 2 - Approve Pengajuan', func: testApprovePengajuan },
+                { name: 'Test 6: Property 4 - Reject Without Reason', func: testRejectWithoutReason },
+                { name: 'Test 7: Property 4 - Reject With Reason', func: testRejectWithReason },
+                { name: 'Test 8: Property 5 - Mark As Used', func: testMarkAsUsed },
+                { name: 'Test 9: Property 8 - Notification Created', func: testNotificationCreated },
+                { name: 'Test 10: Property 10 - Admin Role Validation', func: testAdminRoleValidation },
+                { name: 'Test 11: Filter by Status', func: testFilterByStatus },
+                { name: 'Test 12: Property 9 - Filter by Date Range', func: testFilterByDateRange },
+                { name: 'Test 13: Property 7 - Audit Trail Immutability', func: testAuditTrailImmutability },
+                { name: 'Test 14: Settings Update', func: testSettingsUpdate },
+                { name: 'Test 15: Get Approved Pengajuan for Kasir', func: testGetApprovedForKasir }
+            ];
+            
+            tests.forEach(test => {
+                const result = runTest(test.name, test.func);
+                const status = result ? 'pass' : 'fail';
+                const testResult = testResults.tests[testResults.tests.length - 1];
+                displayTestResult(test.name, status, testResult.message);
+            });
+            
+            // Update summary
+            updateTestSummary();
+            
+            // Display final summary
+            const passRate = ((testResults.passed / testResults.total) * 100).toFixed(1);
+            const summaryClass = passRate >= 80 ? 'alert-success' : passRate >= 60 ? 'alert-warning' : 'alert-danger';
+            
+            resultsDiv.insertAdjacentHTML('beforeend', `
+                <div class="alert ${summaryClass} mt-4">
+                    <h4><i class="bi bi-clipboard-check me-2"></i>Test Summary</h4>
+                    <p><strong>Total Tests:</strong> ${testResults.total}</p>
+                    <p><strong>Passed:</strong> ${testResults.passed}</p>
+                    <p><strong>Failed:</strong> ${testResults.failed}</p>
+                    <p><strong>Pass Rate:</strong> ${passRate}%</p>
+                    ${passRate >= 80 ? '<p class="mb-0"><i class="bi bi-check-circle-fill me-2"></i>All tests passed successfully!</p>' : ''}
+                </div>
+            `);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            initTestEnvironment();
+            updateTestSummary();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Utils Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            Test Utils Integration - Shared Hutang Functions
+        </h2>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Test Setup</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="setupTestData()">
+                    <i class="bi bi-database-add me-1"></i>Setup Test Data
+                </button>
+                <button class="btn btn-danger ms-2" onclick="clearTestData()">
+                    <i class="bi bi-trash me-1"></i>Clear Test Data
+                </button>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Test Results</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success" onclick="runAllTests()">
+                    <i class="bi bi-play-circle me-1"></i>Run All Tests
+                </button>
+                <div id="testResults" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script>
+        // Test data setup
+        function setupTestData() {
+            // Create test anggota
+            const anggota = [
+                { id: 'A001', nik: '1234567890', nama: 'Test User 1', departemen: 'IT' },
+                { id: 'A002', nik: '0987654321', nama: 'Test User 2', departemen: 'Finance' }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            
+            // Create test penjualan (credit transactions)
+            const penjualan = [
+                { id: 'P001', anggotaId: 'A001', total: 100000, status: 'kredit', tanggal: '2024-01-01' },
+                { id: 'P002', anggotaId: 'A001', total: 50000, status: 'kredit', tanggal: '2024-01-02' },
+                { id: 'P003', anggotaId: 'A001', total: 75000, status: 'tunai', tanggal: '2024-01-03' }, // Should not count
+                { id: 'P004', anggotaId: 'A002', total: 200000, status: 'kredit', tanggal: '2024-01-04' }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            
+            // Create test pembayaran
+            const pembayaran = [
+                { 
+                    id: 'PHT001', 
+                    anggotaId: 'A001', 
+                    jenis: 'hutang', 
+                    jumlah: 30000, 
+                    status: 'selesai',
+                    tanggal: '2024-01-05',
+                    kasirNama: 'Kasir 1'
+                },
+                { 
+                    id: 'PHT002', 
+                    anggotaId: 'A001', 
+                    jenis: 'hutang', 
+                    jumlah: 20000, 
+                    status: 'selesai',
+                    tanggal: '2024-01-06',
+                    kasirNama: 'Kasir 2'
+                },
+                { 
+                    id: 'PHT003', 
+                    anggotaId: 'A001', 
+                    jenis: 'hutang', 
+                    jumlah: 10000, 
+                    status: 'pending',
+                    tanggal: '2024-01-07',
+                    kasirNama: 'Kasir 1'
+                }, // Should not count (not selesai)
+                { 
+                    id: 'PHT004', 
+                    anggotaId: 'A002', 
+                    jenis: 'hutang', 
+                    jumlah: 50000, 
+                    status: 'selesai',
+                    tanggal: '2024-01-08',
+                    kasirNama: 'Kasir 3'
+                }
+            ];
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(pembayaran));
+            
+            showAlert('Test data berhasil di-setup!', 'success');
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('penjualan');
+            localStorage.removeItem('pembayaranHutangPiutang');
+            showAlert('Test data berhasil dihapus!', 'info');
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.card'));
+            setTimeout(() => alertDiv.remove(), 3000);
+        }
+        
+        // Test functions
+        function runAllTests() {
+            const results = [];
+            
+            // Test 1: hitungTotalKredit
+            results.push(testHitungTotalKredit());
+            
+            // Test 2: hitungTotalPembayaranHutang
+            results.push(testHitungTotalPembayaranHutang());
+            
+            // Test 3: hitungSaldoHutang
+            results.push(testHitungSaldoHutang());
+            
+            // Test 4: getPembayaranHutangHistory
+            results.push(testGetPembayaranHutangHistory());
+            
+            // Test 5: Edge cases
+            results.push(testEdgeCases());
+            
+            displayResults(results);
+        }
+        
+        function testHitungTotalKredit() {
+            const test = { name: 'hitungTotalKredit()', passed: true, details: [] };
+            
+            try {
+                // Test A001: should have 150000 (100000 + 50000, excluding tunai)
+                const totalA001 = hitungTotalKredit('A001');
+                if (totalA001 === 150000) {
+                    test.details.push('✓ A001 total kredit: Rp 150,000 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A001 total kredit: Expected 150000, got ${totalA001}`);
+                }
+                
+                // Test A002: should have 200000
+                const totalA002 = hitungTotalKredit('A002');
+                if (totalA002 === 200000) {
+                    test.details.push('✓ A002 total kredit: Rp 200,000 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A002 total kredit: Expected 200000, got ${totalA002}`);
+                }
+            } catch (error) {
+                test.passed = false;
+                test.details.push(`✗ Error: ${error.message}`);
+            }
+            
+            return test;
+        }
+        
+        function testHitungTotalPembayaranHutang() {
+            const test = { name: 'hitungTotalPembayaranHutang()', passed: true, details: [] };
+            
+            try {
+                // Test A001: should have 50000 (30000 + 20000, excluding pending)
+                const totalA001 = hitungTotalPembayaranHutang('A001');
+                if (totalA001 === 50000) {
+                    test.details.push('✓ A001 total pembayaran: Rp 50,000 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A001 total pembayaran: Expected 50000, got ${totalA001}`);
+                }
+                
+                // Test A002: should have 50000
+                const totalA002 = hitungTotalPembayaranHutang('A002');
+                if (totalA002 === 50000) {
+                    test.details.push('✓ A002 total pembayaran: Rp 50,000 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A002 total pembayaran: Expected 50000, got ${totalA002}`);
+                }
+            } catch (error) {
+                test.passed = false;
+                test.details.push(`✗ Error: ${error.message}`);
+            }
+            
+            return test;
+        }
+        
+        function testHitungSaldoHutang() {
+            const test = { name: 'hitungSaldoHutang()', passed: true, details: [] };
+            
+            try {
+                // Test A001: should have 100000 (150000 - 50000)
+                const saldoA001 = hitungSaldoHutang('A001');
+                if (saldoA001 === 100000) {
+                    test.details.push('✓ A001 saldo hutang: Rp 100,000 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A001 saldo hutang: Expected 100000, got ${saldoA001}`);
+                }
+                
+                // Test A002: should have 150000 (200000 - 50000)
+                const saldoA002 = hitungSaldoHutang('A002');
+                if (saldoA002 === 150000) {
+                    test.details.push('✓ A002 saldo hutang: Rp 150,000 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A002 saldo hutang: Expected 150000, got ${saldoA002}`);
+                }
+            } catch (error) {
+                test.passed = false;
+                test.details.push(`✗ Error: ${error.message}`);
+            }
+            
+            return test;
+        }
+        
+        function testGetPembayaranHutangHistory() {
+            const test = { name: 'getPembayaranHutangHistory()', passed: true, details: [] };
+            
+            try {
+                // Test A001: should have 2 payments (excluding pending)
+                const historyA001 = getPembayaranHutangHistory('A001');
+                if (historyA001.length === 2) {
+                    test.details.push('✓ A001 payment history count: 2 (correct)');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ A001 payment history: Expected 2, got ${historyA001.length}`);
+                }
+                
+                // Check if sorted by date (newest first)
+                if (historyA001.length >= 2) {
+                    const date1 = new Date(historyA001[0].tanggal);
+                    const date2 = new Date(historyA001[1].tanggal);
+                    if (date1 >= date2) {
+                        test.details.push('✓ Payment history sorted correctly (newest first)');
+                    } else {
+                        test.passed = false;
+                        test.details.push('✗ Payment history not sorted correctly');
+                    }
+                }
+            } catch (error) {
+                test.passed = false;
+                test.details.push(`✗ Error: ${error.message}`);
+            }
+            
+            return test;
+        }
+        
+        function testEdgeCases() {
+            const test = { name: 'Edge Cases', passed: true, details: [] };
+            
+            try {
+                // Test invalid anggotaId
+                const invalidResult = hitungSaldoHutang('INVALID');
+                if (invalidResult === 0) {
+                    test.details.push('✓ Invalid anggotaId returns 0');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ Invalid anggotaId: Expected 0, got ${invalidResult}`);
+                }
+                
+                // Test null anggotaId
+                const nullResult = hitungSaldoHutang(null);
+                if (nullResult === 0) {
+                    test.details.push('✓ Null anggotaId returns 0');
+                } else {
+                    test.passed = false;
+                    test.details.push(`✗ Null anggotaId: Expected 0, got ${nullResult}`);
+                }
+                
+                // Test empty history
+                const emptyHistory = getPembayaranHutangHistory('NONEXISTENT');
+                if (Array.isArray(emptyHistory) && emptyHistory.length === 0) {
+                    test.details.push('✓ Non-existent anggota returns empty array');
+                } else {
+                    test.passed = false;
+                    test.details.push('✗ Non-existent anggota should return empty array');
+                }
+            } catch (error) {
+                test.passed = false;
+                test.details.push(`✗ Error: ${error.message}`);
+            }
+            
+            return test;
+        }
+        
+        function displayResults(results) {
+            const container = document.getElementById('testResults');
+            const passedCount = results.filter(r => r.passed).length;
+            const totalCount = results.length;
+            
+            let html = `
+                <div class="alert ${passedCount === totalCount ? 'alert-success' : 'alert-warning'}">
+                    <h5>
+                        <i class="bi bi-${passedCount === totalCount ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                        Test Results: ${passedCount}/${totalCount} Passed
+                    </h5>
+                </div>
+            `;
+            
+            results.forEach(test => {
+                html += `
+                    <div class="card mb-3">
+                        <div class="card-header ${test.passed ? 'bg-success' : 'bg-danger'} text-white">
+                            <i class="bi bi-${test.passed ? 'check-circle' : 'x-circle'} me-2"></i>
+                            ${test.name} - ${test.passed ? 'PASSED' : 'FAILED'}
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                ${test.details.map(d => `<li>${d}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

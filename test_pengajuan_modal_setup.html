@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pengajuan Modal Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Pengajuan Modal Kasir - Setup</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Initialize Data Structure</h2>
+        <button onclick="testInitialize()">Run Test</button>
+        <div id="test1Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Get Default Settings</h2>
+        <button onclick="testGetSettings()">Run Test</button>
+        <div id="test2Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Update Settings</h2>
+        <button onclick="testUpdateSettings()">Run Test</button>
+        <div id="test3Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: Validate Settings</h2>
+        <button onclick="testValidateSettings()">Run Test</button>
+        <div id="test4Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 5: Audit Trail</h2>
+        <button onclick="testAuditTrail()">Run Test</button>
+        <div id="test5Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 6: Feature Enabled Check</h2>
+        <button onclick="testFeatureEnabled()">Run Test</button>
+        <div id="test6Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <button onclick="clearAllData()" style="background: #dc3545;">Clear All Test Data</button>
+        <button onclick="runAllTests()" style="background: #28a745;">Run All Tests</button>
+    </div>
+
+    <!-- Load required scripts -->
+    <script>
+        // Mock functions from app.js
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        
+        // Mock currentUser
+        let currentUser = {
+            id: 1,
+            name: 'Test Admin',
+            role: 'administrator'
+        };
+    </script>
+    <script src="js/pengajuanModal.js"></script>
+    
+    <script>
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const className = success ? 'success' : 'error';
+            let html = `<div class="test-result ${className}">${message}</div>`;
+            
+            if (data) {
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            element.innerHTML = html;
+        }
+        
+        function testInitialize() {
+            try {
+                // Clear existing data
+                localStorage.removeItem('pengajuanModal');
+                localStorage.removeItem('pengajuanModalSettings');
+                localStorage.removeItem('notifications');
+                localStorage.removeItem('pengajuanModalAudit');
+                
+                // Initialize
+                initializePengajuanModalData();
+                
+                // Check if data structures exist
+                const pengajuanModal = localStorage.getItem('pengajuanModal');
+                const settings = localStorage.getItem('pengajuanModalSettings');
+                const notifications = localStorage.getItem('notifications');
+                const audit = localStorage.getItem('pengajuanModalAudit');
+                
+                if (pengajuanModal && settings && notifications && audit) {
+                    showResult('test1Result', true, 'Data structures initialized successfully!', {
+                        pengajuanModal: JSON.parse(pengajuanModal),
+                        settings: JSON.parse(settings),
+                        notifications: JSON.parse(notifications),
+                        audit: JSON.parse(audit)
+                    });
+                } else {
+                    showResult('test1Result', false, 'Failed to initialize data structures');
+                }
+            } catch (error) {
+                showResult('test1Result', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testGetSettings() {
+            try {
+                initializePengajuanModalData();
+                const settings = getPengajuanModalSettings();
+                
+                if (settings && settings.enabled !== undefined && settings.batasMaximum !== undefined) {
+                    showResult('test2Result', true, 'Settings retrieved successfully!', settings);
+                } else {
+                    showResult('test2Result', false, 'Failed to retrieve settings');
+                }
+            } catch (error) {
+                showResult('test2Result', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testUpdateSettings() {
+            try {
+                initializePengajuanModalData();
+                
+                const newSettings = {
+                    enabled: false,
+                    batasMaximum: 10000000,
+                    requireApproval: false,
+                    autoApproveAmount: 2000000
+                };
+                
+                const success = updatePengajuanModalSettings(newSettings);
+                const savedSettings = getPengajuanModalSettings();
+                
+                if (success && savedSettings.batasMaximum === 10000000) {
+                    showResult('test3Result', true, 'Settings updated successfully!', savedSettings);
+                } else {
+                    showResult('test3Result', false, 'Failed to update settings');
+                }
+            } catch (error) {
+                showResult('test3Result', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testValidateSettings() {
+            try {
+                initializePengajuanModalData();
+                
+                // Test invalid settings
+                const invalidSettings = [
+                    { enabled: 'yes', batasMaximum: 5000000, requireApproval: true, autoApproveAmount: 1000000 },
+                    { enabled: true, batasMaximum: -1000, requireApproval: true, autoApproveAmount: 1000000 },
+                    { enabled: true, batasMaximum: 5000000, requireApproval: 'yes', autoApproveAmount: 1000000 },
+                    { enabled: true, batasMaximum: 5000000, requireApproval: true, autoApproveAmount: -500 }
+                ];
+                
+                let allFailed = true;
+                for (const settings of invalidSettings) {
+                    const result = updatePengajuanModalSettings(settings);
+                    if (result === true) {
+                        allFailed = false;
+                        break;
+                    }
+                }
+                
+                if (allFailed) {
+                    showResult('test4Result', true, 'Validation working correctly! All invalid settings rejected.');
+                } else {
+                    showResult('test4Result', false, 'Validation failed! Invalid settings were accepted.');
+                }
+            } catch (error) {
+                showResult('test4Result', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testAuditTrail() {
+            try {
+                initializePengajuanModalData();
+                
+                // Log some audit entries
+                logPengajuanModalAudit({
+                    action: 'TEST_ACTION_1',
+                    userId: 1,
+                    userName: 'Test User',
+                    details: { test: 'data1' }
+                });
+                
+                logPengajuanModalAudit({
+                    action: 'TEST_ACTION_2',
+                    userId: 2,
+                    userName: 'Test User 2',
+                    details: { test: 'data2' }
+                });
+                
+                // Get audit trail
+                const audit = getPengajuanModalAudit();
+                
+                if (audit.length >= 2) {
+                    showResult('test5Result', true, `Audit trail working! ${audit.length} entries found.`, audit);
+                } else {
+                    showResult('test5Result', false, 'Failed to log audit trail');
+                }
+            } catch (error) {
+                showResult('test5Result', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testFeatureEnabled() {
+            try {
+                initializePengajuanModalData();
+                
+                // Test when enabled
+                updatePengajuanModalSettings({
+                    enabled: true,
+                    batasMaximum: 5000000,
+                    requireApproval: true,
+                    autoApproveAmount: 1000000
+                });
+                
+                const enabled1 = isPengajuanModalEnabled();
+                
+                // Test when disabled
+                updatePengajuanModalSettings({
+                    enabled: false,
+                    batasMaximum: 5000000,
+                    requireApproval: true,
+                    autoApproveAmount: 1000000
+                });
+                
+                const enabled2 = isPengajuanModalEnabled();
+                
+                if (enabled1 === true && enabled2 === false) {
+                    showResult('test6Result', true, 'Feature enabled check working correctly!', {
+                        whenEnabled: enabled1,
+                        whenDisabled: enabled2
+                    });
+                } else {
+                    showResult('test6Result', false, 'Feature enabled check failed');
+                }
+            } catch (error) {
+                showResult('test6Result', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function clearAllData() {
+            localStorage.removeItem('pengajuanModal');
+            localStorage.removeItem('pengajuanModalSettings');
+            localStorage.removeItem('notifications');
+            localStorage.removeItem('pengajuanModalAudit');
+            alert('All test data cleared!');
+            location.reload();
+        }
+        
+        function runAllTests() {
+            testInitialize();
+            setTimeout(() => testGetSettings(), 100);
+            setTimeout(() => testUpdateSettings(), 200);
+            setTimeout(() => testValidateSettings(), 300);
+            setTimeout(() => testAuditTrail(), 400);
+            setTimeout(() => testFeatureEnabled(), 500);
+        }
+    </script>
+</body>
+</html>

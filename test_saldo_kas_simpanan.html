@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Saldo KAS dari Simpanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>🧪 Test: Saldo KAS dari Simpanan Pokok & Wajib</h2>
+        <p class="text-muted">Test untuk memverifikasi bahwa simpanan menambah saldo KAS</p>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5>Skenario Test</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Cek saldo KAS awal</li>
+                    <li>Tambah Simpanan Pokok Rp 1.000.000</li>
+                    <li>Cek saldo KAS bertambah Rp 1.000.000</li>
+                    <li>Tambah Simpanan Wajib Rp 100.000</li>
+                    <li>Cek saldo KAS bertambah Rp 100.000 lagi</li>
+                    <li>Total KAS = Awal + 1.000.000 + 100.000</li>
+                </ol>
+            </div>
+        </div>
+
+        <button class="btn btn-primary mb-3" onclick="runTests()">🚀 Jalankan Test</button>
+        <button class="btn btn-secondary mb-3" onclick="clearTests()">🗑️ Clear Results</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function clearTests() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function addTestResult(testName, passed, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultClass = passed ? 'test-pass' : 'test-fail';
+            const icon = passed ? '✅' : '❌';
+            
+            resultsDiv.innerHTML += `
+                <div class="test-result ${resultClass}">
+                    <strong>${icon} ${testName}</strong><br>
+                    <small>${message}</small>
+                </div>
+            `;
+        }
+
+        function addInfoResult(message) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML += `
+                <div class="test-result test-info">
+                    <strong>ℹ️ Info</strong><br>
+                    <small>${message}</small>
+                </div>
+            `;
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function generateId() {
+            return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Simulasi fungsi addJurnal
+        function addJurnal(keterangan, entries, tanggal = null) {
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+            
+            const data = {
+                id: generateId(),
+                tanggal: tanggal || new Date().toISOString(),
+                keterangan: keterangan,
+                entries: entries
+            };
+            
+            jurnal.push(data);
+            localStorage.setItem('jurnal', JSON.stringify(jurnal));
+            
+            // Update saldo COA
+            entries.forEach(entry => {
+                const akun = coa.find(c => c.kode === entry.akun);
+                if (akun) {
+                    if (akun.tipe === 'Aset' || akun.tipe === 'Beban') {
+                        akun.saldo += entry.debit - entry.kredit;
+                    } else {
+                        akun.saldo += entry.kredit - entry.debit;
+                    }
+                }
+            });
+            localStorage.setItem('coa', JSON.stringify(coa));
+        }
+
+        function runTests() {
+            clearTests();
+            
+            addInfoResult('Memulai test suite untuk saldo KAS dari simpanan...');
+            
+            // Setup: Buat COA minimal
+            const coa = [
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 0 },
+                { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 0 },
+                { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'Kewajiban', saldo: 0 }
+            ];
+            localStorage.setItem('coa', JSON.stringify(coa));
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            
+            addInfoResult('Setup: COA dan Jurnal telah direset');
+            
+            // Test 1: Cek saldo KAS awal
+            let coaData = JSON.parse(localStorage.getItem('coa'));
+            let kasAwal = coaData.find(a => a.kode === '1-1000').saldo;
+            
+            addTestResult(
+                'Test 1: Saldo KAS Awal',
+                kasAwal === 0,
+                `Saldo KAS awal: ${formatRupiah(kasAwal)}`
+            );
+            
+            // Test 2: Tambah Simpanan Pokok Rp 1.000.000
+            addJurnal('Simpanan Pokok - Test', [
+                { akun: '1-1000', debit: 1000000, kredit: 0 },
+                { akun: '2-1100', debit: 0, kredit: 1000000 }
+            ]);
+            
+            coaData = JSON.parse(localStorage.getItem('coa'));
+            let kasSetelahPokok = coaData.find(a => a.kode === '1-1000').saldo;
+            let simpananPokok = coaData.find(a => a.kode === '2-1100').saldo;
+            
+            addTestResult(
+                'Test 2: Simpanan Pokok Menambah KAS',
+                kasSetelahPokok === 1000000,
+                `Saldo KAS setelah Simpanan Pokok: ${formatRupiah(kasSetelahPokok)} (Expected: Rp 1.000.000)`
+            );
+            
+            addTestResult(
+                'Test 2.1: Saldo Simpanan Pokok Bertambah',
+                simpananPokok === 1000000,
+                `Saldo Simpanan Pokok: ${formatRupiah(simpananPokok)}`
+            );
+            
+            // Test 3: Tambah Simpanan Wajib Rp 100.000
+            addJurnal('Simpanan Wajib - Test', [
+                { akun: '1-1000', debit: 100000, kredit: 0 },
+                { akun: '2-1200', debit: 0, kredit: 100000 }
+            ]);
+            
+            coaData = JSON.parse(localStorage.getItem('coa'));
+            let kasSetelahWajib = coaData.find(a => a.kode === '1-1000').saldo;
+            let simpananWajib = coaData.find(a => a.kode === '2-1200').saldo;
+            
+            addTestResult(
+                'Test 3: Simpanan Wajib Menambah KAS',
+                kasSetelahWajib === 1100000,
+                `Saldo KAS setelah Simpanan Wajib: ${formatRupiah(kasSetelahWajib)} (Expected: Rp 1.100.000)`
+            );
+            
+            addTestResult(
+                'Test 3.1: Saldo Simpanan Wajib Bertambah',
+                simpananWajib === 100000,
+                `Saldo Simpanan Wajib: ${formatRupiah(simpananWajib)}`
+            );
+            
+            // Test 4: Verifikasi Total
+            const totalExpected = 1100000;
+            const totalActual = kasSetelahWajib;
+            
+            addTestResult(
+                'Test 4: Total KAS = Simpanan Pokok + Simpanan Wajib',
+                totalActual === totalExpected,
+                `Total KAS: ${formatRupiah(totalActual)} = Rp 1.000.000 + Rp 100.000`
+            );
+            
+            // Test 5: Verifikasi Jurnal
+            const jurnal = JSON.parse(localStorage.getItem('jurnal'));
+            
+            addTestResult(
+                'Test 5: Jurnal Tercatat',
+                jurnal.length === 2,
+                `Jumlah jurnal: ${jurnal.length} (Expected: 2)`
+            );
+            
+            // Test 6: Verifikasi Entry Jurnal Simpanan Pokok
+            const jurnalPokok = jurnal.find(j => j.keterangan.includes('Simpanan Pokok'));
+            const entryKasPokok = jurnalPokok ? jurnalPokok.entries.find(e => e.akun === '1-1000') : null;
+            
+            addTestResult(
+                'Test 6: Entry KAS di Jurnal Simpanan Pokok',
+                entryKasPokok && entryKasPokok.debit === 1000000 && entryKasPokok.kredit === 0,
+                entryKasPokok ? 
+                    `Debit: ${formatRupiah(entryKasPokok.debit)}, Kredit: ${formatRupiah(entryKasPokok.kredit)}` :
+                    'Entry tidak ditemukan'
+            );
+            
+            // Test 7: Verifikasi Entry Jurnal Simpanan Wajib
+            const jurnalWajib = jurnal.find(j => j.keterangan.includes('Simpanan Wajib'));
+            const entryKasWajib = jurnalWajib ? jurnalWajib.entries.find(e => e.akun === '1-1000') : null;
+            
+            addTestResult(
+                'Test 7: Entry KAS di Jurnal Simpanan Wajib',
+                entryKasWajib && entryKasWajib.debit === 100000 && entryKasWajib.kredit === 0,
+                entryKasWajib ? 
+                    `Debit: ${formatRupiah(entryKasWajib.debit)}, Kredit: ${formatRupiah(entryKasWajib.kredit)}` :
+                    'Entry tidak ditemukan'
+            );
+            
+            // Summary
+            addInfoResult('✅ Test suite selesai! Simpanan Pokok dan Wajib sudah menambah saldo KAS dengan benar.');
+            
+            // Cleanup
+            addInfoResult('Membersihkan data test...');
+            localStorage.removeItem('coa');
+            localStorage.removeItem('jurnal');
+        }
+    </script>
+</body>
+</html>

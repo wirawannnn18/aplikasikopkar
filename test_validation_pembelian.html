@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Validasi Pembelian</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check"></i> Test Validasi Pembelian
+        </h1>
+        
+        <div class="test-section">
+            <h3>Test Scenario 1: Validasi Required Fields</h3>
+            <p class="text-muted">Memastikan noFaktur dan tanggal harus diisi</p>
+            <button class="btn btn-primary" onclick="testRequiredFields()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result1" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Scenario 2: Validasi Empty Items List</h3>
+            <p class="text-muted">Memastikan minimal 1 item harus ada dengan pesan yang tepat</p>
+            <button class="btn btn-primary" onclick="testEmptyItemsList()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result2" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Scenario 3: Validasi Negative Qty</h3>
+            <p class="text-muted">Memastikan qty tidak boleh negatif atau nol</p>
+            <button class="btn btn-primary" onclick="testNegativeQty()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result3" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Scenario 4: Validasi Negative Harga</h3>
+            <p class="text-muted">Memastikan harga tidak boleh negatif</p>
+            <button class="btn btn-primary" onclick="testNegativeHarga()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result4" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Scenario 5: Validasi Add Item</h3>
+            <p class="text-muted">Memastikan validasi saat menambah item baru</p>
+            <button class="btn btn-primary" onclick="testAddItemValidation()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result5" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Scenario 6: Validasi Update Item Qty/Harga</h3>
+            <p class="text-muted">Memastikan validasi saat mengubah qty atau harga item</p>
+            <button class="btn btn-primary" onclick="testUpdateItemValidation()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result6" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Scenario 7: Validasi Edit Mode</h3>
+            <p class="text-muted">Memastikan validasi juga bekerja di edit mode</p>
+            <button class="btn btn-primary" onclick="testEditModeValidation()">
+                <i class="bi bi-play-fill"></i> Run Test
+            </button>
+            <div id="result7" class="mt-3"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <button class="btn btn-success btn-lg" onclick="runAllTests()">
+                <i class="bi bi-play-circle"></i> Run All Tests
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/inventory.js"></script>
+    
+    <script>
+        // Initialize test data
+        function initTestData() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Add test barang
+            const barang = [
+                {
+                    id: 'brg1',
+                    barcode: 'BRG001',
+                    nama: 'Test Barang 1',
+                    kategoriId: 'kat1',
+                    satuanId: 'sat1',
+                    stok: 10,
+                    hpp: 5000,
+                    hargaJual: 7000
+                },
+                {
+                    id: 'brg2',
+                    barcode: 'BRG002',
+                    nama: 'Test Barang 2',
+                    kategoriId: 'kat1',
+                    satuanId: 'sat1',
+                    stok: 20,
+                    hpp: 10000,
+                    hargaJual: 15000
+                }
+            ];
+            localStorage.setItem('barang', JSON.stringify(barang));
+            
+            // Add test pembelian
+            const pembelian = [
+                {
+                    id: 'pb1',
+                    noFaktur: 'PB001',
+                    tanggal: '2024-01-15',
+                    supplierId: null,
+                    items: [
+                        {
+                            barangId: 'brg1',
+                            nama: 'Test Barang 1',
+                            qty: 5,
+                            harga: 5000,
+                            subtotal: 25000
+                        }
+                    ],
+                    total: 25000,
+                    status: 'selesai'
+                }
+            ];
+            localStorage.setItem('pembelian', JSON.stringify(pembelian));
+            
+            // Initialize koperasi data
+            localStorage.setItem('koperasi', JSON.stringify({
+                nama: 'Test Koperasi',
+                alamat: 'Test Address'
+            }));
+        }
+        
+        // Test 1: Required Fields Validation
+        function testRequiredFields() {
+            initTestData();
+            const resultDiv = document.getElementById('result1');
+            let results = [];
+            
+            // Test empty noFaktur
+            itemsPembelian = [{barangId: 'brg1', nama: 'Test', qty: 1, harga: 1000, subtotal: 1000}];
+            document.body.innerHTML += `
+                <input type="text" id="noFaktur" value="">
+                <input type="date" id="tanggalPembelian" value="2024-01-15">
+                <select id="supplierPembelian"></select>
+            `;
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            savePembelian(false);
+            
+            if (alertCalled && alertMessage.includes('No. Faktur')) {
+                results.push('<div class="test-result test-pass">✓ Empty noFaktur validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Empty noFaktur validation: FAIL</div>');
+            }
+            
+            // Test empty tanggal
+            document.getElementById('noFaktur').value = 'PB123';
+            document.getElementById('tanggalPembelian').value = '';
+            alertCalled = false;
+            alertMessage = '';
+            
+            savePembelian(false);
+            
+            if (alertCalled && alertMessage.includes('Tanggal')) {
+                results.push('<div class="test-result test-pass">✓ Empty tanggal validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Empty tanggal validation: FAIL</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Test 2: Empty Items List Validation
+        function testEmptyItemsList() {
+            initTestData();
+            const resultDiv = document.getElementById('result2');
+            let results = [];
+            
+            document.body.innerHTML += `
+                <input type="text" id="noFaktur" value="PB123">
+                <input type="date" id="tanggalPembelian" value="2024-01-15">
+                <select id="supplierPembelian"></select>
+            `;
+            
+            itemsPembelian = [];
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            savePembelian(false);
+            
+            if (alertCalled && alertMessage === 'Tambahkan minimal 1 item pembelian') {
+                results.push('<div class="test-result test-pass">✓ Empty items validation with correct message: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Empty items validation: FAIL (Message: "' + alertMessage + '")</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Test 3: Negative Qty Validation
+        function testNegativeQty() {
+            initTestData();
+            const resultDiv = document.getElementById('result3');
+            let results = [];
+            
+            document.body.innerHTML += `
+                <input type="text" id="noFaktur" value="PB123">
+                <input type="date" id="tanggalPembelian" value="2024-01-15">
+                <select id="supplierPembelian"></select>
+            `;
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            // Test zero qty
+            itemsPembelian = [{barangId: 'brg1', nama: 'Test Barang', qty: 0, harga: 1000, subtotal: 0}];
+            savePembelian(false);
+            
+            if (alertCalled && alertMessage.includes('Qty harus lebih dari 0')) {
+                results.push('<div class="test-result test-pass">✓ Zero qty validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Zero qty validation: FAIL</div>');
+            }
+            
+            // Test negative qty
+            alertCalled = false;
+            itemsPembelian = [{barangId: 'brg1', nama: 'Test Barang', qty: -5, harga: 1000, subtotal: -5000}];
+            savePembelian(false);
+            
+            if (alertCalled && alertMessage.includes('Qty harus lebih dari 0')) {
+                results.push('<div class="test-result test-pass">✓ Negative qty validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Negative qty validation: FAIL</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Test 4: Negative Harga Validation
+        function testNegativeHarga() {
+            initTestData();
+            const resultDiv = document.getElementById('result4');
+            let results = [];
+            
+            document.body.innerHTML += `
+                <input type="text" id="noFaktur" value="PB123">
+                <input type="date" id="tanggalPembelian" value="2024-01-15">
+                <select id="supplierPembelian"></select>
+            `;
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            // Test negative harga
+            itemsPembelian = [{barangId: 'brg1', nama: 'Test Barang', qty: 5, harga: -1000, subtotal: -5000}];
+            savePembelian(false);
+            
+            if (alertCalled && alertMessage.includes('Harga tidak boleh negatif')) {
+                results.push('<div class="test-result test-pass">✓ Negative harga validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Negative harga validation: FAIL</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Test 5: Add Item Validation
+        function testAddItemValidation() {
+            initTestData();
+            const resultDiv = document.getElementById('result5');
+            let results = [];
+            
+            document.body.innerHTML += `
+                <select id="selectBarang">
+                    <option value="">-- Pilih Barang --</option>
+                    <option value="brg1" data-nama="Test Barang 1">Test Barang 1</option>
+                </select>
+                <input type="number" id="qtyBarang" value="1">
+                <input type="number" id="hargaBeli" value="1000">
+            `;
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            // Test no barang selected
+            document.getElementById('selectBarang').value = '';
+            addItemPembelian();
+            
+            if (alertCalled && alertMessage.includes('Pilih barang')) {
+                results.push('<div class="test-result test-pass">✓ No barang selected validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ No barang selected validation: FAIL</div>');
+            }
+            
+            // Test zero qty
+            alertCalled = false;
+            document.getElementById('selectBarang').value = 'brg1';
+            document.getElementById('qtyBarang').value = '0';
+            addItemPembelian();
+            
+            if (alertCalled && alertMessage.includes('Qty harus lebih dari 0')) {
+                results.push('<div class="test-result test-pass">✓ Zero qty in add item validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Zero qty in add item validation: FAIL</div>');
+            }
+            
+            // Test negative harga
+            alertCalled = false;
+            document.getElementById('qtyBarang').value = '5';
+            document.getElementById('hargaBeli').value = '-1000';
+            addItemPembelian();
+            
+            if (alertCalled && alertMessage.includes('Harga tidak boleh negatif')) {
+                results.push('<div class="test-result test-pass">✓ Negative harga in add item validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Negative harga in add item validation: FAIL</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Test 6: Update Item Validation
+        function testUpdateItemValidation() {
+            initTestData();
+            const resultDiv = document.getElementById('result6');
+            let results = [];
+            
+            itemsPembelian = [{barangId: 'brg1', nama: 'Test Barang', qty: 5, harga: 1000, subtotal: 5000}];
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            // Test update qty to zero
+            updateItemQty(0, '0');
+            
+            if (alertCalled && alertMessage.includes('Qty harus lebih dari 0')) {
+                results.push('<div class="test-result test-pass">✓ Update qty to zero validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Update qty to zero validation: FAIL</div>');
+            }
+            
+            // Test update harga to negative
+            alertCalled = false;
+            updateItemHarga(0, '-500');
+            
+            if (alertCalled && alertMessage.includes('Harga tidak boleh negatif')) {
+                results.push('<div class="test-result test-pass">✓ Update harga to negative validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Update harga to negative validation: FAIL</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Test 7: Edit Mode Validation
+        function testEditModeValidation() {
+            initTestData();
+            const resultDiv = document.getElementById('result7');
+            let results = [];
+            
+            document.body.innerHTML += `
+                <input type="text" id="noFaktur" value="">
+                <input type="date" id="tanggalPembelian" value="2024-01-15">
+                <select id="supplierPembelian"></select>
+            `;
+            
+            isEditMode = true;
+            editingTransactionId = 'pb1';
+            itemsPembelian = [];
+            
+            let alertCalled = false;
+            let alertMessage = '';
+            const originalShowAlert = window.showAlert;
+            window.showAlert = function(msg, type) {
+                alertCalled = true;
+                alertMessage = msg;
+            };
+            
+            // Test empty noFaktur in edit mode
+            savePembelianEdit('pb1');
+            
+            if (alertCalled && alertMessage.includes('No. Faktur')) {
+                results.push('<div class="test-result test-pass">✓ Edit mode: Empty noFaktur validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Edit mode: Empty noFaktur validation: FAIL</div>');
+            }
+            
+            // Test empty items in edit mode
+            alertCalled = false;
+            document.getElementById('noFaktur').value = 'PB123';
+            savePembelianEdit('pb1');
+            
+            if (alertCalled && alertMessage === 'Tambahkan minimal 1 item pembelian') {
+                results.push('<div class="test-result test-pass">✓ Edit mode: Empty items validation: PASS</div>');
+            } else {
+                results.push('<div class="test-result test-fail">✗ Edit mode: Empty items validation: FAIL</div>');
+            }
+            
+            window.showAlert = originalShowAlert;
+            isEditMode = false;
+            editingTransactionId = null;
+            resultDiv.innerHTML = results.join('');
+        }
+        
+        // Run all tests
+        function runAllTests() {
+            testRequiredFields();
+            testEmptyItemsList();
+            testNegativeQty();
+            testNegativeHarga();
+            testAddItemValidation();
+            testUpdateItemValidation();
+            testEditModeValidation();
+        }
+        
+        // Initialize on load
+        window.onload = function() {
+            initTestData();
+        };
+    </script>
+</body>
+</html>
