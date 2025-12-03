@@ -58,9 +58,9 @@ git push origin main
 
 ### Build Settings (Otomatis terdeteksi):
 - **Framework Preset**: Other
-- **Build Command**: `npm run build`
-- **Output Directory**: `public`
-- **Install Command**: `npm install`
+- **Build Command**: (tidak diperlukan - static site)
+- **Output Directory**: (root directory)
+- **Install Command**: (tidak diperlukan - no dependencies)
 
 ### Environment Variables:
 Tidak ada environment variables yang diperlukan karena aplikasi menggunakan localStorage.
@@ -79,13 +79,13 @@ aplikasi-koperasi/
 └── package.json         # Updated with build script
 ```
 
-## 🔧 Build Process
+## 🔧 Deployment Process
 
-Build script (`build.js`) akan:
-1. Membuat folder `public/`
-2. Copy `index.html` ke `public/`
-3. Copy folder `js/` ke `public/js/`
-4. Copy folder `css/` ke `public/css/`
+Vercel akan otomatis:
+1. Clone repository Anda
+2. Deploy semua file static (HTML, CSS, JS)
+3. Setup CDN global
+4. Aktifkan HTTPS
 
 ## 📝 Catatan Penting
 
@@ -104,19 +104,14 @@ Anda bisa menambahkan custom domain di Vercel dashboard:
 
 ## 🧪 Testing Sebelum Deploy
 
-1. **Test build locally**:
-```bash
-npm run build
-```
-
-2. **Cek folder public**:
-Pastikan semua file ada di folder `public/`
-
-3. **Test dengan server lokal**:
+1. **Test dengan server lokal**:
 ```bash
 npm run dev
 ```
 Buka http://localhost:3000
+
+2. **Cek semua file**:
+Pastikan `index.html`, folder `js/`, dan folder `css/` ada di root directory
 
 ## 🔄 Update Aplikasi
 
@@ -144,10 +139,10 @@ Setelah deploy, Anda bisa monitor di Vercel Dashboard:
 
 ## 🆘 Troubleshooting
 
-### Build Failed
+### Deployment Failed
 - Cek logs di Vercel dashboard
-- Pastikan `build.js` berjalan tanpa error
-- Cek `package.json` scripts
+- Pastikan semua file static ada (index.html, js/, css/)
+- Cek `vercel.json` configuration
 
 ### 404 Error
 - Cek `vercel.json` routing configuration

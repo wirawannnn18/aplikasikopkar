@@ -4,38 +4,31 @@
 
 ### 1. **vercel.json**
 Konfigurasi utama Vercel dengan:
-- Build command: `npm run build`
-- Output directory: `public`
 - Security headers (X-Frame-Options, X-XSS-Protection, X-Content-Type-Options)
 - Optimized caching untuk JS dan CSS
 - Clean URLs support
+- Static site deployment (no build needed)
 
-### 2. **build.js**
-Build script yang:
-- Membuat folder `public/`
-- Copy `index.html`, `js/`, dan `css/` ke folder public
-- Otomatis dijalankan saat deploy
-
-### 3. **.vercelignore**
+### 2. **.vercelignore**
 Mengabaikan file yang tidak perlu di-deploy:
 - Test files
 - Documentation files (kecuali README.md)
 - Development files
 - Node modules
 
-### 4. **.gitignore**
+### 3. **.gitignore**
 Mengabaikan file yang tidak perlu di-commit:
 - `node_modules/`
 - `public/` (generated saat build)
 - IDE files
 - Log files
 
-### 5. **package.json** (Updated)
-Ditambahkan scripts:
-- `npm run build` - Build untuk production
+### 4. **package.json** (Updated)
+Scripts yang tersedia:
 - `npm run dev` - Development server
+- `npm run test` - Run tests
 
-### 6. **README_VERCEL_DEPLOYMENT.md**
+### 5. **README_VERCEL_DEPLOYMENT.md**
 Panduan lengkap deployment dengan:
 - Cara deploy via CLI
 - Cara deploy via GitHub
@@ -43,7 +36,7 @@ Panduan lengkap deployment dengan:
 - Troubleshooting
 - Best practices
 
-### 7. **DEPLOY_VERCEL_QUICKSTART.md**
+### 6. **DEPLOY_VERCEL_QUICKSTART.md**
 Quick start guide (5 menit) untuk deploy cepat
 
 ## 🚀 Cara Deploy (Quick Start)
@@ -99,35 +92,32 @@ git push origin main
 
 ```
 aplikasi-koperasi/
-├── public/                    # Generated saat build
-│   ├── index.html
-│   ├── js/
-│   │   ├── app.js
-│   │   ├── auth.js
-│   │   ├── resetDataKoperasi.js
-│   │   ├── resetDataUI.js
-│   │   └── ... (semua JS files)
-│   └── css/
-│       └── style.css
-├── vercel.json               # Vercel config
-├── build.js                  # Build script
-├── .vercelignore            # Deploy ignore
-├── .gitignore               # Git ignore
-└── package.json             # Updated scripts
+├── index.html               # Main HTML file
+├── js/                      # JavaScript files
+│   ├── app.js
+│   ├── auth.js
+│   ├── resetDataKoperasi.js
+│   ├── resetDataUI.js
+│   └── ... (semua JS files)
+├── css/                     # CSS files
+│   └── style.css
+├── vercel.json             # Vercel config
+├── .vercelignore           # Deploy ignore
+├── .gitignore              # Git ignore
+└── package.json            # Package info
 ```
 
 ## 🧪 Testing Sebelum Deploy
 
 ```bash
-# 1. Test build
-npm run build
-
-# 2. Cek folder public
-ls public/
-
-# 3. Test lokal (optional)
+# 1. Test lokal
 npm run dev
 # Buka http://localhost:3000
+
+# 2. Cek semua file ada
+# - index.html
+# - js/ folder
+# - css/ folder
 ```
 
 ## 📝 Catatan Penting
@@ -176,32 +166,30 @@ Setelah deploy, monitor di Vercel Dashboard:
 
 ## 🆘 Troubleshooting
 
-### Build Failed
+### Deployment Failed
 ```bash
-# Test build lokal
-npm run build
-
-# Cek error di terminal
-# Fix error, commit, deploy lagi
+# Cek logs di Vercel dashboard
+# Pastikan semua file static ada
+# Cek vercel.json configuration
 ```
 
 ### 404 Error
 - Cek `vercel.json` routing
-- Pastikan `index.html` ada di `public/`
+- Pastikan `index.html` ada di root directory
 
 ### JavaScript/CSS Not Loading
 - Cek path di `index.html`
-- Pastikan folder ter-copy dengan benar
+- Pastikan folder `js/` dan `css/` ada di root directory
 
 ## ✅ Checklist Deploy
 
 - [x] File konfigurasi dibuat
-- [x] Build script tested
+- [x] Static files ready
 - [x] .gitignore configured
 - [x] Documentation complete
 - [ ] Install Vercel CLI
 - [ ] Login ke Vercel
-- [ ] Test build locally
+- [ ] Test locally (npm run dev)
 - [ ] Deploy preview
 - [ ] Test aplikasi di preview URL
 - [ ] Deploy production
