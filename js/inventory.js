@@ -408,6 +408,20 @@ function renderPembelian() {
                                 <span class="badge bg-secondary">ATAU</span>
                             </div>
                             
+                            <!-- Item Search Section -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div id="itemSearchContainer">
+                                        <!-- Search field will be rendered here -->
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div id="categoryFilterContainer">
+                                        <!-- Category filter will be rendered here -->
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <!-- Manual Selection (Existing) -->
                             <div class="row mb-3">
                                 <div class="col-md-4">
@@ -516,6 +530,9 @@ function showPembelianModal() {
     });
     
     updateItemPembelianList();
+    
+    // Initialize search components
+    initializeItemSearch();
     
     // Setup modal close event listener to reset form and flags
     const modalElement = document.getElementById('pembelianModal');
@@ -2032,4 +2049,85 @@ function enhanceQtyFieldForBarcode() {
     if (qtyField) {
         qtyField.addEventListener('keypress', handleQtyFieldEnter);
     }
+}
+
+/**
+ * Initialize item search functionality in purchase modal
+ */
+function initializeItemSearch() {
+    try {
+        // Initialize search UI components
+        if (window.searchUI) {
+            // Render search field
+            window.searchUI.renderSearchField('itemSearchContainer');
+            
+            // Render category filter
+            window.searchUI.renderCategoryFilter('categoryFilterContainer');
+            
+            // Setup event listener for item selection
+            document.addEventListener('itemAddedToPurchase', handleSearchItemSelection);
+        } else {
+            console.warn('Search UI not available');
+        }
+    } catch (error) {
+        console.error('Error initializing item search:', error);
+    }
+}
+
+/**
+ * Handle item selection from search
+ * @param {CustomEvent} event - Item selection event
+ */
+function handleSearchItemSelection(event) {
+    try {
+        const { item } = event.detail;
+        
+        // Add item to purchase list
+        const purchaseItem = {
+            barangId: item.id,
+            nama: item.name,
+            qty: 1,
+            harga: item.unitPrice || 0,
+            subtotal: item.unitPrice || 0
+        };
+        
+        // Check if item already exists
+        const existingIndex = itemsPembelian.findIndex(p => p.barangId === item.id);
+        
+        if (existingIndex >= 0) {
+            // Increment quantity
+            itemsPembelian[existingIndex].qty += 1;
+            itemsPembelian[existingIndex].subtotal = itemsPembelian[existingIndex].qty * itemsPembelian[existingIndex].harga;
+        } else {
+            // Add new item
+            itemsPembelian.push(purchaseItem);
+        }
+        
+        // Update UI
+        updateItemPembelianList();
+        
+        // Clear search field
+        const searchInput = document.getElementById('itemSearchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // Hide search dropdown
+        if (window.searchUI) {
+            window.searchUI.hideDropdown();
+        }
+        
+    } catch (error) {
+        console.error('Error handling search item selection:', error);
+        showAlert('Gagal menambahkan barang dari pencarian', 'danger');
+    }
+}
+
+/**
+ * Update purchase table to integrate with existing system
+ */
+function updatePurchaseTable() {
+    // This function is called by the search UI when items are added
+    // We just need to update our existing purchase list
+    updateItemPembelianList();
 }

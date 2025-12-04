@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pencarian Barang Pembelian</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/itemSearch.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1><i class="bi bi-search"></i> Test Pencarian Barang Pembelian</h1>
+        
+        <div class="alert alert-info">
+            <strong>Info:</strong> Halaman ini untuk testing fitur pencarian barang dalam pembelian.
+        </div>
+
+        <!-- Test Controls -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+                <button class="btn btn-secondary" onclick="clearTestData()">Clear Test Data</button>
+                <button class="btn btn-info" onclick="showCurrentData()">Show Current Data</button>
+                <button class="btn btn-success" onclick="runAllTests()">Run All Tests</button>
+            </div>
+        </div>
+
+        <!-- Search Test Area -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Search Test Area</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div id="itemSearchContainer">
+                            <!-- Search field will be rendered here -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="categoryFilterContainer">
+                            <!-- Category filter will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase Items Display -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Purchase Items (Selected from Search)</h5>
+            </div>
+            <div class="card-body">
+                <div id="purchaseItemsDisplay">
+                    <p class="text-muted">No items selected yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="testResults">
+                    <p class="text-muted">Run tests to see results</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/itemSearch.js"></script>
+    <script src="js/itemSearchUI.js"></script>    
+<script>
+        // Mock functions for testing
+        function getCurrentUser() {
+            return { id: 'test-user', name: 'Test User' };
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'danger' ? 'alert-danger' : 'alert-info';
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.insertBefore(alert, document.body.firstChild);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 3000);
+        }
+
+        // Test data setup
+        function setupTestData() {
+            const testInventory = [
+                {
+                    id: 'item1',
+                    kode: 'LPT001',
+                    nama: 'Laptop Dell Inspiron 15',
+                    kategori: 'Electronics',
+                    stok: 5,
+                    harga: 8000000
+                },
+                {
+                    id: 'item2',
+                    kode: 'MSE001',
+                    nama: 'Mouse Wireless Logitech',
+                    kategori: 'Electronics',
+                    stok: 25,
+                    harga: 150000
+                },
+                {
+                    id: 'item3',
+                    kode: 'BK001',
+                    nama: 'Buku Programming JavaScript',
+                    kategori: 'Books',
+                    stok: 0,
+                    harga: 75000
+                },
+                {
+                    id: 'item4',
+                    kode: 'KB001',
+                    nama: 'Keyboard Mechanical',
+                    kategori: 'Electronics',
+                    stok: 8,
+                    harga: 500000
+                },
+                {
+                    id: 'item5',
+                    kode: 'PEN001',
+                    nama: 'Pulpen Pilot',
+                    kategori: 'Stationery',
+                    stok: 2,
+                    harga: 5000
+                }
+            ];
+
+            localStorage.setItem('inventory', JSON.stringify(testInventory));
+            localStorage.setItem('currentPurchaseItems', JSON.stringify([]));
+            localStorage.setItem('searchHistory', JSON.stringify([]));
+            localStorage.setItem('auditLog', JSON.stringify([]));
+
+            showAlert('Test data berhasil di-setup!', 'success');
+            
+            // Initialize search components
+            initializeSearch();
+        }
+
+        function clearTestData() {
+            localStorage.removeItem('inventory');
+            localStorage.removeItem('currentPurchaseItems');
+            localStorage.removeItem('searchHistory');
+            localStorage.removeItem('auditLog');
+            
+            showAlert('Test data berhasil dihapus!', 'info');
+            
+            // Clear displays
+            document.getElementById('purchaseItemsDisplay').innerHTML = '<p class="text-muted">No items selected yet</p>';
+            document.getElementById('testResults').innerHTML = '<p class="text-muted">Run tests to see results</p>';
+        }
+
+        function showCurrentData() {
+            const inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
+            const purchaseItems = JSON.parse(localStorage.getItem('currentPurchaseItems') || '[]');
+            const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+
+            const html = `
+                <h6>Inventory Items: ${inventory.length}</h6>
+                <pre>${JSON.stringify(inventory, null, 2)}</pre>
+                
+                <h6>Purchase Items: ${purchaseItems.length}</h6>
+                <pre>${JSON.stringify(purchaseItems, null, 2)}</pre>
+                
+                <h6>Search History: ${searchHistory.length}</h6>
+                <pre>${JSON.stringify(searchHistory, null, 2)}</pre>
+                
+                <h6>Audit Log: ${auditLog.length}</h6>
+                <pre>${JSON.stringify(auditLog.slice(-5), null, 2)}</pre>
+            `;
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        function initializeSearch() {
+            if (window.searchUI) {
+                // Render search components
+                window.searchUI.renderSearchField('itemSearchContainer');
+                window.searchUI.renderCategoryFilter('categoryFilterContainer');
+                
+                // Setup event listener for purchase updates
+                document.addEventListener('itemAddedToPurchase', updatePurchaseDisplay);
+                
+                showAlert('Search components initialized!', 'success');
+            } else {
+                showAlert('Search UI not available!', 'danger');
+            }
+        }
+
+        function updatePurchaseDisplay() {
+            const purchaseItems = JSON.parse(localStorage.getItem('currentPurchaseItems') || '[]');
+            
+            if (purchaseItems.length === 0) {
+                document.getElementById('purchaseItemsDisplay').innerHTML = '<p class="text-muted">No items selected yet</p>';
+                return;
+            }
+
+            const html = `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Code</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${purchaseItems.map(item => `
+                                <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.code}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>Rp ${item.unitPrice.toLocaleString('id-ID')}</td>
+                                    <td>Rp ${item.total.toLocaleString('id-ID')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="4">Total:</th>
+                                <th>Rp ${purchaseItems.reduce((sum, item) => sum + item.total, 0).toLocaleString('id-ID')}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('purchaseItemsDisplay').innerHTML = html;
+        }
+
+        async function runAllTests() {
+            const results = [];
+            
+            try {
+                // Test 1: Search functionality
+                results.push(await testSearchFunctionality());
+                
+                // Test 2: Category filtering
+                results.push(await testCategoryFiltering());
+                
+                // Test 3: Item selection
+                results.push(await testItemSelection());
+                
+                // Test 4: Keyboard navigation
+                results.push(testKeyboardNavigation());
+                
+                // Test 5: Search history
+                results.push(testSearchHistory());
+                
+                // Display results
+                displayTestResults(results);
+                
+            } catch (error) {
+                showAlert('Error running tests: ' + error.message, 'danger');
+            }
+        }
+
+        async function testSearchFunctionality() {
+            try {
+                const query = { term: 'laptop' };
+                const results = await window.itemSearchService.searchItems(query);
+                
+                return {
+                    name: 'Search Functionality',
+                    passed: results.length > 0 && results[0].name.toLowerCase().includes('laptop'),
+                    details: `Found ${results.length} results for "laptop"`
+                };
+            } catch (error) {
+                return {
+                    name: 'Search Functionality',
+                    passed: false,
+                    details: 'Error: ' + error.message
+                };
+            }
+        }
+
+        async function testCategoryFiltering() {
+            try {
+                const query = { term: 'item', categoryId: 'Electronics' };
+                const results = await window.itemSearchService.searchItems(query);
+                
+                const allElectronics = results.every(item => item.category === 'Electronics');
+                
+                return {
+                    name: 'Category Filtering',
+                    passed: allElectronics,
+                    details: `All ${results.length} results are Electronics: ${allElectronics}`
+                };
+            } catch (error) {
+                return {
+                    name: 'Category Filtering',
+                    passed: false,
+                    details: 'Error: ' + error.message
+                };
+            }
+        }
+
+        async function testItemSelection() {
+            try {
+                const mockItem = {
+                    id: 'test-item',
+                    code: 'TEST001',
+                    name: 'Test Item',
+                    category: 'Test',
+                    currentStock: 10,
+                    unitPrice: 100000
+                };
+
+                const initialItems = JSON.parse(localStorage.getItem('currentPurchaseItems') || '[]');
+                const initialCount = initialItems.length;
+
+                window.searchUI.handleItemSelection(mockItem);
+
+                const finalItems = JSON.parse(localStorage.getItem('currentPurchaseItems') || '[]');
+                const finalCount = finalItems.length;
+
+                return {
+                    name: 'Item Selection',
+                    passed: finalCount > initialCount,
+                    details: `Items increased from ${initialCount} to ${finalCount}`
+                };
+            } catch (error) {
+                return {
+                    name: 'Item Selection',
+                    passed: false,
+                    details: 'Error: ' + error.message
+                };
+            }
+        }
+
+        function testKeyboardNavigation() {
+            try {
+                const searchInput = document.getElementById('itemSearchInput');
+                
+                if (!searchInput) {
+                    return {
+                        name: 'Keyboard Navigation',
+                        passed: false,
+                        details: 'Search input not found'
+                    };
+                }
+
+                // Test Ctrl+F focus
+                const event = new KeyboardEvent('keydown', { key: 'f', ctrlKey: true });
+                document.dispatchEvent(event);
+
+                return {
+                    name: 'Keyboard Navigation',
+                    passed: true,
+                    details: 'Keyboard events handled successfully'
+                };
+            } catch (error) {
+                return {
+                    name: 'Keyboard Navigation',
+                    passed: false,
+                    details: 'Error: ' + error.message
+                };
+            }
+        }
+
+        function testSearchHistory() {
+            try {
+                const mockItem = {
+                    id: 'history-test',
+                    name: 'History Test Item',
+                    code: 'HT001',
+                    category: 'Test',
+                    currentStock: 5,
+                    unitPrice: 50000
+                };
+
+                window.searchHistory.addSearch('history test', mockItem);
+                const recentSearches = window.searchHistory.getRecentSearches(5);
+
+                return {
+                    name: 'Search History',
+                    passed: recentSearches.length > 0,
+                    details: `${recentSearches.length} items in search history`
+                };
+            } catch (error) {
+                return {
+                    name: 'Search History',
+                    passed: false,
+                    details: 'Error: ' + error.message
+                };
+            }
+        }
+
+        function displayTestResults(results) {
+            const html = `
+                <h6>Test Results (${new Date().toLocaleString()})</h6>
+                <div class="row">
+                    ${results.map(result => `
+                        <div class="col-md-6 mb-3">
+                            <div class="card ${result.passed ? 'border-success' : 'border-danger'}">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        ${result.passed ? '✅' : '❌'} ${result.name}
+                                    </h6>
+                                    <p class="card-text">${result.details}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="alert ${results.every(r => r.passed) ? 'alert-success' : 'alert-warning'}">
+                    <strong>Summary:</strong> ${results.filter(r => r.passed).length}/${results.length} tests passed
+                </div>
+            `;
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if search components are available
+            if (window.itemSearchService && window.searchUI) {
+                showAlert('Search components loaded successfully!', 'success');
+            } else {
+                showAlert('Search components not loaded!', 'danger');
+            }
+        });
+    </script>
+</body>
+</html>
