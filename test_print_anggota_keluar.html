@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Print Bukti Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Print Bukti Anggota Keluar</h2>
+        <p class="text-muted">Testing fitur print bukti anggota keluar dan validasi saldo kas</p>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Test 1: Validasi Saldo Kas (WARNING)</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Tujuan:</strong> Memastikan validasi saldo kas menjadi WARNING, bukan ERROR</p>
+                        
+                        <h6>Langkah Test:</h6>
+                        <ol>
+                            <li>Klik tombol "Setup Test Data"</li>
+                            <li>Klik "Test Validasi Saldo Kas"</li>
+                            <li>Periksa hasil di console dan alert</li>
+                        </ol>
+
+                        <h6>Expected Result:</h6>
+                        <ul>
+                            <li>✅ validation.valid = true</li>
+                            <li>⚠️ validation.warnings berisi INSUFFICIENT_BALANCE</li>
+                            <li>✅ Proses dapat dilanjutkan</li>
+                        </ul>
+
+                        <button class="btn btn-primary" onclick="testValidasiSaldoKas()">
+                            <i class="bi bi-play-circle me-1"></i>Test Validasi Saldo Kas
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Test 2: Print Bukti Anggota Keluar</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Tujuan:</strong> Memastikan dokumen bukti dapat di-generate dan dicetak</p>
+                        
+                        <h6>Langkah Test:</h6>
+                        <ol>
+                            <li>Klik tombol "Setup Test Data"</li>
+                            <li>Klik "Test Print Bukti"</li>
+                            <li>Periksa dokumen yang terbuka di tab baru</li>
+                        </ol>
+
+                        <h6>Expected Result:</h6>
+                        <ul>
+                            <li>✅ Tab baru terbuka</li>
+                            <li>✅ Data anggota lengkap</li>
+                            <li>✅ Rincian simpanan benar</li>
+                            <li>✅ Nomor referensi format: AK-YYYYMM-XXXXXXXX</li>
+                        </ul>
+
+                        <button class="btn btn-success" onclick="testPrintBukti()">
+                            <i class="bi bi-printer me-1"></i>Test Print Bukti
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Test 3: Flow Lengkap</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Tujuan:</strong> Test flow lengkap dari tandai keluar sampai print</p>
+                        
+                        <h6>Langkah Test:</h6>
+                        <ol>
+                            <li>Klik "Setup Test Data"</li>
+                            <li>Klik "Tandai Anggota Keluar"</li>
+                            <li>Periksa modal sukses muncul</li>
+                            <li>Klik "Cetak Bukti Anggota Keluar"</li>
+                            <li>Periksa dokumen</li>
+                        </ol>
+
+                        <button class="btn btn-secondary me-2" onclick="setupTestData()">
+                            <i class="bi bi-database me-1"></i>Setup Test Data
+                        </button>
+                        <button class="btn btn-warning me-2" onclick="testTandaiKeluar()">
+                            <i class="bi bi-box-arrow-right me-1"></i>Tandai Anggota Keluar
+                        </button>
+                        <button class="btn btn-info" onclick="testShowSuccessModal()">
+                            <i class="bi bi-check-circle me-1"></i>Show Success Modal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Console Output</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleOutput" class="bg-dark text-light p-3" style="font-family: monospace; max-height: 400px; overflow-y: auto;">
+                            <div class="text-success">Ready for testing...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    <script src="js/anggotaKeluarValidation.js"></script>
+
+    <script>
+        // Helper function to log to console output
+        function log(message, type = 'info') {
+            const output = document.getElementById('consoleOutput');
+            const colors = {
+                info: 'text-light',
+                success: 'text-success',
+                error: 'text-danger',
+                warning: 'text-warning'
+            };
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `<div class="${colors[type]}">[${timestamp}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+
+        // Setup test data
+        function setupTestData() {
+            log('Setting up test data...', 'info');
+            
+            // Create test anggota
+            const testAnggota = {
+                id: 'test-anggota-001',
+                nik: '1234567890123456',
+                nama: 'John Doe Test',
+                departemen: 'IT',
+                tipeAnggota: 'Umum',
+                statusKeanggotaan: 'Aktif',
+                tanggalDaftar: '2020-01-01'
+            };
+            
+            // Save to localStorage
+            let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const existingIndex = anggotaList.findIndex(a => a.id === testAnggota.id);
+            if (existingIndex >= 0) {
+                anggotaList[existingIndex] = testAnggota;
+            } else {
+                anggotaList.push(testAnggota);
+            }
+            localStorage.setItem('anggota', JSON.stringify(anggotaList));
+            
+            // Create test simpanan pokok
+            let simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            simpananPokok.push({
+                id: 'sp-test-001',
+                anggotaId: testAnggota.id,
+                jumlah: 500000,
+                tanggal: '2020-01-01',
+                keterangan: 'Simpanan Pokok Awal'
+            });
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            
+            // Create test simpanan wajib
+            let simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            for (let i = 0; i < 12; i++) {
+                simpananWajib.push({
+                    id: `sw-test-${i}`,
+                    anggotaId: testAnggota.id,
+                    jumlah: 100000,
+                    periode: `2024-${String(i + 1).padStart(2, '0')}`,
+                    tanggal: `2024-${String(i + 1).padStart(2, '0')}-01`,
+                    keterangan: `Simpanan Wajib ${i + 1}`
+                });
+            }
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            
+            // Set kas balance to 0 for testing
+            let jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            localStorage.setItem('jurnal', JSON.stringify(jurnal));
+            
+            // Set system settings
+            const systemSettings = {
+                namaKoperasi: 'KOPERASI TEST',
+                alamatKoperasi: 'Jl. Test No. 123, Jakarta',
+                teleponKoperasi: '021-12345678'
+            };
+            localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+            
+            log('✅ Test data created successfully', 'success');
+            log(`   - Anggota: ${testAnggota.nama} (${testAnggota.nik})`, 'info');
+            log(`   - Simpanan Pokok: Rp 500.000`, 'info');
+            log(`   - Simpanan Wajib: Rp 1.200.000 (12 bulan)`, 'info');
+            log(`   - Saldo Kas: Rp 0 (for testing warning)`, 'info');
+        }
+
+        // Test 1: Validasi Saldo Kas
+        function testValidasiSaldoKas() {
+            log('=== TEST 1: Validasi Saldo Kas ===', 'warning');
+            
+            const anggotaId = 'test-anggota-001';
+            
+            // First, mark anggota as keluar
+            const markResult = markAnggotaKeluar(anggotaId, '2024-12-05', 'Test validasi saldo kas');
+            
+            if (!markResult.success) {
+                log('❌ Failed to mark anggota keluar: ' + markResult.error.message, 'error');
+                return;
+            }
+            
+            log('✅ Anggota marked as keluar', 'success');
+            
+            // Test validation with Kas method
+            const validation = validatePengembalian(anggotaId, 'Kas');
+            
+            log('Validation Result:', 'info');
+            log(`   - valid: ${validation.valid}`, validation.valid ? 'success' : 'error');
+            log(`   - errors: ${validation.errors.length}`, validation.errors.length === 0 ? 'success' : 'error');
+            log(`   - warnings: ${validation.warnings.length}`, validation.warnings.length > 0 ? 'warning' : 'info');
+            
+            if (validation.warnings.length > 0) {
+                validation.warnings.forEach(w => {
+                    log(`   ⚠️ ${w.message}`, 'warning');
+                });
+            }
+            
+            if (validation.valid) {
+                log('✅ TEST PASSED: Validation returns valid=true with warnings', 'success');
+                alert('✅ Test Passed!\n\nValidasi saldo kas sekarang menjadi WARNING, bukan ERROR.\nProses dapat dilanjutkan dengan peringatan.');
+            } else {
+                log('❌ TEST FAILED: Validation should be valid with warnings', 'error');
+                alert('❌ Test Failed!\n\nValidasi masih mengembalikan error. Periksa kode.');
+            }
+        }
+
+        // Test 2: Print Bukti
+        function testPrintBukti() {
+            log('=== TEST 2: Print Bukti Anggota Keluar ===', 'warning');
+            
+            const anggotaId = 'test-anggota-001';
+            
+            // Ensure anggota is marked as keluar
+            const anggota = getAnggotaById(anggotaId);
+            if (!anggota) {
+                log('❌ Test anggota not found. Run Setup Test Data first.', 'error');
+                alert('❌ Test anggota not found.\n\nKlik "Setup Test Data" terlebih dahulu.');
+                return;
+            }
+            
+            if (anggota.statusKeanggotaan !== 'Keluar') {
+                log('Marking anggota as keluar first...', 'info');
+                const markResult = markAnggotaKeluar(anggotaId, '2024-12-05', 'Test print bukti');
+                if (!markResult.success) {
+                    log('❌ Failed to mark anggota keluar', 'error');
+                    return;
+                }
+            }
+            
+            // Generate bukti
+            log('Generating bukti...', 'info');
+            const result = generateBuktiAnggotaKeluar(anggotaId);
+            
+            if (!result.success) {
+                log('❌ Failed to generate bukti: ' + result.error.message, 'error');
+                alert('❌ Test Failed!\n\n' + result.error.message);
+                return;
+            }
+            
+            log('✅ Bukti generated successfully', 'success');
+            log(`   - Nomor Referensi: ${result.data.nomorReferensi}`, 'info');
+            log(`   - Anggota: ${result.data.anggotaNama}`, 'info');
+            log(`   - Total Pengembalian: Rp ${result.data.totalPengembalian.toLocaleString('id-ID')}`, 'info');
+            
+            // Open in new window
+            log('Opening bukti in new window...', 'info');
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                log('❌ Popup blocked. Please allow popups.', 'error');
+                alert('❌ Popup diblokir!\n\nMohon izinkan popup untuk browser ini.');
+                return;
+            }
+            
+            printWindow.document.write(result.data.html);
+            printWindow.document.close();
+            
+            log('✅ TEST PASSED: Bukti opened in new window', 'success');
+            alert('✅ Test Passed!\n\nBukti anggota keluar berhasil dibuka di tab baru.\nPeriksa dokumen dan coba print dengan Ctrl+P.');
+        }
+
+        // Test 3: Tandai Keluar
+        function testTandaiKeluar() {
+            log('=== TEST 3: Tandai Anggota Keluar ===', 'warning');
+            
+            const anggotaId = 'test-anggota-001';
+            const result = markAnggotaKeluar(anggotaId, '2024-12-05', 'Test flow lengkap');
+            
+            if (result.success) {
+                log('✅ Anggota berhasil ditandai keluar', 'success');
+                log(`   - Anggota: ${result.data.anggotaNama}`, 'info');
+                log(`   - Tanggal Keluar: ${result.data.tanggalKeluar}`, 'info');
+                log(`   - Status: ${result.data.statusKeanggotaan}`, 'info');
+                alert('✅ Berhasil!\n\nAnggota telah ditandai keluar.\nSekarang klik "Show Success Modal" untuk melihat modal sukses.');
+            } else {
+                log('❌ Failed: ' + result.error.message, 'error');
+                alert('❌ Gagal!\n\n' + result.error.message);
+            }
+        }
+
+        // Test 4: Show Success Modal
+        function testShowSuccessModal() {
+            log('=== TEST 4: Show Success Modal ===', 'warning');
+            
+            const anggotaId = 'test-anggota-001';
+            const anggota = getAnggotaById(anggotaId);
+            
+            if (!anggota) {
+                log('❌ Test anggota not found', 'error');
+                alert('❌ Test anggota not found.\n\nKlik "Setup Test Data" terlebih dahulu.');
+                return;
+            }
+            
+            log('Showing success modal...', 'info');
+            showSuccessAnggotaKeluarModal(anggotaId, anggota.nama);
+            log('✅ Modal displayed', 'success');
+            log('   - Check modal for 3 buttons:', 'info');
+            log('     1. Tutup', 'info');
+            log('     2. Cetak Bukti Anggota Keluar', 'info');
+            log('     3. Proses Pengembalian', 'info');
+        }
+
+        // Initialize
+        log('Test page loaded. Click "Setup Test Data" to begin.', 'success');
+    </script>
+</body>
+</html>

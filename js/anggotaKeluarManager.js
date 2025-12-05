@@ -316,6 +316,7 @@ function validatePengembalian(anggotaId, metodePembayaran) {
         }
         
         // Validation 2: Check for sufficient kas/bank balance (Requirement 6.2)
+        // Changed to WARNING instead of ERROR for practical flexibility
         const calculation = calculatePengembalian(anggotaId);
         if (calculation.success) {
             const totalPengembalian = calculation.data.totalPengembalian;
@@ -339,13 +340,13 @@ function validatePengembalian(anggotaId, metodePembayaran) {
             // Check if payment method is specified to validate specific account
             if (metodePembayaran !== undefined && metodePembayaran) {
                 if (metodePembayaran === 'Kas') {
-                    // Validate Kas balance only
+                    // Validate Kas balance only - WARNING instead of ERROR
                     if (totalPengembalian > 0 && kasBalance < totalPengembalian) {
-                        validationErrors.push({
+                        validationWarnings.push({
                             code: 'INSUFFICIENT_BALANCE',
-                            message: `Saldo kas tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia di Kas: Rp ${kasBalance.toLocaleString('id-ID')}`,
+                            message: `Saldo kas tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia di Kas: Rp ${kasBalance.toLocaleString('id-ID')}. Pastikan dana tersedia sebelum melakukan pengembalian.`,
                             field: 'kas',
-                            severity: 'error',
+                            severity: 'warning',
                             data: {
                                 required: totalPengembalian,
                                 available: kasBalance,
@@ -355,13 +356,13 @@ function validatePengembalian(anggotaId, metodePembayaran) {
                         });
                     }
                 } else if (metodePembayaran === 'Transfer Bank') {
-                    // Validate Bank balance only
+                    // Validate Bank balance only - WARNING instead of ERROR
                     if (totalPengembalian > 0 && bankBalance < totalPengembalian) {
-                        validationErrors.push({
+                        validationWarnings.push({
                             code: 'INSUFFICIENT_BALANCE',
-                            message: `Saldo bank tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia di Bank: Rp ${bankBalance.toLocaleString('id-ID')}`,
+                            message: `Saldo bank tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia di Bank: Rp ${bankBalance.toLocaleString('id-ID')}. Pastikan dana tersedia sebelum melakukan pengembalian.`,
                             field: 'bank',
-                            severity: 'error',
+                            severity: 'warning',
                             data: {
                                 required: totalPengembalian,
                                 available: bankBalance,
@@ -372,13 +373,13 @@ function validatePengembalian(anggotaId, metodePembayaran) {
                     }
                 }
             } else {
-                // If payment method not specified, check total available balance
+                // If payment method not specified, check total available balance - WARNING instead of ERROR
                 if (totalPengembalian > 0 && totalAvailableBalance < totalPengembalian) {
-                    validationErrors.push({
+                    validationWarnings.push({
                         code: 'INSUFFICIENT_BALANCE',
-                        message: `Saldo kas/bank tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia: Rp ${totalAvailableBalance.toLocaleString('id-ID')} (Kas: Rp ${kasBalance.toLocaleString('id-ID')}, Bank: Rp ${bankBalance.toLocaleString('id-ID')})`,
+                        message: `Saldo kas/bank tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia: Rp ${totalAvailableBalance.toLocaleString('id-ID')} (Kas: Rp ${kasBalance.toLocaleString('id-ID')}, Bank: Rp ${bankBalance.toLocaleString('id-ID')}). Pastikan dana tersedia sebelum melakukan pengembalian.`,
                         field: 'kas',
-                        severity: 'error',
+                        severity: 'warning',
                         data: {
                             required: totalPengembalian,
                             available: totalAvailableBalance,
@@ -1584,6 +1585,419 @@ function getLaporanAnggotaKeluar(startDate = null, endDate = null) {
         
     } catch (error) {
         console.error('Error in getLaporanAnggotaKeluar:', error);
+        return {
+            success: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        };
+    }
+}
+
+/**
+ * Generate bukti transaksi anggota keluar
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Document generation result
+ */
+function generateBuktiAnggotaKeluar(anggotaId) {
+    try {
+        // Validate input
+        if (!anggotaId || typeof anggotaId !== 'string') {
+            return {
+                success: false,
+                error: {
+                    code: 'INVALID_PARAMETER',
+                    message: 'ID anggota tidak valid',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        
+        if (!anggota) {
+            return {
+                success: false,
+                error: {
+                    code: 'ANGGOTA_NOT_FOUND',
+                    message: 'Anggota tidak ditemukan',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Check if anggota has status "Keluar"
+        if (anggota.statusKeanggotaan !== 'Keluar') {
+            return {
+                success: false,
+                error: {
+                    code: 'ANGGOTA_NOT_KELUAR',
+                    message: 'Anggota belum berstatus keluar',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Calculate pengembalian
+        const calculation = calculatePengembalian(anggotaId);
+        if (!calculation.success) {
+            return {
+                success: false,
+                error: {
+                    code: 'CALCULATION_FAILED',
+                    message: 'Gagal menghitung pengembalian',
+                    details: calculation.error,
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        const { simpananPokok, simpananWajib, totalSimpanan, kewajibanLain, totalPengembalian } = calculation.data;
+        
+        // Get system settings for koperasi info
+        const systemSettings = JSON.parse(localStorage.getItem('systemSettings') || '{}');
+        const namaKoperasi = systemSettings.namaKoperasi || 'KOPERASI';
+        const alamatKoperasi = systemSettings.alamatKoperasi || '';
+        const teleponKoperasi = systemSettings.teleponKoperasi || '';
+        
+        // Format dates
+        const tanggalCetak = new Date().toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        const tanggalKeluar = anggota.tanggalKeluar ? new Date(anggota.tanggalKeluar).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        }) : '-';
+        
+        // Generate reference number
+        const nomorReferensi = `AK-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${anggotaId.substring(0, 8)}`;
+        
+        // Generate HTML document
+        const buktiHTML = `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bukti Anggota Keluar - ${nomorReferensi}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #333;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 20pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 10pt;
+        }
+        
+        .title {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .title h2 {
+            margin: 0;
+            font-size: 16pt;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        
+        .reference {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 11pt;
+        }
+        
+        .content {
+            margin: 20px 0;
+        }
+        
+        .section {
+            margin: 20px 0;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 13pt;
+            border-bottom: 1px solid #666;
+            padding-bottom: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        
+        table.info td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        
+        table.info td:first-child {
+            width: 200px;
+            font-weight: bold;
+        }
+        
+        table.rincian {
+            border: 1px solid #333;
+        }
+        
+        table.rincian th,
+        table.rincian td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        table.rincian th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        table.rincian td.amount {
+            text-align: right;
+        }
+        
+        table.rincian tr.total {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .signatures {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 45%;
+        }
+        
+        .signature-line {
+            margin-top: 80px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .alert-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .alert-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">
+        🖨️ Cetak Dokumen
+    </button>
+    
+    <div class="header">
+        <h1>${namaKoperasi}</h1>
+        ${alamatKoperasi ? `<p>${alamatKoperasi}</p>` : ''}
+        ${teleponKoperasi ? `<p>Telp: ${teleponKoperasi}</p>` : ''}
+    </div>
+    
+    <div class="title">
+        <h2>BUKTI ANGGOTA KELUAR</h2>
+    </div>
+    
+    <div class="reference">
+        <strong>Nomor Referensi:</strong> ${nomorReferensi}
+    </div>
+    
+    <div class="content">
+        <div class="section">
+            <div class="section-title">Data Anggota</div>
+            <table class="info">
+                <tr>
+                    <td>NIK</td>
+                    <td>: ${anggota.nik}</td>
+                </tr>
+                <tr>
+                    <td>Nama Lengkap</td>
+                    <td>: ${anggota.nama}</td>
+                </tr>
+                <tr>
+                    <td>Departemen</td>
+                    <td>: ${anggota.departemen || '-'}</td>
+                </tr>
+                <tr>
+                    <td>Tipe Anggota</td>
+                    <td>: ${anggota.tipeAnggota || 'Umum'}</td>
+                </tr>
+                <tr>
+                    <td>Tanggal Keluar</td>
+                    <td>: ${tanggalKeluar}</td>
+                </tr>
+                <tr>
+                    <td>Alasan Keluar</td>
+                    <td>: ${anggota.alasanKeluar || '-'}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Rincian Simpanan yang Akan Dikembalikan</div>
+            <table class="rincian">
+                <thead>
+                    <tr>
+                        <th>Jenis Simpanan</th>
+                        <th style="text-align: right;">Jumlah (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Simpanan Pokok</td>
+                        <td class="amount">${simpananPokok.toLocaleString('id-ID')}</td>
+                    </tr>
+                    <tr>
+                        <td>Simpanan Wajib</td>
+                        <td class="amount">${simpananWajib.toLocaleString('id-ID')}</td>
+                    </tr>
+                    <tr class="total">
+                        <td>Total Simpanan</td>
+                        <td class="amount">${totalSimpanan.toLocaleString('id-ID')}</td>
+                    </tr>
+                    ${kewajibanLain > 0 ? `
+                    <tr>
+                        <td>Kewajiban Lain</td>
+                        <td class="amount" style="color: red;">- ${kewajibanLain.toLocaleString('id-ID')}</td>
+                    </tr>
+                    ` : ''}
+                    <tr class="total" style="background-color: #d4edda;">
+                        <td>Total yang Akan Dikembalikan</td>
+                        <td class="amount" style="font-size: 14pt;">${totalPengembalian.toLocaleString('id-ID')}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="alert-box">
+            <strong>Catatan Penting:</strong><br>
+            - Dokumen ini adalah bukti bahwa anggota telah resmi keluar dari koperasi<br>
+            - Pengembalian simpanan akan diproses sesuai dengan ketentuan yang berlaku<br>
+            - Status pengembalian: <strong>${anggota.pengembalianStatus || 'Pending'}</strong><br>
+            - Anggota tidak dapat melakukan transaksi baru setelah status keluar
+        </div>
+        
+        <div class="signatures">
+            <div class="signature-box">
+                <p>Anggota,</p>
+                <div class="signature-line">
+                    ${anggota.nama}
+                </div>
+            </div>
+            <div class="signature-box">
+                <p>Petugas Koperasi,</p>
+                <div class="signature-line">
+                    (...................................)
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Dokumen ini dicetak pada: ${tanggalCetak}</p>
+        <p>Referensi: ${nomorReferensi}</p>
+        <p>Dokumen ini sah tanpa tanda tangan basah</p>
+    </div>
+</body>
+</html>
+        `;
+        
+        // Return success with HTML
+        return {
+            success: true,
+            data: {
+                html: buktiHTML,
+                nomorReferensi: nomorReferensi,
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                tanggalKeluar: anggota.tanggalKeluar,
+                totalPengembalian: totalPengembalian
+            },
+            message: 'Bukti anggota keluar berhasil dibuat'
+        };
+        
+    } catch (error) {
+        console.error('Error in generateBuktiAnggotaKeluar:', error);
         return {
             success: false,
             error: {

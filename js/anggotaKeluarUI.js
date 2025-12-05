@@ -476,17 +476,22 @@ function renderLaporanAnggotaKeluar(startDate = null, endDate = null) {
                                                     </td>
                                                     <td class="text-end">Rp ${anggota.totalPengembalian.toLocaleString('id-ID')}</td>
                                                     <td>
+                                                        <button class="btn btn-sm btn-secondary me-1" 
+                                                                onclick="handleCetakBuktiAnggotaKeluar('${anggota.id}')"
+                                                                title="Cetak Bukti Anggota Keluar">
+                                                            <i class="bi bi-file-earmark-person"></i>
+                                                        </button>
                                                         ${anggota.pengembalianStatus === 'Selesai' && anggota.pengembalianId ? `
                                                             <button class="btn btn-sm btn-primary" 
                                                                     onclick="handleCetakBukti('${anggota.pengembalianId}')"
-                                                                    title="Cetak Bukti">
+                                                                    title="Cetak Bukti Pengembalian">
                                                                 <i class="bi bi-printer"></i>
                                                             </button>
                                                         ` : `
                                                             <button class="btn btn-sm btn-info" 
                                                                     onclick="showPengembalianModal('${anggota.id}')"
-                                                                    title="Lihat Detail">
-                                                                <i class="bi bi-eye"></i>
+                                                                    title="Proses Pengembalian">
+                                                                <i class="bi bi-cash-coin"></i>
                                                             </button>
                                                         `}
                                                     </td>
@@ -796,8 +801,8 @@ function handleMarkKeluar(event) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('anggotaKeluarModal'));
                 modal.hide();
                 
-                // Show success toast
-                showToast(`${anggota.nama} berhasil ditandai keluar dari koperasi`, 'success');
+                // Show success modal with print option
+                showSuccessAnggotaKeluarModal(sanitizedData.anggotaId, anggota.nama);
                 
                 // Refresh anggota table
                 if (typeof renderTableAnggota === 'function') {
@@ -1338,4 +1343,117 @@ function showSuccessNotification(message) {
  */
 function showErrorNotification(message) {
     // Implementation will be added in Task 11.2
+}
+
+/**
+ * Show success modal after marking anggota keluar with print option
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} anggotaNama - Name of the anggota
+ */
+function showSuccessAnggotaKeluarModal(anggotaId, anggotaNama) {
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="successAnggotaKeluarModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-check-circle me-2"></i>Anggota Berhasil Ditandai Keluar
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>${anggotaNama}</strong> telah berhasil ditandai keluar dari koperasi.
+                        </div>
+                        
+                        <p>Anda dapat:</p>
+                        <ul>
+                            <li>Mencetak bukti anggota keluar untuk dokumentasi</li>
+                            <li>Memproses pengembalian simpanan setelah ini</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i>Tutup
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="handleCetakBuktiAnggotaKeluar('${anggotaId}')">
+                            <i class="bi bi-printer me-1"></i>Cetak Bukti Anggota Keluar
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="handleProsesPengembalianFromSuccess('${anggotaId}')">
+                            <i class="bi bi-cash-coin me-1"></i>Proses Pengembalian
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('successAnggotaKeluarModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('successAnggotaKeluarModal'));
+    modal.show();
+}
+
+/**
+ * Handle cetak bukti anggota keluar action
+ * @param {string} anggotaId - ID of the anggota
+ */
+function handleCetakBuktiAnggotaKeluar(anggotaId) {
+    try {
+        // Generate bukti
+        const result = generateBuktiAnggotaKeluar(anggotaId);
+        
+        if (!result.success) {
+            showToast(result.error.message, 'error');
+            return;
+        }
+        
+        // Open in new window for printing
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            showToast('Popup diblokir. Mohon izinkan popup untuk mencetak bukti.', 'error');
+            return;
+        }
+        
+        printWindow.document.write(result.data.html);
+        printWindow.document.close();
+        
+        // Auto print after load
+        printWindow.onload = function() {
+            printWindow.focus();
+            // Don't auto print, let user decide
+            // printWindow.print();
+        };
+        
+        showToast('Bukti anggota keluar berhasil dibuka di tab baru', 'success');
+        
+    } catch (error) {
+        console.error('Error in handleCetakBuktiAnggotaKeluar:', error);
+        showToast('Gagal mencetak bukti: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Handle proses pengembalian from success modal
+ * @param {string} anggotaId - ID of the anggota
+ */
+function handleProsesPengembalianFromSuccess(anggotaId) {
+    // Close success modal
+    const successModal = bootstrap.Modal.getInstance(document.getElementById('successAnggotaKeluarModal'));
+    if (successModal) {
+        successModal.hide();
+    }
+    
+    // Show pengembalian modal
+    showPengembalianModal(anggotaId);
 }
