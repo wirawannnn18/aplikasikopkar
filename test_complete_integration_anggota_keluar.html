@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Complete Integration - Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .test-pass {
+            color: #198754;
+            font-weight: bold;
+        }
+        .test-fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .test-warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .log-output {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">
+            <i class="bi bi-check2-circle me-2"></i>
+            Test: Complete Integration - Anggota Keluar
+        </h1>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Test Lengkap:</strong> Menguji semua fitur dari awal sampai akhir termasuk laporan simpanan.
+        </div>
+
+        <!-- Control Panel -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Control Panel</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success me-2" onclick="runAllTests()">
+                    <i class="bi bi-play-fill me-1"></i>Run All Tests
+                </button>
+                <button class="btn btn-warning me-2" onclick="clearData()">
+                    <i class="bi bi-trash me-1"></i>Clear Test Data
+                </button>
+                <button class="btn btn-secondary" onclick="clearLog()">
+                    <i class="bi bi-x-circle me-1"></i>Clear Log
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Test Results Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h3 class="test-pass" id="passCount">0</h3>
+                            <p>Tests Passed</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h3 class="test-fail" id="failCount">0</h3>
+                            <p>Tests Failed</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h3 class="test-warning" id="warningCount">0</h3>
+                            <p>Warnings</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Test Log</h5>
+            </div>
+            <div class="card-body">
+                <div class="log-output" id="testLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarRepository.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+
+    <script>
+        let passCount = 0;
+        let failCount = 0;
+        let warningCount = 0;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                success: '#198754',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#0dcaf0'
+            };
+            
+            logDiv.innerHTML += `<div style="color: ${colors[type]};">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateCounts() {
+            document.getElementById('passCount').textContent = passCount;
+            document.getElementById('failCount').textContent = failCount;
+            document.getElementById('warningCount').textContent = warningCount;
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+            passCount = 0;
+            failCount = 0;
+            warningCount = 0;
+            updateCounts();
+        }
+
+        function clearData() {
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            localStorage.removeItem('pengembalian');
+            localStorage.removeItem('jurnal');
+            log('✓ Test data cleared', 'success');
+        }
+
+        function assert(condition, message) {
+            if (condition) {
+                log(`✓ PASS: ${message}`, 'success');
+                passCount++;
+            } else {
+                log(`✗ FAIL: ${message}`, 'error');
+                failCount++;
+            }
+            updateCounts();
+        }
+
+        function assertWarning(condition, message) {
+            if (condition) {
+                log(`⚠ WARNING: ${message}`, 'warning');
+                warningCount++;
+            }
+            updateCounts();
+        }
+
+        async function runAllTests() {
+            clearLog();
+            log('=== STARTING COMPLETE INTEGRATION TEST ===', 'info');
+            log('', 'info');
+
+            // Test 1: Setup
+            log('--- Test 1: Setup Test Data ---', 'info');
+            setupTestData();
+            
+            // Test 2: Mark Anggota Keluar
+            log('', 'info');
+            log('--- Test 2: Mark Anggota Keluar ---', 'info');
+            testMarkAnggotaKeluar();
+            
+            // Test 3: Validation (WARNING not ERROR)
+            log('', 'info');
+            log('--- Test 3: Validation (WARNING not ERROR) ---', 'info');
+            testValidationWarning();
+            
+            // Test 4: Laporan Simpanan (Before Pengembalian)
+            log('', 'info');
+            log('--- Test 4: Laporan Simpanan (Before Pengembalian) ---', 'info');
+            testLaporanSimpananBeforePengembalian();
+            
+            // Test 5: Process Pengembalian
+            log('', 'info');
+            log('--- Test 5: Process Pengembalian ---', 'info');
+            testProcessPengembalian();
+            
+            // Test 6: Laporan Simpanan (After Pengembalian)
+            log('', 'info');
+            log('--- Test 6: Laporan Simpanan (After Pengembalian) ---', 'info');
+            testLaporanSimpananAfterPengembalian();
+            
+            // Test 7: Accounting Integration
+            log('', 'info');
+            log('--- Test 7: Accounting Integration ---', 'info');
+            testAccountingIntegration();
+            
+            // Summary
+            log('', 'info');
+            log('=== TEST COMPLETE ===', 'info');
+            log(`Total: ${passCount} passed, ${failCount} failed, ${warningCount} warnings`, 'info');
+            
+            if (failCount === 0) {
+                log('🎉 ALL TESTS PASSED! System is ready for production.', 'success');
+            } else {
+                log('❌ Some tests failed. Please review and fix.', 'error');
+            }
+        }
+
+        function setupTestData() {
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'test-001',
+                    nik: '1234567890123456',
+                    nama: 'Test User 1',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            
+            // Create simpanan pokok
+            const simpananPokok = [
+                {
+                    id: 'sp-001',
+                    anggotaId: 'test-001',
+                    jumlah: 500000,
+                    tanggal: '2024-01-01'
+                }
+            ];
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            
+            // Create simpanan wajib
+            const simpananWajib = [
+                {
+                    id: 'sw-001',
+                    anggotaId: 'test-001',
+                    jumlah: 100000,
+                    periode: '2024-01',
+                    tanggal: '2024-01-01'
+                },
+                {
+                    id: 'sw-002',
+                    anggotaId: 'test-001',
+                    jumlah: 100000,
+                    periode: '2024-02',
+                    tanggal: '2024-02-01'
+                }
+            ];
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            
+            // Initialize jurnal
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            
+            log('✓ Test data created: 1 anggota with Rp 700.000 simpanan', 'success');
+            passCount++;
+            updateCounts();
+        }
+
+        function testMarkAnggotaKeluar() {
+            const result = markAnggotaKeluar('test-001', '2024-12-05', 'Test keluar');
+            
+            assert(result.success === true, 'markAnggotaKeluar returns success');
+            assert(result.data.statusKeanggotaan === 'Keluar', 'Status changed to Keluar');
+            assert(result.data.pengembalianStatus === 'Pending', 'Pengembalian status is Pending');
+            
+            // Verify in localStorage
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const updated = anggota.find(a => a.id === 'test-001');
+            
+            assert(updated.statusKeanggotaan === 'Keluar', 'Status persisted in localStorage');
+            assert(updated.tanggalKeluar === '2024-12-05', 'Tanggal keluar persisted');
+            assert(updated.alasanKeluar === 'Test keluar', 'Alasan keluar persisted');
+        }
+
+        function testValidationWarning() {
+            const validation = validatePengembalian('test-001', 'Kas');
+            
+            assert(validation.success === true, 'Validation returns success (not error)');
+            assert(validation.valid === true, 'Validation is valid');
+            
+            // Check for warnings (not errors)
+            if (validation.warnings && validation.warnings.length > 0) {
+                const hasBalanceWarning = validation.warnings.some(w => w.code === 'INSUFFICIENT_BALANCE');
+                assertWarning(hasBalanceWarning, 'Insufficient balance shows as WARNING (not ERROR)');
+                log('  → This is correct behavior: process can continue with warning', 'info');
+            }
+            
+            assert(validation.errors.length === 0, 'No blocking errors (balance check is warning only)');
+        }
+
+        function testLaporanSimpananBeforePengembalian() {
+            const anggotaList = getAnggotaWithSimpananForLaporan();
+            
+            assert(anggotaList.length === 1, 'Anggota keluar (pending) still shows in laporan');
+            
+            const anggota = anggotaList[0];
+            assert(anggota.simpananPokok === 500000, 'Simpanan pokok shows full amount');
+            assert(anggota.simpananWajib === 200000, 'Simpanan wajib shows full amount');
+            assert(anggota.totalSimpanan === 700000, 'Total simpanan is correct');
+            
+            log('  → Anggota keluar (pending) correctly shows in laporan', 'info');
+        }
+
+        function testProcessPengembalian() {
+            const result = processPengembalian('test-001', 'Kas', '2024-12-05', 'Test pengembalian');
+            
+            assert(result.success === true, 'processPengembalian returns success');
+            
+            // Verify status updated
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const updated = anggota.find(a => a.id === 'test-001');
+            
+            assert(updated.pengembalianStatus === 'Selesai', 'Pengembalian status changed to Selesai');
+            
+            // Verify pengembalian record created
+            const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+            const record = pengembalian.find(p => p.anggotaId === 'test-001');
+            
+            assert(record !== undefined, 'Pengembalian record created');
+            assert(record.status === 'Selesai', 'Pengembalian record status is Selesai');
+            assert(record.totalPengembalian === 700000, 'Total pengembalian is correct');
+        }
+
+        function testLaporanSimpananAfterPengembalian() {
+            const anggotaList = getAnggotaWithSimpananForLaporan();
+            
+            assert(anggotaList.length === 0, 'Anggota keluar (selesai) does NOT show in laporan');
+            
+            log('  → Anggota keluar (selesai) correctly excluded from laporan', 'info');
+            
+            // Test individual functions
+            const pokok = getTotalSimpananPokokForLaporan('test-001');
+            const wajib = getTotalSimpananWajibForLaporan('test-001');
+            
+            assert(pokok === 0, 'getTotalSimpananPokokForLaporan returns 0 for processed keluar');
+            assert(wajib === 0, 'getTotalSimpananWajibForLaporan returns 0 for processed keluar');
+        }
+
+        function testAccountingIntegration() {
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            
+            assert(jurnal.length > 0, 'Journal entries created');
+            
+            // Find pengembalian journal
+            const pengembalianJurnal = jurnal.find(j => j.keterangan && j.keterangan.includes('Pengembalian Simpanan'));
+            
+            assert(pengembalianJurnal !== undefined, 'Pengembalian journal entry exists');
+            
+            if (pengembalianJurnal) {
+                const entries = pengembalianJurnal.entries || [];
+                
+                // Calculate totals
+                const totalDebit = entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+                const totalKredit = entries.reduce((sum, e) => sum + (e.kredit || 0), 0);
+                
+                assert(Math.abs(totalDebit - totalKredit) < 0.01, 'Journal entries are balanced (debit = kredit)');
+                assert(totalDebit === 700000, 'Total debit matches pengembalian amount');
+                
+                log('  → Accounting integration working correctly', 'info');
+            }
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Page loaded. Click "Run All Tests" to start.', 'info');
+        });
+    </script>
+</body>
+</html>

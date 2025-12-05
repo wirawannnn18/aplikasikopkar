@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Laporan Simpanan - Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test: Laporan Simpanan untuk Anggota Keluar</h2>
+        <p class="text-muted">Testing fungsi baru untuk mengecualikan anggota keluar dari laporan simpanan</p>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Test Scenarios</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary me-2" onclick="setupTestData()">1. Setup Test Data</button>
+                        <button class="btn btn-success me-2" onclick="testAnggotaAktif()">2. Test Anggota Aktif</button>
+                        <button class="btn btn-warning me-2" onclick="testAnggotaKeluarPending()">3. Test Keluar (Pending)</button>
+                        <button class="btn btn-danger me-2" onclick="testAnggotaKeluarSelesai()">4. Test Keluar (Selesai)</button>
+                        <button class="btn btn-info" onclick="testLaporanFunction()">5. Test Laporan Function</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="output" style="max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Laporan Simpanan (Demo)</h5>
+                    </div>
+                    <div class="card-body" id="laporanDemo">
+                        <p class="text-muted">Klik "5. Test Laporan Function" untuk melihat demo laporan</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarRepository.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+
+    <script>
+        function log(msg, type = 'info') {
+            const output = document.getElementById('output');
+            const colors = {
+                success: 'color: green;',
+                error: 'color: red;',
+                warning: 'color: orange;',
+                info: 'color: black;'
+            };
+            output.innerHTML += `<span style="${colors[type]}">${msg}</span>\n`;
+            console.log(msg);
+        }
+
+        function setupTestData() {
+            log('=== SETUP TEST DATA ===', 'info');
+            
+            // Clear existing data
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            
+            // Create 3 test anggota
+            const anggotaList = [
+                {
+                    id: 'test-aktif-001',
+                    nik: '1111111111111111',
+                    nama: 'Anggota Aktif',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'test-keluar-pending-001',
+                    nik: '2222222222222222',
+                    nama: 'Anggota Keluar (Pending)',
+                    statusKeanggotaan: 'Keluar',
+                    pengembalianStatus: 'Pending',
+                    tanggalKeluar: '2024-12-01',
+                    alasanKeluar: 'Test pending'
+                },
+                {
+                    id: 'test-keluar-selesai-001',
+                    nik: '3333333333333333',
+                    nama: 'Anggota Keluar (Selesai)',
+                    statusKeanggotaan: 'Keluar',
+                    pengembalianStatus: 'Selesai',
+                    tanggalKeluar: '2024-11-01',
+                    alasanKeluar: 'Test selesai'
+                }
+            ];
+            
+            localStorage.setItem('anggota', JSON.stringify(anggotaList));
+            
+            // Create simpanan pokok for all
+            const simpananPokok = [
+                { id: 'sp1', anggotaId: 'test-aktif-001', jumlah: 500000, tanggal: '2024-01-01' },
+                { id: 'sp2', anggotaId: 'test-keluar-pending-001', jumlah: 500000, tanggal: '2024-01-01' },
+                { id: 'sp3', anggotaId: 'test-keluar-selesai-001', jumlah: 500000, tanggal: '2024-01-01' }
+            ];
+            
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            
+            // Create simpanan wajib for all
+            const simpananWajib = [
+                { id: 'sw1', anggotaId: 'test-aktif-001', jumlah: 100000, periode: '2024-01', tanggal: '2024-01-01' },
+                { id: 'sw2', anggotaId: 'test-aktif-001', jumlah: 100000, periode: '2024-02', tanggal: '2024-02-01' },
+                { id: 'sw3', anggotaId: 'test-keluar-pending-001', jumlah: 100000, periode: '2024-01', tanggal: '2024-01-01' },
+                { id: 'sw4', anggotaId: 'test-keluar-pending-001', jumlah: 100000, periode: '2024-02', tanggal: '2024-02-01' },
+                { id: 'sw5', anggotaId: 'test-keluar-selesai-001', jumlah: 100000, periode: '2024-01', tanggal: '2024-01-01' },
+                { id: 'sw6', anggotaId: 'test-keluar-selesai-001', jumlah: 100000, periode: '2024-02', tanggal: '2024-02-01' }
+            ];
+            
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            
+            log('✅ Test data created:', 'success');
+            log('  - Anggota Aktif: Rp 500.000 (pokok) + Rp 200.000 (wajib)', 'info');
+            log('  - Anggota Keluar (Pending): Rp 500.000 (pokok) + Rp 200.000 (wajib)', 'info');
+            log('  - Anggota Keluar (Selesai): Rp 500.000 (pokok) + Rp 200.000 (wajib)', 'info');
+            log('', 'info');
+        }
+
+        function testAnggotaAktif() {
+            log('=== TEST: ANGGOTA AKTIF ===', 'info');
+            
+            const anggotaId = 'test-aktif-001';
+            
+            // Test original functions
+            const pokokOriginal = getTotalSimpananPokok(anggotaId);
+            const wajibOriginal = getTotalSimpananWajib(anggotaId);
+            
+            log(`Original getTotalSimpananPokok: Rp ${pokokOriginal.toLocaleString('id-ID')}`, 'info');
+            log(`Original getTotalSimpananWajib: Rp ${wajibOriginal.toLocaleString('id-ID')}`, 'info');
+            
+            // Test new functions
+            const pokokLaporan = getTotalSimpananPokokForLaporan(anggotaId);
+            const wajibLaporan = getTotalSimpananWajibForLaporan(anggotaId);
+            
+            log(`ForLaporan getTotalSimpananPokok: Rp ${pokokLaporan.toLocaleString('id-ID')}`, 'info');
+            log(`ForLaporan getTotalSimpananWajib: Rp ${wajibLaporan.toLocaleString('id-ID')}`, 'info');
+            
+            // Verify
+            if (pokokOriginal === pokokLaporan && wajibOriginal === wajibLaporan) {
+                log('✅ PASS: Anggota aktif tetap muncul dengan saldo penuh', 'success');
+            } else {
+                log('❌ FAIL: Saldo tidak sama', 'error');
+            }
+            log('', 'info');
+        }
+
+        function testAnggotaKeluarPending() {
+            log('=== TEST: ANGGOTA KELUAR (PENDING) ===', 'info');
+            
+            const anggotaId = 'test-keluar-pending-001';
+            
+            // Test original functions
+            const pokokOriginal = getTotalSimpananPokok(anggotaId);
+            const wajibOriginal = getTotalSimpananWajib(anggotaId);
+            
+            log(`Original getTotalSimpananPokok: Rp ${pokokOriginal.toLocaleString('id-ID')}`, 'info');
+            log(`Original getTotalSimpananWajib: Rp ${wajibOriginal.toLocaleString('id-ID')}`, 'info');
+            
+            // Test new functions
+            const pokokLaporan = getTotalSimpananPokokForLaporan(anggotaId);
+            const wajibLaporan = getTotalSimpananWajibForLaporan(anggotaId);
+            
+            log(`ForLaporan getTotalSimpananPokok: Rp ${pokokLaporan.toLocaleString('id-ID')}`, 'info');
+            log(`ForLaporan getTotalSimpananWajib: Rp ${wajibLaporan.toLocaleString('id-ID')}`, 'info');
+            
+            // Verify
+            if (pokokOriginal === pokokLaporan && wajibOriginal === wajibLaporan && pokokLaporan > 0) {
+                log('✅ PASS: Anggota keluar (pending) masih muncul dengan saldo penuh', 'success');
+            } else {
+                log('❌ FAIL: Saldo tidak sesuai expected', 'error');
+            }
+            log('', 'info');
+        }
+
+        function testAnggotaKeluarSelesai() {
+            log('=== TEST: ANGGOTA KELUAR (SELESAI) ===', 'info');
+            
+            const anggotaId = 'test-keluar-selesai-001';
+            
+            // Test original functions
+            const pokokOriginal = getTotalSimpananPokok(anggotaId);
+            const wajibOriginal = getTotalSimpananWajib(anggotaId);
+            
+            log(`Original getTotalSimpananPokok: Rp ${pokokOriginal.toLocaleString('id-ID')}`, 'info');
+            log(`Original getTotalSimpananWajib: Rp ${wajibOriginal.toLocaleString('id-ID')}`, 'info');
+            
+            // Test new functions
+            const pokokLaporan = getTotalSimpananPokokForLaporan(anggotaId);
+            const wajibLaporan = getTotalSimpananWajibForLaporan(anggotaId);
+            
+            log(`ForLaporan getTotalSimpananPokok: Rp ${pokokLaporan.toLocaleString('id-ID')}`, 'info');
+            log(`ForLaporan getTotalSimpananWajib: Rp ${wajibLaporan.toLocaleString('id-ID')}`, 'info');
+            
+            // Verify
+            if (pokokOriginal > 0 && wajibOriginal > 0 && pokokLaporan === 0 && wajibLaporan === 0) {
+                log('✅ PASS: Anggota keluar (selesai) tidak muncul di laporan (saldo 0)', 'success');
+            } else {
+                log('❌ FAIL: Saldo tidak sesuai expected', 'error');
+                log(`  Expected: Original > 0, Laporan = 0`, 'error');
+                log(`  Actual: Original = ${pokokOriginal}, Laporan = ${pokokLaporan}`, 'error');
+            }
+            log('', 'info');
+        }
+
+        function testLaporanFunction() {
+            log('=== TEST: getAnggotaWithSimpananForLaporan() ===', 'info');
+            
+            const anggotaList = getAnggotaWithSimpananForLaporan();
+            
+            log(`Total anggota di laporan: ${anggotaList.length}`, 'info');
+            log('', 'info');
+            
+            anggotaList.forEach((anggota, index) => {
+                log(`${index + 1}. ${anggota.nama}`, 'info');
+                log(`   Simpanan Pokok: Rp ${anggota.simpananPokok.toLocaleString('id-ID')}`, 'info');
+                log(`   Simpanan Wajib: Rp ${anggota.simpananWajib.toLocaleString('id-ID')}`, 'info');
+                log(`   Total: Rp ${anggota.totalSimpanan.toLocaleString('id-ID')}`, 'info');
+                log('', 'info');
+            });
+            
+            // Verify
+            const hasAktif = anggotaList.some(a => a.id === 'test-aktif-001');
+            const hasPending = anggotaList.some(a => a.id === 'test-keluar-pending-001');
+            const hasSelesai = anggotaList.some(a => a.id === 'test-keluar-selesai-001');
+            
+            if (hasAktif && hasPending && !hasSelesai) {
+                log('✅ PASS: Laporan hanya menampilkan anggota aktif dan keluar (pending)', 'success');
+                log('✅ Anggota keluar (selesai) tidak muncul', 'success');
+            } else {
+                log('❌ FAIL: Filter tidak bekerja dengan benar', 'error');
+                log(`  hasAktif: ${hasAktif}, hasPending: ${hasPending}, hasSelesai: ${hasSelesai}`, 'error');
+            }
+            
+            // Render demo laporan
+            renderDemoLaporan(anggotaList);
+        }
+
+        function renderDemoLaporan(anggotaList) {
+            let html = '<h6>Demo: Laporan Simpanan</h6>';
+            html += '<table class="table table-striped">';
+            html += '<thead class="table-dark">';
+            html += '<tr><th>No</th><th>NIK</th><th>Nama</th><th>Simpanan Pokok</th><th>Simpanan Wajib</th><th>Total</th></tr>';
+            html += '</thead><tbody>';
+            
+            let totalPokok = 0;
+            let totalWajib = 0;
+            let grandTotal = 0;
+            
+            anggotaList.forEach((anggota, index) => {
+                html += '<tr>';
+                html += `<td>${index + 1}</td>`;
+                html += `<td>${anggota.nik}</td>`;
+                html += `<td>${anggota.nama}</td>`;
+                html += `<td class="text-end">Rp ${anggota.simpananPokok.toLocaleString('id-ID')}</td>`;
+                html += `<td class="text-end">Rp ${anggota.simpananWajib.toLocaleString('id-ID')}</td>`;
+                html += `<td class="text-end">Rp ${anggota.totalSimpanan.toLocaleString('id-ID')}</td>`;
+                html += '</tr>';
+                
+                totalPokok += anggota.simpananPokok;
+                totalWajib += anggota.simpananWajib;
+                grandTotal += anggota.totalSimpanan;
+            });
+            
+            html += '<tr class="table-success fw-bold">';
+            html += '<td colspan="3">TOTAL</td>';
+            html += `<td class="text-end">Rp ${totalPokok.toLocaleString('id-ID')}</td>`;
+            html += `<td class="text-end">Rp ${totalWajib.toLocaleString('id-ID')}</td>`;
+            html += `<td class="text-end">Rp ${grandTotal.toLocaleString('id-ID')}</td>`;
+            html += '</tr>';
+            
+            html += '</tbody></table>';
+            
+            html += '<div class="alert alert-info mt-3">';
+            html += '<strong>Catatan:</strong><br>';
+            html += '✅ Anggota Aktif: Muncul dengan saldo penuh<br>';
+            html += '✅ Anggota Keluar (Pending): Muncul dengan saldo penuh<br>';
+            html += '❌ Anggota Keluar (Selesai): TIDAK muncul (sudah ditarik)';
+            html += '</div>';
+            
+            document.getElementById('laporanDemo').innerHTML = html;
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Page loaded. Click buttons to test.\n', 'info');
+        });
+    </script>
+</body>
+</html>

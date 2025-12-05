@@ -35,37 +35,72 @@ function renderLaporan() {
 }
 
 function laporanSimpanan() {
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
-    const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
-    const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+    // Use new function that automatically excludes processed anggota keluar
+    const anggotaList = getAnggotaWithSimpananForLaporan();
     const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
     
     const content = document.getElementById('laporanContent');
+    
+    // Calculate grand totals
+    let grandTotalPokok = 0;
+    let grandTotalWajib = 0;
+    let grandTotalSukarela = 0;
+    let grandTotal = 0;
+    
     content.innerHTML = `
         <h4>Laporan Simpanan Anggota</h4>
-        <table class="table">
-            <thead>
-                <tr><th>Nama Anggota</th><th>Simpanan Pokok</th><th>Simpanan Wajib</th><th>Simpanan Sukarela</th><th>Total</th></tr>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Catatan:</strong> Laporan ini otomatis mengecualikan anggota yang sudah keluar dan telah diproses pengembaliannya.
+        </div>
+        <table class="table table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th>Nama Anggota</th>
+                    <th class="text-end">Simpanan Pokok</th>
+                    <th class="text-end">Simpanan Wajib</th>
+                    <th class="text-end">Simpanan Sukarela</th>
+                    <th class="text-end">Total</th>
+                </tr>
             </thead>
             <tbody>
-                ${anggota.map(a => {
-                    const pokok = simpananPokok.filter(s => s.anggotaId === a.id).reduce((sum, s) => sum + s.jumlah, 0);
-                    const wajib = simpananWajib.filter(s => s.anggotaId === a.id).reduce((sum, s) => sum + s.jumlah, 0);
+                ${anggotaList.map(a => {
+                    // simpananPokok and simpananWajib already calculated by getAnggotaWithSimpananForLaporan
+                    const pokok = a.simpananPokok;
+                    const wajib = a.simpananWajib;
                     const sukarela = simpananSukarela.filter(s => s.anggotaId === a.id).reduce((sum, s) => sum + s.jumlah, 0);
                     const total = pokok + wajib + sukarela;
+                    
+                    // Add to grand totals
+                    grandTotalPokok += pokok;
+                    grandTotalWajib += wajib;
+                    grandTotalSukarela += sukarela;
+                    grandTotal += total;
+                    
                     return `
                         <tr>
                             <td>${a.nama}</td>
-                            <td>${formatRupiah(pokok)}</td>
-                            <td>${formatRupiah(wajib)}</td>
-                            <td>${formatRupiah(sukarela)}</td>
-                            <td>${formatRupiah(total)}</td>
+                            <td class="text-end">${formatRupiah(pokok)}</td>
+                            <td class="text-end">${formatRupiah(wajib)}</td>
+                            <td class="text-end">${formatRupiah(sukarela)}</td>
+                            <td class="text-end"><strong>${formatRupiah(total)}</strong></td>
                         </tr>
                     `;
                 }).join('')}
             </tbody>
+            <tfoot class="table-dark">
+                <tr>
+                    <th>TOTAL</th>
+                    <th class="text-end">${formatRupiah(grandTotalPokok)}</th>
+                    <th class="text-end">${formatRupiah(grandTotalWajib)}</th>
+                    <th class="text-end">${formatRupiah(grandTotalSukarela)}</th>
+                    <th class="text-end">${formatRupiah(grandTotal)}</th>
+                </tr>
+            </tfoot>
         </table>
-        <button class="btn btn-secondary" onclick="downloadCSV('laporan_simpanan')">Download CSV</button>
+        <button class="btn btn-secondary" onclick="downloadCSV('laporan_simpanan')">
+            <i class="bi bi-download me-1"></i>Download CSV
+        </button>
     `;
 }
 

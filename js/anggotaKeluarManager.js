@@ -2008,3 +2008,93 @@ function generateBuktiAnggotaKeluar(anggotaId) {
         };
     }
 }
+
+
+/**
+ * Get total simpanan pokok for laporan (excluding anggota keluar yang sudah diproses)
+ * @param {string} anggotaId - ID of the anggota
+ * @param {boolean} excludeProcessedKeluar - Whether to exclude anggota keluar with processed pengembalian
+ * @returns {number} Total simpanan pokok
+ */
+function getTotalSimpananPokokForLaporan(anggotaId, excludeProcessedKeluar = true) {
+    try {
+        if (!anggotaId || typeof anggotaId !== 'string') {
+            return 0;
+        }
+        
+        // Check if anggota keluar and pengembalian processed
+        if (excludeProcessedKeluar) {
+            const anggota = getAnggotaById(anggotaId);
+            if (anggota && anggota.statusKeanggotaan === 'Keluar' && anggota.pengembalianStatus === 'Selesai') {
+                // Pengembalian sudah diproses, simpanan sudah ditarik
+                return 0;
+            }
+        }
+        
+        return getTotalSimpananPokok(anggotaId);
+    } catch (error) {
+        console.error('Error in getTotalSimpananPokokForLaporan:', error);
+        return 0;
+    }
+}
+
+/**
+ * Get total simpanan wajib for laporan (excluding anggota keluar yang sudah diproses)
+ * @param {string} anggotaId - ID of the anggota
+ * @param {boolean} excludeProcessedKeluar - Whether to exclude anggota keluar with processed pengembalian
+ * @returns {number} Total simpanan wajib
+ */
+function getTotalSimpananWajibForLaporan(anggotaId, excludeProcessedKeluar = true) {
+    try {
+        if (!anggotaId || typeof anggotaId !== 'string') {
+            return 0;
+        }
+        
+        // Check if anggota keluar and pengembalian processed
+        if (excludeProcessedKeluar) {
+            const anggota = getAnggotaById(anggotaId);
+            if (anggota && anggota.statusKeanggotaan === 'Keluar' && anggota.pengembalianStatus === 'Selesai') {
+                // Pengembalian sudah diproses, simpanan sudah ditarik
+                return 0;
+            }
+        }
+        
+        return getTotalSimpananWajib(anggotaId);
+    } catch (error) {
+        console.error('Error in getTotalSimpananWajibForLaporan:', error);
+        return 0;
+    }
+}
+
+/**
+ * Get all anggota with their simpanan totals for laporan
+ * Excludes anggota keluar yang sudah diproses pengembaliannya
+ * @returns {array} Array of anggota with simpanan totals
+ */
+function getAnggotaWithSimpananForLaporan() {
+    try {
+        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        
+        return anggotaList.map(anggota => {
+            // Skip anggota keluar yang sudah diproses pengembalian
+            const isProcessedKeluar = anggota.statusKeanggotaan === 'Keluar' && anggota.pengembalianStatus === 'Selesai';
+            
+            return {
+                ...anggota,
+                simpananPokok: isProcessedKeluar ? 0 : getTotalSimpananPokok(anggota.id),
+                simpananWajib: isProcessedKeluar ? 0 : getTotalSimpananWajib(anggota.id),
+                totalSimpanan: isProcessedKeluar ? 0 : (getTotalSimpananPokok(anggota.id) + getTotalSimpananWajib(anggota.id)),
+                isProcessedKeluar: isProcessedKeluar
+            };
+        }).filter(anggota => {
+            // Filter out anggota with zero simpanan if they are processed keluar
+            if (anggota.isProcessedKeluar) {
+                return false; // Don't show in laporan
+            }
+            return true;
+        });
+    } catch (error) {
+        console.error('Error in getAnggotaWithSimpananForLaporan:', error);
+        return [];
+    }
+}
