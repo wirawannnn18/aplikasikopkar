@@ -630,12 +630,41 @@ function renderTableAnggota(filteredData = null) {
             }
         }
         
+        // Check if anggota has status "Keluar"
+        const isKeluar = a.statusKeanggotaan === 'Keluar';
+        const statusKeluarBadge = isKeluar ? '<span class="badge bg-danger ms-2">Keluar</span>' : '';
+        
+        // Show "Anggota Keluar" button only for active members (not already keluar)
+        const anggotaKeluarButton = !isKeluar ? `
+            <button class="btn btn-sm btn-warning" onclick="showAnggotaKeluarModal('${a.id}')" title="Anggota Keluar">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        ` : '';
+        
+        // Show "Proses Pengembalian" button for anggota keluar with pending status
+        const pengembalianButton = (isKeluar && a.pengembalianStatus !== 'Selesai') ? `
+            <button class="btn btn-sm btn-success" onclick="showPengembalianModal('${a.id}')" title="Proses Pengembalian">
+                <i class="bi bi-cash-coin"></i>
+            </button>
+        ` : '';
+        
+        // Show "Batalkan Status Keluar" button for anggota keluar with pending status
+        const cancelKeluarButton = (isKeluar && a.pengembalianStatus !== 'Selesai') ? `
+            <button class="btn btn-sm btn-danger" onclick="showCancelKeluarModal('${a.id}')" title="Batalkan Status Keluar">
+                <i class="bi bi-x-circle"></i>
+            </button>
+        ` : '';
+        
+        // Apply different row styling for exited members
+        const rowClass = isKeluar ? 'table-secondary' : '';
+        
         return `
-            <tr>
+            <tr class="${rowClass}">
                 <td>${a.nik}</td>
                 <td>
                     ${a.nama}
                     ${a.tipeAnggota === 'Anggota' ? '<i class="bi bi-star-fill text-warning" title="Anggota Koperasi"></i>' : ''}
+                    ${statusKeluarBadge}
                 </td>
                 <td>${a.noKartu}</td>
                 <td>${a.departemen || '-'}</td>
@@ -654,12 +683,15 @@ function renderTableAnggota(filteredData = null) {
                     <button class="btn btn-sm btn-info" onclick="viewAnggota('${a.id}')" title="Detail">
                         <i class="bi bi-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-warning" onclick="editAnggota('${a.id}')" title="Edit">
+                    <button class="btn btn-sm btn-warning" onclick="editAnggota('${a.id}')" title="Edit" ${isKeluar ? 'disabled' : ''}>
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteAnggota('${a.id}')" title="Hapus">
+                    <button class="btn btn-sm btn-danger" onclick="deleteAnggota('${a.id}')" title="Hapus" ${isKeluar ? 'disabled' : ''}>
                         <i class="bi bi-trash"></i>
                     </button>
+                    ${anggotaKeluarButton}
+                    ${pengembalianButton}
+                    ${cancelKeluarButton}
                 </td>
             </tr>
         `;

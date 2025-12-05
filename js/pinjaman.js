@@ -228,6 +228,15 @@ function hitungTotalBayar() {
 function savePinjaman() {
     const pinjaman = JSON.parse(localStorage.getItem('pinjaman') || '[]');
     
+    const anggotaId = document.getElementById('anggotaPinjaman').value;
+    
+    // Validate anggota is not keluar
+    const anggota = getAnggotaById(anggotaId);
+    if (anggota && anggota.statusKeanggotaan === 'Keluar') {
+        showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+        return;
+    }
+    
     const jumlah = parseFloat(document.getElementById('jumlahPinjaman').value);
     const bunga = parseFloat(document.getElementById('bungaPinjaman').value);
     const jangkaWaktu = parseInt(document.getElementById('jangkaWaktu').value);
@@ -240,7 +249,7 @@ function savePinjaman() {
     const data = {
         id: generateId(),
         noPinjaman: noPinjaman,
-        anggotaId: document.getElementById('anggotaPinjaman').value,
+        anggotaId: anggotaId,
         jumlahPinjaman: jumlah,
         bunga: bunga,
         totalBunga: totalBunga,

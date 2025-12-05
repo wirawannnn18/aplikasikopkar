@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 11 - Error Handling & Validation UI</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .test-result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check me-2"></i>
+            Test Task 11: Error Handling & Validation UI
+        </h1>
+        
+        <div class="alert alert-info">
+            <h5 class="alert-heading">Test Coverage</h5>
+            <ul class="mb-0">
+                <li><strong>Task 11.1:</strong> Validation error display</li>
+                <li><strong>Task 11.2:</strong> Success notifications (toast)</li>
+                <li><strong>Task 11.3:</strong> Loading states</li>
+            </ul>
+        </div>
+        
+        <!-- Test 11.1: Validation Error Display -->
+        <div class="test-section">
+            <h3>Test 11.1: Validation Error Display</h3>
+            <p class="text-muted">Test form validation with error highlighting and messages</p>
+            
+            <form id="testForm1" class="mb-3">
+                <div class="mb-3">
+                    <label for="testField1" class="form-label">Nama (Required, Min 5 chars)</label>
+                    <input type="text" class="form-control" id="testField1" name="testField1">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="testField2" class="form-label">Email (Required, Valid email)</label>
+                    <input type="email" class="form-control" id="testField2" name="testField2">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="testField3" class="form-label">Tanggal (Required, Not future)</label>
+                    <input type="date" class="form-control" id="testField3" name="testField3">
+                </div>
+                
+                <div id="formErrorContainer" style="display: none;"></div>
+                
+                <button type="button" class="btn btn-primary" onclick="testValidation()">
+                    Test Validation
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearValidationErrors('testForm1')">
+                    Clear Errors
+                </button>
+            </form>
+            
+            <div id="validationResult" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 11.2: Toast Notifications -->
+        <div class="test-section">
+            <h3>Test 11.2: Toast Notifications</h3>
+            <p class="text-muted">Test success, error, warning, and info toast notifications</p>
+            
+            <div class="btn-group mb-3" role="group">
+                <button type="button" class="btn btn-success" onclick="showToast('Operasi berhasil dilakukan!', 'success')">
+                    <i class="bi bi-check-circle me-1"></i>Success Toast
+                </button>
+                <button type="button" class="btn btn-danger" onclick="showToast('Terjadi kesalahan saat memproses data', 'error')">
+                    <i class="bi bi-x-circle me-1"></i>Error Toast
+                </button>
+                <button type="button" class="btn btn-warning" onclick="showToast('Perhatian: Data belum lengkap', 'warning')">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Warning Toast
+                </button>
+                <button type="button" class="btn btn-info" onclick="showToast('Informasi: Proses sedang berjalan', 'info')">
+                    <i class="bi bi-info-circle me-1"></i>Info Toast
+                </button>
+            </div>
+            
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary" onclick="testLongToast()">
+                    <i class="bi bi-clock me-1"></i>Test Long Message Toast
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="testMultipleToasts()">
+                    <i class="bi bi-stack me-1"></i>Test Multiple Toasts
+                </button>
+            </div>
+        </div>
+        
+        <!-- Test 11.3: Loading States -->
+        <div class="test-section">
+            <h3>Test 11.3: Loading States</h3>
+            <p class="text-muted">Test button loading states and loading overlays</p>
+            
+            <div class="mb-3">
+                <h5>Button Loading State</h5>
+                <button type="button" class="btn btn-primary" id="testLoadingButton" onclick="testButtonLoading()">
+                    <i class="bi bi-play-circle me-1"></i>Test Button Loading
+                </button>
+            </div>
+            
+            <div class="mb-3">
+                <h5>Loading Overlay</h5>
+                <div id="testOverlayContainer" style="min-height: 200px; border: 1px solid #dee2e6; border-radius: 4px; padding: 20px;">
+                    <p>This is a container that will show loading overlay</p>
+                    <button type="button" class="btn btn-primary" onclick="testLoadingOverlay()">
+                        <i class="bi bi-hourglass-split me-1"></i>Show Loading Overlay
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Confirm Action Modal -->
+        <div class="test-section">
+            <h3>Test: Confirm Action Modal</h3>
+            <p class="text-muted">Test custom confirmation modal with different types</p>
+            
+            <div class="btn-group mb-3" role="group">
+                <button type="button" class="btn btn-warning" onclick="testConfirmWarning()">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Warning Confirm
+                </button>
+                <button type="button" class="btn btn-danger" onclick="testConfirmDanger()">
+                    <i class="bi bi-trash me-1"></i>Danger Confirm
+                </button>
+                <button type="button" class="btn btn-info" onclick="testConfirmInfo()">
+                    <i class="bi bi-info-circle me-1"></i>Info Confirm
+                </button>
+            </div>
+        </div>
+        
+        <!-- Integration Test -->
+        <div class="test-section">
+            <h3>Integration Test: Complete Flow</h3>
+            <p class="text-muted">Test complete flow with validation, loading, and notification</p>
+            
+            <form id="integrationForm">
+                <div class="mb-3">
+                    <label for="integrationName" class="form-label">Nama Anggota</label>
+                    <input type="text" class="form-control" id="integrationName" name="integrationName">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="integrationDate" class="form-label">Tanggal</label>
+                    <input type="date" class="form-control" id="integrationDate" name="integrationDate">
+                </div>
+                
+                <div id="integrationErrorContainer" style="display: none;"></div>
+                
+                <button type="button" class="btn btn-primary" id="integrationButton" onclick="testIntegrationFlow()">
+                    <i class="bi bi-send me-1"></i>Submit Integration Test
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Validation Module -->
+    <script src="js/anggotaKeluarValidation.js"></script>
+    
+    <!-- Test Scripts -->
+    <script>
+        // Test 11.1: Validation
+        function testValidation() {
+            const validation = validateForm('testForm1', {
+                testField1: {
+                    required: true,
+                    minLength: 5,
+                    label: 'Nama',
+                    requiredMessage: 'Nama harus diisi',
+                    minLengthMessage: 'Nama minimal 5 karakter'
+                },
+                testField2: {
+                    required: true,
+                    label: 'Email',
+                    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    requiredMessage: 'Email harus diisi',
+                    patternMessage: 'Format email tidak valid'
+                },
+                testField3: {
+                    required: true,
+                    label: 'Tanggal',
+                    requiredMessage: 'Tanggal harus diisi',
+                    custom: (value) => {
+                        const selectedDate = new Date(value);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDate > today) {
+                            return 'Tanggal tidak boleh di masa depan';
+                        }
+                        return true;
+                    }
+                }
+            });
+            
+            // Display errors
+            displayValidationErrors('testForm1', validation.errors, 'formErrorContainer');
+            
+            // Show result
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            
+            if (validation.valid) {
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = '<i class="bi bi-check-circle me-2"></i><strong>Validation Passed!</strong> All fields are valid.';
+                showToast('Validasi berhasil!', 'success');
+            } else {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<i class="bi bi-x-circle me-2"></i><strong>Validation Failed!</strong> Found ${validation.errors.length} error(s).`;
+            }
+        }
+        
+        // Test 11.2: Long Toast
+        function testLongToast() {
+            const longMessage = 'Pengembalian simpanan berhasil diproses<br>' +
+                               '<small>Nomor Referensi: PGM-202412-ABC12345<br>' +
+                               'Total: Rp 1.500.000<br>' +
+                               'Metode: Transfer Bank</small>';
+            showToast(longMessage, 'success', 10000);
+        }
+        
+        function testMultipleToasts() {
+            showToast('Toast 1: Processing started...', 'info', 3000);
+            setTimeout(() => showToast('Toast 2: Validating data...', 'info', 3000), 500);
+            setTimeout(() => showToast('Toast 3: Saving to database...', 'info', 3000), 1000);
+            setTimeout(() => showToast('Toast 4: All done!', 'success', 5000), 1500);
+        }
+        
+        // Test 11.3: Button Loading
+        function testButtonLoading() {
+            const button = document.getElementById('testLoadingButton');
+            const restoreButton = showButtonLoading(button, 'Processing...');
+            
+            // Simulate async operation
+            setTimeout(() => {
+                restoreButton();
+                showToast('Button loading test completed!', 'success');
+            }, 3000);
+        }
+        
+        function testLoadingOverlay() {
+            showLoadingOverlay('testOverlayContainer', 'Loading data...');
+            
+            // Simulate async operation
+            setTimeout(() => {
+                hideLoadingOverlay('testOverlayContainer');
+                showToast('Loading overlay test completed!', 'success');
+            }, 3000);
+        }
+        
+        // Test Confirm Modals
+        function testConfirmWarning() {
+            confirmAction(
+                'Konfirmasi Tindakan',
+                '<p>Apakah Anda yakin ingin melanjutkan tindakan ini?</p><p class="text-muted mb-0">Tindakan ini dapat diubah kembali.</p>',
+                () => {
+                    showToast('Warning action confirmed!', 'success');
+                },
+                {
+                    confirmText: 'Ya, Lanjutkan',
+                    cancelText: 'Batal',
+                    type: 'warning'
+                }
+            );
+        }
+        
+        function testConfirmDanger() {
+            confirmAction(
+                'Konfirmasi Hapus',
+                '<p>Apakah Anda yakin ingin menghapus data ini?</p><p class="text-danger mb-0"><strong>Tindakan ini tidak dapat dibatalkan!</strong></p>',
+                () => {
+                    showToast('Danger action confirmed!', 'success');
+                },
+                {
+                    confirmText: 'Ya, Hapus',
+                    cancelText: 'Batal',
+                    type: 'danger'
+                }
+            );
+        }
+        
+        function testConfirmInfo() {
+            confirmAction(
+                'Informasi',
+                '<p>Apakah Anda ingin mencetak dokumen ini?</p><p class="mb-0">Dokumen akan dibuka di tab baru.</p>',
+                () => {
+                    showToast('Info action confirmed!', 'success');
+                },
+                {
+                    confirmText: 'Ya, Cetak',
+                    cancelText: 'Tidak',
+                    type: 'info'
+                }
+            );
+        }
+        
+        // Integration Test
+        function testIntegrationFlow() {
+            // Clear previous errors
+            clearValidationErrors('integrationForm');
+            
+            // Validate form
+            const validation = validateForm('integrationForm', {
+                integrationName: {
+                    required: true,
+                    minLength: 5,
+                    label: 'Nama Anggota'
+                },
+                integrationDate: {
+                    required: true,
+                    label: 'Tanggal',
+                    custom: (value) => {
+                        const selectedDate = new Date(value);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDate > today) {
+                            return 'Tanggal tidak boleh di masa depan';
+                        }
+                        return true;
+                    }
+                }
+            });
+            
+            // Display errors if validation fails
+            if (!validation.valid) {
+                displayValidationErrors('integrationForm', validation.errors, 'integrationErrorContainer');
+                return;
+            }
+            
+            // Show confirmation
+            const name = document.getElementById('integrationName').value;
+            const date = document.getElementById('integrationDate').value;
+            
+            confirmAction(
+                'Konfirmasi Submit',
+                `<p>Apakah Anda yakin ingin submit data berikut?</p>
+                 <table class="table table-sm table-borderless">
+                    <tr><td width="100"><strong>Nama</strong></td><td>: ${name}</td></tr>
+                    <tr><td><strong>Tanggal</strong></td><td>: ${date}</td></tr>
+                 </table>`,
+                () => {
+                    // Show loading
+                    const button = document.getElementById('integrationButton');
+                    const restoreButton = showButtonLoading(button, 'Submitting...');
+                    
+                    // Simulate async operation
+                    setTimeout(() => {
+                        restoreButton();
+                        
+                        // Show success toast
+                        showToast(`Data berhasil disubmit!<br><small>Nama: ${name}<br>Tanggal: ${date}</small>`, 'success', 7000);
+                        
+                        // Clear form
+                        document.getElementById('integrationForm').reset();
+                    }, 2000);
+                },
+                {
+                    confirmText: 'Ya, Submit',
+                    cancelText: 'Batal',
+                    type: 'warning'
+                }
+            );
+        }
+        
+        // Show initial info
+        window.addEventListener('load', () => {
+            showToast('Test page loaded successfully! Click buttons to test features.', 'info', 5000);
+        });
+    </script>
+</body>
+</html>

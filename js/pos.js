@@ -596,6 +596,12 @@ function processPayment() {
             showAlert('Anggota dengan status ' + member.status + ' tidak bisa melakukan transaksi!', 'warning');
             return;
         }
+        
+        // Validate anggota is not keluar
+        if (member && member.statusKeanggotaan === 'Keluar') {
+            showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+            return;
+        }
     }
     
     if (metode === 'bon' && !anggotaId) {

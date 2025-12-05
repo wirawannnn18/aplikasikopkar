@@ -219,6 +219,13 @@ function saveSimpananPokok() {
         tanggal: document.getElementById('tanggalPokok').value
     };
     
+    // Validate anggota is not keluar
+    const anggota = getAnggotaById(data.anggotaId);
+    if (anggota && anggota.statusKeanggotaan === 'Keluar') {
+        showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+        return;
+    }
+    
     simpanan.push(data);
     localStorage.setItem('simpananPokok', JSON.stringify(simpanan));
     
@@ -755,6 +762,13 @@ function saveSimpananWajib() {
         periode: document.getElementById('periodeWajib').value,
         tanggal: document.getElementById('tanggalWajib').value
     };
+    
+    // Validate anggota is not keluar
+    const anggota = getAnggotaById(data.anggotaId);
+    if (anggota && anggota.statusKeanggotaan === 'Keluar') {
+        showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+        return;
+    }
     
     simpanan.push(data);
     localStorage.setItem('simpananWajib', JSON.stringify(simpanan));
