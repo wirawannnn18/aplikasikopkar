@@ -320,24 +320,74 @@ function validatePengembalian(anggotaId, metodePembayaran) {
         if (calculation.success) {
             const totalPengembalian = calculation.data.totalPengembalian;
             
-            // Get current kas balance
+            // Get current kas and bank balance
             const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            
+            // Calculate Kas balance (1-1000)
             const kasBalance = jurnal
                 .filter(j => j.akun === '1-1000') // Akun Kas
                 .reduce((sum, j) => sum + (j.debit || 0) - (j.kredit || 0), 0);
             
-            if (totalPengembalian > 0 && kasBalance < totalPengembalian) {
-                validationErrors.push({
-                    code: 'INSUFFICIENT_BALANCE',
-                    message: `Saldo kas tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia: Rp ${kasBalance.toLocaleString('id-ID')}`,
-                    field: 'kas',
-                    severity: 'error',
-                    data: {
-                        required: totalPengembalian,
-                        available: kasBalance,
-                        shortfall: totalPengembalian - kasBalance
+            // Calculate Bank balance (1-1100)
+            const bankBalance = jurnal
+                .filter(j => j.akun === '1-1100') // Akun Bank
+                .reduce((sum, j) => sum + (j.debit || 0) - (j.kredit || 0), 0);
+            
+            // Total available balance (Kas + Bank)
+            const totalAvailableBalance = kasBalance + bankBalance;
+            
+            // Check if payment method is specified to validate specific account
+            if (metodePembayaran !== undefined && metodePembayaran) {
+                if (metodePembayaran === 'Kas') {
+                    // Validate Kas balance only
+                    if (totalPengembalian > 0 && kasBalance < totalPengembalian) {
+                        validationErrors.push({
+                            code: 'INSUFFICIENT_BALANCE',
+                            message: `Saldo kas tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia di Kas: Rp ${kasBalance.toLocaleString('id-ID')}`,
+                            field: 'kas',
+                            severity: 'error',
+                            data: {
+                                required: totalPengembalian,
+                                available: kasBalance,
+                                shortfall: totalPengembalian - kasBalance,
+                                paymentMethod: 'Kas'
+                            }
+                        });
                     }
-                });
+                } else if (metodePembayaran === 'Transfer Bank') {
+                    // Validate Bank balance only
+                    if (totalPengembalian > 0 && bankBalance < totalPengembalian) {
+                        validationErrors.push({
+                            code: 'INSUFFICIENT_BALANCE',
+                            message: `Saldo bank tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia di Bank: Rp ${bankBalance.toLocaleString('id-ID')}`,
+                            field: 'bank',
+                            severity: 'error',
+                            data: {
+                                required: totalPengembalian,
+                                available: bankBalance,
+                                shortfall: totalPengembalian - bankBalance,
+                                paymentMethod: 'Transfer Bank'
+                            }
+                        });
+                    }
+                }
+            } else {
+                // If payment method not specified, check total available balance
+                if (totalPengembalian > 0 && totalAvailableBalance < totalPengembalian) {
+                    validationErrors.push({
+                        code: 'INSUFFICIENT_BALANCE',
+                        message: `Saldo kas/bank tidak mencukupi. Dibutuhkan: Rp ${totalPengembalian.toLocaleString('id-ID')}, Tersedia: Rp ${totalAvailableBalance.toLocaleString('id-ID')} (Kas: Rp ${kasBalance.toLocaleString('id-ID')}, Bank: Rp ${bankBalance.toLocaleString('id-ID')})`,
+                        field: 'kas',
+                        severity: 'error',
+                        data: {
+                            required: totalPengembalian,
+                            available: totalAvailableBalance,
+                            kasBalance: kasBalance,
+                            bankBalance: bankBalance,
+                            shortfall: totalPengembalian - totalAvailableBalance
+                        }
+                    });
+                }
             }
             
             // Warning if totalPengembalian is negative (anggota owes money)
