@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Debug Anggota Keluar</h2>
+        <div class="alert alert-info">
+            <strong>Instruksi:</strong> Buka Console (F12) untuk melihat error detail
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5>Test Basic Functions</h5>
+                <button class="btn btn-primary" onclick="testBasicFunctions()">Test Functions</button>
+                <button class="btn btn-secondary" onclick="testValidation()">Test Validation</button>
+                <button class="btn btn-success" onclick="testMarkKeluar()">Test Mark Keluar</button>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Console Output</div>
+            <div class="card-body">
+                <pre id="output" style="max-height: 400px; overflow-y: auto;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load dependencies in order -->
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarRepository.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+    <script src="js/anggotaKeluarValidation.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+
+    <script>
+        function log(msg) {
+            const output = document.getElementById('output');
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        function testBasicFunctions() {
+            log('=== Testing Basic Functions ===');
+            
+            try {
+                // Test if functions exist
+                log('✓ markAnggotaKeluar: ' + (typeof markAnggotaKeluar));
+                log('✓ calculatePengembalian: ' + (typeof calculatePengembalian));
+                log('✓ validatePengembalian: ' + (typeof validatePengembalian));
+                log('✓ processPengembalian: ' + (typeof processPengembalian));
+                log('✓ generateBuktiAnggotaKeluar: ' + (typeof generateBuktiAnggotaKeluar));
+                
+                // Test helper functions
+                log('✓ getAnggotaById: ' + (typeof getAnggotaById));
+                log('✓ getTotalSimpananPokok: ' + (typeof getTotalSimpananPokok));
+                log('✓ getTotalSimpananWajib: ' + (typeof getTotalSimpananWajib));
+                
+                log('\n✅ All functions loaded successfully');
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                log('Stack: ' + error.stack);
+            }
+        }
+
+        function testValidation() {
+            log('\n=== Testing Validation ===');
+            
+            try {
+                // Setup test data
+                const testAnggota = {
+                    id: 'test-001',
+                    nik: '1234567890123456',
+                    nama: 'Test User',
+                    statusKeanggotaan: 'Aktif'
+                };
+                
+                localStorage.setItem('anggota', JSON.stringify([testAnggota]));
+                localStorage.setItem('simpananPokok', JSON.stringify([
+                    { id: 'sp1', anggotaId: 'test-001', jumlah: 500000 }
+                ]));
+                localStorage.setItem('simpananWajib', JSON.stringify([
+                    { id: 'sw1', anggotaId: 'test-001', jumlah: 100000 }
+                ]));
+                localStorage.setItem('jurnal', JSON.stringify([]));
+                
+                log('Test data created');
+                
+                // Test validation
+                const result = validatePengembalian('test-001', 'Kas');
+                log('Validation result: ' + JSON.stringify(result, null, 2));
+                
+                if (result.valid) {
+                    log('✅ Validation passed (with warnings)');
+                } else {
+                    log('❌ Validation failed');
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                log('Stack: ' + error.stack);
+            }
+        }
+
+        function testMarkKeluar() {
+            log('\n=== Testing Mark Keluar ===');
+            
+            try {
+                // Setup test data
+                const testAnggota = {
+                    id: 'test-002',
+                    nik: '9876543210987654',
+                    nama: 'Test User 2',
+                    statusKeanggotaan: 'Aktif'
+                };
+                
+                localStorage.setItem('anggota', JSON.stringify([testAnggota]));
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 'admin-001',
+                    username: 'admin'
+                }));
+                
+                log('Test data created');
+                
+                // Test mark keluar
+                const result = markAnggotaKeluar('test-002', '2024-12-05', 'Test reason');
+                log('Mark keluar result: ' + JSON.stringify(result, null, 2));
+                
+                if (result.success) {
+                    log('✅ Mark keluar successful');
+                    
+                    // Check if anggota was updated
+                    const anggotaList = JSON.parse(localStorage.getItem('anggota'));
+                    const updated = anggotaList.find(a => a.id === 'test-002');
+                    log('Updated anggota: ' + JSON.stringify(updated, null, 2));
+                } else {
+                    log('❌ Mark keluar failed: ' + result.error.message);
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                log('Stack: ' + error.stack);
+            }
+        }
+
+        // Auto-run basic test on load
+        window.addEventListener('load', () => {
+            log('Page loaded. Click buttons to test.\n');
+            testBasicFunctions();
+        });
+    </script>
+</body>
+</html>
