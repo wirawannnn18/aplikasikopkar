@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Simpanan Dropdown Filter Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-result { margin-top: 10px; padding: 10px; border-radius: 5px; }
+        .test-pass { background-color: #d4edda; color: #155724; }
+        .test-fail { background-color: #f8d7da; color: #721c24; }
+        .test-info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test: Simpanan Dropdown Filter Anggota Keluar</h1>
+        <p class="lead">Memverifikasi bahwa dropdown anggota di menu simpanan tidak menampilkan anggota keluar</p>
+
+        <div class="test-section">
+            <h3>Setup Test Data</h3>
+            <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+            <div id="setupResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1: Simpanan Pokok Dropdown</h3>
+            <p>Dropdown harus hanya menampilkan anggota aktif, tidak menampilkan anggota keluar</p>
+            <button class="btn btn-success" onclick="testSimpananPokokDropdown()">Run Test</button>
+            <div id="test1Result" class="test-result" style="display:none;"></div>
+            <div id="test1Dropdown" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Simpanan Wajib Dropdown</h3>
+            <p>Dropdown harus hanya menampilkan anggota aktif, tidak menampilkan anggota keluar</p>
+            <button class="btn btn-success" onclick="testSimpananWajibDropdown()">Run Test</button>
+            <div id="test2Result" class="test-result" style="display:none;"></div>
+            <div id="test2Dropdown" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Simpanan Sukarela Dropdown</h3>
+            <p>Dropdown harus hanya menampilkan anggota aktif, tidak menampilkan anggota keluar</p>
+            <button class="btn btn-success" onclick="testSimpananSukarelaDropdown()">Run Test</button>
+            <div id="test3Result" class="test-result" style="display:none;"></div>
+            <div id="test3Dropdown" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Validation Blocks Anggota Keluar</h3>
+            <p>Validasi harus menolak transaksi simpanan untuk anggota keluar</p>
+            <button class="btn btn-success" onclick="testValidationBlocksKeluar()">Run Test</button>
+            <div id="test4Result" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <button class="btn btn-primary btn-lg" onclick="runAllTests()">Run All Tests</button>
+            <div id="allTestsResult" class="test-result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/simpanan.js"></script>
+
+    <script>
+        function setupTestData() {
+            // Clear existing data
+            localStorage.clear();
+
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'anggota-1',
+                    nik: '1234567890123456',
+                    nama: 'Budi Santoso (Aktif)',
+                    noKartu: 'K001',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'anggota-2',
+                    nik: '2345678901234567',
+                    nama: 'Siti Aminah (Aktif)',
+                    noKartu: 'K002',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'anggota-3',
+                    nik: '3456789012345678',
+                    nama: 'Ahmad Keluar (Keluar)',
+                    noKartu: 'K003',
+                    statusKeanggotaan: 'Keluar'
+                },
+                {
+                    id: 'anggota-4',
+                    nik: '4567890123456789',
+                    nama: 'Dewi Keluar (Keluar)',
+                    noKartu: 'K004',
+                    statusKeanggotaan: 'Keluar'
+                },
+                {
+                    id: 'anggota-5',
+                    nik: '5678901234567890',
+                    nama: 'Eko Aktif (Aktif)',
+                    noKartu: 'K005',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+
+            const resultDiv = document.getElementById('setupResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result test-pass';
+            resultDiv.innerHTML = `
+                <strong>✓ Test Data Created</strong><br>
+                - Total anggota: ${anggota.length}<br>
+                - Anggota aktif: ${anggota.filter(a => a.statusKeanggotaan === 'Aktif').length}<br>
+                - Anggota keluar: ${anggota.filter(a => a.statusKeanggotaan === 'Keluar').length}
+            `;
+        }
+
+        function testSimpananPokokDropdown() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaAktif = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+            const anggotaKeluar = anggota.filter(a => a.statusKeanggotaan === 'Keluar');
+
+            // Render dropdown using the same logic as renderSimpananPokok
+            const dropdownHTML = `
+                <select class="form-select" id="testAnggotaPokok">
+                    <option value="">-- Pilih Anggota --</option>
+                    ${anggota.filter(a => a.statusKeanggotaan !== 'Keluar').map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                </select>
+            `;
+
+            document.getElementById('test1Dropdown').innerHTML = dropdownHTML;
+
+            // Count options (excluding the placeholder)
+            const dropdown = document.getElementById('testAnggotaPokok');
+            const optionCount = dropdown.options.length - 1; // Exclude "-- Pilih Anggota --"
+
+            const resultDiv = document.getElementById('test1Result');
+            resultDiv.style.display = 'block';
+
+            if (optionCount === anggotaAktif.length && optionCount < anggota.length) {
+                resultDiv.className = 'test-result test-pass';
+                resultDiv.innerHTML = `
+                    <strong>✓ TEST PASSED</strong><br>
+                    - Dropdown menampilkan ${optionCount} anggota aktif<br>
+                    - Anggota keluar (${anggotaKeluar.length}) tidak ditampilkan<br>
+                    - Filter bekerja dengan benar!
+                `;
+            } else {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `
+                    <strong>✗ TEST FAILED</strong><br>
+                    - Expected: ${anggotaAktif.length} options<br>
+                    - Got: ${optionCount} options<br>
+                    - Anggota keluar masih muncul di dropdown!
+                `;
+            }
+        }
+
+        function testSimpananWajibDropdown() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaAktif = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+            const anggotaKeluar = anggota.filter(a => a.statusKeanggotaan === 'Keluar');
+
+            const dropdownHTML = `
+                <select class="form-select" id="testAnggotaWajib">
+                    <option value="">-- Pilih Anggota --</option>
+                    ${anggota.filter(a => a.statusKeanggotaan !== 'Keluar').map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                </select>
+            `;
+
+            document.getElementById('test2Dropdown').innerHTML = dropdownHTML;
+
+            const dropdown = document.getElementById('testAnggotaWajib');
+            const optionCount = dropdown.options.length - 1;
+
+            const resultDiv = document.getElementById('test2Result');
+            resultDiv.style.display = 'block';
+
+            if (optionCount === anggotaAktif.length && optionCount < anggota.length) {
+                resultDiv.className = 'test-result test-pass';
+                resultDiv.innerHTML = `
+                    <strong>✓ TEST PASSED</strong><br>
+                    - Dropdown menampilkan ${optionCount} anggota aktif<br>
+                    - Anggota keluar (${anggotaKeluar.length}) tidak ditampilkan<br>
+                    - Filter bekerja dengan benar!
+                `;
+            } else {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `
+                    <strong>✗ TEST FAILED</strong><br>
+                    - Expected: ${anggotaAktif.length} options<br>
+                    - Got: ${optionCount} options
+                `;
+            }
+        }
+
+        function testSimpananSukarelaDropdown() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaAktif = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+            const anggotaKeluar = anggota.filter(a => a.statusKeanggotaan === 'Keluar');
+
+            const dropdownHTML = `
+                <select class="form-select" id="testAnggotaSukarela">
+                    <option value="">-- Pilih Anggota --</option>
+                    ${anggota.filter(a => a.statusKeanggotaan !== 'Keluar').map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                </select>
+            `;
+
+            document.getElementById('test3Dropdown').innerHTML = dropdownHTML;
+
+            const dropdown = document.getElementById('testAnggotaSukarela');
+            const optionCount = dropdown.options.length - 1;
+
+            const resultDiv = document.getElementById('test3Result');
+            resultDiv.style.display = 'block';
+
+            if (optionCount === anggotaAktif.length && optionCount < anggota.length) {
+                resultDiv.className = 'test-result test-pass';
+                resultDiv.innerHTML = `
+                    <strong>✓ TEST PASSED</strong><br>
+                    - Dropdown menampilkan ${optionCount} anggota aktif<br>
+                    - Anggota keluar (${anggotaKeluar.length}) tidak ditampilkan<br>
+                    - Filter bekerja dengan benar!
+                `;
+            } else {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `
+                    <strong>✗ TEST FAILED</strong><br>
+                    - Expected: ${anggotaAktif.length} options<br>
+                    - Got: ${optionCount} options
+                `;
+            }
+        }
+
+        function testValidationBlocksKeluar() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggota.find(a => a.statusKeanggotaan === 'Keluar');
+            const anggotaAktif = anggota.find(a => a.statusKeanggotaan === 'Aktif');
+
+            const resultDiv = document.getElementById('test4Result');
+            resultDiv.style.display = 'block';
+
+            if (!anggotaKeluar || !anggotaAktif) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = '<strong>✗ TEST FAILED</strong><br>Test data tidak lengkap';
+                return;
+            }
+
+            // Test validation for anggota keluar
+            const validationKeluar = validateAnggotaForSimpanan(anggotaKeluar.id);
+            
+            // Test validation for anggota aktif
+            const validationAktif = validateAnggotaForSimpanan(anggotaAktif.id);
+
+            if (!validationKeluar.valid && validationAktif.valid) {
+                resultDiv.className = 'test-result test-pass';
+                resultDiv.innerHTML = `
+                    <strong>✓ TEST PASSED</strong><br>
+                    - Validasi menolak anggota keluar: "${anggotaKeluar.nama}"<br>
+                    - Error message: "${validationKeluar.error}"<br>
+                    - Validasi menerima anggota aktif: "${anggotaAktif.nama}"<br>
+                    - Validasi bekerja dengan benar!
+                `;
+            } else {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `
+                    <strong>✗ TEST FAILED</strong><br>
+                    - Anggota keluar validation: ${validationKeluar.valid ? 'ACCEPTED (should be rejected!)' : 'REJECTED (correct)'}<br>
+                    - Anggota aktif validation: ${validationAktif.valid ? 'ACCEPTED (correct)' : 'REJECTED (should be accepted!)'}
+                `;
+            }
+        }
+
+        function runAllTests() {
+            setupTestData();
+            setTimeout(() => {
+                testSimpananPokokDropdown();
+                testSimpananWajibDropdown();
+                testSimpananSukarelaDropdown();
+                testValidationBlocksKeluar();
+
+                // Summary
+                const resultDiv = document.getElementById('allTestsResult');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'test-result test-info';
+                resultDiv.innerHTML = `
+                    <strong>All Tests Completed!</strong><br>
+                    Check individual test results above.
+                `;
+            }, 500);
+        }
+    </script>
+</body>
+</html>

@@ -95,9 +95,11 @@
 - [ ] 7. Integrate validation ke semua transaksi
   - Add validation call di addToCart() untuk POS transaction (js/koperasi.js)
   - Add validation call di saveKasbon() untuk kasbon payment (js/koperasi.js)
-  - Add validation call di saveSimpanan() untuk simpanan transaction (js/koperasi.js)
+  - Add validation call di saveSimpananPokok(), saveSimpananWajib(), saveSimpananSukarela() untuk simpanan transaction (js/simpanan.js)
   - Add validation call di savePinjaman() untuk pinjaman transaction (js/koperasi.js)
   - Show error alert jika validation gagal
+  - **IMPORTANT**: Filter anggota keluar dari dropdown di semua form simpanan (renderSimpananPokok, renderSimpananWajib, renderSimpananSukarela)
+  - Filter: `anggota.filter(a => a.statusKeanggotaan !== 'Keluar')`
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
 - [ ] 8. Implement surat pengunduran diri generator
