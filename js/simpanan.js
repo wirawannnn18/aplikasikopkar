@@ -74,7 +74,7 @@ function renderSimpananPokok() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaPokok" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${anggota.filter(a => a.statusKeanggotaan !== 'Keluar').map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterActiveAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -624,7 +624,7 @@ function renderSimpananWajib() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaWajib" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${anggota.filter(a => a.statusKeanggotaan !== 'Keluar').map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterActiveAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -1122,7 +1122,7 @@ function renderSimpananSukarela() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaSukarela" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${anggota.filter(a => a.statusKeanggotaan !== 'Keluar').map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterActiveAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test: Filter Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body { padding: 20px; background: #f8f9fa; }
+        .test-section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result { padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .test-pass { background: #d4edda; border-left: 4px solid #28a745; }
+        .test-fail { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .test-info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .summary-card { text-align: center; padding: 20px; }
+        .summary-card h2 { font-size: 3rem; margin: 0; }
+        .summary-card p { margin: 5px 0; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check"></i>
+            Integration Test: Filter Anggota Keluar
+        </h1>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Test Objective:</strong> Comprehensive end-to-end testing of anggota keluar filtering functionality
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4" id="summaryCards">
+            <div class="col-md-3">
+                <div class="card summary-card bg-light">
+                    <h2 id="totalTests">0</h2>
+                    <p>Total Tests</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card bg-success text-white">
+                    <h2 id="passedTests">0</h2>
+                    <p>Passed</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card bg-danger text-white">
+                    <h2 id="failedTests">0</h2>
+                    <p>Failed</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card bg-info text-white">
+                    <h2 id="successRate">0%</h2>
+                    <p>Success Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <button class="btn btn-primary" onclick="runAllTests()">
+                <i class="bi bi-play-fill"></i> Run All Tests
+            </button>
+            <button class="btn btn-secondary" onclick="setupTestData()">
+                <i class="bi bi-database"></i> Setup Test Data
+            </button>
+            <button class="btn btn-warning" onclick="clearTestData()">
+                <i class="bi bi-trash"></i> Clear Test Data
+            </button>
+            <button class="btn btn-info" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Reset Page
+            </button>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+
+        <!-- Test Data Info -->
+        <div class="test-section">
+            <h3>Test Data Information</h3>
+            <div id="testDataInfo"></div>
+        </div>
+    </div>
+
+    <script src="js/koperasi.js"></script>
+    <script>
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('testResults');
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-result test-${type}`;
+            testDiv.innerHTML = `
+                <i class="bi bi-${type === 'pass' ? 'check-circle' : type === 'fail' ? 'x-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            resultDiv.appendChild(testDiv);
+        }
+
+        function assert(condition, testName, details = '') {
+            testResults.total++;
+            if (condition) {
+                testResults.passed++;
+                log(`✅ PASS: ${testName}${details ? ' - ' + details : ''}`, 'pass');
+                return true;
+            } else {
+                testResults.failed++;
+                log(`❌ FAIL: ${testName}${details ? ' - ' + details : ''}`, 'fail');
+                return false;
+            }
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            const rate = testResults.total > 0 ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        function setupTestData() {
+            log('Setting up test data...', 'info');
+            
+            const testAnggota = [
+                {
+                    id: 'test-active-001',
+                    nik: '3201010101010001',
+                    nama: 'Budi Santoso',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalDaftar: '2024-01-15'
+                },
+                {
+                    id: 'test-active-002',
+                    nik: '3201010101010002',
+                    nama: 'Siti Aminah',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalDaftar: '2024-02-20'
+                },
+                {
+                    id: 'test-active-003',
+                    nik: '3201010101010003',
+                    nama: 'Ahmad Yani',
+                    noKartu: 'K003',
+                    departemen: 'HR',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalDaftar: '2024-03-10'
+                },
+                {
+                    id: 'test-keluar-001',
+                    nik: '3201010101010004',
+                    nama: 'Dewi Lestari',
+                    noKartu: 'K004',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Nonaktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalDaftar: '2023-06-15',
+                    tanggalKeluar: '2024-06-15'
+                },
+                {
+                    id: 'test-keluar-002',
+                    nik: '3201010101010005',
+                    nama: 'Eko Prasetyo',
+                    noKartu: 'K005',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    status: 'Nonaktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalDaftar: '2023-08-20',
+                    tanggalKeluar: '2024-08-20'
+                }
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            log('✅ Test data created: 3 active, 2 keluar', 'pass');
+            displayTestDataInfo();
+        }
+
+        function clearTestData() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const filtered = anggota.filter(a => !a.id.startsWith('test-'));
+            localStorage.setItem('anggota', JSON.stringify(filtered));
+            log('✅ Test data cleared', 'pass');
+            displayTestDataInfo();
+        }
+
+        function displayTestDataInfo() {
+            const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const activeAnggota = allAnggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+            const keluarAnggota = allAnggota.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            document.getElementById('testDataInfo').innerHTML = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Total Anggota:</strong> ${allAnggota.length}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Active:</strong> ${activeAnggota.length}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Keluar:</strong> ${keluarAnggota.length}
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Active: ${activeAnggota.map(a => a.nama).join(', ') || 'None'}<br>
+                        Keluar: ${keluarAnggota.map(a => a.nama).join(', ') || 'None'}
+                    </small>
+                </div>
+            `;
+        }
+
+        function runAllTests() {
+            // Reset results
+            testResults = { total: 0, passed: 0, failed: 0 };
+            document.getElementById('testResults').innerHTML = '';
+            
+            log('🚀 Starting Integration Tests...', 'info');
+            log('', 'info');
+
+            // Test Suite 1: Function Existence
+            testFunctionExistence();
+            
+            // Test Suite 2: Core Filtering Logic
+            testCoreFiltering();
+            
+            // Test Suite 3: Data Preservation
+            testDataPreservation();
+            
+            // Test Suite 4: Edge Cases
+            testEdgeCases();
+            
+            // Test Suite 5: Integration
+            testIntegration();
+
+            // Update summary
+            updateSummary();
+            
+            log('', 'info');
+            log(`🏁 Tests Complete: ${testResults.passed}/${testResults.total} passed`, 
+                testResults.failed === 0 ? 'pass' : 'fail');
+        }
+
+        function testFunctionExistence() {
+            log('📋 Test Suite 1: Function Existence', 'info');
+            
+            assert(
+                typeof filterActiveAnggota === 'function',
+                'filterActiveAnggota function exists'
+            );
+            
+            assert(
+                typeof getActiveAnggotaCount === 'function',
+                'getActiveAnggotaCount function exists'
+            );
+            
+            log('', 'info');
+        }
+
+        function testCoreFiltering() {
+            log('📋 Test Suite 2: Core Filtering Logic', 'info');
+            
+            const testData = [
+                { id: '1', nama: 'Active 1', statusKeanggotaan: 'Aktif' },
+                { id: '2', nama: 'Active 2', statusKeanggotaan: 'Aktif' },
+                { id: '3', nama: 'Keluar 1', statusKeanggotaan: 'Keluar' },
+                { id: '4', nama: 'Keluar 2', statusKeanggotaan: 'Keluar' }
+            ];
+            
+            const filtered = filterActiveAnggota(testData);
+            
+            assert(
+                filtered.length === 2,
+                'filterActiveAnggota returns correct count',
+                `Expected 2, got ${filtered.length}`
+            );
+            
+            assert(
+                filtered.every(a => a.statusKeanggotaan !== 'Keluar'),
+                'Filtered result excludes all keluar',
+                `All ${filtered.length} items have statusKeanggotaan !== 'Keluar'`
+            );
+            
+            assert(
+                filtered.every(a => a.statusKeanggotaan === 'Aktif'),
+                'Filtered result contains only active',
+                `All ${filtered.length} items are active`
+            );
+            
+            // Test with legacy data (no statusKeanggotaan field)
+            const legacyData = [
+                { id: '1', nama: 'Legacy 1' },
+                { id: '2', nama: 'Active', statusKeanggotaan: 'Aktif' },
+                { id: '3', nama: 'Keluar', statusKeanggotaan: 'Keluar' }
+            ];
+            
+            const legacyFiltered = filterActiveAnggota(legacyData);
+            
+            assert(
+                legacyFiltered.length === 2,
+                'Handles legacy data without statusKeanggotaan',
+                `Legacy data treated as active`
+            );
+            
+            // Test with invalid input
+            const invalidFiltered = filterActiveAnggota(null);
+            
+            assert(
+                Array.isArray(invalidFiltered) && invalidFiltered.length === 0,
+                'Handles invalid input gracefully',
+                `Returns empty array for null input`
+            );
+            
+            log('', 'info');
+        }
+
+        function testDataPreservation() {
+            log('📋 Test Suite 3: Data Preservation', 'info');
+            
+            const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const originalLength = allAnggota.length;
+            
+            // Filter data
+            const filtered = filterActiveAnggota(allAnggota);
+            
+            // Check localStorage still has all data
+            const afterFilter = JSON.parse(localStorage.getItem('anggota') || '[]');
+            
+            assert(
+                afterFilter.length === originalLength,
+                'localStorage preserves all data after filtering',
+                `Still has ${afterFilter.length} anggota`
+            );
+            
+            const keluarCount = afterFilter.filter(a => a.statusKeanggotaan === 'Keluar').length;
+            
+            assert(
+                keluarCount > 0 || originalLength === 0,
+                'Anggota keluar data not deleted',
+                `${keluarCount} anggota keluar preserved`
+            );
+            
+            log('', 'info');
+        }
+
+        function testEdgeCases() {
+            log('📋 Test Suite 4: Edge Cases', 'info');
+            
+            // Test with empty array
+            const emptyResult = filterActiveAnggota([]);
+            assert(
+                emptyResult.length === 0,
+                'Handles empty array',
+                'Returns empty array'
+            );
+            
+            // Test with all active
+            const allActive = [
+                { id: '1', statusKeanggotaan: 'Aktif' },
+                { id: '2', statusKeanggotaan: 'Aktif' }
+            ];
+            const allActiveResult = filterActiveAnggota(allActive);
+            assert(
+                allActiveResult.length === 2,
+                'Handles all active anggota',
+                'Returns all items'
+            );
+            
+            // Test with all keluar
+            const allKeluar = [
+                { id: '1', statusKeanggotaan: 'Keluar' },
+                { id: '2', statusKeanggotaan: 'Keluar' }
+            ];
+            const allKeluarResult = filterActiveAnggota(allKeluar);
+            assert(
+                allKeluarResult.length === 0,
+                'Handles all keluar anggota',
+                'Returns empty array'
+            );
+            
+            // Test getActiveAnggotaCount
+            const count = getActiveAnggotaCount();
+            const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const expectedCount = allAnggota.filter(a => a.statusKeanggotaan !== 'Keluar').length;
+            
+            assert(
+                count === expectedCount,
+                'getActiveAnggotaCount returns correct count',
+                `Expected ${expectedCount}, got ${count}`
+            );
+            
+            log('', 'info');
+        }
+
+        function testIntegration() {
+            log('📋 Test Suite 5: Integration Tests', 'info');
+            
+            const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const activeAnggota = filterActiveAnggota(allAnggota);
+            const keluarAnggota = allAnggota.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            // Test that filtering is consistent
+            assert(
+                allAnggota.length === activeAnggota.length + keluarAnggota.length,
+                'Total count equals active + keluar',
+                `${allAnggota.length} = ${activeAnggota.length} + ${keluarAnggota.length}`
+            );
+            
+            // Test that no keluar in active
+            assert(
+                activeAnggota.filter(a => a.statusKeanggotaan === 'Keluar').length === 0,
+                'No keluar in filtered active list',
+                'All active anggota have correct status'
+            );
+            
+            // Test that all keluar are excluded
+            assert(
+                keluarAnggota.every(k => !activeAnggota.find(a => a.id === k.id)),
+                'All keluar anggota excluded from active list',
+                `${keluarAnggota.length} keluar anggota not in active list`
+            );
+            
+            log('', 'info');
+        }
+
+        // Initialize
+        window.onload = function() {
+            displayTestDataInfo();
+            log('Ready to run tests. Click "Run All Tests" to begin.', 'info');
+        };
+    </script>
+</body>
+</html>

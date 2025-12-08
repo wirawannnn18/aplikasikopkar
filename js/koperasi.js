@@ -178,6 +178,56 @@ function isValidDate(year, month, day) {
 
 // ===== End Date Helper Functions =====
 
+// ===== Anggota Filtering Functions =====
+
+/**
+ * Filter anggota to exclude those with statusKeanggotaan === 'Keluar'
+ * This function is used to hide exited members from Master Anggota displays
+ * while preserving their data in localStorage for audit and historical purposes.
+ * 
+ * @param {Array} anggotaList - Array of anggota objects
+ * @returns {Array} Filtered array excluding anggota with statusKeanggotaan === 'Keluar'
+ * 
+ * @example
+ * const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+ * const activeAnggota = filterActiveAnggota(allAnggota);
+ * // activeAnggota now contains only members with statusKeanggotaan !== 'Keluar'
+ */
+function filterActiveAnggota(anggotaList) {
+    // Handle invalid input
+    if (!Array.isArray(anggotaList)) {
+        console.warn('filterActiveAnggota: Expected array, got', typeof anggotaList);
+        return [];
+    }
+    
+    // Filter out anggota with statusKeanggotaan === 'Keluar'
+    // Note: Anggota without statusKeanggotaan field are treated as active (backward compatibility)
+    return anggotaList.filter(a => {
+        // Handle missing statusKeanggotaan field (legacy data)
+        if (!a.statusKeanggotaan) {
+            return true; // Treat as active
+        }
+        return a.statusKeanggotaan !== 'Keluar';
+    });
+}
+
+/**
+ * Get count of active anggota (excluding those with statusKeanggotaan === 'Keluar')
+ * This is a convenience function for displaying member counts in badges and counters.
+ * 
+ * @returns {number} Count of active anggota
+ * 
+ * @example
+ * const activeCount = getActiveAnggotaCount();
+ * console.log(`Total active members: ${activeCount}`);
+ */
+function getActiveAnggotaCount() {
+    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    return filterActiveAnggota(anggota).length;
+}
+
+// ===== End Anggota Filtering Functions =====
+
 function renderKoperasi() {
     const content = document.getElementById('mainContent');
     const koperasi = JSON.parse(localStorage.getItem('koperasi'));
@@ -338,9 +388,11 @@ function renderAnggota() {
     }
     
     const content = document.getElementById('mainContent');
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
     
-    // No need to filter - anggota keluar already auto-deleted (Task 5.1)
+    // Filter out anggota keluar from Master Anggota display
+    // Data is preserved in localStorage for audit purposes
+    const anggota = filterActiveAnggota(allAnggota);
     const totalActive = anggota.length;
     
     content.innerHTML = `
@@ -611,7 +663,9 @@ function renderAnggota() {
 function renderTableAnggota(filteredData = null) {
     let anggota = filteredData || JSON.parse(localStorage.getItem('anggota') || '[]');
     
-    // No need to filter - anggota keluar already auto-deleted (Task 5.2)
+    // Filter out anggota keluar from table display
+    // This ensures anggota with statusKeanggotaan === 'Keluar' are not shown
+    anggota = filterActiveAnggota(anggota);
     
     const tbody = document.getElementById('tbodyAnggota');
     
@@ -718,7 +772,8 @@ function renderTableAnggota(filteredData = null) {
 
 // Filter Anggota
 function filterAnggota() {
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    let anggota = filterActiveAnggota(allAnggota);
     const searchText = document.getElementById('searchAnggota').value.toLowerCase();
     const filterDept = document.getElementById('filterDepartemen').value;
     const filterTipe = document.getElementById('filterTipe').value;
@@ -727,7 +782,7 @@ function filterAnggota() {
     const filterTanggalSampai = document.getElementById('filterTanggalSampai')?.value || '';
     
     let filtered = anggota.filter(a => {
-        // No need to filter statusKeanggotaan - anggota keluar already auto-deleted (Task 5.3)
+        // Filter already applied via filterActiveAnggota() - anggota keluar excluded
         
         // Search filter
         const matchSearch = !searchText || 
@@ -801,7 +856,8 @@ function sortAnggotaByDate() {
     }
     
     // Get current filtered data
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    let anggota = filterActiveAnggota(allAnggota);
     const searchText = document.getElementById('searchAnggota').value.toLowerCase();
     const filterDept = document.getElementById('filterDepartemen').value;
     const filterTipe = document.getElementById('filterTipe').value;
@@ -809,7 +865,7 @@ function sortAnggotaByDate() {
     
     // Apply filters first
     let filtered = anggota.filter(a => {
-        // No need to filter statusKeanggotaan - anggota keluar already auto-deleted (Task 5.3)
+        // Filter already applied via filterActiveAnggota() - anggota keluar excluded
         
         const matchSearch = !searchText || 
             a.nik.toLowerCase().includes(searchText) ||
@@ -1408,7 +1464,9 @@ CATATAN:
 }
 
 function exportAnggota() {
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+    // Export only active anggota (excluding keluar)
+    const anggota = filterActiveAnggota(allAnggota);
     
     if (anggota.length === 0) {
         showAlert('Tidak ada data anggota untuk diexport!', 'warning');
@@ -1438,7 +1496,7 @@ function exportAnggota() {
     
     const today = new Date().toISOString().split('T')[0];
     link.setAttribute('href', url);
-    link.setAttribute('download', `data_anggota_${today}.csv`);
+    link.setAttribute('download', `data_anggota_aktif_${today}.csv`);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
