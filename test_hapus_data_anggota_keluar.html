@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Hapus Data Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-result.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .data-display {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">🧪 Test Hapus Data Anggota Keluar</h1>
+        
+        <!-- Setup Test Data -->
+        <div class="test-section">
+            <h3>1. Setup Test Data</h3>
+            <p>Membuat data test untuk anggota keluar dengan pengembalian selesai</p>
+            <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+            <div id="setupResult" class="test-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test Validation -->
+        <div class="test-section">
+            <h3>2. Test Validation</h3>
+            <p>Test validasi penghapusan dengan berbagai kondisi</p>
+            <button class="btn btn-info" onclick="testValidation()">Run Validation Tests</button>
+            <div id="validationResult" class="test-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test Delete Function -->
+        <div class="test-section">
+            <h3>3. Test Delete Function</h3>
+            <p>Test fungsi penghapusan permanen</p>
+            <button class="btn btn-warning" onclick="testDeleteFunction()">Test Delete</button>
+            <div id="deleteResult" class="test-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test UI Modal -->
+        <div class="test-section">
+            <h3>4. Test UI Modal</h3>
+            <p>Test modal konfirmasi penghapusan</p>
+            <button class="btn btn-success" onclick="testUIModal()">Show Delete Modal</button>
+            <div id="modalResult" class="test-result" style="display:none;"></div>
+        </div>
+        
+        <!-- View Data -->
+        <div class="test-section">
+            <h3>5. View Current Data</h3>
+            <button class="btn btn-secondary" onclick="viewData()">View Data</button>
+            <div id="dataDisplay" class="data-display" style="display:none;"></div>
+        </div>
+        
+        <!-- Clear Test Data -->
+        <div class="test-section">
+            <h3>6. Clear Test Data</h3>
+            <button class="btn btn-danger" onclick="clearTestData()">Clear All Test Data</button>
+            <div id="clearResult" class="test-result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    
+    <script>
+        let testAnggotaId = null;
+        let testPengembalianId = null;
+        
+        function setupTestData() {
+            const resultDiv = document.getElementById('setupResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result info';
+            resultDiv.innerHTML = 'Setting up test data...';
+            
+            try {
+                // Generate test IDs
+                testAnggotaId = 'test-anggota-' + Date.now();
+                testPengembalianId = 'test-pengembalian-' + Date.now();
+                
+                // Create test anggota
+                const anggota = {
+                    id: testAnggotaId,
+                    nik: '1234567890',
+                    nama: 'Test Anggota Keluar',
+                    noKartu: 'TEST001',
+                    departemen: 'Test Dept',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-15',
+                    alasanKeluar: 'Test pengunduran diri',
+                    pengembalianStatus: 'Selesai',
+                    pengembalianId: testPengembalianId
+                };
+                
+                let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList.push(anggota);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                // Create test simpanan pokok
+                const simpananPokok = {
+                    id: 'test-sp-' + Date.now(),
+                    anggotaId: testAnggotaId,
+                    jumlah: 0,
+                    tanggal: '2024-01-01',
+                    saldoSebelumPengembalian: 100000,
+                    statusPengembalian: 'Dikembalikan',
+                    pengembalianId: testPengembalianId,
+                    tanggalPengembalian: '2024-01-15'
+                };
+                
+                let simpananPokokList = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                simpananPokokList.push(simpananPokok);
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokokList));
+                
+                // Create test simpanan wajib
+                const simpananWajib = {
+                    id: 'test-sw-' + Date.now(),
+                    anggotaId: testAnggotaId,
+                    jumlah: 0,
+                    tanggal: '2024-01-01',
+                    saldoSebelumPengembalian: 200000,
+                    statusPengembalian: 'Dikembalikan',
+                    pengembalianId: testPengembalianId,
+                    tanggalPengembalian: '2024-01-15'
+                };
+                
+                let simpananWajibList = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                simpananWajibList.push(simpananWajib);
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajibList));
+                
+                // Create test pengembalian
+                const pengembalian = {
+                    id: testPengembalianId,
+                    anggotaId: testAnggotaId,
+                    anggotaNama: 'Test Anggota Keluar',
+                    anggotaNIK: '1234567890',
+                    simpananPokok: 100000,
+                    simpananWajib: 200000,
+                    totalSimpanan: 300000,
+                    kewajibanLain: 0,
+                    totalPengembalian: 300000,
+                    metodePembayaran: 'Kas',
+                    tanggalPembayaran: '2024-01-15',
+                    nomorReferensi: 'PGM-202401-TEST',
+                    status: 'Selesai',
+                    createdAt: new Date().toISOString(),
+                    createdBy: 'test-user'
+                };
+                
+                let pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                pengembalianList.push(pengembalian);
+                localStorage.setItem('pengembalian', JSON.stringify(pengembalianList));
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    <strong>✓ Test data berhasil dibuat!</strong><br>
+                    Anggota ID: ${testAnggotaId}<br>
+                    Pengembalian ID: ${testPengembalianId}
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        function testValidation() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result info';
+            resultDiv.innerHTML = 'Running validation tests...';
+            
+            if (!testAnggotaId) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = '<strong>✗ Error:</strong> Setup test data first!';
+                return;
+            }
+            
+            try {
+                let results = [];
+                
+                // Test 1: Valid deletion
+                const validation1 = validateDeletion(testAnggotaId);
+                results.push(`Test 1 (Valid deletion): ${validation1.valid ? '✓ PASS' : '✗ FAIL'}`);
+                
+                // Test 2: Invalid anggota ID
+                const validation2 = validateDeletion('invalid-id');
+                results.push(`Test 2 (Invalid ID): ${!validation2.valid && validation2.error.code === 'ANGGOTA_NOT_FOUND' ? '✓ PASS' : '✗ FAIL'}`);
+                
+                // Test 3: Pengembalian not completed (modify data temporarily)
+                const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const anggota = anggotaList.find(a => a.id === testAnggotaId);
+                const originalStatus = anggota.pengembalianStatus;
+                anggota.pengembalianStatus = 'Pending';
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                const validation3 = validateDeletion(testAnggotaId);
+                results.push(`Test 3 (Pengembalian not completed): ${!validation3.valid && validation3.error.code === 'PENGEMBALIAN_NOT_COMPLETED' ? '✓ PASS' : '✗ FAIL'}`);
+                
+                // Restore original status
+                anggota.pengembalianStatus = originalStatus;
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `<strong>Validation Tests:</strong><br>${results.join('<br>')}`;
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        function testDeleteFunction() {
+            const resultDiv = document.getElementById('deleteResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result info';
+            resultDiv.innerHTML = 'Testing delete function...';
+            
+            if (!testAnggotaId) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = '<strong>✗ Error:</strong> Setup test data first!';
+                return;
+            }
+            
+            if (!confirm('This will permanently delete the test data. Continue?')) {
+                resultDiv.className = 'test-result info';
+                resultDiv.innerHTML = 'Test cancelled by user';
+                return;
+            }
+            
+            try {
+                // Count records before deletion
+                const anggotaBefore = JSON.parse(localStorage.getItem('anggota') || '[]').length;
+                const simpananPokokBefore = JSON.parse(localStorage.getItem('simpananPokok') || '[]').length;
+                const simpananWajibBefore = JSON.parse(localStorage.getItem('simpananWajib') || '[]').length;
+                
+                // Execute deletion
+                const result = deleteAnggotaKeluarPermanent(testAnggotaId);
+                
+                if (result.success) {
+                    // Count records after deletion
+                    const anggotaAfter = JSON.parse(localStorage.getItem('anggota') || '[]').length;
+                    const simpananPokokAfter = JSON.parse(localStorage.getItem('simpananPokok') || '[]').length;
+                    const simpananWajibAfter = JSON.parse(localStorage.getItem('simpananWajib') || '[]').length;
+                    
+                    // Check if pengembalian and audit log preserved
+                    const pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                    const pengembalianPreserved = pengembalianList.some(p => p.id === testPengembalianId);
+                    
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ Delete function test PASSED!</strong><br>
+                        Message: ${result.message}<br>
+                        <br>
+                        <strong>Records deleted:</strong><br>
+                        - Anggota: ${anggotaBefore - anggotaAfter}<br>
+                        - Simpanan Pokok: ${simpananPokokBefore - simpananPokokAfter}<br>
+                        - Simpanan Wajib: ${simpananWajibBefore - simpananWajibAfter}<br>
+                        <br>
+                        <strong>Data preserved:</strong><br>
+                        - Pengembalian: ${pengembalianPreserved ? '✓ Preserved' : '✗ Not preserved'}<br>
+                    `;
+                    
+                    // Clear test IDs since data is deleted
+                    testAnggotaId = null;
+                    testPengembalianId = null;
+                } else {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `<strong>✗ Delete failed:</strong> ${result.error.message}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        function testUIModal() {
+            const resultDiv = document.getElementById('modalResult');
+            resultDiv.style.display = 'block';
+            
+            if (!testAnggotaId) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = '<strong>✗ Error:</strong> Setup test data first!';
+                return;
+            }
+            
+            try {
+                showDeleteConfirmationModal(testAnggotaId);
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = '<strong>✓ Modal displayed!</strong> Check the modal and test the confirmation flow.';
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        function viewData() {
+            const dataDiv = document.getElementById('dataDisplay');
+            dataDiv.style.display = 'block';
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                
+                dataDiv.innerHTML = `
+                    <strong>Anggota (${anggota.length}):</strong><br>
+                    ${JSON.stringify(anggota.filter(a => a.id === testAnggotaId), null, 2)}<br><br>
+                    <strong>Simpanan Pokok (${simpananPokok.length}):</strong><br>
+                    ${JSON.stringify(simpananPokok.filter(s => s.anggotaId === testAnggotaId), null, 2)}<br><br>
+                    <strong>Simpanan Wajib (${simpananWajib.length}):</strong><br>
+                    ${JSON.stringify(simpananWajib.filter(s => s.anggotaId === testAnggotaId), null, 2)}<br><br>
+                    <strong>Pengembalian (${pengembalian.length}):</strong><br>
+                    ${JSON.stringify(pengembalian.filter(p => p.id === testPengembalianId), null, 2)}
+                `;
+            } catch (error) {
+                dataDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+        
+        function clearTestData() {
+            const resultDiv = document.getElementById('clearResult');
+            resultDiv.style.display = 'block';
+            
+            if (!confirm('Clear all test data from localStorage?')) {
+                resultDiv.className = 'test-result info';
+                resultDiv.innerHTML = 'Cancelled by user';
+                return;
+            }
+            
+            try {
+                // Clear test anggota
+                let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList = anggotaList.filter(a => !a.id.startsWith('test-'));
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                // Clear test simpanan
+                let simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                simpananPokok = simpananPokok.filter(s => !s.id.startsWith('test-'));
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                
+                let simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                simpananWajib = simpananWajib.filter(s => !s.id.startsWith('test-'));
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+                
+                // Clear test pengembalian
+                let pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                pengembalian = pengembalian.filter(p => !p.id.startsWith('test-'));
+                localStorage.setItem('pengembalian', JSON.stringify(pengembalian));
+                
+                testAnggotaId = null;
+                testPengembalianId = null;
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = '<strong>✓ Test data cleared!</strong>';
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        // Toast notification function
+        function showToast(message, type) {
+            alert(`[${type.toUpperCase()}] ${message}`);
+        }
+    </script>
+</body>
+</html>

@@ -487,10 +487,15 @@ function renderLaporanAnggotaKeluar(startDate = null, endDate = null) {
                                                                     title="Cetak Bukti Pengembalian">
                                                                 <i class="bi bi-printer"></i>
                                                             </button>
-                                                            <button class="btn btn-sm btn-success" 
+                                                            <button class="btn btn-sm btn-success me-1" 
                                                                     onclick="handleCetakSuratPengunduranDiri('${anggota.id}')"
                                                                     title="Cetak Surat Pengunduran Diri">
                                                                 <i class="bi bi-file-earmark-text"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-danger" 
+                                                                    onclick="showDeleteConfirmationModal('${anggota.id}')"
+                                                                    title="Hapus Data Permanen">
+                                                                <i class="bi bi-trash"></i>
                                                             </button>
                                                         ` : `
                                                             <button class="btn btn-sm btn-info" 
@@ -1703,7 +1708,37 @@ function generateSuratPengunduranDiri(anggotaId, pengembalianId) {
         .close-button:hover {
             background-color: #5a6268;
         }
+        
+        .delete-button {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .delete-button:hover {
+            background-color: #c82333;
+        }
     </style>
+    <script>
+    function handleDeleteAfterPrint(anggotaId) {
+        // Close print window
+        window.close();
+        
+        // Call delete function in parent window
+        if (window.opener && typeof window.opener.showDeleteConfirmationModal === 'function') {
+            window.opener.showDeleteConfirmationModal(anggotaId);
+        }
+    }
+    </script>
 </head>
 <body>
     <button class="print-button no-print" onclick="window.print()">
@@ -1712,6 +1747,11 @@ function generateSuratPengunduranDiri(anggotaId, pengembalianId) {
     <button class="close-button no-print" onclick="window.close()">
         ✖ Tutup
     </button>
+    ${anggota.pengembalianStatus === 'Selesai' ? `
+    <button class="delete-button no-print" onclick="handleDeleteAfterPrint('${anggotaId}')">
+        🗑️ Hapus Data Permanen
+    </button>
+    ` : ''}
     
     <!-- Header Koperasi -->
     <div class="header">
@@ -2023,4 +2063,139 @@ function handleCetakKeduaDokumen(anggotaId, pengembalianId) {
         console.error('Error in handleCetakKeduaDokumen:', error);
         showToast('Terjadi kesalahan saat membuat dokumen', 'error');
     }
+}
+
+// ===== Permanent Deletion UI Functions =====
+// Feature: hapus-data-anggota-keluar-setelah-print
+
+/**
+ * Show delete confirmation modal
+ * @param {string} anggotaId - ID of the anggota
+ */
+function showDeleteConfirmationModal(anggotaId) {
+    // Validate deletion eligibility first
+    const validation = validateDeletion(anggotaId);
+    
+    if (!validation.valid) {
+        showToast(validation.error.message, 'error');
+        return;
+    }
+    
+    const anggota = validation.data;
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">⚠️ Konfirmasi Penghapusan Permanen</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-danger">
+                            <strong>PERINGATAN:</strong> Data yang dihapus tidak dapat dipulihkan!
+                        </div>
+                        
+                        <h6>Data yang akan dihapus:</h6>
+                        <table class="table table-sm table-bordered">
+                            <tr>
+                                <td><strong>Nama:</strong></td>
+                                <td>${anggota.anggotaNama}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NIK:</strong></td>
+                                <td>${anggota.anggotaNIK}</td>
+                            </tr>
+                        </table>
+                        
+                        <p class="mb-2"><strong>Data yang akan dihapus:</strong></p>
+                        <ul class="small">
+                            <li>Data anggota</li>
+                            <li>Semua data simpanan (pokok, wajib, sukarela)</li>
+                            <li>Transaksi POS terkait</li>
+                            <li>Data pinjaman yang sudah lunas</li>
+                            <li>Riwayat pembayaran hutang/piutang</li>
+                        </ul>
+                        
+                        <p class="mb-2"><strong>Data yang TETAP tersimpan:</strong></p>
+                        <ul class="small">
+                            <li>Jurnal akuntansi</li>
+                            <li>Data pengembalian simpanan</li>
+                            <li>Audit log</li>
+                        </ul>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">
+                                Ketik <strong>HAPUS</strong> untuk konfirmasi:
+                            </label>
+                            <input type="text" class="form-control" id="deleteConfirmInput" 
+                                   placeholder="Ketik HAPUS" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Batal
+                        </button>
+                        <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+                            Hapus Permanen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('deleteConfirmModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+    
+    // Handle confirm button
+    document.getElementById('btnConfirmDelete').addEventListener('click', function() {
+        const confirmInput = document.getElementById('deleteConfirmInput').value;
+        
+        if (confirmInput !== 'HAPUS') {
+            showToast('Ketik "HAPUS" untuk konfirmasi penghapusan', 'warning');
+            return;
+        }
+        
+        // Disable button to prevent double click
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menghapus...';
+        
+        // Execute deletion
+        const result = deleteAnggotaKeluarPermanent(anggotaId);
+        
+        if (result.success) {
+            modal.hide();
+            showToast(result.message, 'success');
+            
+            // Refresh anggota keluar list
+            if (typeof renderAnggotaKeluar === 'function') {
+                renderAnggotaKeluar();
+            }
+            
+            // Close detail modal if open
+            const detailModal = document.getElementById('modalDetailAnggotaKeluar');
+            if (detailModal) {
+                const bsModal = bootstrap.Modal.getInstance(detailModal);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+            }
+        } else {
+            showToast(result.error.message, 'error');
+            this.disabled = false;
+            this.innerHTML = 'Hapus Permanen';
+        }
+    });
 }

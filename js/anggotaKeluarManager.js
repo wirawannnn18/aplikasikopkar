@@ -2214,3 +2214,280 @@ function getAnggotaWithSimpananForLaporan() {
         return [];
     }
 }
+
+// ===== Permanent Deletion Functions =====
+// Feature: hapus-data-anggota-keluar-setelah-print
+
+/**
+ * Validate if anggota keluar data can be permanently deleted
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Validation result
+ */
+function validateDeletion(anggotaId) {
+    try {
+        // Validate input
+        if (!anggotaId || typeof anggotaId !== 'string') {
+            return {
+                valid: false,
+                error: {
+                    code: 'INVALID_PARAMETER',
+                    message: 'ID anggota tidak valid',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            return {
+                valid: false,
+                error: {
+                    code: 'ANGGOTA_NOT_FOUND',
+                    message: 'Anggota tidak ditemukan',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Validation 1: Check pengembalianStatus = 'Selesai' (Requirement 4.1)
+        if (anggota.pengembalianStatus !== 'Selesai') {
+            return {
+                valid: false,
+                error: {
+                    code: 'PENGEMBALIAN_NOT_COMPLETED',
+                    message: 'Penghapusan hanya bisa dilakukan setelah pengembalian selesai',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Validation 2: Check for active loans (Requirement 6.4)
+        const pinjamanAktif = getPinjamanAktif(anggotaId);
+        if (pinjamanAktif.length > 0) {
+            const totalPinjaman = pinjamanAktif.reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+            return {
+                valid: false,
+                error: {
+                    code: 'ACTIVE_LOAN_EXISTS',
+                    message: `Anggota masih memiliki ${pinjamanAktif.length} pinjaman aktif dengan total Rp ${totalPinjaman.toLocaleString('id-ID')}`,
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Validation 3: Check for outstanding hutang POS (Requirement 6.5)
+        const hutangPOS = getKewajibanLain(anggotaId);
+        if (hutangPOS > 0) {
+            return {
+                valid: false,
+                error: {
+                    code: 'OUTSTANDING_DEBT_EXISTS',
+                    message: `Anggota masih memiliki hutang POS sebesar Rp ${hutangPOS.toLocaleString('id-ID')}`,
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // All validations passed
+        return {
+            valid: true,
+            data: {
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                anggotaNIK: anggota.nik
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error in validateDeletion:', error);
+        return {
+            valid: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        };
+    }
+}
+
+/**
+ * Create snapshot of all data that will be deleted
+ * @returns {object} Snapshot of localStorage state
+ */
+function createDeletionSnapshot() {
+    return {
+        anggota: localStorage.getItem('anggota'),
+        simpananPokok: localStorage.getItem('simpananPokok'),
+        simpananWajib: localStorage.getItem('simpananWajib'),
+        simpananSukarela: localStorage.getItem('simpananSukarela'),
+        penjualan: localStorage.getItem('penjualan'),
+        pinjaman: localStorage.getItem('pinjaman'),
+        pembayaranHutangPiutang: localStorage.getItem('pembayaranHutangPiutang')
+    };
+}
+
+/**
+ * Restore snapshot to rollback deletion
+ * @param {object} snapshot - Snapshot to restore
+ */
+function restoreDeletionSnapshot(snapshot) {
+    if (snapshot.anggota) localStorage.setItem('anggota', snapshot.anggota);
+    if (snapshot.simpananPokok) localStorage.setItem('simpananPokok', snapshot.simpananPokok);
+    if (snapshot.simpananWajib) localStorage.setItem('simpananWajib', snapshot.simpananWajib);
+    if (snapshot.simpananSukarela) localStorage.setItem('simpananSukarela', snapshot.simpananSukarela);
+    if (snapshot.penjualan) localStorage.setItem('penjualan', snapshot.penjualan);
+    if (snapshot.pinjaman) localStorage.setItem('pinjaman', snapshot.pinjaman);
+    if (snapshot.pembayaranHutangPiutang) localStorage.setItem('pembayaranHutangPiutang', snapshot.pembayaranHutangPiutang);
+}
+
+/**
+ * Permanently delete anggota keluar data and all related records
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Deletion result
+ */
+function deleteAnggotaKeluarPermanent(anggotaId) {
+    try {
+        // Create snapshot for rollback
+        const snapshot = createDeletionSnapshot();
+        
+        try {
+            // Step 1: Validate deletion eligibility
+            const validation = validateDeletion(anggotaId);
+            if (!validation.valid) {
+                return {
+                    success: false,
+                    error: validation.error
+                };
+            }
+            
+            // Step 2: Get anggota data for audit log
+            const anggota = getAnggotaById(anggotaId);
+            const deletedData = {
+                anggota: { ...anggota },
+                simpananPokok: [],
+                simpananWajib: [],
+                simpananSukarela: [],
+                penjualan: [],
+                pinjaman: [],
+                pembayaran: []
+            };
+            
+            // Step 3: Delete from anggota (Requirement 1.2)
+            let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            anggotaList = anggotaList.filter(a => a.id !== anggotaId);
+            localStorage.setItem('anggota', JSON.stringify(anggotaList));
+            
+            // Step 4: Delete from simpananPokok (Requirement 1.3)
+            let simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            deletedData.simpananPokok = simpananPokok.filter(s => s.anggotaId === anggotaId);
+            simpananPokok = simpananPokok.filter(s => s.anggotaId !== anggotaId);
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            
+            // Step 5: Delete from simpananWajib (Requirement 1.4)
+            let simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            deletedData.simpananWajib = simpananWajib.filter(s => s.anggotaId === anggotaId);
+            simpananWajib = simpananWajib.filter(s => s.anggotaId !== anggotaId);
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            
+            // Step 6: Delete from simpananSukarela (Requirement 1.5)
+            let simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+            deletedData.simpananSukarela = simpananSukarela.filter(s => s.anggotaId === anggotaId);
+            simpananSukarela = simpananSukarela.filter(s => s.anggotaId !== anggotaId);
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+            
+            // Step 7: Delete from penjualan (POS transactions) (Requirement 6.1)
+            let penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+            deletedData.penjualan = penjualan.filter(p => p.anggotaId === anggotaId);
+            penjualan = penjualan.filter(p => p.anggotaId !== anggotaId);
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            
+            // Step 8: Delete from pinjaman (only if lunas) (Requirement 6.2)
+            let pinjaman = JSON.parse(localStorage.getItem('pinjaman') || '[]');
+            deletedData.pinjaman = pinjaman.filter(p => 
+                p.anggotaId === anggotaId && 
+                p.status && 
+                p.status.toLowerCase() === 'lunas'
+            );
+            pinjaman = pinjaman.filter(p => 
+                !(p.anggotaId === anggotaId && p.status && p.status.toLowerCase() === 'lunas')
+            );
+            localStorage.setItem('pinjaman', JSON.stringify(pinjaman));
+            
+            // Step 9: Delete from pembayaranHutangPiutang (Requirement 6.3)
+            let pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+            deletedData.pembayaran = pembayaran.filter(p => p.anggotaId === anggotaId);
+            pembayaran = pembayaran.filter(p => p.anggotaId !== anggotaId);
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(pembayaran));
+            
+            // Step 10: Create audit log (Requirements 3.1, 3.2, 3.3, 3.4, 3.5)
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const auditLog = {
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                userId: currentUser.id || 'system',
+                userName: currentUser.username || 'System',
+                action: 'DELETE_ANGGOTA_KELUAR_PERMANENT',
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                details: {
+                    deletedData: {
+                        anggotaNIK: anggota.nik,
+                        simpananPokokCount: deletedData.simpananPokok.length,
+                        simpananWajibCount: deletedData.simpananWajib.length,
+                        simpananSukarelaCount: deletedData.simpananSukarela.length,
+                        penjualanCount: deletedData.penjualan.length,
+                        pinjamanCount: deletedData.pinjaman.length,
+                        pembayaranCount: deletedData.pembayaran.length
+                    },
+                    reason: 'Permanent deletion after pengembalian completed'
+                },
+                ipAddress: null,
+                severity: 'WARNING'
+            };
+            
+            saveAuditLog(auditLog);
+            
+            // Step 11: Invalidate cache
+            if (typeof AnggotaKeluarCache !== 'undefined') {
+                AnggotaKeluarCache.invalidateAll();
+            }
+            
+            // Return success
+            return {
+                success: true,
+                data: {
+                    anggotaId: anggotaId,
+                    anggotaNama: anggota.nama,
+                    deletedRecords: {
+                        simpananPokok: deletedData.simpananPokok.length,
+                        simpananWajib: deletedData.simpananWajib.length,
+                        simpananSukarela: deletedData.simpananSukarela.length,
+                        penjualan: deletedData.penjualan.length,
+                        pinjaman: deletedData.pinjaman.length,
+                        pembayaran: deletedData.pembayaran.length
+                    }
+                },
+                message: `Data anggota ${anggota.nama} berhasil dihapus permanen`
+            };
+            
+        } catch (innerError) {
+            // Rollback on error
+            console.error('Error during deletion, rolling back:', innerError);
+            restoreDeletionSnapshot(snapshot);
+            throw innerError;
+        }
+        
+    } catch (error) {
+        console.error('Error in deleteAnggotaKeluarPermanent:', error);
+        return {
+            success: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        };
+    }
+}
