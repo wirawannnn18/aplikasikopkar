@@ -26,7 +26,7 @@ function renderSimpananPokok() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${simpanan.map(s => {
+                    ${simpanan.filter(s => s.jumlah > 0).map(s => {
                         const ang = anggota.find(a => a.id === s.anggotaId);
                         return `
                             <tr>
@@ -46,7 +46,7 @@ function renderSimpananPokok() {
                 <tfoot>
                     <tr>
                         <th colspan="2">Total Simpanan Pokok</th>
-                        <th>${formatRupiah(simpanan.reduce((sum, s) => sum + s.jumlah, 0))}</th>
+                        <th>${formatRupiah(simpanan.filter(s => s.jumlah > 0).reduce((sum, s) => sum + s.jumlah, 0))}</th>
                         <th colspan="2"></th>
                     </tr>
                 </tfoot>
@@ -212,19 +212,26 @@ function showSimpananPokokModal() {
 function saveSimpananPokok() {
     const simpanan = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
     
-    const data = {
-        id: generateId(),
-        anggotaId: document.getElementById('anggotaPokok').value,
-        jumlah: parseFloat(document.getElementById('jumlahPokok').value),
-        tanggal: document.getElementById('tanggalPokok').value
-    };
+    const anggotaId = document.getElementById('anggotaPokok').value;
     
-    // Validate anggota is not keluar
-    const anggota = getAnggotaById(data.anggotaId);
-    if (anggota && anggota.statusKeanggotaan === 'Keluar') {
-        showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+    // NEW: Use transaction validator module
+    const validation = validateAnggotaForSimpanan(anggotaId);
+    if (!validation.valid) {
+        showAlert(validation.error, 'error');
         return;
     }
+    
+    const data = {
+        id: generateId(),
+        anggotaId: anggotaId,
+        jumlah: parseFloat(document.getElementById('jumlahPokok').value),
+        tanggal: document.getElementById('tanggalPokok').value,
+        // Initialize pengembalian tracking fields
+        statusPengembalian: 'Aktif',
+        saldoSebelumPengembalian: null,
+        pengembalianId: null,
+        tanggalPengembalian: null
+    };
     
     simpanan.push(data);
     localStorage.setItem('simpananPokok', JSON.stringify(simpanan));
@@ -561,7 +568,7 @@ function renderSimpananWajib() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${simpanan.map(s => {
+                    ${simpanan.filter(s => s.jumlah > 0).map(s => {
                         const ang = anggota.find(a => a.id === s.anggotaId);
                         return `
                             <tr>
@@ -582,7 +589,7 @@ function renderSimpananWajib() {
                 <tfoot>
                     <tr>
                         <th colspan="2">Total Simpanan Wajib</th>
-                        <th>${formatRupiah(simpanan.reduce((sum, s) => sum + s.jumlah, 0))}</th>
+                        <th>${formatRupiah(simpanan.filter(s => s.jumlah > 0).reduce((sum, s) => sum + s.jumlah, 0))}</th>
                         <th colspan="3"></th>
                     </tr>
                 </tfoot>
@@ -755,20 +762,27 @@ function showSimpananWajibModal() {
 function saveSimpananWajib() {
     const simpanan = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
     
-    const data = {
-        id: generateId(),
-        anggotaId: document.getElementById('anggotaWajib').value,
-        jumlah: parseFloat(document.getElementById('jumlahWajib').value),
-        periode: document.getElementById('periodeWajib').value,
-        tanggal: document.getElementById('tanggalWajib').value
-    };
+    const anggotaId = document.getElementById('anggotaWajib').value;
     
-    // Validate anggota is not keluar
-    const anggota = getAnggotaById(data.anggotaId);
-    if (anggota && anggota.statusKeanggotaan === 'Keluar') {
-        showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+    // NEW: Use transaction validator module
+    const validation = validateAnggotaForSimpanan(anggotaId);
+    if (!validation.valid) {
+        showAlert(validation.error, 'error');
         return;
     }
+    
+    const data = {
+        id: generateId(),
+        anggotaId: anggotaId,
+        jumlah: parseFloat(document.getElementById('jumlahWajib').value),
+        periode: document.getElementById('periodeWajib').value,
+        tanggal: document.getElementById('tanggalWajib').value,
+        // Initialize pengembalian tracking fields
+        statusPengembalian: 'Aktif',
+        saldoSebelumPengembalian: null,
+        pengembalianId: null,
+        tanggalPengembalian: null
+    };
     
     simpanan.push(data);
     localStorage.setItem('simpananWajib', JSON.stringify(simpanan));
@@ -1038,7 +1052,7 @@ function renderSimpananSukarela() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${simpanan.map(s => {
+                    ${simpanan.filter(s => s.jumlah > 0).map(s => {
                         const ang = anggota.find(a => a.id === s.anggotaId);
                         return `
                             <tr>
@@ -1066,7 +1080,7 @@ function renderSimpananSukarela() {
                 <tfoot>
                     <tr>
                         <th colspan="2">Saldo Simpanan Sukarela</th>
-                        <th>${formatRupiah(simpanan.reduce((sum, s) => sum + (s.tipe === 'tarik' ? -s.jumlah : s.jumlah), 0))}</th>
+                        <th>${formatRupiah(simpanan.filter(s => s.jumlah > 0).reduce((sum, s) => sum + (s.tipe === 'tarik' ? -s.jumlah : s.jumlah), 0))}</th>
                         <th colspan="4"></th>
                     </tr>
                 </tfoot>
@@ -1165,13 +1179,27 @@ function showSimpananSukarelaModal() {
 function saveSimpananSukarela() {
     const simpanan = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
     
+    const anggotaId = document.getElementById('anggotaSukarela').value;
+    
+    // NEW: Use transaction validator module
+    const validation = validateAnggotaForSimpanan(anggotaId);
+    if (!validation.valid) {
+        showAlert(validation.error, 'error');
+        return;
+    }
+    
     const data = {
         id: generateId(),
-        anggotaId: document.getElementById('anggotaSukarela').value,
+        anggotaId: anggotaId,
         jumlah: parseFloat(document.getElementById('jumlahSukarela').value),
         tipe: 'setor',
         keterangan: document.getElementById('keteranganSukarela').value,
-        tanggal: document.getElementById('tanggalSukarela').value
+        tanggal: document.getElementById('tanggalSukarela').value,
+        // Initialize pengembalian tracking fields
+        statusPengembalian: 'Aktif',
+        saldoSebelumPengembalian: null,
+        pengembalianId: null,
+        tanggalPengembalian: null
     };
     
     simpanan.push(data);

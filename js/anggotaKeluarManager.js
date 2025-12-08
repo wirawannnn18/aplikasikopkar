@@ -674,8 +674,56 @@ function processPengembalian(anggotaId, metodePembayaran, tanggalPembayaran, ket
             }
             
             // Step 7: Update simpanan balances to zero
-            // Note: We don't delete the records, just mark them as processed
-            // The balance is now zero because the journal entries have been created
+            // Zero out simpanan pokok
+            const simpananPokokList = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            const updatedSimpananPokok = simpananPokokList.map(s => {
+                if (s.anggotaId === anggotaId) {
+                    return {
+                        ...s,
+                        saldoSebelumPengembalian: s.jumlah, // Save historical data
+                        jumlah: 0, // Zero out balance
+                        statusPengembalian: 'Dikembalikan',
+                        pengembalianId: pengembalianId,
+                        tanggalPengembalian: tanggalPembayaran
+                    };
+                }
+                return s;
+            });
+            localStorage.setItem('simpananPokok', JSON.stringify(updatedSimpananPokok));
+            
+            // Zero out simpanan wajib
+            const simpananWajibList = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            const updatedSimpananWajib = simpananWajibList.map(s => {
+                if (s.anggotaId === anggotaId) {
+                    return {
+                        ...s,
+                        saldoSebelumPengembalian: s.jumlah,
+                        jumlah: 0,
+                        statusPengembalian: 'Dikembalikan',
+                        pengembalianId: pengembalianId,
+                        tanggalPengembalian: tanggalPembayaran
+                    };
+                }
+                return s;
+            });
+            localStorage.setItem('simpananWajib', JSON.stringify(updatedSimpananWajib));
+            
+            // Zero out simpanan sukarela (if any)
+            const simpananSukarelaList = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+            const updatedSimpananSukarela = simpananSukarelaList.map(s => {
+                if (s.anggotaId === anggotaId) {
+                    return {
+                        ...s,
+                        saldoSebelumPengembalian: s.jumlah,
+                        jumlah: 0,
+                        statusPengembalian: 'Dikembalikan',
+                        pengembalianId: pengembalianId,
+                        tanggalPengembalian: tanggalPembayaran
+                    };
+                }
+                return s;
+            });
+            localStorage.setItem('simpananSukarela', JSON.stringify(updatedSimpananSukarela));
             
             // Step 8: Update pengembalian status to "Selesai"
             pengembalianRecord.status = 'Selesai';
@@ -749,12 +797,72 @@ function processPengembalian(anggotaId, metodePembayaran, tanggalPembayaran, ket
             
         } catch (innerError) {
             // Rollback on error
+            console.error('Error during pengembalian processing, rolling back:', innerError);
             restoreSnapshot(snapshot);
+            
+            // Log failed pengembalian to audit log (Requirement 8.5)
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                const anggota = getAnggotaById(anggotaId);
+                
+                const failedAuditLog = {
+                    id: generateId(),
+                    timestamp: new Date().toISOString(),
+                    userId: currentUser.id || 'system',
+                    userName: currentUser.username || 'System',
+                    action: 'PROSES_PENGEMBALIAN_FAILED',
+                    anggotaId: anggotaId,
+                    anggotaNama: anggota ? anggota.nama : 'Unknown',
+                    details: {
+                        error: innerError.message,
+                        errorStack: innerError.stack,
+                        metodePembayaran: metodePembayaran,
+                        tanggalPembayaran: tanggalPembayaran,
+                        rollbackPerformed: true
+                    },
+                    ipAddress: null,
+                    severity: 'ERROR'
+                };
+                
+                saveAuditLog(failedAuditLog);
+            } catch (auditError) {
+                console.error('Failed to log audit entry for failed pengembalian:', auditError);
+            }
+            
             throw innerError;
         }
         
     } catch (error) {
         console.error('Error in processPengembalian:', error);
+        
+        // Log to audit if not already logged
+        try {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const anggota = getAnggotaById(anggotaId);
+            
+            const failedAuditLog = {
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                userId: currentUser.id || 'system',
+                userName: currentUser.username || 'System',
+                action: 'PROSES_PENGEMBALIAN_ERROR',
+                anggotaId: anggotaId,
+                anggotaNama: anggota ? anggota.nama : 'Unknown',
+                details: {
+                    error: error.message,
+                    errorCode: error.code || 'SYSTEM_ERROR',
+                    metodePembayaran: metodePembayaran,
+                    tanggalPembayaran: tanggalPembayaran
+                },
+                ipAddress: null,
+                severity: 'ERROR'
+            };
+            
+            saveAuditLog(failedAuditLog);
+        } catch (auditError) {
+            console.error('Failed to log audit entry:', auditError);
+        }
+        
         return {
             success: false,
             error: {
@@ -776,7 +884,11 @@ function createSnapshot() {
         pengembalian: localStorage.getItem('pengembalian'),
         jurnal: localStorage.getItem('jurnal'),
         coa: localStorage.getItem('coa'),
-        auditLogsAnggotaKeluar: localStorage.getItem('auditLogsAnggotaKeluar')
+        auditLogsAnggotaKeluar: localStorage.getItem('auditLogsAnggotaKeluar'),
+        // NEW: Include simpanan data for rollback
+        simpananPokok: localStorage.getItem('simpananPokok'),
+        simpananWajib: localStorage.getItem('simpananWajib'),
+        simpananSukarela: localStorage.getItem('simpananSukarela')
     };
 }
 
@@ -790,6 +902,10 @@ function restoreSnapshot(snapshot) {
     if (snapshot.jurnal) localStorage.setItem('jurnal', snapshot.jurnal);
     if (snapshot.coa) localStorage.setItem('coa', snapshot.coa);
     if (snapshot.auditLogsAnggotaKeluar) localStorage.setItem('auditLogsAnggotaKeluar', snapshot.auditLogsAnggotaKeluar);
+    // NEW: Restore simpanan data on rollback
+    if (snapshot.simpananPokok) localStorage.setItem('simpananPokok', snapshot.simpananPokok);
+    if (snapshot.simpananWajib) localStorage.setItem('simpananWajib', snapshot.simpananWajib);
+    if (snapshot.simpananSukarela) localStorage.setItem('simpananSukarela', snapshot.simpananSukarela);
 }
 
 /**
@@ -1347,9 +1463,9 @@ function getTotalSimpananPokok(anggotaId) {
         
         const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
         
-        // Sum all simpanan pokok for this anggota
+        // Sum all simpanan pokok for this anggota (only jumlah > 0)
         const total = simpananPokok
-            .filter(s => s.anggotaId === anggotaId)
+            .filter(s => s.anggotaId === anggotaId && s.jumlah > 0)
             .reduce((sum, s) => sum + (parseFloat(s.jumlah) || 0), 0);
         
         return total;
@@ -1372,9 +1488,9 @@ function getTotalSimpananWajib(anggotaId) {
         
         const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
         
-        // Sum all simpanan wajib for this anggota
+        // Sum all simpanan wajib for this anggota (only jumlah > 0)
         const total = simpananWajib
-            .filter(s => s.anggotaId === anggotaId)
+            .filter(s => s.anggotaId === anggotaId && s.jumlah > 0)
             .reduce((sum, s) => sum + (parseFloat(s.jumlah) || 0), 0);
         
         return total;

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Surat Pengunduran Diri Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2><i class="bi bi-file-earmark-text me-2"></i>Test Surat Pengunduran Diri Generator</h2>
+        <p class="text-muted">Testing the generation of resignation letter (Surat Pengunduran Diri)</p>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-gear me-2"></i>Test Setup</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+                <button class="btn btn-danger" onclick="clearTestData()">Clear Test Data</button>
+                <div id="setupResult" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5><i class="bi bi-file-earmark-check me-2"></i>Test Cases</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Test 1: Generate Surat with Valid Data</h6>
+                    <button class="btn btn-sm btn-success" onclick="testGenerateSurat()">Run Test</button>
+                    <div id="test1Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Test 2: Generate Surat with Invalid Anggota ID</h6>
+                    <button class="btn btn-sm btn-warning" onclick="testInvalidAnggotaId()">Run Test</button>
+                    <div id="test2Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Test 3: Generate Surat with Invalid Pengembalian ID</h6>
+                    <button class="btn btn-sm btn-warning" onclick="testInvalidPengembalianId()">Run Test</button>
+                    <div id="test3Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Test 4: Verify Surat Contains Required Information</h6>
+                    <button class="btn btn-sm btn-info" onclick="testSuratContent()">Run Test</button>
+                    <div id="test4Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Test 5: Open Surat in New Window</h6>
+                    <button class="btn btn-sm btn-primary" onclick="testOpenSurat()">Run Test</button>
+                    <div id="test5Result" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5><i class="bi bi-list-check me-2"></i>Test Summary</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-info" onclick="runAllTests()">Run All Tests</button>
+                <div id="summaryResult" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    <script>
+        // Mock functions if not available
+        if (typeof getAnggotaById === 'undefined') {
+            function getAnggotaById(id) {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                return anggota.find(a => a.id === id);
+            }
+        }
+        
+        if (typeof showToast === 'undefined') {
+            function showToast(message, type) {
+                console.log(`Toast [${type}]: ${message}`);
+            }
+        }
+        
+        if (typeof logAnggotaKeluarAction === 'undefined') {
+            function logAnggotaKeluarAction(action, data) {
+                console.log(`Audit Log [${action}]:`, data);
+            }
+        }
+        
+        function setupTestData() {
+            // Create test anggota
+            const anggota = {
+                id: 'test-anggota-001',
+                nama: 'Test Anggota Keluar',
+                nik: '1234567890123456',
+                noKartu: 'K-001',
+                departemen: 'IT Department',
+                tipeAnggota: 'Anggota',
+                statusKeanggotaan: 'Keluar',
+                tanggalKeluar: '2024-01-15',
+                alasanKeluar: 'Pindah kerja ke perusahaan lain',
+                pengembalianStatus: 'Selesai',
+                pengembalianId: 'test-pengembalian-001'
+            };
+            
+            // Create test pengembalian
+            const pengembalian = {
+                id: 'test-pengembalian-001',
+                anggotaId: 'test-anggota-001',
+                anggotaNama: 'Test Anggota Keluar',
+                anggotaNIK: '1234567890123456',
+                simpananPokok: 500000,
+                simpananWajib: 1500000,
+                totalSimpanan: 2000000,
+                kewajibanLain: 0,
+                totalPengembalian: 2000000,
+                metodePembayaran: 'Transfer Bank',
+                tanggalPembayaran: '2024-01-20',
+                nomorReferensi: 'PGM-2024-001',
+                status: 'Selesai'
+            };
+            
+            // Create test system settings
+            const systemSettings = {
+                namaKoperasi: 'KOPERASI SEJAHTERA',
+                alamatKoperasi: 'Jl. Merdeka No. 123, Jakarta',
+                teleponKoperasi: '021-12345678',
+                logoKoperasi: ''
+            };
+            
+            // Save to localStorage
+            const existingAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const filteredAnggota = existingAnggota.filter(a => a.id !== 'test-anggota-001');
+            filteredAnggota.push(anggota);
+            localStorage.setItem('anggota', JSON.stringify(filteredAnggota));
+            
+            const existingPengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+            const filteredPengembalian = existingPengembalian.filter(p => p.id !== 'test-pengembalian-001');
+            filteredPengembalian.push(pengembalian);
+            localStorage.setItem('pengembalian', JSON.stringify(filteredPengembalian));
+            
+            localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+            
+            document.getElementById('setupResult').innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Test data created successfully!</strong><br>
+                    - Anggota: ${anggota.nama} (ID: ${anggota.id})<br>
+                    - Pengembalian: ${pengembalian.nomorReferensi} (ID: ${pengembalian.id})<br>
+                    - Koperasi: ${systemSettings.namaKoperasi}
+                </div>
+            `;
+        }
+        
+        function clearTestData() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const filtered = anggota.filter(a => !a.id.startsWith('test-'));
+            localStorage.setItem('anggota', JSON.stringify(filtered));
+            
+            const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+            const filteredPengembalian = pengembalian.filter(p => !p.id.startsWith('test-'));
+            localStorage.setItem('pengembalian', JSON.stringify(filteredPengembalian));
+            
+            document.getElementById('setupResult').innerHTML = `
+                <div class="alert alert-info">Test data cleared</div>
+            `;
+        }
+        
+        function testGenerateSurat() {
+            const result = generateSuratPengunduranDiri('test-anggota-001', 'test-pengembalian-001');
+            
+            const resultDiv = document.getElementById('test1Result');
+            if (result.success) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        ✓ PASS: Surat generated successfully<br>
+                        <small>
+                        - Anggota: ${result.data.anggotaNama}<br>
+                        - Referensi: ${result.data.nomorReferensi}<br>
+                        - HTML Length: ${result.data.html.length} characters
+                        </small>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: ${result.error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testInvalidAnggotaId() {
+            const result = generateSuratPengunduranDiri('invalid-id', 'test-pengembalian-001');
+            
+            const resultDiv = document.getElementById('test2Result');
+            if (!result.success && result.error.code === 'ANGGOTA_NOT_FOUND') {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        ✓ PASS: Correctly rejected invalid anggota ID<br>
+                        <small>Error: ${result.error.message}</small>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: Should reject invalid anggota ID
+                    </div>
+                `;
+            }
+        }
+        
+        function testInvalidPengembalianId() {
+            const result = generateSuratPengunduranDiri('test-anggota-001', 'invalid-id');
+            
+            const resultDiv = document.getElementById('test3Result');
+            if (!result.success && result.error.code === 'PENGEMBALIAN_NOT_FOUND') {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        ✓ PASS: Correctly rejected invalid pengembalian ID<br>
+                        <small>Error: ${result.error.message}</small>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: Should reject invalid pengembalian ID
+                    </div>
+                `;
+            }
+        }
+        
+        function testSuratContent() {
+            const result = generateSuratPengunduranDiri('test-anggota-001', 'test-pengembalian-001');
+            
+            const resultDiv = document.getElementById('test4Result');
+            if (result.success) {
+                const html = result.data.html;
+                const checks = {
+                    'Contains anggota nama': html.includes('Test Anggota Keluar'),
+                    'Contains NIK': html.includes('1234567890123456'),
+                    'Contains noKartu': html.includes('K-001'),
+                    'Contains departemen': html.includes('IT Department'),
+                    'Contains tanggal keluar': html.includes('15 Januari 2024') || html.includes('tanggal'),
+                    'Contains alasan keluar': html.includes('Pindah kerja'),
+                    'Contains simpanan pokok': html.includes('500.000') || html.includes('500,000'),
+                    'Contains simpanan wajib': html.includes('1.500.000') || html.includes('1,500,000'),
+                    'Contains total pengembalian': html.includes('2.000.000') || html.includes('2,000,000'),
+                    'Contains metode pembayaran': html.includes('Transfer Bank'),
+                    'Contains nomor referensi': html.includes('PGM-2024-001'),
+                    'Contains koperasi name': html.includes('KOPERASI SEJAHTERA'),
+                    'Contains signature areas': html.includes('Yang Menerima') && html.includes('Pengurus Koperasi')
+                };
+                
+                const passed = Object.values(checks).filter(v => v).length;
+                const total = Object.keys(checks).length;
+                
+                let checklistHTML = '<ul class="mb-0">';
+                for (const [check, result] of Object.entries(checks)) {
+                    checklistHTML += `<li>${result ? '✓' : '✗'} ${check}</li>`;
+                }
+                checklistHTML += '</ul>';
+                
+                if (passed === total) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            ✓ PASS: All content checks passed (${passed}/${total})<br>
+                            ${checklistHTML}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            ⚠ PARTIAL: ${passed}/${total} checks passed<br>
+                            ${checklistHTML}
+                        </div>
+                    `;
+                }
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: Could not generate surat
+                    </div>
+                `;
+            }
+        }
+        
+        function testOpenSurat() {
+            const result = generateSuratPengunduranDiri('test-anggota-001', 'test-pengembalian-001');
+            
+            const resultDiv = document.getElementById('test5Result');
+            if (result.success) {
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                    printWindow.document.write(result.data.html);
+                    printWindow.document.close();
+                    
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            ✓ PASS: Surat opened in new window<br>
+                            <small>Check the new window to verify the document</small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            ⚠ WARNING: Popup blocked by browser<br>
+                            <small>Please allow popups and try again</small>
+                        </div>
+                    `;
+                }
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: Could not generate surat
+                    </div>
+                `;
+            }
+        }
+        
+        function runAllTests() {
+            setupTestData();
+            
+            setTimeout(() => {
+                testGenerateSurat();
+                testInvalidAnggotaId();
+                testInvalidPengembalianId();
+                testSuratContent();
+                
+                setTimeout(() => {
+                    document.getElementById('summaryResult').innerHTML = `
+                        <div class="alert alert-info">
+                            <strong>All tests completed!</strong><br>
+                            Check individual test results above.<br>
+                            <small>Note: Test 5 (Open Surat) must be run manually to avoid popup blockers</small>
+                        </div>
+                    `;
+                }, 500);
+            }, 500);
+        }
+    </script>
+</body>
+</html>

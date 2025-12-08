@@ -332,13 +332,17 @@ function renderAnggota() {
     const content = document.getElementById('mainContent');
     const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
     
+    // Count only active members (exclude anggota keluar)
+    const activeAnggota = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+    const totalActive = activeAnggota.length;
+    
     content.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 style="color: #2d6a4f; font-weight: 700;">
                 <i class="bi bi-people me-2"></i>Master Anggota
             </h2>
             <span class="badge" style="background: linear-gradient(135deg, #2d6a4f 0%, #52b788 100%); font-size: 1rem;">
-                Total: ${anggota.length} Anggota
+                Total: ${totalActive} Anggota
             </span>
         </div>
         
@@ -434,7 +438,7 @@ function renderAnggota() {
                 <div class="mt-2">
                     <small class="text-muted">
                         <i class="bi bi-info-circle me-1"></i>
-                        Menampilkan <strong id="countFiltered">${anggota.length}</strong> dari <strong>${anggota.length}</strong> anggota
+                        Menampilkan <strong id="countFiltered">${totalActive}</strong> dari <strong>${totalActive}</strong> anggota
                     </small>
                 </div>
             </div>
@@ -598,7 +602,11 @@ function renderAnggota() {
 
 // Render Table Anggota
 function renderTableAnggota(filteredData = null) {
-    const anggota = filteredData || JSON.parse(localStorage.getItem('anggota') || '[]');
+    let anggota = filteredData || JSON.parse(localStorage.getItem('anggota') || '[]');
+    
+    // Filter out anggota keluar from master anggota view
+    anggota = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+    
     const tbody = document.getElementById('tbodyAnggota');
     
     if (!tbody) return;
@@ -709,6 +717,9 @@ function filterAnggota() {
     const filterTanggalSampai = document.getElementById('filterTanggalSampai')?.value || '';
     
     let filtered = anggota.filter(a => {
+        // Exclude anggota keluar from master anggota
+        const notKeluar = a.statusKeanggotaan !== 'Keluar';
+        
         // Search filter
         const matchSearch = !searchText || 
             a.nik.toLowerCase().includes(searchText) ||
@@ -742,7 +753,7 @@ function filterAnggota() {
             }
         }
         
-        return matchSearch && matchDept && matchTipe && matchStatus && matchDateRange;
+        return notKeluar && matchSearch && matchDept && matchTipe && matchStatus && matchDateRange;
     });
     
     // Update count
@@ -787,6 +798,9 @@ function sortAnggotaByDate() {
     
     // Apply filters first
     let filtered = anggota.filter(a => {
+        // Exclude anggota keluar
+        const notKeluar = a.statusKeanggotaan !== 'Keluar';
+        
         const matchSearch = !searchText || 
             a.nik.toLowerCase().includes(searchText) ||
             a.nama.toLowerCase().includes(searchText) ||
@@ -796,7 +810,7 @@ function sortAnggotaByDate() {
         const matchTipe = !filterTipe || a.tipeAnggota === filterTipe;
         const matchStatus = !filterStatus || a.status === filterStatus;
         
-        return matchSearch && matchDept && matchTipe && matchStatus;
+        return notKeluar && matchSearch && matchDept && matchTipe && matchStatus;
     });
     
     // Sort by tanggalDaftar

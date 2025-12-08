@@ -584,22 +584,22 @@ function processPayment() {
     
     // Validasi tipe anggota untuk metode bon
     if (metode === 'bon' && anggotaId) {
-        const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
-        const member = anggota.find(a => a.id === anggotaId);
+        // NEW: Use transaction validator module
+        const validation = validateAnggotaForPOS(anggotaId);
+        if (!validation.valid) {
+            showAlert(validation.error, 'error');
+            return;
+        }
         
-        if (member && member.tipeAnggota === 'Umum') {
+        const member = validation.anggota;
+        
+        if (member.tipeAnggota === 'Umum') {
             showAlert('Anggota tipe Umum hanya bisa transaksi Cash!', 'warning');
             return;
         }
         
-        if (member && member.status !== 'Aktif') {
+        if (member.status !== 'Aktif') {
             showAlert('Anggota dengan status ' + member.status + ' tidak bisa melakukan transaksi!', 'warning');
-            return;
-        }
-        
-        // Validate anggota is not keluar
-        if (member && member.statusKeanggotaan === 'Keluar') {
-            showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
             return;
         }
     }

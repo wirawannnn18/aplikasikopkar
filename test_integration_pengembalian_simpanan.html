@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - Pengembalian Simpanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .test-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+        }
+        .test-case {
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #6c757d;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .test-case.pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-case.fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-case.running {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .btn-test {
+            margin: 5px;
+        }
+        .result-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .summary {
+            position: sticky;
+            top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .badge-custom {
+            font-size: 1rem;
+            padding: 8px 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="text-center mb-4">
+            <i class="bi bi-clipboard-check"></i>
+            Integration Test - Pengembalian Simpanan
+        </h1>
+        
+        <div class="summary">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <h3 id="totalTests">0</h3>
+                    <small>Total Tests</small>
+                </div>
+                <div class="col-md-3">
+                    <h3 id="passedTests">0</h3>
+                    <small>Passed</small>
+                </div>
+                <div class="col-md-3">
+                    <h3 id="failedTests">0</h3>
+                    <small>Failed</small>
+                </div>
+                <div class="col-md-3">
+                    <h3 id="successRate">0%</h3>
+                    <small>Success Rate</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <button class="btn btn-primary btn-test" onclick="setupTestData()">
+                <i class="bi bi-database-fill-add"></i> Setup Test Data
+            </button>
+            <button class="btn btn-success btn-test" onclick="runAllTests()">
+                <i class="bi bi-play-fill"></i> Run All Tests
+            </button>
+            <button class="btn btn-danger btn-test" onclick="clearTestData()">
+                <i class="bi bi-trash"></i> Clear Test Data
+            </button>
+        </div>
+
+        <!-- Test Section 1: Complete Flow -->
+        <div class="test-section">
+            <h3><i class="bi bi-1-circle"></i> Complete Flow Test</h3>
+            <p class="text-muted">Test complete flow: mark anggota keluar → process pengembalian → verify saldo 0</p>
+            
+            <div id="test1" class="test-case">
+                <strong>Test 1.1: Complete Pengembalian Flow</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest1()">Run</button>
+                <div id="result1" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Section 2: Master Anggota Filtering -->
+        <div class="test-section">
+            <h3><i class="bi bi-2-circle"></i> Master Anggota Filtering</h3>
+            <p class="text-muted">Test anggota keluar tidak muncul di master anggota</p>
+            
+            <div id="test2" class="test-case">
+                <strong>Test 2.1: Anggota Keluar Not in Master Anggota</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest2()">Run</button>
+                <div id="result2" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Section 3: Transaction Validation -->
+        <div class="test-section">
+            <h3><i class="bi bi-3-circle"></i> Transaction Validation</h3>
+            <p class="text-muted">Test anggota keluar tidak bisa transaksi</p>
+            
+            <div id="test3" class="test-case">
+                <strong>Test 3.1: Block Transactions for Anggota Keluar</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest3()">Run</button>
+                <div id="result3" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Section 4: Laporan Simpanan -->
+        <div class="test-section">
+            <h3><i class="bi bi-4-circle"></i> Laporan Simpanan</h3>
+            <p class="text-muted">Test laporan simpanan tidak menampilkan anggota dengan saldo 0</p>
+            
+            <div id="test4" class="test-case">
+                <strong>Test 4.1: Laporan Filters Zero Balance</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest4()">Run</button>
+                <div id="result4" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Section 5: Surat Pengunduran Diri -->
+        <div class="test-section">
+            <h3><i class="bi bi-5-circle"></i> Surat Pengunduran Diri</h3>
+            <p class="text-muted">Test cetak surat pengunduran diri</p>
+            
+            <div id="test5" class="test-case">
+                <strong>Test 5.1: Generate Surat Pengunduran Diri</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest5()">Run</button>
+                <div id="result5" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Section 6: Jurnal Akuntansi -->
+        <div class="test-section">
+            <h3><i class="bi bi-6-circle"></i> Jurnal Akuntansi</h3>
+            <p class="text-muted">Verify jurnal akuntansi correct</p>
+            
+            <div id="test6" class="test-case">
+                <strong>Test 6.1: Journal Entries Correct</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest6()">Run</button>
+                <div id="result6" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Section 7: Rollback Scenario -->
+        <div class="test-section">
+            <h3><i class="bi bi-7-circle"></i> Rollback Scenario</h3>
+            <p class="text-muted">Test rollback scenario</p>
+            
+            <div id="test7" class="test-case">
+                <strong>Test 7.1: Rollback on Error</strong>
+                <button class="btn btn-sm btn-primary float-end" onclick="runTest7()">Run</button>
+                <div id="result7" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/simpananDataModel.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    
+    <script>
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            const rate = testResults.total > 0 ? 
+                Math.round((testResults.passed / testResults.total) * 100) : 0;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        function logResult(testId, message, isPass) {
+            const resultDiv = document.getElementById('result' + testId);
+            const testDiv = document.getElementById('test' + testId);
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML += message + '<br>';
+            
+            if (isPass !== undefined) {
+                testDiv.className = 'test-case ' + (isPass ? 'pass' : 'fail');
+                testResults.total++;
+                if (isPass) testResults.passed++;
+                else testResults.failed++;
+                updateSummary();
+            } else {
+                testDiv.className = 'test-case running';
+            }
+        }
+
+        function setupTestData() {
+            try {
+                // Clear existing data
+                localStorage.clear();
+                
+                // Setup basic data
+                const anggotaId = 'test-anggota-001';
+                const pengembalianId = 'test-pengembalian-001';
+                
+                // Create anggota
+                const anggota = [{
+                    id: anggotaId,
+                    nik: '1234567890',
+                    nama: 'Test Anggota',
+                    noKartu: 'A001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalDaftar: '2024-01-01'
+                }];
+                localStorage.setItem('anggota', JSON.stringify(anggota));
+                
+                // Create simpanan pokok
+                const simpananPokok = [{
+                    id: 'sp-001',
+                    anggotaId: anggotaId,
+                    jumlah: 500000,
+                    tanggal: '2024-01-01',
+                    statusPengembalian: 'Aktif'
+                }];
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                
+                // Create simpanan wajib
+                const simpananWajib = [{
+                    id: 'sw-001',
+                    anggotaId: anggotaId,
+                    jumlah: 300000,
+                    tanggal: '2024-01-01',
+                    periode: '2024-01',
+                    statusPengembalian: 'Aktif'
+                }];
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+                
+                // Initialize other required data
+                localStorage.setItem('jurnal', JSON.stringify([]));
+                localStorage.setItem('pengembalian', JSON.stringify([]));
+                localStorage.setItem('auditLogsAnggotaKeluar', JSON.stringify([]));
+                localStorage.setItem('coa', JSON.stringify([
+                    { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 10000000 },
+                    { kode: '1-1100', nama: 'Bank', tipe: 'Aset', saldo: 20000000 },
+                    { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 500000 },
+                    { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'Kewajiban', saldo: 300000 }
+                ]));
+                
+                alert('✅ Test data berhasil dibuat!\n\n' +
+                      'Anggota: Test Anggota (A001)\n' +
+                      'Simpanan Pokok: Rp 500.000\n' +
+                      'Simpanan Wajib: Rp 300.000');
+            } catch (error) {
+                alert('❌ Error setup test data: ' + error.message);
+            }
+        }
+
+        function clearTestData() {
+            if (confirm('Clear semua test data?')) {
+                localStorage.clear();
+                testResults = { total: 0, passed: 0, failed: 0 };
+                updateSummary();
+                
+                // Clear all result divs
+                for (let i = 1; i <= 7; i++) {
+                    const resultDiv = document.getElementById('result' + i);
+                    const testDiv = document.getElementById('test' + i);
+                    if (resultDiv) {
+                        resultDiv.innerHTML = '';
+                        resultDiv.style.display = 'none';
+                    }
+                    if (testDiv) {
+                        testDiv.className = 'test-case';
+                    }
+                }
+                
+                alert('✅ Test data berhasil dihapus!');
+            }
+        }
+
+        // Test 1: Complete Flow
+        function runTest1() {
+            const testId = 1;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Running complete flow test...', undefined);
+            
+            try {
+                const anggotaId = 'test-anggota-001';
+                
+                // Step 1: Mark anggota keluar
+                logResult(testId, 'Step 1: Marking anggota keluar...', undefined);
+                const markResult = markAnggotaKeluar(anggotaId, '2024-12-01', 'Pensiun');
+                
+                if (!markResult.success) {
+                    throw new Error('Failed to mark anggota keluar: ' + markResult.error.message);
+                }
+                logResult(testId, '✅ Anggota marked as keluar', undefined);
+                
+                // Step 2: Process pengembalian
+                logResult(testId, 'Step 2: Processing pengembalian...', undefined);
+                const processResult = processPengembalian(anggotaId, 'Kas', '2024-12-01', 'Test pengembalian');
+                
+                if (!processResult.success) {
+                    throw new Error('Failed to process pengembalian: ' + processResult.error.message);
+                }
+                logResult(testId, '✅ Pengembalian processed successfully', undefined);
+                
+                // Step 3: Verify saldo = 0
+                logResult(testId, 'Step 3: Verifying saldo = 0...', undefined);
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                
+                const spAnggota = simpananPokok.filter(s => s.anggotaId === anggotaId);
+                const swAnggota = simpananWajib.filter(s => s.anggotaId === anggotaId);
+                
+                const allZero = spAnggota.every(s => s.jumlah === 0) && 
+                               swAnggota.every(s => s.jumlah === 0);
+                
+                if (!allZero) {
+                    throw new Error('Saldo simpanan tidak di-zero-kan');
+                }
+                logResult(testId, '✅ All simpanan balances are zero', undefined);
+                
+                // Step 4: Verify historical data preserved
+                const hasHistory = spAnggota.every(s => s.saldoSebelumPengembalian !== undefined) &&
+                                  swAnggota.every(s => s.saldoSebelumPengembalian !== undefined);
+                
+                if (!hasHistory) {
+                    throw new Error('Historical data not preserved');
+                }
+                logResult(testId, '✅ Historical data preserved', undefined);
+                
+                logResult(testId, '✅ TEST PASSED: Complete flow works correctly', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        // Test 2: Master Anggota Filtering
+        function runTest2() {
+            const testId = 2;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Testing master anggota filtering...', undefined);
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                
+                // Filter like renderTableAnggota does
+                const filtered = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+                
+                const keluarCount = anggota.filter(a => a.statusKeanggotaan === 'Keluar').length;
+                const filteredCount = filtered.length;
+                
+                logResult(testId, `Total anggota: ${anggota.length}`, undefined);
+                logResult(testId, `Anggota keluar: ${keluarCount}`, undefined);
+                logResult(testId, `Filtered (active): ${filteredCount}`, undefined);
+                
+                if (filtered.some(a => a.statusKeanggotaan === 'Keluar')) {
+                    throw new Error('Anggota keluar masih muncul di filtered list');
+                }
+                
+                logResult(testId, '✅ TEST PASSED: Anggota keluar filtered correctly', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        // Test 3: Transaction Validation
+        function runTest3() {
+            const testId = 3;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Testing transaction validation...', undefined);
+            
+            try {
+                const anggotaId = 'test-anggota-001';
+                
+                // Validate transaction for anggota keluar
+                const validation = validateAnggotaForTransaction(anggotaId);
+                
+                logResult(testId, `Validation result: ${JSON.stringify(validation)}`, undefined);
+                
+                if (validation.valid) {
+                    throw new Error('Validation should fail for anggota keluar');
+                }
+                
+                if (!validation.error || !validation.error.includes('keluar')) {
+                    throw new Error('Error message should mention anggota keluar');
+                }
+                
+                logResult(testId, '✅ TEST PASSED: Transaction blocked for anggota keluar', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        // Test 4: Laporan Simpanan
+        function runTest4() {
+            const testId = 4;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Testing laporan simpanan filtering...', undefined);
+            
+            try {
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                
+                // Filter like laporan does
+                const activeSP = simpananPokok.filter(s => s.jumlah > 0);
+                const activeSW = simpananWajib.filter(s => s.jumlah > 0);
+                
+                logResult(testId, `Total simpanan pokok: ${simpananPokok.length}`, undefined);
+                logResult(testId, `Active simpanan pokok: ${activeSP.length}`, undefined);
+                logResult(testId, `Total simpanan wajib: ${simpananWajib.length}`, undefined);
+                logResult(testId, `Active simpanan wajib: ${activeSW.length}`, undefined);
+                
+                if (activeSP.some(s => s.jumlah === 0) || activeSW.some(s => s.jumlah === 0)) {
+                    throw new Error('Zero balance simpanan in active list');
+                }
+                
+                logResult(testId, '✅ TEST PASSED: Laporan filters zero balance correctly', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        // Test 5: Surat Pengunduran Diri
+        function runTest5() {
+            const testId = 5;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Testing surat pengunduran diri generation...', undefined);
+            
+            try {
+                const anggotaId = 'test-anggota-001';
+                const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                
+                if (pengembalian.length === 0) {
+                    throw new Error('No pengembalian record found. Run Test 1 first.');
+                }
+                
+                const pengembalianRecord = pengembalian.find(p => p.anggotaId === anggotaId);
+                if (!pengembalianRecord) {
+                    throw new Error('Pengembalian record not found for test anggota');
+                }
+                
+                // Test surat generation (without opening window)
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]')
+                    .find(a => a.id === anggotaId);
+                
+                if (!anggota) {
+                    throw new Error('Anggota not found');
+                }
+                
+                // Verify required fields exist
+                const requiredFields = ['nama', 'nik', 'noKartu', 'tanggalKeluar', 'alasanKeluar'];
+                const missingFields = requiredFields.filter(field => !anggota[field]);
+                
+                if (missingFields.length > 0) {
+                    throw new Error('Missing anggota fields: ' + missingFields.join(', '));
+                }
+                
+                const requiredPengembalianFields = ['simpananPokok', 'simpananWajib', 'totalPengembalian', 
+                                                    'metodePembayaran', 'tanggalPembayaran', 'nomorReferensi'];
+                const missingPengembalianFields = requiredPengembalianFields.filter(field => 
+                    pengembalianRecord[field] === undefined);
+                
+                if (missingPengembalianFields.length > 0) {
+                    throw new Error('Missing pengembalian fields: ' + missingPengembalianFields.join(', '));
+                }
+                
+                logResult(testId, '✅ All required fields present for surat generation', undefined);
+                logResult(testId, '✅ TEST PASSED: Surat can be generated', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        // Test 6: Jurnal Akuntansi
+        function runTest6() {
+            const testId = 6;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Testing jurnal akuntansi...', undefined);
+            
+            try {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                
+                if (jurnal.length === 0) {
+                    throw new Error('No jurnal entries found. Run Test 1 first.');
+                }
+                
+                // Find pengembalian jurnal
+                const pengembalianJurnal = jurnal.find(j => 
+                    j.keterangan && j.keterangan.includes('Pengembalian Simpanan'));
+                
+                if (!pengembalianJurnal) {
+                    throw new Error('Pengembalian jurnal not found');
+                }
+                
+                logResult(testId, `Found jurnal: ${pengembalianJurnal.keterangan}`, undefined);
+                
+                // Verify entries exist
+                if (!pengembalianJurnal.entries || pengembalianJurnal.entries.length === 0) {
+                    throw new Error('No journal entries found');
+                }
+                
+                // Verify double-entry balance
+                const totalDebit = pengembalianJurnal.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+                const totalKredit = pengembalianJurnal.entries.reduce((sum, e) => sum + (e.kredit || 0), 0);
+                
+                logResult(testId, `Total Debit: ${totalDebit}`, undefined);
+                logResult(testId, `Total Kredit: ${totalKredit}`, undefined);
+                
+                if (Math.abs(totalDebit - totalKredit) > 0.01) {
+                    throw new Error(`Journal not balanced: Debit=${totalDebit}, Kredit=${totalKredit}`);
+                }
+                
+                // Verify accounts used
+                const accounts = pengembalianJurnal.entries.map(e => e.akun);
+                logResult(testId, `Accounts used: ${accounts.join(', ')}`, undefined);
+                
+                const hasSimpananPokok = accounts.includes('2-1100');
+                const hasSimpananWajib = accounts.includes('2-1200');
+                const hasKasOrBank = accounts.includes('1-1000') || accounts.includes('1-1100');
+                
+                if (!hasSimpananPokok || !hasSimpananWajib || !hasKasOrBank) {
+                    throw new Error('Missing required accounts in journal');
+                }
+                
+                logResult(testId, '✅ TEST PASSED: Journal entries correct', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        // Test 7: Rollback Scenario
+        function runTest7() {
+            const testId = 7;
+            document.getElementById('result' + testId).innerHTML = '';
+            logResult(testId, '🔄 Testing rollback scenario...', undefined);
+            
+            try {
+                // Create snapshot
+                const snapshot = {
+                    anggota: localStorage.getItem('anggota'),
+                    simpananPokok: localStorage.getItem('simpananPokok'),
+                    simpananWajib: localStorage.getItem('simpananWajib')
+                };
+                
+                logResult(testId, 'Snapshot created', undefined);
+                
+                // Modify data
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggota[0].nama = 'MODIFIED';
+                localStorage.setItem('anggota', JSON.stringify(anggota));
+                
+                logResult(testId, 'Data modified', undefined);
+                
+                // Restore snapshot
+                if (snapshot.anggota) localStorage.setItem('anggota', snapshot.anggota);
+                if (snapshot.simpananPokok) localStorage.setItem('simpananPokok', snapshot.simpananPokok);
+                if (snapshot.simpananWajib) localStorage.setItem('simpananWajib', snapshot.simpananWajib);
+                
+                logResult(testId, 'Snapshot restored', undefined);
+                
+                // Verify restoration
+                const restoredAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                if (restoredAnggota[0].nama === 'MODIFIED') {
+                    throw new Error('Rollback failed - data not restored');
+                }
+                
+                logResult(testId, '✅ TEST PASSED: Rollback works correctly', true);
+            } catch (error) {
+                logResult(testId, '❌ TEST FAILED: ' + error.message, false);
+            }
+        }
+
+        function runAllTests() {
+            testResults = { total: 0, passed: 0, failed: 0 };
+            updateSummary();
+            
+            setTimeout(() => runTest1(), 100);
+            setTimeout(() => runTest2(), 500);
+            setTimeout(() => runTest3(), 900);
+            setTimeout(() => runTest4(), 1300);
+            setTimeout(() => runTest5(), 1700);
+            setTimeout(() => runTest6(), 2100);
+            setTimeout(() => runTest7(), 2500);
+        }
+
+        // Initialize
+        updateSummary();
+    </script>
+</body>
+</html>

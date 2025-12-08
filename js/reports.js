@@ -68,7 +68,10 @@ function laporanSimpanan() {
                     // simpananPokok and simpananWajib already calculated by getAnggotaWithSimpananForLaporan
                     const pokok = a.simpananPokok;
                     const wajib = a.simpananWajib;
-                    const sukarela = simpananSukarela.filter(s => s.anggotaId === a.id).reduce((sum, s) => sum + s.jumlah, 0);
+                    // Filter simpanan sukarela with jumlah > 0
+                    const sukarela = simpananSukarela
+                        .filter(s => s.anggotaId === a.id && s.jumlah > 0)
+                        .reduce((sum, s) => sum + s.jumlah, 0);
                     const total = pokok + wajib + sukarela;
                     
                     // Add to grand totals

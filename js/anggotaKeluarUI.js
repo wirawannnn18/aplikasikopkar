@@ -482,10 +482,15 @@ function renderLaporanAnggotaKeluar(startDate = null, endDate = null) {
                                                             <i class="bi bi-file-earmark-person"></i>
                                                         </button>
                                                         ${anggota.pengembalianStatus === 'Selesai' && anggota.pengembalianId ? `
-                                                            <button class="btn btn-sm btn-primary" 
+                                                            <button class="btn btn-sm btn-primary me-1" 
                                                                     onclick="handleCetakBukti('${anggota.pengembalianId}')"
                                                                     title="Cetak Bukti Pengembalian">
                                                                 <i class="bi bi-printer"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-success" 
+                                                                    onclick="handleCetakSuratPengunduranDiri('${anggota.id}')"
+                                                                    title="Cetak Surat Pengunduran Diri">
+                                                                <i class="bi bi-file-earmark-text"></i>
                                                             </button>
                                                         ` : `
                                                             <button class="btn btn-sm btn-info" 
@@ -953,21 +958,9 @@ function handleProsesPengembalian(event) {
                                       `Total: Rp ${result.data.totalPengembalian.toLocaleString('id-ID')}</small>`;
                 showToast(successMessage, 'success', 7000);
                 
-                // Ask if want to print bukti
+                // Show print options modal
                 setTimeout(() => {
-                    confirmAction(
-                        'Cetak Bukti Pengembalian',
-                        `<p>Apakah Anda ingin mencetak bukti pengembalian?</p>
-                         <p class="mb-0"><small>Nomor Referensi: <strong>${result.data.nomorReferensi}</strong></small></p>`,
-                        () => {
-                            handleCetakBukti(result.data.pengembalianId);
-                        },
-                        {
-                            confirmText: 'Ya, Cetak Bukti',
-                            cancelText: 'Tidak',
-                            type: 'info'
-                        }
-                    );
+                    showPrintOptionsModal(sanitizedData.anggotaId, result.data.pengembalianId, result.data.nomorReferensi);
                 }, 500);
                 
                 // Refresh anggota table
@@ -1456,4 +1449,578 @@ function handleProsesPengembalianFromSuccess(anggotaId) {
     
     // Show pengembalian modal
     showPengembalianModal(anggotaId);
+}
+
+
+/**
+ * Generate surat pengunduran diri for printing
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} pengembalianId - ID of the pengembalian record
+ * @returns {object} Document generation result
+ */
+function generateSuratPengunduranDiri(anggotaId, pengembalianId) {
+    try {
+        // Validate input
+        if (!anggotaId || typeof anggotaId !== 'string') {
+            return {
+                success: false,
+                error: {
+                    code: 'INVALID_PARAMETER',
+                    message: 'ID anggota tidak valid',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        if (!pengembalianId || typeof pengembalianId !== 'string') {
+            return {
+                success: false,
+                error: {
+                    code: 'INVALID_PARAMETER',
+                    message: 'ID pengembalian tidak valid',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            return {
+                success: false,
+                error: {
+                    code: 'ANGGOTA_NOT_FOUND',
+                    message: 'Data anggota tidak ditemukan',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Get pengembalian record
+        const pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+        const pengembalian = pengembalianList.find(p => p.id === pengembalianId);
+        
+        if (!pengembalian) {
+            return {
+                success: false,
+                error: {
+                    code: 'PENGEMBALIAN_NOT_FOUND',
+                    message: 'Data pengembalian tidak ditemukan',
+                    timestamp: new Date().toISOString()
+                }
+            };
+        }
+        
+        // Get system settings for koperasi info
+        const systemSettings = JSON.parse(localStorage.getItem('systemSettings') || '{}');
+        const namaKoperasi = systemSettings.namaKoperasi || 'KOPERASI';
+        const alamatKoperasi = systemSettings.alamatKoperasi || '';
+        const teleponKoperasi = systemSettings.teleponKoperasi || '';
+        const logoKoperasi = systemSettings.logoKoperasi || '';
+        
+        // Format dates
+        const tanggalCetak = new Date().toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        const tanggalKeluar = anggota.tanggalKeluar ? new Date(anggota.tanggalKeluar).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        }) : '-';
+        
+        const tanggalPembayaran = new Date(pengembalian.tanggalPembayaran).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        // Generate HTML document
+        const suratHTML = `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surat Pengunduran Diri - ${anggota.nama}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #333;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .header .logo {
+            max-width: 100px;
+            max-height: 100px;
+            margin-bottom: 10px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 20pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 10pt;
+        }
+        
+        .title {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .title h2 {
+            margin: 0;
+            font-size: 16pt;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        
+        .reference {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 11pt;
+        }
+        
+        .content {
+            margin: 20px 0;
+            text-align: justify;
+        }
+        
+        .content p {
+            margin: 15px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table.info td {
+            padding: 8px;
+            vertical-align: top;
+            border: 1px solid #333;
+        }
+        
+        table.info td:first-child {
+            width: 40%;
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+        
+        .signatures {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+        
+        .signature-line {
+            margin-top: 80px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .close-button {
+            position: fixed;
+            top: 20px;
+            right: 180px;
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .close-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">
+        🖨️ Cetak Dokumen
+    </button>
+    <button class="close-button no-print" onclick="window.close()">
+        ✖ Tutup
+    </button>
+    
+    <!-- Header Koperasi -->
+    <div class="header">
+        ${logoKoperasi ? `<img src="${logoKoperasi}" alt="Logo" class="logo">` : ''}
+        <h1>${namaKoperasi}</h1>
+        ${alamatKoperasi ? `<p>${alamatKoperasi}</p>` : ''}
+        ${teleponKoperasi ? `<p>Telp: ${teleponKoperasi}</p>` : ''}
+    </div>
+    
+    <!-- Title -->
+    <div class="title">
+        <h2>SURAT KETERANGAN PENGUNDURAN DIRI</h2>
+    </div>
+    
+    <!-- Reference Number -->
+    <div class="reference">
+        <strong>No: ${pengembalian.nomorReferensi}</strong>
+    </div>
+    
+    <!-- Content -->
+    <div class="content">
+        <p>Yang bertanda tangan di bawah ini, Pengurus ${namaKoperasi}, menerangkan bahwa:</p>
+        
+        <!-- Informasi Anggota -->
+        <table class="info">
+            <tr>
+                <td>Nama</td>
+                <td>${anggota.nama}</td>
+            </tr>
+            <tr>
+                <td>NIK</td>
+                <td>${anggota.nik}</td>
+            </tr>
+            <tr>
+                <td>No. Kartu Anggota</td>
+                <td>${anggota.noKartu || '-'}</td>
+            </tr>
+            <tr>
+                <td>Departemen</td>
+                <td>${anggota.departemen || '-'}</td>
+            </tr>
+            <tr>
+                <td>Tanggal Keluar</td>
+                <td>${tanggalKeluar}</td>
+            </tr>
+            <tr>
+                <td>Alasan Keluar</td>
+                <td>${anggota.alasanKeluar || '-'}</td>
+            </tr>
+        </table>
+        
+        <p>Telah mengundurkan diri sebagai anggota koperasi dan telah menerima pengembalian simpanan dengan rincian sebagai berikut:</p>
+        
+        <!-- Rincian Pengembalian -->
+        <table class="info">
+            <tr>
+                <td>Simpanan Pokok</td>
+                <td>Rp ${pengembalian.simpananPokok.toLocaleString('id-ID')}</td>
+            </tr>
+            <tr>
+                <td>Simpanan Wajib</td>
+                <td>Rp ${pengembalian.simpananWajib.toLocaleString('id-ID')}</td>
+            </tr>
+            <tr style="background-color: #e8f5e9;">
+                <td><strong>Total Pengembalian</strong></td>
+                <td><strong>Rp ${pengembalian.totalPengembalian.toLocaleString('id-ID')}</strong></td>
+            </tr>
+            <tr>
+                <td>Metode Pembayaran</td>
+                <td>${pengembalian.metodePembayaran}</td>
+            </tr>
+            <tr>
+                <td>Tanggal Pembayaran</td>
+                <td>${tanggalPembayaran}</td>
+            </tr>
+        </table>
+        
+        <p>Demikian surat keterangan ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>
+    </div>
+    
+    <!-- Tanda Tangan -->
+    <div class="signatures">
+        <div class="signature-box">
+            <p>Yang Menerima,</p>
+            <div class="signature-line">
+                ${anggota.nama}
+            </div>
+        </div>
+        <div class="signature-box">
+            <p>Pengurus Koperasi,</p>
+            <div class="signature-line">
+                (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p>Dokumen ini dicetak pada: ${tanggalCetak}</p>
+        <p>Referensi: ${pengembalian.nomorReferensi}</p>
+        <p><em>Dokumen ini sah tanpa tanda tangan basah</em></p>
+    </div>
+</body>
+</html>
+        `;
+        
+        // Return success with HTML
+        return {
+            success: true,
+            data: {
+                anggotaId: anggotaId,
+                pengembalianId: pengembalianId,
+                anggotaNama: anggota.nama,
+                nomorReferensi: pengembalian.nomorReferensi,
+                html: suratHTML
+            },
+            message: 'Surat pengunduran diri berhasil dibuat'
+        };
+        
+    } catch (error) {
+        console.error('Error in generateSuratPengunduranDiri:', error);
+        return {
+            success: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        };
+    }
+}
+
+/**
+ * Handle cetak surat pengunduran diri action
+ * @param {string} anggotaId - ID of the anggota
+ */
+function handleCetakSuratPengunduranDiri(anggotaId) {
+    try {
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            showToast('Anggota tidak ditemukan', 'error');
+            return;
+        }
+        
+        // Check if anggota has pengembalianId
+        if (!anggota.pengembalianId) {
+            showToast('Pengembalian belum diproses untuk anggota ini', 'warning');
+            return;
+        }
+        
+        // Show loading toast
+        showToast('Membuat surat pengunduran diri...', 'info', 2000);
+        
+        // Generate surat
+        const result = generateSuratPengunduranDiri(anggotaId, anggota.pengembalianId);
+        
+        if (!result.success) {
+            showToast(result.error.message, 'error');
+            return;
+        }
+        
+        // Open in new window for printing
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            showToast('Popup diblokir. Mohon izinkan popup untuk mencetak surat.', 'error');
+            return;
+        }
+        
+        printWindow.document.write(result.data.html);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Log audit action
+        if (typeof logAnggotaKeluarAction === 'function') {
+            logAnggotaKeluarAction('CETAK_SURAT_PENGUNDURAN_DIRI', {
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                pengembalianId: anggota.pengembalianId,
+                nomorReferensi: result.data.nomorReferensi
+            });
+        }
+        
+        // Show success toast
+        showToast('Surat pengunduran diri berhasil dibuat', 'success');
+        
+    } catch (error) {
+        console.error('Error in handleCetakSuratPengunduranDiri:', error);
+        showToast('Terjadi kesalahan saat membuat surat', 'error');
+    }
+}
+
+/**
+ * Handle proses pengembalian from success modal
+ * @param {string} anggotaId - ID of the anggota
+ */
+function handleProsesPengembalianFromSuccess(anggotaId) {
+    // Close success modal
+    const successModal = bootstrap.Modal.getInstance(document.getElementById('successAnggotaKeluarModal'));
+    if (successModal) {
+        successModal.hide();
+    }
+    
+    // Show pengembalian modal
+    setTimeout(() => {
+        showPengembalianModal(anggotaId);
+    }, 300);
+}
+
+
+/**
+ * Show print options modal after pengembalian is processed
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} pengembalianId - ID of the pengembalian record
+ * @param {string} nomorReferensi - Reference number
+ */
+function showPrintOptionsModal(anggotaId, pengembalianId, nomorReferensi) {
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="printOptionsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-printer me-2"></i>Opsi Cetak Dokumen
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Pengembalian simpanan berhasil diproses!
+                        </div>
+                        
+                        <p><strong>Nomor Referensi:</strong> ${nomorReferensi}</p>
+                        
+                        <p>Pilih dokumen yang ingin dicetak:</p>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-lg" 
+                                    onclick="handleCetakBukti('${pengembalianId}'); bootstrap.Modal.getInstance(document.getElementById('printOptionsModal')).hide();">
+                                <i class="bi bi-printer me-2"></i>Cetak Bukti Pengembalian
+                                <br><small class="text-muted">Dokumen rincian pengembalian simpanan</small>
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-success btn-lg" 
+                                    onclick="handleCetakSuratPengunduranDiri('${anggotaId}'); bootstrap.Modal.getInstance(document.getElementById('printOptionsModal')).hide();">
+                                <i class="bi bi-file-earmark-text me-2"></i>Cetak Surat Pengunduran Diri
+                                <br><small class="text-muted">Surat keterangan resmi pengunduran diri</small>
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-info btn-lg" 
+                                    onclick="handleCetakKeduaDokumen('${anggotaId}', '${pengembalianId}'); bootstrap.Modal.getInstance(document.getElementById('printOptionsModal')).hide();">
+                                <i class="bi bi-files me-2"></i>Cetak Kedua Dokumen
+                                <br><small class="text-muted">Bukti pengembalian dan surat pengunduran diri</small>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i>Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('printOptionsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('printOptionsModal'));
+    modal.show();
+}
+
+/**
+ * Handle cetak kedua dokumen (bukti pengembalian dan surat pengunduran diri)
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} pengembalianId - ID of the pengembalian record
+ */
+function handleCetakKeduaDokumen(anggotaId, pengembalianId) {
+    try {
+        // Show loading toast
+        showToast('Membuat dokumen...', 'info', 2000);
+        
+        // Print bukti pengembalian first
+        setTimeout(() => {
+            handleCetakBukti(pengembalianId);
+        }, 500);
+        
+        // Print surat pengunduran diri after a delay
+        setTimeout(() => {
+            handleCetakSuratPengunduranDiri(anggotaId);
+        }, 1500);
+        
+        // Show success message
+        setTimeout(() => {
+            showToast('Kedua dokumen berhasil dibuat', 'success');
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error in handleCetakKeduaDokumen:', error);
+        showToast('Terjadi kesalahan saat membuat dokumen', 'error');
+    }
 }

@@ -230,10 +230,10 @@ function savePinjaman() {
     
     const anggotaId = document.getElementById('anggotaPinjaman').value;
     
-    // Validate anggota is not keluar
-    const anggota = getAnggotaById(anggotaId);
-    if (anggota && anggota.statusKeanggotaan === 'Keluar') {
-        showAlert('Transaksi tidak dapat dilakukan. Anggota sudah keluar dari koperasi.', 'error');
+    // NEW: Use transaction validator module
+    const validation = validateAnggotaForPinjaman(anggotaId);
+    if (!validation.valid) {
+        showAlert(validation.error, 'error');
         return;
     }
     

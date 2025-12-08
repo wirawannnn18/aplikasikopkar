@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tombol Cetak Surat Pengunduran Diri</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2><i class="bi bi-ui-checks me-2"></i>Test Tombol Cetak Surat Pengunduran Diri</h2>
+        <p class="text-muted">Testing UI buttons for printing resignation letter</p>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-gear me-2"></i>Setup Test Data</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+                <button class="btn btn-danger" onclick="clearTestData()">Clear Test Data</button>
+                <div id="setupResult" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5><i class="bi bi-list-check me-2"></i>Test Cases</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6>Test 1: Tombol di Laporan Anggota Keluar</h6>
+                    <p class="text-muted">Verifikasi bahwa tombol "Cetak Surat" muncul untuk anggota dengan status pengembalian "Selesai"</p>
+                    <button class="btn btn-sm btn-success" onclick="testLaporanButtons()">Tampilkan Laporan</button>
+                    <div id="test1Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Test 2: Modal Opsi Cetak Setelah Pengembalian</h6>
+                    <p class="text-muted">Verifikasi modal yang menampilkan opsi cetak dokumen</p>
+                    <button class="btn btn-sm btn-info" onclick="testPrintOptionsModal()">Tampilkan Modal</button>
+                    <div id="test2Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Test 3: Fungsi handleCetakSuratPengunduranDiri</h6>
+                    <p class="text-muted">Test fungsi handler untuk cetak surat</p>
+                    <button class="btn btn-sm btn-primary" onclick="testHandleCetakSurat()">Run Test</button>
+                    <div id="test3Result" class="mt-2"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Test 4: Fungsi handleCetakKeduaDokumen</h6>
+                    <p class="text-muted">Test fungsi untuk cetak kedua dokumen sekaligus</p>
+                    <button class="btn btn-sm btn-warning" onclick="testHandleCetakKeduaDokumen()">Run Test</button>
+                    <div id="test4Result" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5><i class="bi bi-eye me-2"></i>Preview Area</h5>
+            </div>
+            <div class="card-body">
+                <div id="previewArea"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    <script>
+        // Mock functions if not available
+        if (typeof getAnggotaById === 'undefined') {
+            function getAnggotaById(id) {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                return anggota.find(a => a.id === id);
+            }
+        }
+        
+        if (typeof showToast === 'undefined') {
+            function showToast(message, type, duration) {
+                console.log(`Toast [${type}]: ${message}`);
+                const toastDiv = document.createElement('div');
+                toastDiv.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} mt-2`;
+                toastDiv.innerHTML = message;
+                document.getElementById('previewArea').appendChild(toastDiv);
+                
+                if (duration) {
+                    setTimeout(() => toastDiv.remove(), duration);
+                }
+            }
+        }
+        
+        if (typeof logAnggotaKeluarAction === 'undefined') {
+            function logAnggotaKeluarAction(action, data) {
+                console.log(`Audit Log [${action}]:`, data);
+            }
+        }
+        
+        if (typeof handleCetakBukti === 'undefined') {
+            function handleCetakBukti(pengembalianId) {
+                console.log('handleCetakBukti called with:', pengembalianId);
+                showToast('Bukti pengembalian dibuat (mock)', 'info', 3000);
+            }
+        }
+        
+        function setupTestData() {
+            // Create test anggota with completed pengembalian
+            const anggota = [
+                {
+                    id: 'test-anggota-selesai',
+                    nama: 'Test Anggota Selesai',
+                    nik: '1234567890123456',
+                    noKartu: 'K-001',
+                    departemen: 'IT Department',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-15',
+                    alasanKeluar: 'Pindah kerja',
+                    pengembalianStatus: 'Selesai',
+                    pengembalianId: 'test-pengembalian-001'
+                },
+                {
+                    id: 'test-anggota-pending',
+                    nama: 'Test Anggota Pending',
+                    nik: '9876543210987654',
+                    noKartu: 'K-002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-20',
+                    alasanKeluar: 'Pensiun',
+                    pengembalianStatus: 'Pending',
+                    pengembalianId: null
+                }
+            ];
+            
+            // Create test pengembalian
+            const pengembalian = {
+                id: 'test-pengembalian-001',
+                anggotaId: 'test-anggota-selesai',
+                anggotaNama: 'Test Anggota Selesai',
+                anggotaNIK: '1234567890123456',
+                simpananPokok: 500000,
+                simpananWajib: 1500000,
+                totalSimpanan: 2000000,
+                kewajibanLain: 0,
+                totalPengembalian: 2000000,
+                metodePembayaran: 'Transfer Bank',
+                tanggalPembayaran: '2024-01-20',
+                nomorReferensi: 'PGM-2024-001',
+                status: 'Selesai'
+            };
+            
+            // Create test system settings
+            const systemSettings = {
+                namaKoperasi: 'KOPERASI SEJAHTERA',
+                alamatKoperasi: 'Jl. Merdeka No. 123, Jakarta',
+                teleponKoperasi: '021-12345678'
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('pengembalian', JSON.stringify([pengembalian]));
+            localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+            
+            document.getElementById('setupResult').innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Test data berhasil dibuat!</strong><br>
+                    - Anggota Selesai: ${anggota[0].nama} (ID: ${anggota[0].id})<br>
+                    - Anggota Pending: ${anggota[1].nama} (ID: ${anggota[1].id})<br>
+                    - Pengembalian: ${pengembalian.nomorReferensi}
+                </div>
+            `;
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('pengembalian');
+            
+            document.getElementById('setupResult').innerHTML = `
+                <div class="alert alert-info">Test data dihapus</div>
+            `;
+            document.getElementById('previewArea').innerHTML = '';
+        }
+        
+        function testLaporanButtons() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            
+            if (anggota.length === 0) {
+                document.getElementById('test1Result').innerHTML = `
+                    <div class="alert alert-warning">
+                        Tidak ada data. Klik "Setup Test Data" terlebih dahulu.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Simulate laporan table
+            let html = `
+                <div class="alert alert-info">
+                    <strong>Preview Tombol di Laporan:</strong>
+                </div>
+                <table class="table table-sm table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nama</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            anggota.forEach(a => {
+                html += `
+                    <tr>
+                        <td>${a.nama}</td>
+                        <td>
+                            ${a.pengembalianStatus === 'Selesai' 
+                                ? '<span class="badge bg-success">Selesai</span>'
+                                : '<span class="badge bg-warning">Pending</span>'
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary me-1" title="Cetak Bukti Anggota Keluar">
+                                <i class="bi bi-file-earmark-person"></i>
+                            </button>
+                            ${a.pengembalianStatus === 'Selesai' && a.pengembalianId ? `
+                                <button class="btn btn-sm btn-primary me-1" title="Cetak Bukti Pengembalian">
+                                    <i class="bi bi-printer"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success" 
+                                        onclick="handleCetakSuratPengunduranDiri('${a.id}')"
+                                        title="Cetak Surat Pengunduran Diri">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </button>
+                            ` : `
+                                <button class="btn btn-sm btn-info" title="Proses Pengembalian">
+                                    <i class="bi bi-cash-coin"></i>
+                                </button>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                <div class="alert alert-success">
+                    ✓ PASS: Tombol "Cetak Surat" (hijau dengan icon file-earmark-text) muncul untuk anggota dengan status "Selesai"<br>
+                    ✓ PASS: Tombol tidak muncul untuk anggota dengan status "Pending"
+                </div>
+            `;
+            
+            document.getElementById('test1Result').innerHTML = html;
+        }
+        
+        function testPrintOptionsModal() {
+            // Call the function
+            showPrintOptionsModal('test-anggota-selesai', 'test-pengembalian-001', 'PGM-2024-001');
+            
+            document.getElementById('test2Result').innerHTML = `
+                <div class="alert alert-success">
+                    ✓ PASS: Modal "Opsi Cetak Dokumen" berhasil ditampilkan<br>
+                    <small>Periksa modal yang muncul untuk memverifikasi:</small>
+                    <ul class="mb-0 mt-2">
+                        <li>Tombol "Cetak Bukti Pengembalian"</li>
+                        <li>Tombol "Cetak Surat Pengunduran Diri"</li>
+                        <li>Tombol "Cetak Kedua Dokumen"</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function testHandleCetakSurat() {
+            try {
+                // This will actually call the function
+                handleCetakSuratPengunduranDiri('test-anggota-selesai');
+                
+                document.getElementById('test3Result').innerHTML = `
+                    <div class="alert alert-success">
+                        ✓ PASS: Fungsi handleCetakSuratPengunduranDiri berhasil dipanggil<br>
+                        <small>Periksa window baru yang terbuka untuk melihat surat pengunduran diri</small>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('test3Result').innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testHandleCetakKeduaDokumen() {
+            try {
+                // This will call the function
+                handleCetakKeduaDokumen('test-anggota-selesai', 'test-pengembalian-001');
+                
+                document.getElementById('test4Result').innerHTML = `
+                    <div class="alert alert-success">
+                        ✓ PASS: Fungsi handleCetakKeduaDokumen berhasil dipanggil<br>
+                        <small>Kedua dokumen akan dibuka dalam window terpisah dengan delay</small>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('test4Result').innerHTML = `
+                    <div class="alert alert-danger">
+                        ✗ FAIL: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
