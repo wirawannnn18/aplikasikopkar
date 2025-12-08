@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIX SEKARANG - Simpanan Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background: #f8f9fa; }
+        .main-card { max-width: 900px; margin: 0 auto; }
+        .status-box { padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .status-error { background: #f8d7da; border: 2px solid #dc3545; }
+        .status-success { background: #d4edda; border: 2px solid #28a745; }
+        .status-warning { background: #fff3cd; border: 2px solid #ffc107; }
+        .big-button { font-size: 1.2rem; padding: 15px 30px; }
+        pre { background: #fff; padding: 15px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container main-card">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">🚨 FIX SEKARANG - Simpanan Anggota Keluar</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ PERHATIAN:</strong> Tool ini akan memperbaiki data simpanan anggota keluar secara otomatis.
+                </div>
+                
+                <div id="statusBox"></div>
+                
+                <div class="text-center mb-4">
+                    <button class="btn btn-danger big-button" onclick="analyzeAndFix()">
+                        🔧 ANALISA & PERBAIKI SEKARANG
+                    </button>
+                </div>
+                
+                <div id="detailsBox" style="display: none;">
+                    <h5>Detail Masalah:</h5>
+                    <div id="detailsContent"></div>
+                </div>
+                
+                <div id="resultsBox" style="display: none;">
+                    <h5>Hasil Perbaikan:</h5>
+                    <div id="resultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeAndFix() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+            
+            // Find anggota keluar
+            const anggotaKeluar = anggota.filter(a => a.statusKeanggotaan === 'Keluar');
+            const anggotaKeluarIds = anggotaKeluar.map(a => a.id);
+            
+            if (anggotaKeluar.length === 0) {
+                document.getElementById('statusBox').innerHTML = `
+                    <div class="status-box status-success">
+                        <h4>✅ Tidak Ada Masalah</h4>
+                        <p>Tidak ada anggota dengan status "Keluar" di database.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Find simpanan that need fixing
+            const pokokNeedFix = simpananPokok.filter(s => 
+                anggotaKeluarIds.includes(s.anggotaId) && s.jumlah > 0
+            );
+            
+            const wajibNeedFix = simpananWajib.filter(s => 
+                anggotaKeluarIds.includes(s.anggotaId) && s.jumlah > 0
+            );
+            
+            const sukarelaNeedFix = simpananSukarela.filter(s => 
+                anggotaKeluarIds.includes(s.anggotaId) && s.jumlah > 0
+            );
+            
+            const totalNeedFix = pokokNeedFix.length + wajibNeedFix.length + sukarelaNeedFix.length;
+            
+            // Show analysis
+            let detailsHTML = '<div class="table-responsive"><table class="table table-bordered">';
+            detailsHTML += '<thead><tr><th>Jenis</th><th>Jumlah Record</th><th>Status</th></tr></thead><tbody>';
+            
+            detailsHTML += `<tr>
+                <td>Anggota Keluar</td>
+                <td><strong>${anggotaKeluar.length}</strong></td>
+                <td><span class="badge bg-info">Found</span></td>
+            </tr>`;
+            
+            detailsHTML += `<tr>
+                <td>Simpanan Pokok (perlu fix)</td>
+                <td><strong>${pokokNeedFix.length}</strong></td>
+                <td>${pokokNeedFix.length > 0 ? '<span class="badge bg-danger">Need Fix</span>' : '<span class="badge bg-success">OK</span>'}</td>
+            </tr>`;
+            
+            detailsHTML += `<tr>
+                <td>Simpanan Wajib (perlu fix)</td>
+                <td><strong>${wajibNeedFix.length}</strong></td>
+                <td>${wajibNeedFix.length > 0 ? '<span class="badge bg-danger">Need Fix</span>' : '<span class="badge bg-success">OK</span>'}</td>
+            </tr>`;
+            
+            detailsHTML += `<tr>
+                <td>Simpanan Sukarela (perlu fix)</td>
+                <td><strong>${sukarelaNeedFix.length}</strong></td>
+                <td>${sukarelaNeedFix.length > 0 ? '<span class="badge bg-danger">Need Fix</span>' : '<span class="badge bg-success">OK</span>'}</td>
+            </tr>`;
+            
+            detailsHTML += '</tbody></table></div>';
+            
+            // Show anggota keluar list
+            detailsHTML += '<h6 class="mt-3">Daftar Anggota Keluar:</h6><ul>';
+            anggotaKeluar.forEach(a => {
+                const pokokCount = pokokNeedFix.filter(s => s.anggotaId === a.id).length;
+                const wajibCount = wajibNeedFix.filter(s => s.anggotaId === a.id).length;
+                const sukarelaCount = sukarelaNeedFix.filter(s => s.anggotaId === a.id).length;
+                const totalCount = pokokCount + wajibCount + sukarelaCount;
+                
+                detailsHTML += `<li><strong>${a.nama}</strong> (${a.nik}) - ${totalCount} record perlu fix`;
+                if (totalCount > 0) {
+                    detailsHTML += ` (Pokok: ${pokokCount}, Wajib: ${wajibCount}, Sukarela: ${sukarelaCount})`;
+                }
+                detailsHTML += '</li>';
+            });
+            detailsHTML += '</ul>';
+            
+            document.getElementById('detailsContent').innerHTML = detailsHTML;
+            document.getElementById('detailsBox').style.display = 'block';
+            
+            if (totalNeedFix === 0) {
+                document.getElementById('statusBox').innerHTML = `
+                    <div class="status-box status-success">
+                        <h4>✅ Sempurna!</h4>
+                        <p>Semua simpanan anggota keluar sudah di-zero-kan dengan benar.</p>
+                        <p><strong>Tidak ada yang perlu diperbaiki.</strong></p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show status and confirm
+            document.getElementById('statusBox').innerHTML = `
+                <div class="status-box status-error">
+                    <h4>❌ Ditemukan Masalah!</h4>
+                    <p><strong>${totalNeedFix} record</strong> simpanan anggota keluar yang belum di-zero-kan.</p>
+                    <p>Klik tombol di bawah untuk memperbaiki:</p>
+                    <button class="btn btn-success btn-lg" onclick="fixNow()">
+                        ✅ PERBAIKI ${totalNeedFix} RECORD SEKARANG
+                    </button>
+                </div>
+            `;
+        }
+        
+        function fixNow() {
+            if (!confirm('Apakah Anda yakin ingin meng-zero-kan semua simpanan anggota keluar?\n\nData saldo lama akan disimpan di field saldoSebelumPengembalian.')) {
+                return;
+            }
+            
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluarIds = anggota.filter(a => a.statusKeanggotaan === 'Keluar').map(a => a.id);
+            
+            let fixedCount = 0;
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Fix simpanan pokok
+            const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            const fixedSimpananPokok = simpananPokok.map(s => {
+                if (anggotaKeluarIds.includes(s.anggotaId) && s.jumlah > 0) {
+                    fixedCount++;
+                    return {
+                        ...s,
+                        saldoSebelumPengembalian: s.saldoSebelumPengembalian || s.jumlah,
+                        jumlah: 0,
+                        statusPengembalian: 'Dikembalikan',
+                        tanggalPengembalian: s.tanggalPengembalian || today,
+                        fixedBy: 'auto-fix-tool',
+                        fixedAt: new Date().toISOString()
+                    };
+                }
+                return s;
+            });
+            localStorage.setItem('simpananPokok', JSON.stringify(fixedSimpananPokok));
+            
+            // Fix simpanan wajib
+            const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            const fixedSimpananWajib = simpananWajib.map(s => {
+                if (anggotaKeluarIds.includes(s.anggotaId) && s.jumlah > 0) {
+                    fixedCount++;
+                    return {
+                        ...s,
+                        saldoSebelumPengembalian: s.saldoSebelumPengembalian || s.jumlah,
+                        jumlah: 0,
+                        statusPengembalian: 'Dikembalikan',
+                        tanggalPengembalian: s.tanggalPengembalian || today,
+                        fixedBy: 'auto-fix-tool',
+                        fixedAt: new Date().toISOString()
+                    };
+                }
+                return s;
+            });
+            localStorage.setItem('simpananWajib', JSON.stringify(fixedSimpananWajib));
+            
+            // Fix simpanan sukarela
+            const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+            const fixedSimpananSukarela = simpananSukarela.map(s => {
+                if (anggotaKeluarIds.includes(s.anggotaId) && s.jumlah > 0) {
+                    fixedCount++;
+                    return {
+                        ...s,
+                        saldoSebelumPengembalian: s.saldoSebelumPengembalian || s.jumlah,
+                        jumlah: 0,
+                        statusPengembalian: 'Dikembalikan',
+                        tanggalPengembalian: s.tanggalPengembalian || today,
+                        fixedBy: 'auto-fix-tool',
+                        fixedAt: new Date().toISOString()
+                    };
+                }
+                return s;
+            });
+            localStorage.setItem('simpananSukarela', JSON.stringify(fixedSimpananSukarela));
+            
+            // Show results
+            document.getElementById('statusBox').innerHTML = `
+                <div class="status-box status-success">
+                    <h4>✅ PERBAIKAN BERHASIL!</h4>
+                    <p><strong>${fixedCount} record</strong> simpanan telah di-zero-kan.</p>
+                    <p>Saldo lama disimpan di field <code>saldoSebelumPengembalian</code>.</p>
+                </div>
+            `;
+            
+            let resultsHTML = '<div class="alert alert-success">';
+            resultsHTML += '<h5>✅ Perbaikan Selesai</h5>';
+            resultsHTML += '<ul>';
+            resultsHTML += `<li>Total record diperbaiki: <strong>${fixedCount}</strong></li>`;
+            resultsHTML += `<li>Tanggal pengembalian: <strong>${today}</strong></li>`;
+            resultsHTML += `<li>Status: <strong>Dikembalikan</strong></li>`;
+            resultsHTML += '</ul>';
+            resultsHTML += '</div>';
+            
+            resultsHTML += '<div class="alert alert-info">';
+            resultsHTML += '<h6>Langkah Selanjutnya:</h6>';
+            resultsHTML += '<ol>';
+            resultsHTML += '<li><strong>Refresh aplikasi</strong> (tekan Ctrl+F5 atau Cmd+Shift+R)</li>';
+            resultsHTML += '<li>Buka menu <strong>Simpanan</strong></li>';
+            resultsHTML += '<li>Verifikasi bahwa anggota keluar <strong>tidak muncul lagi</strong></li>';
+            resultsHTML += '</ol>';
+            resultsHTML += '</div>';
+            
+            document.getElementById('resultsContent').innerHTML = resultsHTML;
+            document.getElementById('resultsBox').style.display = 'block';
+            
+            // Auto-analyze again after 2 seconds
+            setTimeout(() => {
+                alert('✅ Perbaikan selesai!\n\nSilakan REFRESH aplikasi (Ctrl+F5) dan cek menu Simpanan.');
+            }, 500);
+        }
+        
+        // Auto-run on page load
+        window.onload = analyzeAndFix;
+    </script>
+</body>
+</html>
