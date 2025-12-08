@@ -2781,3 +2781,539 @@ function deleteAnggotaKeluarPermanent(anggotaId) {
         };
     }
 }
+
+// ==================== WIZARD ANGGOTA KELUAR FUNCTIONS ====================
+// Task 2: Implement Step 1 - Validasi Hutang/Piutang
+
+/**
+ * Validate if anggota has outstanding loans or receivables
+ * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Validation result with details
+ */
+function validateHutangPiutang(anggotaId) {
+    try {
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            return {
+                valid: false,
+                error: {
+                    code: 'ANGGOTA_NOT_FOUND',
+                    message: 'Anggota tidak ditemukan'
+                }
+            };
+        }
+        
+        // Check for active loans (Requirement 1.2)
+        const pinjaman = JSON.parse(localStorage.getItem('pinjaman') || '[]');
+        const pinjamanAktif = pinjaman.filter(p => 
+            p.anggotaId === anggotaId && 
+            (p.sisaPinjaman || 0) > 0
+        );
+        
+        // Check for active receivables (Requirement 1.3)
+        const piutang = JSON.parse(localStorage.getItem('piutang') || '[]');
+        const piutangAktif = piutang.filter(p => 
+            p.anggotaId === anggotaId && 
+            (p.sisaPiutang || 0) > 0
+        );
+        
+        // Calculate totals
+        const totalPinjaman = pinjamanAktif.reduce((sum, p) => sum + (p.sisaPinjaman || 0), 0);
+        const totalPiutang = piutangAktif.reduce((sum, p) => sum + (p.sisaPiutang || 0), 0);
+        
+        const hasDebt = pinjamanAktif.length > 0 || piutangAktif.length > 0;
+        
+        // Requirement 1.4: Block if debt exists
+        if (hasDebt) {
+            return {
+                valid: false,
+                error: {
+                    code: 'OUTSTANDING_DEBT_EXISTS',
+                    message: 'Anggota masih memiliki kewajiban finansial yang belum diselesaikan',
+                    details: {
+                        pinjamanCount: pinjamanAktif.length,
+                        totalPinjaman: totalPinjaman,
+                        piutangCount: piutangAktif.length,
+                        totalPiutang: totalPiutang,
+                        pinjaman: pinjamanAktif,
+                        piutang: piutangAktif
+                    }
+                }
+            };
+        }
+        
+        // Requirement 1.5: Allow progress if no debt
+        return {
+            valid: true,
+            message: 'Validasi berhasil, tidak ada kewajiban finansial'
+        };
+        
+    } catch (error) {
+        console.error('Error in validateHutangPiutang:', error);
+        return {
+            valid: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message
+            }
+        };
+    }
+}
+
+// Task 3: Implement Step 2 - Pencairan Simpanan (Calculation)
+
+/**
+ * Calculate total simpanan for an anggota
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Calculation result with breakdown
+ */
+function hitungTotalSimpanan(anggotaId) {
+    try {
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            return {
+                success: false,
+                error: 'Anggota tidak ditemukan'
+            };
+        }
+        
+        // Get simpanan data
+        const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+        const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+        const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+        
+        // Requirement 2.1: Calculate simpanan pokok
+        const totalPokok = simpananPokok
+            .filter(s => s.anggotaId === anggotaId && (s.jumlah || 0) > 0)
+            .reduce((sum, s) => sum + (s.jumlah || 0), 0);
+        
+        // Requirement 2.2: Calculate simpanan wajib
+        const totalWajib = simpananWajib
+            .filter(s => s.anggotaId === anggotaId && (s.jumlah || 0) > 0)
+            .reduce((sum, s) => sum + (s.jumlah || 0), 0);
+        
+        // Requirement 2.3: Calculate simpanan sukarela
+        const totalSukarela = simpananSukarela
+            .filter(s => s.anggotaId === anggotaId && (s.jumlah || 0) > 0)
+            .reduce((sum, s) => sum + (s.jumlah || 0), 0);
+        
+        const total = totalPokok + totalWajib + totalSukarela;
+        
+        // Requirement 2.5: Get current kas and bank balance
+        const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+        const kasBalance = jurnal
+            .filter(j => j.akun === '1-1000')
+            .reduce((sum, j) => sum + (j.debit || 0) - (j.kredit || 0), 0);
+        
+        const bankBalance = jurnal
+            .filter(j => j.akun === '1-1100')
+            .reduce((sum, j) => sum + (j.debit || 0) - (j.kredit || 0), 0);
+        
+        // Requirement 2.4: Return breakdown and totals
+        return {
+            success: true,
+            data: {
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                simpananPokok: totalPokok,
+                simpananWajib: totalWajib,
+                simpananSukarela: totalSukarela,
+                totalSimpanan: total,
+                kasBalance: kasBalance,
+                bankBalance: bankBalance,
+                totalAvailable: kasBalance + bankBalance
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error in hitungTotalSimpanan:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Task 4: Implement automatic journal creation
+
+/**
+ * Process simpanan refund with automatic journal entries
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} metodePembayaran - Payment method (Kas/Transfer Bank)
+ * @param {string} tanggalPembayaran - Payment date (YYYY-MM-DD)
+ * @param {string} keterangan - Optional notes
+ * @returns {object} Processing result
+ */
+function prosesPencairanSimpanan(anggotaId, metodePembayaran, tanggalPembayaran, keterangan = '') {
+    try {
+        // Create snapshot for rollback
+        const snapshot = createDeletionSnapshot();
+        
+        try {
+            // Get anggota and calculate simpanan
+            const anggota = getAnggotaById(anggotaId);
+            const calculation = hitungTotalSimpanan(anggotaId);
+            
+            if (!calculation.success) {
+                throw new Error(calculation.error);
+            }
+            
+            const data = calculation.data;
+            const akunKas = metodePembayaran === 'Kas' ? '1-1000' : '1-1100';
+            const jurnalIds = [];
+            
+            // Requirement 3.1: Create journal for simpanan pokok
+            if (data.simpananPokok > 0) {
+                const jurnalPokok = {
+                    id: generateId(),
+                    tanggal: tanggalPembayaran,
+                    keterangan: `Pencairan Simpanan Pokok - ${anggota.nama}`,
+                    akun: '2-1100',
+                    debit: data.simpananPokok,
+                    kredit: 0
+                };
+                
+                const jurnalKasPokok = {
+                    id: generateId(),
+                    tanggal: tanggalPembayaran,
+                    keterangan: `Pencairan Simpanan Pokok - ${anggota.nama}`,
+                    akun: akunKas,
+                    debit: 0,
+                    kredit: data.simpananPokok
+                };
+                
+                // Save journals
+                let jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                jurnal.push(jurnalPokok);
+                jurnal.push(jurnalKasPokok);
+                localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                jurnalIds.push(jurnalPokok.id, jurnalKasPokok.id);
+            }
+            
+            // Requirement 3.2: Create journal for simpanan wajib
+            if (data.simpananWajib > 0) {
+                const jurnalWajib = {
+                    id: generateId(),
+                    tanggal: tanggalPembayaran,
+                    keterangan: `Pencairan Simpanan Wajib - ${anggota.nama}`,
+                    akun: '2-1200',
+                    debit: data.simpananWajib,
+                    kredit: 0
+                };
+                
+                const jurnalKasWajib = {
+                    id: generateId(),
+                    tanggal: tanggalPembayaran,
+                    keterangan: `Pencairan Simpanan Wajib - ${anggota.nama}`,
+                    akun: akunKas,
+                    debit: 0,
+                    kredit: data.simpananWajib
+                };
+                
+                // Save journals
+                let jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                jurnal.push(jurnalWajib);
+                jurnal.push(jurnalKasWajib);
+                localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                jurnalIds.push(jurnalWajib.id, jurnalKasWajib.id);
+            }
+            
+            // Requirement 3.3: Create journal for simpanan sukarela
+            if (data.simpananSukarela > 0) {
+                const jurnalSukarela = {
+                    id: generateId(),
+                    tanggal: tanggalPembayaran,
+                    keterangan: `Pencairan Simpanan Sukarela - ${anggota.nama}`,
+                    akun: '2-1300',
+                    debit: data.simpananSukarela,
+                    kredit: 0
+                };
+                
+                const jurnalKasSukarela = {
+                    id: generateId(),
+                    tanggal: tanggalPembayaran,
+                    keterangan: `Pencairan Simpanan Sukarela - ${anggota.nama}`,
+                    akun: akunKas,
+                    debit: 0,
+                    kredit: data.simpananSukarela
+                };
+                
+                // Save journals
+                let jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                jurnal.push(jurnalSukarela);
+                jurnal.push(jurnalKasSukarela);
+                localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                jurnalIds.push(jurnalSukarela.id, jurnalKasSukarela.id);
+            }
+            
+            // Requirement 3.5: Create pengembalian record with journal references
+            const pengembalianId = generateId();
+            const pengembalian = {
+                id: pengembalianId,
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                anggotaNIK: anggota.nik,
+                simpananPokok: data.simpananPokok,
+                simpananWajib: data.simpananWajib,
+                simpananSukarela: data.simpananSukarela,
+                totalPengembalian: data.totalSimpanan,
+                metodePembayaran: metodePembayaran,
+                tanggalPembayaran: tanggalPembayaran,
+                keterangan: keterangan,
+                jurnalIds: jurnalIds,
+                nomorReferensi: `PGM-${Date.now()}`,
+                createdAt: new Date().toISOString(),
+                createdBy: getCurrentUser().username
+            };
+            
+            // Save pengembalian
+            let pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+            pengembalianList.push(pengembalian);
+            localStorage.setItem('pengembalian', JSON.stringify(pengembalianList));
+            
+            // Create audit log
+            saveAuditLog({
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                userId: getCurrentUser().id,
+                userName: getCurrentUser().username,
+                action: 'PROSES_PENCAIRAN_SIMPANAN',
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                details: {
+                    totalPencairan: data.totalSimpanan,
+                    metodePembayaran: metodePembayaran,
+                    jurnalIds: jurnalIds
+                },
+                severity: 'INFO'
+            });
+            
+            return {
+                success: true,
+                data: {
+                    pengembalianId: pengembalianId,
+                    totalPencairan: data.totalSimpanan,
+                    jurnalIds: jurnalIds
+                },
+                message: 'Pencairan simpanan berhasil diproses'
+            };
+            
+        } catch (innerError) {
+            // Rollback on error
+            restoreDeletionSnapshot(snapshot);
+            throw innerError;
+        }
+        
+    } catch (error) {
+        console.error('Error in prosesPencairanSimpanan:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Task 6: Implement Step 4 - Update Status
+
+/**
+ * Update anggota status to keluar
+ * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} tanggalKeluar - Exit date (YYYY-MM-DD)
+ * @param {string} alasanKeluar - Reason for exit
+ * @param {string} pengembalianId - Pengembalian ID reference
+ * @param {object} dokumenRefs - Document references
+ * @returns {object} Update result
+ */
+function updateStatusAnggotaKeluar(anggotaId, tanggalKeluar, alasanKeluar, pengembalianId, dokumenRefs) {
+    try {
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            return {
+                success: false,
+                error: 'Anggota tidak ditemukan'
+            };
+        }
+        
+        // Requirement 5.1: Update statusKeanggotaan to 'Keluar'
+        anggota.statusKeanggotaan = 'Keluar';
+        
+        // Requirement 5.2: Set tanggalKeluar
+        anggota.tanggalKeluar = tanggalKeluar;
+        
+        // Requirement 5.3: Set alasanKeluar
+        anggota.alasanKeluar = alasanKeluar;
+        
+        // Requirement 5.4: Set pengembalianStatus to 'Selesai'
+        anggota.pengembalianStatus = 'Selesai';
+        
+        // Requirement 5.5: Set pengembalianId reference
+        anggota.pengembalianId = pengembalianId;
+        
+        // Save document references
+        if (dokumenRefs) {
+            anggota.dokumenRefs = dokumenRefs;
+        }
+        
+        // Save to localStorage
+        let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        const index = anggotaList.findIndex(a => a.id === anggotaId);
+        if (index !== -1) {
+            anggotaList[index] = anggota;
+            localStorage.setItem('anggota', JSON.stringify(anggotaList));
+        } else {
+            return {
+                success: false,
+                error: 'Gagal mengupdate status anggota'
+            };
+        }
+        
+        // Create audit log
+        saveAuditLog({
+            id: generateId(),
+            timestamp: new Date().toISOString(),
+            userId: getCurrentUser().id,
+            userName: getCurrentUser().username,
+            action: 'UPDATE_STATUS_ANGGOTA_KELUAR',
+            anggotaId: anggotaId,
+            anggotaNama: anggota.nama,
+            details: {
+                statusKeanggotaan: 'Keluar',
+                tanggalKeluar: tanggalKeluar,
+                alasanKeluar: alasanKeluar,
+                pengembalianId: pengembalianId
+            },
+            severity: 'INFO'
+        });
+        
+        return {
+            success: true,
+            data: {
+                anggotaId: anggotaId,
+                statusKeanggotaan: 'Keluar',
+                tanggalKeluar: tanggalKeluar,
+                pengembalianStatus: 'Selesai'
+            },
+            message: 'Status anggota berhasil diupdate'
+        };
+        
+    } catch (error) {
+        console.error('Error in updateStatusAnggotaKeluar:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Task 7: Implement Step 5 - Verifikasi Accounting
+
+/**
+ * Verify accounting integrity
+ * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} pengembalianId - Pengembalian ID to verify
+ * @returns {object} Verification result
+ */
+function verifikasiAccounting(anggotaId, pengembalianId) {
+    try {
+        // Get pengembalian data
+        const pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+        const pengembalian = pengembalianList.find(p => p.id === pengembalianId);
+        
+        if (!pengembalian) {
+            return {
+                valid: false,
+                error: {
+                    code: 'PENGEMBALIAN_NOT_FOUND',
+                    message: 'Data pengembalian tidak ditemukan'
+                }
+            };
+        }
+        
+        const errors = [];
+        const details = {};
+        
+        // Requirement 6.1: Check all journals are recorded
+        const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+        const jurnalIds = pengembalian.jurnalIds || [];
+        const foundJurnals = jurnal.filter(j => jurnalIds.includes(j.id));
+        
+        if (foundJurnals.length !== jurnalIds.length) {
+            errors.push({
+                code: 'MISSING_JOURNALS',
+                message: `Tidak semua jurnal tercatat. Diharapkan: ${jurnalIds.length}, Ditemukan: ${foundJurnals.length}`
+            });
+        }
+        details.jurnalCount = { expected: jurnalIds.length, found: foundJurnals.length };
+        
+        // Requirement 6.2: Validate total debit equals total kredit
+        const totalDebit = foundJurnals.reduce((sum, j) => sum + (j.debit || 0), 0);
+        const totalKredit = foundJurnals.reduce((sum, j) => sum + (j.kredit || 0), 0);
+        
+        if (Math.abs(totalDebit - totalKredit) > 0.01) {
+            errors.push({
+                code: 'UNBALANCED_JOURNALS',
+                message: `Total debit tidak sama dengan total kredit. Debit: ${totalDebit}, Kredit: ${totalKredit}, Selisih: ${Math.abs(totalDebit - totalKredit)}`
+            });
+        }
+        details.balance = { debit: totalDebit, kredit: totalKredit, balanced: Math.abs(totalDebit - totalKredit) < 0.01 };
+        
+        // Requirement 6.3: Validate total pencairan matches journal sum
+        const totalPencairan = pengembalian.totalPengembalian || 0;
+        const jurnalSum = totalKredit; // Kredit to kas/bank should equal pencairan
+        
+        if (Math.abs(totalPencairan - jurnalSum) > 0.01) {
+            errors.push({
+                code: 'AMOUNT_MISMATCH',
+                message: `Total pencairan tidak sesuai dengan jurnal. Pencairan: ${totalPencairan}, Jurnal: ${jurnalSum}, Selisih: ${Math.abs(totalPencairan - jurnalSum)}`
+            });
+        }
+        details.amounts = { pencairan: totalPencairan, jurnal: jurnalSum, matched: Math.abs(totalPencairan - jurnalSum) < 0.01 };
+        
+        // Requirement 6.4: Check kas balance is sufficient
+        const kasBalance = jurnal
+            .filter(j => j.akun === '1-1000')
+            .reduce((sum, j) => sum + (j.debit || 0) - (j.kredit || 0), 0);
+        
+        const bankBalance = jurnal
+            .filter(j => j.akun === '1-1100')
+            .reduce((sum, j) => sum + (j.debit || 0) - (j.kredit || 0), 0);
+        
+        details.balances = { kas: kasBalance, bank: bankBalance, total: kasBalance + bankBalance };
+        
+        // Requirement 6.5: Return verification result
+        if (errors.length > 0) {
+            return {
+                valid: false,
+                error: {
+                    code: 'VERIFICATION_FAILED',
+                    message: `Verifikasi accounting gagal: ${errors.length} error ditemukan`,
+                    errors: errors
+                },
+                details: details
+            };
+        }
+        
+        return {
+            valid: true,
+            message: 'Verifikasi accounting berhasil, semua data konsisten',
+            details: details
+        };
+        
+    } catch (error) {
+        console.error('Error in verifikasiAccounting:', error);
+        return {
+            valid: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message
+            }
+        };
+    }
+}

@@ -2384,3 +2384,1406 @@ function filterAnggotaKeluar() {
     // Render filtered table
     renderTableAnggotaKeluar(filtered);
 }
+
+// ==================== WIZARD ANGGOTA KELUAR UI FUNCTIONS ====================
+// Task 5: Implement Step 3 - Print Dokumen
+
+/**
+ * Generate printable documents for anggota keluar
+ * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} pengembalianId - ID of the pengembalian
+ * @returns {object} Document references
+ */
+function generateDokumenAnggotaKeluar(anggotaId, pengembalianId) {
+    try {
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            throw new Error('Anggota tidak ditemukan');
+        }
+        
+        // Get pengembalian data
+        const pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+        const pengembalian = pengembalianList.find(p => p.id === pengembalianId);
+        if (!pengembalian) {
+            throw new Error('Data pengembalian tidak ditemukan');
+        }
+        
+        const tanggalPrint = new Date().toISOString();
+        const suratId = `SURAT-${Date.now()}`;
+        const buktiId = `BUKTI-${Date.now()}`;
+        
+        // Requirement 4.1 & 4.3: Generate surat pengunduran diri
+        const suratHTML = generateSuratPengunduranDiri(anggota, pengembalian, suratId);
+        
+        // Requirement 4.2 & 4.4: Generate bukti pencairan
+        const buktiHTML = generateBuktiPencairan(anggota, pengembalian, buktiId);
+        
+        // Open print dialog for both documents
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Dokumen Anggota Keluar - ${anggota.nama}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        @media print {
+                            .page-break { page-break-after: always; }
+                            .no-print { display: none; }
+                        }
+                        body { font-family: Arial, sans-serif; }
+                        .document { padding: 40px; margin: 20px auto; max-width: 800px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print text-center mb-3">
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Cetak Dokumen
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.close()">
+                            <i class="bi bi-x-circle"></i> Tutup
+                        </button>
+                    </div>
+                    ${suratHTML}
+                    <div class="page-break"></div>
+                    ${buktiHTML}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+        
+        // Requirement 4.5: Return document references
+        return {
+            suratId: suratId,
+            buktiId: buktiId,
+            tanggalPrint: tanggalPrint,
+            printWindow: printWindow ? 'opened' : 'blocked'
+        };
+        
+    } catch (error) {
+        console.error('Error in generateDokumenAnggotaKeluar:', error);
+        throw error;
+    }
+}
+
+/**
+ * Generate surat pengunduran diri HTML
+ * @param {object} anggota - Anggota data
+ * @param {object} pengembalian - Pengembalian data
+ * @param {string} suratId - Surat ID
+ * @returns {string} HTML string
+ */
+function generateSuratPengunduranDiri(anggota, pengembalian, suratId) {
+    const tanggalSurat = formatDateToDisplay(new Date().toISOString().split('T')[0]);
+    
+    return `
+        <div class="document">
+            <div class="text-center mb-4">
+                <h4>SURAT PENGUNDURAN DIRI</h4>
+                <p class="mb-0">Nomor: ${suratId}</p>
+            </div>
+            
+            <p>Yang bertanda tangan di bawah ini:</p>
+            
+            <table class="table table-borderless" style="width: 100%; max-width: 600px;">
+                <tr>
+                    <td width="150">NIK</td>
+                    <td width="20">:</td>
+                    <td>${anggota.nik}</td>
+                </tr>
+                <tr>
+                    <td>Nama</td>
+                    <td>:</td>
+                    <td>${anggota.nama}</td>
+                </tr>
+                <tr>
+                    <td>Alamat</td>
+                    <td>:</td>
+                    <td>${anggota.alamat || '-'}</td>
+                </tr>
+                <tr>
+                    <td>Departemen</td>
+                    <td>:</td>
+                    <td>${anggota.departemen || '-'}</td>
+                </tr>
+            </table>
+            
+            <p class="mt-4">
+                Dengan ini menyatakan mengundurkan diri sebagai anggota koperasi 
+                terhitung sejak tanggal ${formatDateToDisplay(anggota.tanggalKeluar || new Date().toISOString().split('T')[0])}.
+            </p>
+            
+            <p>
+                <strong>Alasan pengunduran diri:</strong><br>
+                ${anggota.alasanKeluar || '-'}
+            </p>
+            
+            <p class="mt-4">
+                Demikian surat pengunduran diri ini dibuat dengan sebenarnya.
+            </p>
+            
+            <div class="row mt-5">
+                <div class="col-6">
+                    <p>Mengetahui,<br>Pengurus Koperasi</p>
+                    <br><br><br>
+                    <p>(_____________________)</p>
+                </div>
+                <div class="col-6 text-end">
+                    <p>${tanggalSurat}<br>Yang Mengundurkan Diri</p>
+                    <br><br><br>
+                    <p>${anggota.nama}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Generate bukti pencairan HTML
+ * @param {object} anggota - Anggota data
+ * @param {object} pengembalian - Pengembalian data
+ * @param {string} buktiId - Bukti ID
+ * @returns {string} HTML string
+ */
+function generateBuktiPencairan(anggota, pengembalian, buktiId) {
+    const tanggalBukti = formatDateToDisplay(pengembalian.tanggalPembayaran || new Date().toISOString().split('T')[0]);
+    
+    return `
+        <div class="document">
+            <div class="text-center mb-4">
+                <h4>BUKTI PENCAIRAN SIMPANAN</h4>
+                <p class="mb-0">Nomor: ${buktiId}</p>
+                <p class="mb-0">Referensi: ${pengembalian.nomorReferensi}</p>
+            </div>
+            
+            <p>Telah diterima dari Koperasi:</p>
+            
+            <table class="table table-borderless" style="width: 100%; max-width: 600px;">
+                <tr>
+                    <td width="150">NIK</td>
+                    <td width="20">:</td>
+                    <td>${anggota.nik}</td>
+                </tr>
+                <tr>
+                    <td>Nama</td>
+                    <td>:</td>
+                    <td>${anggota.nama}</td>
+                </tr>
+                <tr>
+                    <td>Tanggal</td>
+                    <td>:</td>
+                    <td>${tanggalBukti}</td>
+                </tr>
+                <tr>
+                    <td>Metode Pembayaran</td>
+                    <td>:</td>
+                    <td>${pengembalian.metodePembayaran}</td>
+                </tr>
+            </table>
+            
+            <h5 class="mt-4">Rincian Pencairan:</h5>
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Jenis Simpanan</th>
+                        <th class="text-end">Jumlah</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Simpanan Pokok</td>
+                        <td class="text-end">Rp ${(pengembalian.simpananPokok || 0).toLocaleString('id-ID')}</td>
+                    </tr>
+                    <tr>
+                        <td>Simpanan Wajib</td>
+                        <td class="text-end">Rp ${(pengembalian.simpananWajib || 0).toLocaleString('id-ID')}</td>
+                    </tr>
+                    <tr>
+                        <td>Simpanan Sukarela</td>
+                        <td class="text-end">Rp ${(pengembalian.simpananSukarela || 0).toLocaleString('id-ID')}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <th>Total Pencairan</th>
+                        <th class="text-end">Rp ${(pengembalian.totalPengembalian || 0).toLocaleString('id-ID')}</th>
+                    </tr>
+                </tbody>
+            </table>
+            
+            ${pengembalian.keterangan ? `
+            <p class="mt-3">
+                <strong>Keterangan:</strong><br>
+                ${pengembalian.keterangan}
+            </p>
+            ` : ''}
+            
+            <div class="row mt-5">
+                <div class="col-6">
+                    <p>Petugas Koperasi</p>
+                    <br><br><br>
+                    <p>(_____________________)</p>
+                </div>
+                <div class="col-6 text-end">
+                    <p>Penerima</p>
+                    <br><br><br>
+                    <p>${anggota.nama}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== WIZARD UI COMPONENTS ====================
+// Task 8: Implement wizard UI components
+
+/**
+ * Show wizard modal for anggota keluar process
+ * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.4, 8.5
+ * @param {string} anggotaId - ID of the anggota
+ */
+function showWizardAnggotaKeluar(anggotaId) {
+    try {
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            alert('Anggota tidak ditemukan');
+            return;
+        }
+        
+        // Create wizard instance
+        window.currentWizard = new AnggotaKeluarWizard(anggotaId);
+        
+        // Create modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="wizardAnggotaKeluarModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-magic me-2"></i>Wizard Anggota Keluar - ${anggota.nama}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" onclick="confirmCancelWizard()"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Step Indicator -->
+                            <div id="wizardStepIndicator" class="mb-4">
+                                ${window.currentWizard.renderStepIndicator()}
+                            </div>
+                            
+                            <!-- Step Content -->
+                            <div id="wizardStepContent">
+                                ${renderWizardStepContent(1, anggotaId)}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div id="wizardNavigationButtons">
+                                ${window.currentWizard.renderNavigationButtons()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('wizardAnggotaKeluarModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('wizardAnggotaKeluarModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error in showWizardAnggotaKeluar:', error);
+        alert('Gagal membuka wizard: ' + error.message);
+    }
+}
+
+/**
+ * Render wizard step content based on current step
+ * @param {number} stepNumber - Current step number (1-5)
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {string} HTML for step content
+ */
+function renderWizardStepContent(stepNumber, anggotaId) {
+    switch (stepNumber) {
+        case 1:
+            return renderStep1Validasi(anggotaId);
+        case 2:
+            return renderStep2Pencairan(anggotaId);
+        case 3:
+            return renderStep3Print(anggotaId);
+        case 4:
+            return renderStep4Update(anggotaId);
+        case 5:
+            return renderStep5Verifikasi(anggotaId);
+        default:
+            return '<div class="alert alert-danger">Step tidak valid</div>';
+    }
+}
+
+/**
+ * Render Step 1: Validasi Hutang/Piutang
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {string} HTML for step 1
+ */
+function renderStep1Validasi(anggotaId) {
+    const anggota = getAnggotaById(anggotaId);
+    
+    return `
+        <div class="step-content">
+            <h4 class="mb-3">
+                <i class="bi bi-shield-check me-2"></i>Step 1: Validasi Hutang/Piutang
+            </h4>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Sistem akan memeriksa apakah anggota memiliki kewajiban finansial yang belum diselesaikan.
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong>Informasi Anggota</strong>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td width="150"><strong>NIK</strong></td>
+                            <td>: ${anggota.nik}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nama</strong></td>
+                            <td>: ${anggota.nama}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Departemen</strong></td>
+                            <td>: ${anggota.departemen || '-'}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="validationResult" class="mt-3">
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="executeStep1Validation()">
+                        <i class="bi bi-play-circle me-2"></i>Mulai Validasi
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render Step 2: Pencairan Simpanan
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {string} HTML for step 2
+ */
+function renderStep2Pencairan(anggotaId) {
+    const calculation = hitungTotalSimpanan(anggotaId);
+    
+    if (!calculation.success) {
+        return `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Gagal menghitung simpanan: ${calculation.error}
+            </div>
+        `;
+    }
+    
+    const data = calculation.data;
+    
+    return `
+        <div class="step-content">
+            <h4 class="mb-3">
+                <i class="bi bi-cash-coin me-2"></i>Step 2: Pencairan Simpanan
+            </h4>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Sistem akan memproses pencairan simpanan dan membuat jurnal accounting otomatis.
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong>Rincian Simpanan</strong>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td width="200"><strong>Simpanan Pokok</strong></td>
+                            <td class="text-end">Rp ${data.simpananPokok.toLocaleString('id-ID')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Simpanan Wajib</strong></td>
+                            <td class="text-end">Rp ${data.simpananWajib.toLocaleString('id-ID')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Simpanan Sukarela</strong></td>
+                            <td class="text-end">Rp ${data.simpananSukarela.toLocaleString('id-ID')}</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>Total Simpanan</strong></td>
+                            <td class="text-end"><h5 class="mb-0">Rp ${data.totalSimpanan.toLocaleString('id-ID')}</h5></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong>Saldo Kas/Bank Saat Ini</strong>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td width="200"><strong>Saldo Kas</strong></td>
+                            <td class="text-end">Rp ${data.kasBalance.toLocaleString('id-ID')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Saldo Bank</strong></td>
+                            <td class="text-end">Rp ${data.bankBalance.toLocaleString('id-ID')}</td>
+                        </tr>
+                        <tr class="table-info">
+                            <td><strong>Total Tersedia</strong></td>
+                            <td class="text-end"><strong>Rp ${data.totalAvailable.toLocaleString('id-ID')}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <form id="formPencairanSimpanan">
+                <div class="mb-3">
+                    <label for="metodePembayaran" class="form-label">
+                        Metode Pembayaran <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="metodePembayaran" required>
+                        <option value="">-- Pilih Metode --</option>
+                        <option value="Kas">Kas</option>
+                        <option value="Transfer Bank">Transfer Bank</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tanggalPembayaran" class="form-label">
+                        Tanggal Pembayaran <span class="text-danger">*</span>
+                    </label>
+                    <input type="date" class="form-control" id="tanggalPembayaran" 
+                           value="${getCurrentDateISO()}" max="${getCurrentDateISO()}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="keteranganPencairan" class="form-label">
+                        Keterangan (Opsional)
+                    </label>
+                    <textarea class="form-control" id="keteranganPencairan" rows="2" 
+                              placeholder="Catatan tambahan"></textarea>
+                </div>
+                
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="executeStep2Pencairan()">
+                        <i class="bi bi-check-circle me-2"></i>Proses Pencairan
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+/**
+ * Render Step 3: Print Dokumen
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {string} HTML for step 3
+ */
+function renderStep3Print(anggotaId) {
+    const anggota = getAnggotaById(anggotaId);
+    
+    return `
+        <div class="step-content">
+            <h4 class="mb-3">
+                <i class="bi bi-printer me-2"></i>Step 3: Print Dokumen
+            </h4>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Sistem akan mencetak surat pengunduran diri dan bukti pencairan simpanan.
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong>Dokumen yang Akan Dicetak</strong>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-file-earmark-text me-2"></i>Surat Pengunduran Diri
+                                </h6>
+                            </div>
+                            <p class="mb-1 text-muted">Dokumen resmi pengunduran diri dari koperasi</p>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-receipt me-2"></i>Bukti Pencairan Simpanan
+                                </h6>
+                            </div>
+                            <p class="mb-1 text-muted">Rincian lengkap pencairan simpanan</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button type="button" class="btn btn-primary btn-lg" onclick="executeStep3Print()">
+                    <i class="bi bi-printer me-2"></i>Cetak Dokumen
+                </button>
+            </div>
+            
+            <div id="printResult" class="mt-3"></div>
+        </div>
+    `;
+}
+
+/**
+ * Render Step 4: Update Status
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {string} HTML for step 4
+ */
+function renderStep4Update(anggotaId) {
+    const anggota = getAnggotaById(anggotaId);
+    
+    return `
+        <div class="step-content">
+            <h4 class="mb-3">
+                <i class="bi bi-person-check me-2"></i>Step 4: Update Status Anggota
+            </h4>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Sistem akan mengupdate status anggota menjadi "Keluar" dan menyimpan informasi terkait.
+            </div>
+            
+            <form id="formUpdateStatus">
+                <div class="mb-3">
+                    <label for="tanggalKeluar" class="form-label">
+                        Tanggal Keluar <span class="text-danger">*</span>
+                    </label>
+                    <input type="date" class="form-control" id="tanggalKeluar" 
+                           value="${getCurrentDateISO()}" max="${getCurrentDateISO()}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="alasanKeluar" class="form-label">
+                        Alasan Keluar <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="alasanKeluar" rows="3" 
+                              placeholder="Masukkan alasan anggota keluar dari koperasi" required></textarea>
+                    <div class="form-text">Minimal 10 karakter</div>
+                </div>
+                
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="executeStep4Update()">
+                        <i class="bi bi-check-circle me-2"></i>Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+/**
+ * Render Step 5: Verifikasi Accounting
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {string} HTML for step 5
+ */
+function renderStep5Verifikasi(anggotaId) {
+    return `
+        <div class="step-content">
+            <h4 class="mb-3">
+                <i class="bi bi-calculator me-2"></i>Step 5: Verifikasi Accounting
+            </h4>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Sistem akan memverifikasi bahwa semua jurnal tercatat dengan benar dan tidak ada selisih keuangan.
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong>Pemeriksaan yang Akan Dilakukan</strong>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-primary me-2"></i>
+                            Semua jurnal pencairan tercatat
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-primary me-2"></i>
+                            Total debit sama dengan total kredit
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-primary me-2"></i>
+                            Total pencairan sesuai dengan jurnal
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-primary me-2"></i>
+                            Saldo kas/bank mencukupi
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="verificationResult" class="mt-3">
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="executeStep5Verification()">
+                        <i class="bi bi-play-circle me-2"></i>Mulai Verifikasi
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== WIZARD STEP EXECUTION HANDLERS ====================
+
+/**
+ * Execute Step 1: Validation
+ */
+async function executeStep1Validation() {
+    try {
+        const resultDiv = document.getElementById('validationResult');
+        resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Memvalidasi...</p></div>';
+        
+        const result = await window.currentWizard.executeStep1Validation();
+        
+        if (result.valid) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Validasi Berhasil!</strong><br>
+                    ${result.message}
+                </div>
+            `;
+            
+            // Update navigation buttons
+            updateWizardUI();
+        } else {
+            let errorHTML = `
+                <div class="alert alert-danger">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Validasi Gagal
+                    </h6>
+                    <p class="mb-2">${result.error.message}</p>
+            `;
+            
+            if (result.error.details) {
+                const details = result.error.details;
+                errorHTML += '<hr><strong>Detail:</strong><ul class="mb-0">';
+                
+                if (details.pinjamanCount > 0) {
+                    errorHTML += `<li>Pinjaman Aktif: ${details.pinjamanCount} (Total: Rp ${details.totalPinjaman.toLocaleString('id-ID')})</li>`;
+                }
+                if (details.piutangCount > 0) {
+                    errorHTML += `<li>Piutang Aktif: ${details.piutangCount} (Total: Rp ${details.totalPiutang.toLocaleString('id-ID')})</li>`;
+                }
+                
+                errorHTML += '</ul>';
+            }
+            
+            errorHTML += '</div>';
+            resultDiv.innerHTML = errorHTML;
+        }
+        
+    } catch (error) {
+        console.error('Error in executeStep1Validation:', error);
+        document.getElementById('validationResult').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                Error: ${error.message}
+            </div>
+        `;
+    }
+}
+
+/**
+ * Execute Step 2: Pencairan
+ */
+async function executeStep2Pencairan() {
+    try {
+        const form = document.getElementById('formPencairanSimpanan');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const metodePembayaran = document.getElementById('metodePembayaran').value;
+        const tanggalPembayaran = document.getElementById('tanggalPembayaran').value;
+        const keterangan = document.getElementById('keteranganPencairan').value;
+        
+        // Disable form
+        const submitBtn = event.target;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+        
+        const result = await window.currentWizard.executeStep2Pencairan(metodePembayaran, tanggalPembayaran, keterangan);
+        
+        if (result.success) {
+            // Show success message
+            form.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Pencairan Berhasil!</strong><br>
+                    ${result.message}<br>
+                    <small>Pengembalian ID: ${result.data.pengembalianId}</small>
+                </div>
+            `;
+            
+            // Update navigation buttons
+            updateWizardUI();
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Proses Pencairan';
+            
+            alert('Gagal memproses pencairan: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error in executeStep2Pencairan:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+/**
+ * Execute Step 3: Print
+ */
+async function executeStep3Print() {
+    try {
+        const resultDiv = document.getElementById('printResult');
+        resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Menyiapkan dokumen...</p></div>';
+        
+        const result = await window.currentWizard.executeStep3Print();
+        
+        if (result.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Dokumen Berhasil Dicetak!</strong><br>
+                    Silakan periksa jendela print yang terbuka.
+                </div>
+            `;
+            
+            // Update navigation buttons
+            updateWizardUI();
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Gagal mencetak dokumen: ${result.error}
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error in executeStep3Print:', error);
+        document.getElementById('printResult').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                Error: ${error.message}
+            </div>
+        `;
+    }
+}
+
+/**
+ * Execute Step 4: Update Status
+ */
+async function executeStep4Update() {
+    try {
+        const form = document.getElementById('formUpdateStatus');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const tanggalKeluar = document.getElementById('tanggalKeluar').value;
+        const alasanKeluar = document.getElementById('alasanKeluar').value;
+        
+        if (alasanKeluar.trim().length < 10) {
+            alert('Alasan keluar minimal 10 karakter');
+            return;
+        }
+        
+        // Disable form
+        const submitBtn = event.target;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+        
+        const result = await window.currentWizard.executeStep4Update(tanggalKeluar, alasanKeluar);
+        
+        if (result.success) {
+            // Show success message
+            form.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Status Berhasil Diupdate!</strong><br>
+                    ${result.message}
+                </div>
+            `;
+            
+            // Update navigation buttons
+            updateWizardUI();
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Update Status';
+            
+            alert('Gagal mengupdate status: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error in executeStep4Update:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+/**
+ * Execute Step 5: Verification
+ */
+async function executeStep5Verification() {
+    try {
+        const resultDiv = document.getElementById('verificationResult');
+        resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Memverifikasi...</p></div>';
+        
+        const result = await window.currentWizard.executeStep5Verification();
+        
+        if (result.valid) {
+            let detailsHTML = '';
+            if (result.details) {
+                detailsHTML = `
+                    <hr>
+                    <strong>Detail Verifikasi:</strong>
+                    <ul class="mb-0">
+                        <li>Jurnal: ${result.details.jurnalCount.found}/${result.details.jurnalCount.expected} tercatat</li>
+                        <li>Balance: Debit Rp ${result.details.balance.debit.toLocaleString('id-ID')} = Kredit Rp ${result.details.balance.kredit.toLocaleString('id-ID')}</li>
+                        <li>Pencairan: Rp ${result.details.amounts.pencairan.toLocaleString('id-ID')} = Jurnal Rp ${result.details.amounts.jurnal.toLocaleString('id-ID')}</li>
+                        <li>Saldo Kas: Rp ${result.details.balances.kas.toLocaleString('id-ID')}</li>
+                        <li>Saldo Bank: Rp ${result.details.balances.bank.toLocaleString('id-ID')}</li>
+                    </ul>
+                `;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Verifikasi Berhasil!</strong><br>
+                    ${result.message}
+                    ${detailsHTML}
+                </div>
+            `;
+            
+            // Update navigation buttons
+            updateWizardUI();
+        } else {
+            let errorHTML = `
+                <div class="alert alert-danger">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Verifikasi Gagal
+                    </h6>
+                    <p class="mb-2">${result.error.message}</p>
+            `;
+            
+            if (result.error.errors && result.error.errors.length > 0) {
+                errorHTML += '<hr><strong>Error:</strong><ul class="mb-0">';
+                result.error.errors.forEach(err => {
+                    errorHTML += `<li>${err.message}</li>`;
+                });
+                errorHTML += '</ul>';
+            }
+            
+            errorHTML += '</div>';
+            resultDiv.innerHTML = errorHTML;
+        }
+        
+    } catch (error) {
+        console.error('Error in executeStep5Verification:', error);
+        document.getElementById('verificationResult').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                Error: ${error.message}
+            </div>
+        `;
+    }
+}
+
+// ==================== WIZARD NAVIGATION AND UTILITIES ====================
+
+/**
+ * Update wizard UI (step indicator and navigation buttons)
+ */
+function updateWizardUI() {
+    // Update step indicator
+    const stepIndicatorDiv = document.getElementById('wizardStepIndicator');
+    if (stepIndicatorDiv && window.currentWizard) {
+        stepIndicatorDiv.innerHTML = window.currentWizard.renderStepIndicator();
+    }
+    
+    // Update navigation buttons
+    const navButtonsDiv = document.getElementById('wizardNavigationButtons');
+    if (navButtonsDiv && window.currentWizard) {
+        navButtonsDiv.innerHTML = window.currentWizard.renderNavigationButtons();
+    }
+}
+
+/**
+ * Navigate to next step
+ */
+function wizardNextStep() {
+    if (!window.currentWizard) return;
+    
+    const result = window.currentWizard.nextStep();
+    if (result.success) {
+        // Render new step content
+        const contentDiv = document.getElementById('wizardStepContent');
+        if (contentDiv) {
+            contentDiv.innerHTML = renderWizardStepContent(
+                window.currentWizard.currentStep,
+                window.currentWizard.anggotaId
+            );
+        }
+        
+        // Update UI
+        updateWizardUI();
+    } else {
+        alert(result.error);
+    }
+}
+
+/**
+ * Navigate to previous step
+ */
+function wizardPreviousStep() {
+    if (!window.currentWizard) return;
+    
+    const result = window.currentWizard.previousStep();
+    if (result.success) {
+        // Render new step content
+        const contentDiv = document.getElementById('wizardStepContent');
+        if (contentDiv) {
+            contentDiv.innerHTML = renderWizardStepContent(
+                window.currentWizard.currentStep,
+                window.currentWizard.anggotaId
+            );
+        }
+        
+        // Update UI
+        updateWizardUI();
+    } else {
+        alert(result.error);
+    }
+}
+
+/**
+ * Complete wizard
+ */
+function completeWizard() {
+    if (!window.currentWizard) return;
+    
+    const result = window.currentWizard.complete();
+    if (result.success) {
+        // Show success message
+        const modal = bootstrap.Modal.getInstance(document.getElementById('wizardAnggotaKeluarModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Show success notification
+        alert('Wizard berhasil diselesaikan! Anggota telah diproses keluar dari koperasi.');
+        
+        // Refresh page or update UI
+        if (typeof renderLaporanAnggotaKeluar === 'function') {
+            const contentArea = document.getElementById('content-area');
+            if (contentArea) {
+                contentArea.innerHTML = renderLaporanAnggotaKeluar();
+            }
+        } else {
+            location.reload();
+        }
+    } else {
+        alert('Gagal menyelesaikan wizard: ' + result.error);
+    }
+}
+
+/**
+ * Confirm cancel wizard (Requirement 8.5)
+ */
+function confirmCancelWizard() {
+    if (!window.currentWizard) return;
+    
+    const confirmed = confirm(
+        'Apakah Anda yakin ingin membatalkan proses wizard?\n\n' +
+        'Semua progress yang belum disimpan akan hilang.'
+    );
+    
+    if (confirmed) {
+        const result = window.currentWizard.cancel('User cancelled');
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('wizardAnggotaKeluarModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Clean up
+        window.currentWizard = null;
+    }
+}
+
+// ==================== WIZARD CSS STYLES ====================
+
+/**
+ * Inject wizard CSS styles into the page
+ */
+function injectWizardStyles() {
+    // Check if styles already injected
+    if (document.getElementById('wizardStyles')) return;
+    
+    const styleElement = document.createElement('style');
+    styleElement.id = 'wizardStyles';
+    styleElement.textContent = `
+        /* Wizard Step Indicator */
+        .wizard-step-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        
+        .wizard-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .wizard-step .step-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        
+        .wizard-step .step-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .wizard-step.completed .step-icon {
+            color: #28a745;
+        }
+        
+        .wizard-step.completed .step-label {
+            color: #28a745;
+        }
+        
+        .wizard-step.active .step-icon {
+            color: #007bff;
+        }
+        
+        .wizard-step.active .step-label {
+            color: #007bff;
+            font-weight: 600;
+        }
+        
+        .wizard-step.pending .step-icon {
+            color: #6c757d;
+        }
+        
+        .wizard-step.pending .step-label {
+            color: #6c757d;
+        }
+        
+        .step-arrow {
+            flex: 0 0 30px;
+            text-align: center;
+            color: #dee2e6;
+            font-size: 1.5rem;
+        }
+        
+        /* Wizard Navigation Buttons */
+        .wizard-navigation-buttons {
+            width: 100%;
+        }
+        
+        /* Step Content */
+        .step-content {
+            min-height: 400px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .wizard-step-indicator {
+                flex-direction: column;
+            }
+            
+            .wizard-step {
+                margin-bottom: 15px;
+            }
+            
+            .step-arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+        }
+    `;
+    
+    document.head.appendChild(styleElement);
+}
+
+// Inject styles when this script loads
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectWizardStyles);
+    } else {
+        injectWizardStyles();
+    }
+}
+
+// ==================== ANGGOTA KELUAR PAGE RENDERING ====================
+// Task 11: Integrate wizard with anggota keluar menu
+
+/**
+ * Render Anggota Keluar Page
+ * Main page for managing member exits with wizard integration
+ */
+function renderAnggotaKeluarPage() {
+    const content = document.getElementById('mainContent');
+    
+    // Get all anggota
+    const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+    
+    // Separate active and keluar anggota
+    const anggotaAktif = anggotaList.filter(a => 
+        a.status === 'Aktif' && 
+        (!a.pengembalianStatus || a.pengembalianStatus === '')
+    );
+    
+    const anggotaKeluar = anggotaList.filter(a => 
+        a.status === 'Nonaktif' || 
+        a.pengembalianStatus === 'Pending' || 
+        a.pengembalianStatus === 'Selesai'
+    );
+    
+    content.innerHTML = `
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2 style="color: #2d6a4f; font-weight: 700;">
+                        <i class="bi bi-box-arrow-right me-2"></i>Manajemen Anggota Keluar
+                    </h2>
+                    <p class="text-muted">Kelola proses anggota keluar dari koperasi dengan wizard 5 langkah</p>
+                </div>
+            </div>
+            
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Anggota Aktif</h6>
+                            <h3 class="mb-0">${anggotaAktif.length}</h3>
+                            <small>Dapat diproses keluar</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <h6 class="card-title">Pending Pengembalian</h6>
+                            <h3 class="mb-0">${anggotaKeluar.filter(a => a.pengembalianStatus === 'Pending').length}</h3>
+                            <small>Menunggu proses pengembalian</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Selesai</h6>
+                            <h3 class="mb-0">${anggotaKeluar.filter(a => a.pengembalianStatus === 'Selesai').length}</h3>
+                            <small>Proses keluar selesai</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" id="anggotaKeluarTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="aktif-tab" data-bs-toggle="tab" data-bs-target="#aktif" type="button" role="tab">
+                        <i class="bi bi-people me-1"></i>Anggota Aktif (${anggotaAktif.length})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="keluar-tab" data-bs-toggle="tab" data-bs-target="#keluar" type="button" role="tab">
+                        <i class="bi bi-box-arrow-right me-1"></i>Anggota Keluar (${anggotaKeluar.length})
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content" id="anggotaKeluarTabContent">
+                <!-- Anggota Aktif Tab -->
+                <div class="tab-pane fade show active" id="aktif" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-people me-2"></i>Daftar Anggota Aktif
+                        </div>
+                        <div class="card-body">
+                            ${anggotaAktif.length === 0 ? `
+                                <div class="alert alert-info text-center">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Tidak ada anggota aktif.
+                                </div>
+                            ` : `
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>No</th>
+                                                <th>NIK</th>
+                                                <th>Nama</th>
+                                                <th>Departemen</th>
+                                                <th>Tipe</th>
+                                                <th>Status</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${anggotaAktif.map((anggota, index) => `
+                                                <tr>
+                                                    <td>${index + 1}</td>
+                                                    <td>${anggota.nik}</td>
+                                                    <td>${anggota.nama}</td>
+                                                    <td>${anggota.departemen || '-'}</td>
+                                                    <td>${anggota.tipeAnggota || 'Umum'}</td>
+                                                    <td><span class="badge bg-success">Aktif</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-warning" 
+                                                                onclick="showWizardAnggotaKeluar('${anggota.id}')"
+                                                                title="Proses Keluar dengan Wizard">
+                                                            <i class="bi bi-magic me-1"></i>Proses Keluar (Wizard)
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Anggota Keluar Tab -->
+                <div class="tab-pane fade" id="keluar" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <i class="bi bi-box-arrow-right me-2"></i>Daftar Anggota Keluar
+                        </div>
+                        <div class="card-body">
+                            ${anggotaKeluar.length === 0 ? `
+                                <div class="alert alert-info text-center">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Tidak ada anggota keluar.
+                                </div>
+                            ` : `
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>No</th>
+                                                <th>NIK</th>
+                                                <th>Nama</th>
+                                                <th>Departemen</th>
+                                                <th>Tanggal Keluar</th>
+                                                <th>Status Pengembalian</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${anggotaKeluar.map((anggota, index) => `
+                                                <tr>
+                                                    <td>${index + 1}</td>
+                                                    <td>${anggota.nik}</td>
+                                                    <td>${anggota.nama}</td>
+                                                    <td>${anggota.departemen || '-'}</td>
+                                                    <td>${anggota.tanggalKeluar ? formatDateToDisplay(anggota.tanggalKeluar) : '-'}</td>
+                                                    <td>
+                                                        ${anggota.pengembalianStatus === 'Selesai' 
+                                                            ? '<span class="badge bg-success">Selesai</span>'
+                                                            : anggota.pengembalianStatus === 'Pending'
+                                                            ? '<span class="badge bg-warning">Pending</span>'
+                                                            : '<span class="badge bg-secondary">-</span>'
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        ${anggota.pengembalianStatus === 'Pending' ? `
+                                                            <button class="btn btn-sm btn-primary" 
+                                                                    onclick="showWizardAnggotaKeluar('${anggota.id}')"
+                                                                    title="Lanjutkan Proses dengan Wizard">
+                                                                <i class="bi bi-play-circle me-1"></i>Lanjutkan
+                                                            </button>
+                                                        ` : anggota.pengembalianStatus === 'Selesai' ? `
+                                                            <button class="btn btn-sm btn-info" 
+                                                                    onclick="handleCetakBuktiAnggotaKeluar('${anggota.id}')"
+                                                                    title="Cetak Bukti">
+                                                                <i class="bi bi-printer me-1"></i>Cetak
+                                                            </button>
+                                                        ` : `
+                                                            <button class="btn btn-sm btn-warning" 
+                                                                    onclick="showWizardAnggotaKeluar('${anggota.id}')"
+                                                                    title="Proses dengan Wizard">
+                                                                <i class="bi bi-magic me-1"></i>Proses
+                                                            </button>
+                                                        `}
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Info Card -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <i class="bi bi-info-circle me-2"></i>Tentang Wizard Anggota Keluar
+                        </div>
+                        <div class="card-body">
+                            <h6>Wizard 5 Langkah untuk Proses Anggota Keluar:</h6>
+                            <ol class="mb-0">
+                                <li><strong>Validasi Hutang/Piutang</strong> - Memastikan tidak ada pinjaman atau hutang aktif</li>
+                                <li><strong>Pencairan Simpanan</strong> - Menghitung dan memproses pengembalian simpanan</li>
+                                <li><strong>Print Dokumen</strong> - Mencetak surat pengunduran diri dan bukti pencairan</li>
+                                <li><strong>Update Status</strong> - Mengubah status anggota menjadi keluar</li>
+                                <li><strong>Verifikasi Accounting</strong> - Memverifikasi semua jurnal tercatat dengan benar</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}

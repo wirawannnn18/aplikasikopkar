@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test: Wizard Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .code-block {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+        .summary-card {
+            border-left: 4px solid;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .summary-pass {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .summary-fail {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-magic me-2"></i>
+            Integration Test: Wizard Anggota Keluar
+        </h1>
+        
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle me-2"></i>Task 13: Comprehensive Integration Testing</h5>
+            <p class="mb-2">Testing complete wizard flow with all 5 steps:</p>
+            <ol class="mb-0">
+                <li>Validasi Hutang/Piutang</li>
+                <li>Pencairan Simpanan</li>
+                <li>Print Dokumen</li>
+                <li>Update Status</li>
+                <li>Verifikasi Accounting</li>
+            </ol>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h4>Test Controls</h4>
+            <button class="btn btn-primary me-2" onclick="runAllTests()">
+                <i class="bi bi-play-fill me-1"></i>Run All Tests
+            </button>
+            <button class="btn btn-secondary me-2" onclick="setupTestData()">
+                <i class="bi bi-database-fill-add me-1"></i>Setup Test Data
+            </button>
+            <button class="btn btn-danger" onclick="cleanupTestData()">
+                <i class="bi bi-trash me-1"></i>Cleanup Test Data
+            </button>
+        </div>
+
+        <!-- Test Summary -->
+        <div id="testSummary"></div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Include required JS files -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    <script src="js/anggotaKeluarWizard.js"></script>
+
+    <script>
+        // Test state
+        let testResults = [];
+        let testData = {
+            anggotaWithDebt: null,
+            anggotaWithoutDebt: null,
+            wizardWithDebt: null,
+            wizardWithoutDebt: null
+        };
+
+        // Mock current user
+        localStorage.setItem('currentUser', JSON.stringify({
+            id: 'TEST-USER-001',
+            username: 'test_admin',
+            role: 'admin'
+        }));
+
+        /**
+         * Setup test data
+         */
+        function setupTestData() {
+            logInfo('Setting up test data...');
+            
+            try {
+                // Clear existing data
+                localStorage.removeItem('anggota');
+                localStorage.removeItem('pinjaman');
+                localStorage.removeItem('piutang');
+                localStorage.removeItem('simpananPokok');
+                localStorage.removeItem('simpananWajib');
+                localStorage.removeItem('simpananSukarela');
+                localStorage.removeItem('jurnal');
+                localStorage.removeItem('pengembalian');
+                localStorage.removeItem('auditLog');
+                
+                // Create anggota WITH debt
+                const anggotaWithDebt = {
+                    id: 'ANGGOTA-DEBT-001',
+                    nik: '1234567890123',
+                    nama: 'Test Anggota With Debt',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalDaftar: '2024-01-01'
+                };
+                
+                // Create anggota WITHOUT debt
+                const anggotaWithoutDebt = {
+                    id: 'ANGGOTA-CLEAN-001',
+                    nik: '9876543210987',
+                    nama: 'Test Anggota Clean',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalDaftar: '2024-01-01'
+                };
+                
+                // Save anggota
+                localStorage.setItem('anggota', JSON.stringify([anggotaWithDebt, anggotaWithoutDebt]));
+                
+                // Create active loan for anggota with debt
+                const pinjaman = [{
+                    id: 'PINJAMAN-001',
+                    anggotaId: 'ANGGOTA-DEBT-001',
+                    jumlahPinjaman: 1000000,
+                    sisaPinjaman: 500000,
+                    tanggal: '2024-01-15'
+                }];
+                localStorage.setItem('pinjaman', JSON.stringify(pinjaman));
+                
+                // Create simpanan for anggota without debt
+                const simpananPokok = [{
+                    id: 'SP-001',
+                    anggotaId: 'ANGGOTA-CLEAN-001',
+                    jumlah: 100000,
+                    tanggal: '2024-01-01'
+                }];
+                
+                const simpananWajib = [{
+                    id: 'SW-001',
+                    anggotaId: 'ANGGOTA-CLEAN-001',
+                    jumlah: 50000,
+                    tanggal: '2024-01-01'
+                }];
+                
+                const simpananSukarela = [{
+                    id: 'SS-001',
+                    anggotaId: 'ANGGOTA-CLEAN-001',
+                    jumlah: 200000,
+                    tanggal: '2024-01-01'
+                }];
+                
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+                localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+                
+                // Create initial kas balance
+                const jurnal = [{
+                    id: 'JRN-INIT-001',
+                    tanggal: '2024-01-01',
+                    keterangan: 'Saldo Awal Kas',
+                    entries: [
+                        { akun: '1-1000', debit: 10000000, kredit: 0 }
+                    ]
+                }];
+                localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                
+                // Initialize empty arrays
+                localStorage.setItem('piutang', JSON.stringify([]));
+                localStorage.setItem('pengembalian', JSON.stringify([]));
+                localStorage.setItem('auditLog', JSON.stringify([]));
+                
+                testData.anggotaWithDebt = anggotaWithDebt;
+                testData.anggotaWithoutDebt = anggotaWithoutDebt;
+                
+                logSuccess('Test data setup complete');
+                
+            } catch (error) {
+                logError('Failed to setup test data: ' + error.message);
+            }
+        }
+
+        /**
+         * Cleanup test data
+         */
+        function cleanupTestData() {
+            logInfo('Cleaning up test data...');
+            
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('pinjaman');
+            localStorage.removeItem('piutang');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            localStorage.removeItem('simpananSukarela');
+            localStorage.removeItem('jurnal');
+            localStorage.removeItem('pengembalian');
+            localStorage.removeItem('auditLog');
+            
+            testData = {
+                anggotaWithDebt: null,
+                anggotaWithoutDebt: null,
+                wizardWithDebt: null,
+                wizardWithoutDebt: null
+            };
+            
+            logSuccess('Test data cleaned up');
+        }
+
+        /**
+         * Run all integration tests
+         */
+        async function runAllTests() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('testSummary').innerHTML = '';
+            
+            logInfo('Starting integration tests...');
+            
+            // Setup test data first
+            setupTestData();
+            
+            // Run tests
+            await test1_WizardWithDebtBlocks();
+            await test2_WizardWithoutDebtCompletes();
+            await test3_NavigationValidation();
+            await test4_ErrorHandlingAndRollback();
+            await test5_AuditLogCreation();
+            await test6_UIRendering();
+            
+            // Display summary
+            displaySummary();
+        }
+
+        /**
+         * Test 1: Wizard with anggota having debt should block
+         */
+        async function test1_WizardWithDebtBlocks() {
+            const testName = 'Test 1: Wizard blocks when anggota has debt';
+            logTestStart(testName);
+            
+            try {
+                // Create wizard for anggota with debt
+                const wizard = new AnggotaKeluarWizard('ANGGOTA-DEBT-001');
+                testData.wizardWithDebt = wizard;
+                
+                // Execute Step 1 validation
+                const validationResult = await wizard.executeStep1Validation();
+                
+                // Assertions
+                assert(!validationResult.valid, 'Validation should fail for anggota with debt');
+                assert(validationResult.error, 'Should have error details');
+                assert(validationResult.error.code === 'OUTSTANDING_DEBT_EXISTS', 'Error code should be OUTSTANDING_DEBT_EXISTS');
+                assert(validationResult.error.details.pinjamanCount > 0, 'Should report active loans');
+                assert(validationResult.error.details.totalPinjaman === 500000, 'Should report correct loan amount');
+                
+                // Check that step is not marked as completed
+                assert(!wizard.completedSteps.includes(1), 'Step 1 should not be marked as completed');
+                
+                // Check that cannot navigate to next step
+                assert(!wizard.canNavigateNext(), 'Should not be able to navigate to next step');
+                
+                logTestPass(testName, {
+                    validationResult: validationResult,
+                    completedSteps: wizard.completedSteps,
+                    canNavigateNext: wizard.canNavigateNext()
+                });
+                
+            } catch (error) {
+                logTestFail(testName, error);
+            }
+        }
+
+        /**
+         * Test 2: Wizard with anggota without debt should complete successfully
+         */
+        async function test2_WizardWithoutDebtCompletes() {
+            const testName = 'Test 2: Complete wizard flow for anggota without debt';
+            logTestStart(testName);
+            
+            try {
+                // Create wizard for anggota without debt
+                const wizard = new AnggotaKeluarWizard('ANGGOTA-CLEAN-001');
+                testData.wizardWithoutDebt = wizard;
+                
+                // Step 1: Validation
+                const validationResult = await wizard.executeStep1Validation();
+                assert(validationResult.valid, 'Validation should pass for anggota without debt');
+                assert(wizard.completedSteps.includes(1), 'Step 1 should be marked as completed');
+                assert(wizard.canNavigateNext(), 'Should be able to navigate to next step');
+                
+                // Navigate to Step 2
+                const navResult = wizard.nextStep();
+                assert(navResult.success, 'Navigation to step 2 should succeed');
+                assert(wizard.currentStep === 2, 'Current step should be 2');
+                
+                // Step 2: Pencairan
+                const pencairanResult = await wizard.executeStep2Pencairan('Kas', '2024-12-09', 'Test pencairan');
+                assert(pencairanResult.success, 'Pencairan should succeed');
+                assert(pencairanResult.data.totalPencairan === 350000, 'Total pencairan should be 350000');
+                assert(pencairanResult.data.jurnalIds.length === 3, 'Should create 3 journals');
+                assert(wizard.completedSteps.includes(2), 'Step 2 should be marked as completed');
+                
+                // Navigate to Step 3
+                wizard.nextStep();
+                assert(wizard.currentStep === 3, 'Current step should be 3');
+                
+                // Step 3: Print (mock)
+                const printResult = await wizard.executeStep3Print();
+                assert(printResult.success, 'Print should succeed');
+                assert(wizard.completedSteps.includes(3), 'Step 3 should be marked as completed');
+                
+                // Navigate to Step 4
+                wizard.nextStep();
+                assert(wizard.currentStep === 4, 'Current step should be 4');
+                
+                // Step 4: Update Status
+                const updateResult = await wizard.executeStep4Update('2024-12-09', 'Mengundurkan diri');
+                assert(updateResult.success, 'Status update should succeed');
+                assert(wizard.completedSteps.includes(4), 'Step 4 should be marked as completed');
+                
+                // Verify anggota status updated
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]')
+                    .find(a => a.id === 'ANGGOTA-CLEAN-001');
+                assert(anggota.statusKeanggotaan === 'Keluar', 'Status should be Keluar');
+                assert(anggota.tanggalKeluar === '2024-12-09', 'tanggalKeluar should be set');
+                
+                // Navigate to Step 5
+                wizard.nextStep();
+                assert(wizard.currentStep === 5, 'Current step should be 5');
+                
+                // Step 5: Verification
+                const verificationResult = await wizard.executeStep5Verification();
+                assert(verificationResult.valid, 'Verification should pass');
+                assert(wizard.completedSteps.includes(5), 'Step 5 should be marked as completed');
+                
+                // Complete wizard
+                const completeResult = wizard.complete();
+                assert(completeResult.success, 'Wizard completion should succeed');
+                assert(wizard.status === 'completed', 'Wizard status should be completed');
+                
+                logTestPass(testName, {
+                    validationResult: validationResult,
+                    pencairanResult: pencairanResult,
+                    updateResult: updateResult,
+                    verificationResult: verificationResult,
+                    completeResult: completeResult,
+                    finalStatus: wizard.status
+                });
+                
+            } catch (error) {
+                logTestFail(testName, error);
+            }
+        }
+
+        /**
+         * Test 3: Navigation validation
+         */
+        async function test3_NavigationValidation() {
+            const testName = 'Test 3: Navigation validation and step enforcement';
+            logTestStart(testName);
+            
+            try {
+                const wizard = new AnggotaKeluarWizard('ANGGOTA-CLEAN-001');
+                
+                // Test: Cannot skip steps
+                const skipResult = wizard.goToStep(3);
+                assert(!skipResult.success, 'Should not be able to skip to step 3');
+                assert(wizard.currentStep === 1, 'Should remain on step 1');
+                
+                // Test: Cannot go to next without completing current
+                const nextResult = wizard.nextStep();
+                assert(!nextResult.success, 'Should not be able to go next without completing step');
+                
+                // Complete step 1
+                await wizard.executeStep1Validation();
+                
+                // Test: Can now navigate next
+                const nextResult2 = wizard.nextStep();
+                assert(nextResult2.success, 'Should be able to navigate next after completing step');
+                assert(wizard.currentStep === 2, 'Should be on step 2');
+                
+                // Test: Can navigate back
+                const prevResult = wizard.previousStep();
+                assert(prevResult.success, 'Should be able to navigate back');
+                assert(wizard.currentStep === 1, 'Should be back on step 1');
+                
+                // Test: Can navigate to completed step
+                wizard.nextStep();
+                const gotoResult = wizard.goToStep(1);
+                assert(gotoResult.success, 'Should be able to go to completed step');
+                assert(wizard.currentStep === 1, 'Should be on step 1');
+                
+                logTestPass(testName, {
+                    skipResult: skipResult,
+                    navigationTests: 'All passed'
+                });
+                
+            } catch (error) {
+                logTestFail(testName, error);
+            }
+        }
+
+        /**
+         * Test 4: Error handling and rollback
+         */
+        async function test4_ErrorHandlingAndRollback() {
+            const testName = 'Test 4: Error handling and rollback mechanism';
+            logTestStart(testName);
+            
+            try {
+                const wizard = new AnggotaKeluarWizard('ANGGOTA-CLEAN-001');
+                
+                // Create snapshot
+                const snapshot = wizard.saveSnapshot();
+                assert(snapshot !== null, 'Snapshot should be created');
+                assert(snapshot.timestamp, 'Snapshot should have timestamp');
+                assert(wizard.snapshot !== null, 'Wizard should store snapshot');
+                
+                // Make some changes
+                await wizard.executeStep1Validation();
+                wizard.nextStep();
+                
+                // Test rollback
+                const rollbackResult = wizard.rollback();
+                assert(rollbackResult === true, 'Rollback should succeed');
+                
+                // Verify data restored (check audit log for rollback event)
+                const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const rollbackLog = auditLog.find(log => log.action === 'ROLLBACK_EXECUTED');
+                assert(rollbackLog !== undefined, 'Rollback should be logged');
+                
+                logTestPass(testName, {
+                    snapshotCreated: snapshot !== null,
+                    rollbackSuccess: rollbackResult,
+                    rollbackLogged: rollbackLog !== undefined
+                });
+                
+            } catch (error) {
+                logTestFail(testName, error);
+            }
+        }
+
+        /**
+         * Test 5: Audit log creation
+         */
+        async function test5_AuditLogCreation() {
+            const testName = 'Test 5: Audit log creation for all wizard events';
+            logTestStart(testName);
+            
+            try {
+                // Clear audit log
+                localStorage.setItem('auditLog', JSON.stringify([]));
+                
+                const wizard = new AnggotaKeluarWizard('ANGGOTA-CLEAN-001');
+                
+                // Check wizard start logged
+                let auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                let startLog = auditLog.find(log => log.action === 'START_WIZARD_ANGGOTA_KELUAR');
+                assert(startLog !== undefined, 'Wizard start should be logged');
+                assert(startLog.anggotaId === 'ANGGOTA-CLEAN-001', 'Should log correct anggota ID');
+                
+                // Execute step 1
+                await wizard.executeStep1Validation();
+                
+                // Check step completion logged
+                auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                let step1Log = auditLog.find(log => log.action === 'COMPLETE_STEP_1_VALIDATION');
+                assert(step1Log !== undefined, 'Step 1 completion should be logged');
+                
+                // Navigate
+                wizard.nextStep();
+                
+                // Check navigation logged
+                auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                let navLog = auditLog.find(log => log.action === 'WIZARD_STEP_CHANGED');
+                assert(navLog !== undefined, 'Navigation should be logged');
+                
+                // Cancel wizard
+                wizard.cancel('Test cancellation');
+                
+                // Check cancellation logged
+                auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                let cancelLog = auditLog.find(log => log.action === 'WIZARD_CANCELLED');
+                assert(cancelLog !== undefined, 'Cancellation should be logged');
+                assert(cancelLog.details.reason === 'Test cancellation', 'Should log cancellation reason');
+                
+                logTestPass(testName, {
+                    totalAuditLogs: auditLog.length,
+                    startLogged: startLog !== undefined,
+                    step1Logged: step1Log !== undefined,
+                    navigationLogged: navLog !== undefined,
+                    cancellationLogged: cancelLog !== undefined
+                });
+                
+            } catch (error) {
+                logTestFail(testName, error);
+            }
+        }
+
+        /**
+         * Test 6: UI rendering
+         */
+        async function test6_UIRendering() {
+            const testName = 'Test 6: UI rendering and step indicator';
+            logTestStart(testName);
+            
+            try {
+                const wizard = new AnggotaKeluarWizard('ANGGOTA-CLEAN-001');
+                
+                // Test step indicator rendering
+                const stepIndicatorHTML = wizard.renderStepIndicator();
+                assert(stepIndicatorHTML.includes('wizard-step-indicator'), 'Should render step indicator');
+                assert(stepIndicatorHTML.includes('Validasi'), 'Should include step labels');
+                assert(stepIndicatorHTML.includes('active'), 'Should mark current step as active');
+                
+                // Complete step 1
+                await wizard.executeStep1Validation();
+                wizard.nextStep();
+                
+                // Test updated step indicator
+                const stepIndicatorHTML2 = wizard.renderStepIndicator();
+                assert(stepIndicatorHTML2.includes('completed'), 'Should mark completed steps');
+                
+                // Test navigation buttons
+                const navButtonsHTML = wizard.renderNavigationButtons();
+                assert(navButtonsHTML.includes('Kembali'), 'Should include back button');
+                assert(navButtonsHTML.includes('Batal'), 'Should include cancel button');
+                assert(navButtonsHTML.includes('Lanjut'), 'Should include next button');
+                
+                // Go to last step
+                wizard.currentStep = 5;
+                wizard.completedSteps = [1, 2, 3, 4, 5];
+                
+                // Test final step buttons
+                const navButtonsHTML2 = wizard.renderNavigationButtons();
+                assert(navButtonsHTML2.includes('Selesai'), 'Should show finish button on last step');
+                
+                logTestPass(testName, {
+                    stepIndicatorRendered: true,
+                    navigationButtonsRendered: true,
+                    dynamicUpdates: true
+                });
+                
+            } catch (error) {
+                logTestFail(testName, error);
+            }
+        }
+
+        /**
+         * Helper: Assert function
+         */
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error('Assertion failed: ' + message);
+            }
+        }
+
+        /**
+         * Helper: Log test start
+         */
+        function logTestStart(testName) {
+            console.log(`Starting: ${testName}`);
+        }
+
+        /**
+         * Helper: Log test pass
+         */
+        function logTestPass(testName, details) {
+            testResults.push({
+                name: testName,
+                status: 'pass',
+                details: details
+            });
+            
+            const html = `
+                <div class="test-section">
+                    <h5 class="text-success">
+                        <i class="bi bi-check-circle-fill me-2"></i>${testName}
+                    </h5>
+                    <div class="test-result test-pass">
+                        <strong>✓ PASSED</strong>
+                    </div>
+                    <div class="code-block">
+                        ${JSON.stringify(details, null, 2)}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('testResults').innerHTML += html;
+        }
+
+        /**
+         * Helper: Log test fail
+         */
+        function logTestFail(testName, error) {
+            testResults.push({
+                name: testName,
+                status: 'fail',
+                error: error.message
+            });
+            
+            const html = `
+                <div class="test-section">
+                    <h5 class="text-danger">
+                        <i class="bi bi-x-circle-fill me-2"></i>${testName}
+                    </h5>
+                    <div class="test-result test-fail">
+                        <strong>✗ FAILED</strong>
+                        <p class="mb-0 mt-2">${error.message}</p>
+                    </div>
+                    <div class="code-block">
+                        ${error.stack || 'No stack trace available'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('testResults').innerHTML += html;
+        }
+
+        /**
+         * Helper: Log info
+         */
+        function logInfo(message) {
+            const html = `
+                <div class="test-result test-info">
+                    <i class="bi bi-info-circle me-2"></i>${message}
+                </div>
+            `;
+            document.getElementById('testResults').innerHTML += html;
+        }
+
+        /**
+         * Helper: Log success
+         */
+        function logSuccess(message) {
+            const html = `
+                <div class="test-result test-pass">
+                    <i class="bi bi-check-circle me-2"></i>${message}
+                </div>
+            `;
+            document.getElementById('testResults').innerHTML += html;
+        }
+
+        /**
+         * Helper: Log error
+         */
+        function logError(message) {
+            const html = `
+                <div class="test-result test-fail">
+                    <i class="bi bi-x-circle me-2"></i>${message}
+                </div>
+            `;
+            document.getElementById('testResults').innerHTML += html;
+        }
+
+        /**
+         * Display test summary
+         */
+        function displaySummary() {
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(t => t.status === 'pass').length;
+            const failedTests = testResults.filter(t => t.status === 'fail').length;
+            const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : 0;
+            
+            const summaryClass = failedTests === 0 ? 'summary-pass' : 'summary-fail';
+            const summaryIcon = failedTests === 0 ? 'check-circle-fill' : 'x-circle-fill';
+            
+            const html = `
+                <div class="test-section">
+                    <h4>Test Summary</h4>
+                    <div class="summary-card ${summaryClass}">
+                        <h5>
+                            <i class="bi bi-${summaryIcon} me-2"></i>
+                            ${failedTests === 0 ? 'All Tests Passed!' : 'Some Tests Failed'}
+                        </h5>
+                        <p class="mb-2">
+                            <strong>Total Tests:</strong> ${totalTests}<br>
+                            <strong>Passed:</strong> ${passedTests}<br>
+                            <strong>Failed:</strong> ${failedTests}<br>
+                            <strong>Pass Rate:</strong> ${passRate}%
+                        </p>
+                        ${failedTests === 0 ? 
+                            '<p class="mb-0"><i class="bi bi-trophy me-2"></i>Wizard integration is working correctly!</p>' :
+                            '<p class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Please review failed tests above.</p>'
+                        }
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('testSummary').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

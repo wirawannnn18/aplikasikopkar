@@ -46,6 +46,7 @@ function renderMenu() {
             { icon: 'bi-credit-card-2-front', text: 'Aktivasi Kartu', page: 'aktivasi-kartu' },
             { icon: 'bi-wallet2', text: 'Simpanan', page: 'simpanan' },
             { icon: 'bi-cash-coin', text: 'Pinjaman', page: 'pinjaman' },
+            { icon: 'bi-box-arrow-right', text: 'Anggota Keluar', page: 'anggota-keluar' },
             { icon: 'bi-calendar-check', text: 'Saldo Awal Periode', page: 'saldo-awal' },
             { icon: 'bi-journal-text', text: 'Chart of Account', page: 'coa' },
             { icon: 'bi-book', text: 'Jurnal', page: 'jurnal' },
@@ -74,6 +75,7 @@ function renderMenu() {
             { icon: 'bi-credit-card-2-front', text: 'Aktivasi Kartu', page: 'aktivasi-kartu' },
             { icon: 'bi-wallet2', text: 'Simpanan', page: 'simpanan' },
             { icon: 'bi-cash-coin', text: 'Pinjaman', page: 'pinjaman' },
+            { icon: 'bi-box-arrow-right', text: 'Anggota Keluar', page: 'anggota-keluar' },
             { icon: 'bi-calendar-check', text: 'Saldo Awal Periode', page: 'saldo-awal' },
             { icon: 'bi-journal-text', text: 'Chart of Account', page: 'coa' },
             { icon: 'bi-book', text: 'Jurnal', page: 'jurnal' },
@@ -227,6 +229,13 @@ function renderPage(page) {
                 renderResetDataPage();
             } else {
                 content.innerHTML = '<div class="alert alert-danger">Fitur Reset Data belum tersedia. Pastikan file js/resetDataUI.js sudah dimuat.</div>';
+            }
+            break;
+        case 'anggota-keluar':
+            if (typeof renderAnggotaKeluarPage === 'function') {
+                renderAnggotaKeluarPage();
+            } else {
+                content.innerHTML = '<div class="alert alert-danger">Fitur Anggota Keluar belum tersedia. Pastikan file js/anggotaKeluarUI.js sudah dimuat.</div>';
             }
             break;
         default:
