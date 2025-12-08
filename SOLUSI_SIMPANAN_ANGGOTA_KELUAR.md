@@ -9,44 +9,62 @@
 
 Setelah memeriksa kode, ditemukan bahwa:
 
-### ✅ Kode Sudah Benar
+### ✅ Kode Master Anggota Sudah Benar
 - Filter anggota keluar di master anggota **sudah ada** (`statusKeanggotaan !== 'Keluar'`)
-- Filter simpanan dengan saldo > 0 **sudah ada** (`s.jumlah > 0`)
-- Fungsi `processPengembalian()` **sudah lengkap** dengan logic zero-kan saldo
+- Anggota keluar tidak akan muncul di master anggota
 
-### ❌ Masalah Sebenarnya
-- **Simpanan anggota keluar belum di-zero-kan** karena pengembalian belum diproses
-- Atau ada data lama yang belum di-update
+### ❌ Masalah di Menu Simpanan
+**DITEMUKAN BUG:** Filter di menu simpanan **TIDAK lengkap**!
+
+Kode lama hanya filter `s.jumlah > 0`, tapi **TIDAK cek apakah anggota sudah keluar**.
+
+```javascript
+// ❌ KODE LAMA (SALAH)
+simpanan.filter(s => s.jumlah > 0)
+
+// ✅ KODE BARU (BENAR)
+simpanan.filter(s => {
+    const ang = anggota.find(a => a.id === s.anggotaId);
+    return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+})
+```
+
+### Penyebab Masalah
+Meskipun saldo simpanan sudah di-zero-kan saat pengembalian, **anggota keluar tetap muncul** karena:
+1. Filter hanya cek `jumlah > 0`
+2. Tidak cek `statusKeanggotaan !== 'Keluar'`
+3. Jika ada data lama yang belum di-zero-kan, akan tetap muncul
 
 ## Solusi
 
-### Langkah 1: Debug dan Identifikasi Masalah
+### ✅ SUDAH DIPERBAIKI!
 
-Buka file: **`test_debug_simpanan_anggota_keluar.html`**
+Kode sudah diperbaiki di file `js/simpanan.js`:
 
-File ini akan menampilkan:
-1. Daftar anggota dengan status "Keluar"
-2. Simpanan pokok yang belum di-zero-kan
-3. Simpanan wajib yang belum di-zero-kan
-4. Simpanan sukarela yang belum di-zero-kan
-5. Rekomendasi perbaikan
+**Yang Diperbaiki:**
+1. ✅ `renderSimpananPokok()` - Tambah filter `ang.statusKeanggotaan !== 'Keluar'`
+2. ✅ `renderSimpananWajib()` - Tambah filter `ang.statusKeanggotaan !== 'Keluar'`
+3. ✅ `renderSimpananSukarela()` - Tambah filter `ang.statusKeanggotaan !== 'Keluar'`
 
-### Langkah 2: Perbaiki Data
+**Hasil:**
+- Anggota keluar **TIDAK AKAN MUNCUL** di menu simpanan
+- Bahkan jika saldo belum di-zero-kan, tetap tidak akan tampil
+- Filter ganda: `jumlah > 0` DAN `statusKeanggotaan !== 'Keluar'`
 
-Di file debug, klik tombol **"Perbaiki Semua Simpanan"**
+### Langkah Verifikasi
 
-Tombol ini akan:
-- Meng-zero-kan semua simpanan anggota keluar
-- Menyimpan saldo lama di field `saldoSebelumPengembalian`
-- Set `statusPengembalian = 'Dikembalikan'`
-- Set `tanggalPengembalian` ke tanggal hari ini
+1. **Refresh halaman aplikasi** (Ctrl+F5 atau Cmd+Shift+R)
+2. Buka **Menu Simpanan** → Cek apakah anggota keluar masih muncul
+3. Jika masih muncul, gunakan tool debug di bawah
 
-### Langkah 3: Verifikasi
+### Tool Debug (Opsional)
 
-Setelah perbaikan, cek:
-1. **Menu Simpanan** → Anggota keluar tidak muncul lagi
-2. **Master Anggota** → Anggota keluar tidak muncul (sudah difilter)
-3. **Laporan Simpanan** → Hanya menampilkan anggota dengan saldo > 0
+Jika masih ada masalah, buka: **`test_debug_simpanan_anggota_keluar.html`**
+
+File ini akan:
+1. Menampilkan anggota keluar yang simpanannya belum di-zero-kan
+2. Menyediakan tombol "Perbaiki Semua Simpanan" untuk zero-kan saldo
+3. Verifikasi bahwa filter sudah bekerja dengan benar
 
 ## Penjelasan Teknis
 

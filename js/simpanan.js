@@ -26,7 +26,11 @@ function renderSimpananPokok() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${simpanan.filter(s => s.jumlah > 0).map(s => {
+                    ${simpanan.filter(s => {
+                        // Filter: hanya tampilkan simpanan dengan saldo > 0 DAN anggota bukan keluar
+                        const ang = anggota.find(a => a.id === s.anggotaId);
+                        return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+                    }).map(s => {
                         const ang = anggota.find(a => a.id === s.anggotaId);
                         return `
                             <tr>
@@ -46,7 +50,10 @@ function renderSimpananPokok() {
                 <tfoot>
                     <tr>
                         <th colspan="2">Total Simpanan Pokok</th>
-                        <th>${formatRupiah(simpanan.filter(s => s.jumlah > 0).reduce((sum, s) => sum + s.jumlah, 0))}</th>
+                        <th>${formatRupiah(simpanan.filter(s => {
+                            const ang = anggota.find(a => a.id === s.anggotaId);
+                            return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+                        }).reduce((sum, s) => sum + s.jumlah, 0))}</th>
                         <th colspan="2"></th>
                     </tr>
                 </tfoot>
@@ -568,7 +575,11 @@ function renderSimpananWajib() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${simpanan.filter(s => s.jumlah > 0).map(s => {
+                    ${simpanan.filter(s => {
+                        // Filter: hanya tampilkan simpanan dengan saldo > 0 DAN anggota bukan keluar
+                        const ang = anggota.find(a => a.id === s.anggotaId);
+                        return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+                    }).map(s => {
                         const ang = anggota.find(a => a.id === s.anggotaId);
                         return `
                             <tr>
@@ -589,7 +600,10 @@ function renderSimpananWajib() {
                 <tfoot>
                     <tr>
                         <th colspan="2">Total Simpanan Wajib</th>
-                        <th>${formatRupiah(simpanan.filter(s => s.jumlah > 0).reduce((sum, s) => sum + s.jumlah, 0))}</th>
+                        <th>${formatRupiah(simpanan.filter(s => {
+                            const ang = anggota.find(a => a.id === s.anggotaId);
+                            return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+                        }).reduce((sum, s) => sum + s.jumlah, 0))}</th>
                         <th colspan="3"></th>
                     </tr>
                 </tfoot>
@@ -1052,7 +1066,11 @@ function renderSimpananSukarela() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${simpanan.filter(s => s.jumlah > 0).map(s => {
+                    ${simpanan.filter(s => {
+                        // Filter: hanya tampilkan simpanan dengan saldo > 0 DAN anggota bukan keluar
+                        const ang = anggota.find(a => a.id === s.anggotaId);
+                        return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+                    }).map(s => {
                         const ang = anggota.find(a => a.id === s.anggotaId);
                         return `
                             <tr>
@@ -1080,7 +1098,10 @@ function renderSimpananSukarela() {
                 <tfoot>
                     <tr>
                         <th colspan="2">Saldo Simpanan Sukarela</th>
-                        <th>${formatRupiah(simpanan.filter(s => s.jumlah > 0).reduce((sum, s) => sum + (s.tipe === 'tarik' ? -s.jumlah : s.jumlah), 0))}</th>
+                        <th>${formatRupiah(simpanan.filter(s => {
+                            const ang = anggota.find(a => a.id === s.anggotaId);
+                            return s.jumlah > 0 && ang && ang.statusKeanggotaan !== 'Keluar';
+                        }).reduce((sum, s) => sum + (s.tipe === 'tarik' ? -s.jumlah : s.jumlah), 0))}</th>
                         <th colspan="4"></th>
                     </tr>
                 </tfoot>
