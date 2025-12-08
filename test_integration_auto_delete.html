@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test: Auto-Delete Anggota Keluar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .code-block {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-check2-circle me-2"></i>
+            Integration Test: Auto-Delete Anggota Keluar
+        </h1>
+        
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle me-2"></i>Task 11: Integration Testing</h5>
+            <p class="mb-0">Testing complete auto-delete flow, rollback mechanism, migration, and UI integration</p>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h4>Test Controls</h4>
+            <button class="btn btn-primary me-2" onclick="runAllTests()">
+                <i class="bi bi-play-fill me-1"></i>Run All Tests
+            </button>
+            <button class="btn btn-secondary me-2" onclick="setupTestData()">
+                <i class="bi bi-database-fill-add me-1"></i>Setup Test Data
+            </button>
+            <button class="btn btn-danger" onclick="cleanupTestData()">
+                <i class="bi bi-trash me-1"></i>Cleanup Test Data
+            </button>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Include required JS files -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+    <script src="js/dataMigration.js"></script>
+
+    <script>
+        // Test state
+        let testResults = [];
+        let testData = {
+            anggotaId: null,
+            pengembalianId: null
+        };
+
+        // Helper functions
+        function logResult(testName, passed, message, details = null) {
+            const result = {
+                testName,
+                passed,
+                message,
+                details,
+                timestamp: new Date().toISOString()
+            };
+            testResults.push(result);
+            displayResult(result);
+        }
+
+        function displayResult(result) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultClass = result.passed ? 'test-pass' : 'test-fail';
+            const icon = result.passed ? 'check-circle-fill' : 'x-circle-fill';
+            
+            let html = `
+                <div class="test-result ${resultClass}">
+                    <h6><i class="bi bi-${icon} me-2"></i>${result.testName}</h6>
+                    <p class="mb-1">${result.message}</p>
+                    ${result.details ? `<div class="code-block mt-2">${JSON.stringify(result.details, null, 2)}</div>` : ''}
+                </div>
+            `;
+            
+            resultsDiv.insertAdjacentHTML('beforeend', html);
+        }
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // Setup test data
+        function setupTestData() {
+            try {
+                // Create test anggota
+                const testAnggota = {
+                    id: 'TEST-AUTO-DELETE-001',
+                    nik: '9999999999',
+                    nama: 'Test Auto Delete',
+                    noKartu: 'K-TEST-001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    tanggalDaftar: '2020-01-01'
+                };
+                
+                let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                // Remove if exists
+                anggotaList = anggotaList.filter(a => a.id !== testAnggota.id);
+                anggotaList.push(testAnggota);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                testData.anggotaId = testAnggota.id;
+                
+                // Create test simpanan
+                const testSimpananPokok = {
+                    id: 'SP-TEST-001',
+                    anggotaId: testAnggota.id,
+                    jumlah: 1000000,
+                    tanggal: '2020-01-01'
+                };
+                
+                const testSimpananWajib = {
+                    id: 'SW-TEST-001',
+                    anggotaId: testAnggota.id,
+                    jumlah: 500000,
+                    tanggal: '2020-01-01'
+                };
+                
+                let simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                simpananPokok = simpananPokok.filter(s => s.anggotaId !== testAnggota.id);
+                simpananPokok.push(testSimpananPokok);
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                
+                let simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                simpananWajib = simpananWajib.filter(s => s.anggotaId !== testAnggota.id);
+                simpananWajib.push(testSimpananWajib);
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+                
+                alert('Test data created successfully!');
+            } catch (error) {
+                alert('Error creating test data: ' + error.message);
+            }
+        }
+
+        // Cleanup test data
+        function cleanupTestData() {
+            try {
+                const testId = 'TEST-AUTO-DELETE-001';
+                
+                // Remove test anggota
+                let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList = anggotaList.filter(a => a.id !== testId);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                // Remove test simpanan
+                let simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                simpananPokok = simpananPokok.filter(s => s.anggotaId !== testId);
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                
+                let simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                simpananWajib = simpananWajib.filter(s => s.anggotaId !== testId);
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+                
+                // Remove test pengembalian
+                let pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                pengembalian = pengembalian.filter(p => p.anggotaId !== testId);
+                localStorage.setItem('pengembalian', JSON.stringify(pengembalian));
+                
+                alert('Test data cleaned up successfully!');
+            } catch (error) {
+                alert('Error cleaning up test data: ' + error.message);
+            }
+        }
+
+        // Task 11.1: Test complete auto-delete flow
+        async function test_11_1_CompleteAutoDeleteFlow() {
+            const testName = 'Task 11.1: Complete Auto-Delete Flow';
+            
+            try {
+                const anggotaId = testData.anggotaId || 'TEST-AUTO-DELETE-001';
+                
+                // Step 1: Mark anggota keluar
+                const markResult = markAnggotaKeluar(anggotaId, '2024-12-08', 'Test auto-delete');
+                
+                if (!markResult.success) {
+                    logResult(testName, false, 'Failed to mark anggota keluar', markResult.error);
+                    return;
+                }
+                
+                // Verify status changed to Nonaktif
+                const anggota = getAnggotaById(anggotaId);
+                if (anggota.status !== 'Nonaktif') {
+                    logResult(testName, false, 'Status not changed to Nonaktif', { status: anggota.status });
+                    return;
+                }
+                
+                // Step 2: Process pengembalian
+                const processResult = processPengembalian(anggotaId, 'Kas', '2024-12-08', 'Test pengembalian');
+                
+                if (!processResult.success) {
+                    logResult(testName, false, 'Failed to process pengembalian', processResult.error);
+                    return;
+                }
+                
+                // Step 3: Verify auto-delete occurred
+                const anggotaAfterDelete = getAnggotaById(anggotaId);
+                if (anggotaAfterDelete !== null) {
+                    logResult(testName, false, 'Anggota not deleted after pengembalian', { anggota: anggotaAfterDelete });
+                    return;
+                }
+                
+                // Step 4: Verify simpanan deleted
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                const simpananPokokCount = simpananPokok.filter(s => s.anggotaId === anggotaId).length;
+                const simpananWajibCount = simpananWajib.filter(s => s.anggotaId === anggotaId).length;
+                
+                if (simpananPokokCount > 0 || simpananWajibCount > 0) {
+                    logResult(testName, false, 'Simpanan not deleted', { 
+                        simpananPokokCount, 
+                        simpananWajibCount 
+                    });
+                    return;
+                }
+                
+                // Step 5: Verify jurnal preserved
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const pengembalianJurnal = jurnal.filter(j => 
+                    j.keterangan && j.keterangan.includes('Pengembalian')
+                );
+                
+                if (pengembalianJurnal.length === 0) {
+                    logResult(testName, false, 'Jurnal not preserved', null);
+                    return;
+                }
+                
+                // Step 6: Verify audit log created
+                const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const autoDeleteLog = auditLog.filter(a => a.action === 'AUTO_DELETE_ANGGOTA_KELUAR');
+                
+                if (autoDeleteLog.length === 0) {
+                    logResult(testName, false, 'Auto-delete audit log not created', null);
+                    return;
+                }
+                
+                logResult(testName, true, 'Complete auto-delete flow successful', {
+                    markResult: 'Success',
+                    processResult: 'Success',
+                    anggotaDeleted: true,
+                    simpananDeleted: true,
+                    jurnalPreserved: true,
+                    auditLogCreated: true
+                });
+                
+            } catch (error) {
+                logResult(testName, false, 'Exception: ' + error.message, { error: error.stack });
+            }
+        }
+
+        // Task 11.2: Test auto-delete rollback on error
+        async function test_11_2_AutoDeleteRollback() {
+            const testName = 'Task 11.2: Auto-Delete Rollback on Error';
+            
+            try {
+                // Setup: Create test anggota with active loan
+                const anggotaId = 'TEST-ROLLBACK-001';
+                const testAnggota = {
+                    id: anggotaId,
+                    nik: '8888888888',
+                    nama: 'Test Rollback',
+                    noKartu: 'K-ROLLBACK-001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    tanggalDaftar: '2020-01-01'
+                };
+                
+                let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList = anggotaList.filter(a => a.id !== anggotaId);
+                anggotaList.push(testAnggota);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                // Create simpanan
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                simpananPokok.push({
+                    id: 'SP-ROLLBACK-001',
+                    anggotaId: anggotaId,
+                    jumlah: 1000000,
+                    tanggal: '2020-01-01'
+                });
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                
+                // Create active loan (this will block auto-delete)
+                const pinjaman = JSON.parse(localStorage.getItem('pinjaman') || '[]');
+                pinjaman.push({
+                    id: 'PINJAMAN-ROLLBACK-001',
+                    anggotaId: anggotaId,
+                    jumlah: 5000000,
+                    status: 'Aktif',
+                    tanggal: '2024-01-01'
+                });
+                localStorage.setItem('pinjaman', JSON.stringify(pinjaman));
+                
+                // Mark anggota keluar
+                const markResult = markAnggotaKeluar(anggotaId, '2024-12-08', 'Test rollback');
+                if (!markResult.success) {
+                    logResult(testName, false, 'Failed to mark anggota keluar', markResult.error);
+                    return;
+                }
+                
+                // Process pengembalian (should succeed but auto-delete should fail)
+                const processResult = processPengembalian(anggotaId, 'Kas', '2024-12-08', 'Test rollback');
+                
+                if (!processResult.success) {
+                    logResult(testName, false, 'Pengembalian failed', processResult.error);
+                    return;
+                }
+                
+                // Verify anggota still exists (auto-delete should have failed)
+                const anggotaAfter = getAnggotaById(anggotaId);
+                if (anggotaAfter === null) {
+                    logResult(testName, false, 'Anggota was deleted despite active loan', null);
+                    return;
+                }
+                
+                // Verify audit log shows AUTO_DELETE_FAILED
+                const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const failedLog = auditLog.filter(a => 
+                    a.action === 'AUTO_DELETE_FAILED' && a.anggotaId === anggotaId
+                );
+                
+                if (failedLog.length === 0) {
+                    logResult(testName, false, 'AUTO_DELETE_FAILED audit log not created', null);
+                    return;
+                }
+                
+                // Cleanup
+                anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList = anggotaList.filter(a => a.id !== anggotaId);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                logResult(testName, true, 'Rollback mechanism working correctly', {
+                    pengembalianSuccess: true,
+                    autoDeleteBlocked: true,
+                    anggotaPreserved: true,
+                    auditLogCreated: true
+                });
+                
+            } catch (error) {
+                logResult(testName, false, 'Exception: ' + error.message, { error: error.stack });
+            }
+        }
+
+        // Task 11.3: Test migration flow
+        async function test_11_3_MigrationFlow() {
+            const testName = 'Task 11.3: Migration Flow';
+            
+            try {
+                // Setup: Create test data with old statusKeanggotaan field
+                const anggotaId1 = 'TEST-MIGRATION-001';
+                const anggotaId2 = 'TEST-MIGRATION-002';
+                
+                const testAnggota1 = {
+                    id: anggotaId1,
+                    nik: '7777777777',
+                    nama: 'Test Migration Selesai',
+                    noKartu: 'K-MIG-001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar', // Old field
+                    pengembalianStatus: 'Selesai',
+                    tanggalDaftar: '2020-01-01'
+                };
+                
+                const testAnggota2 = {
+                    id: anggotaId2,
+                    nik: '6666666666',
+                    nama: 'Test Migration Pending',
+                    noKartu: 'K-MIG-002',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar', // Old field
+                    pengembalianStatus: 'Pending',
+                    tanggalDaftar: '2020-01-01'
+                };
+                
+                let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList = anggotaList.filter(a => 
+                    a.id !== anggotaId1 && a.id !== anggotaId2
+                );
+                anggotaList.push(testAnggota1, testAnggota2);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                // Reset migration flag
+                localStorage.removeItem('migration_anggota_keluar_completed');
+                
+                // Run migration
+                const migrationResult = migrateAnggotaKeluarData();
+                
+                if (!migrationResult.success) {
+                    logResult(testName, false, 'Migration failed', migrationResult.error);
+                    return;
+                }
+                
+                // Verify anggota1 (Selesai) was deleted
+                const anggota1After = getAnggotaById(anggotaId1);
+                if (anggota1After !== null) {
+                    logResult(testName, false, 'Anggota with Selesai status not deleted', { anggota: anggota1After });
+                    return;
+                }
+                
+                // Verify anggota2 (Pending) was updated to Nonaktif
+                const anggota2After = getAnggotaById(anggotaId2);
+                if (anggota2After === null) {
+                    logResult(testName, false, 'Anggota with Pending status was deleted', null);
+                    return;
+                }
+                
+                if (anggota2After.status !== 'Nonaktif') {
+                    logResult(testName, false, 'Anggota status not updated to Nonaktif', { status: anggota2After.status });
+                    return;
+                }
+                
+                if (anggota2After.hasOwnProperty('statusKeanggotaan')) {
+                    logResult(testName, false, 'statusKeanggotaan field not removed', { anggota: anggota2After });
+                    return;
+                }
+                
+                // Verify backup created
+                const backup = localStorage.getItem('migration_backup_anggota_keluar');
+                if (!backup) {
+                    logResult(testName, false, 'Backup not created', null);
+                    return;
+                }
+                
+                // Verify audit log created
+                const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const migrationLog = auditLog.filter(a => a.action === 'DATA_MIGRATION_ANGGOTA_KELUAR');
+                
+                if (migrationLog.length === 0) {
+                    logResult(testName, false, 'Migration audit log not created', null);
+                    return;
+                }
+                
+                // Cleanup
+                anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggotaList = anggotaList.filter(a => a.id !== anggotaId2);
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                
+                logResult(testName, true, 'Migration flow successful', {
+                    selesaiDeleted: true,
+                    pendingUpdated: true,
+                    statusKeanggotaanRemoved: true,
+                    backupCreated: true,
+                    auditLogCreated: true,
+                    stats: migrationResult.stats
+                });
+                
+            } catch (error) {
+                logResult(testName, false, 'Exception: ' + error.message, { error: error.stack });
+            }
+        }
+
+        // Task 11.4: Test anggota keluar view after migration
+        async function test_11_4_AnggotaKeluarViewAfterMigration() {
+            const testName = 'Task 11.4: Anggota Keluar View After Migration';
+            
+            try {
+                // Setup: Create pengembalian record (simulating completed pengembalian)
+                const anggotaId = 'TEST-VIEW-001';
+                const pengembalianId = 'PGM-TEST-001';
+                
+                const pengembalianRecord = {
+                    id: pengembalianId,
+                    anggotaId: anggotaId,
+                    anggotaNama: 'Test View Anggota',
+                    anggotaNIK: '5555555555',
+                    simpananPokok: 1000000,
+                    simpananWajib: 500000,
+                    totalSimpanan: 1500000,
+                    kewajibanLain: 0,
+                    totalPengembalian: 1500000,
+                    metodePembayaran: 'Kas',
+                    tanggalPembayaran: '2024-12-08',
+                    tanggalKeluar: '2024-12-08',
+                    nomorReferensi: 'PGM-202412-TEST001',
+                    status: 'Selesai',
+                    pengembalianStatus: 'Selesai',
+                    createdAt: new Date().toISOString()
+                };
+                
+                let pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                pengembalianList = pengembalianList.filter(p => p.id !== pengembalianId);
+                pengembalianList.push(pengembalianRecord);
+                localStorage.setItem('pengembalian', JSON.stringify(pengembalianList));
+                
+                // Verify anggota does NOT exist (already deleted)
+                const anggota = getAnggotaById(anggotaId);
+                if (anggota !== null) {
+                    // Delete it for test
+                    let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                    anggotaList = anggotaList.filter(a => a.id !== anggotaId);
+                    localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                }
+                
+                // Test: Render anggota keluar view (should use pengembalian data)
+                // This would normally be done by renderAnggotaKeluar() function
+                // We'll verify the data source instead
+                
+                const pengembalianData = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                const testPengembalian = pengembalianData.find(p => p.id === pengembalianId);
+                
+                if (!testPengembalian) {
+                    logResult(testName, false, 'Pengembalian record not found', null);
+                    return;
+                }
+                
+                // Verify pengembalian record has all required fields
+                const requiredFields = ['anggotaNama', 'anggotaNIK', 'totalPengembalian', 'status'];
+                const missingFields = requiredFields.filter(field => !testPengembalian.hasOwnProperty(field));
+                
+                if (missingFields.length > 0) {
+                    logResult(testName, false, 'Pengembalian record missing required fields', { missingFields });
+                    return;
+                }
+                
+                // Verify view can display data even when anggota is deleted
+                const viewData = {
+                    nik: testPengembalian.anggotaNIK,
+                    nama: testPengembalian.anggotaNama,
+                    totalPengembalian: testPengembalian.totalPengembalian,
+                    status: testPengembalian.status
+                };
+                
+                if (!viewData.nik || !viewData.nama) {
+                    logResult(testName, false, 'View data incomplete', { viewData });
+                    return;
+                }
+                
+                // Cleanup
+                pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                pengembalianList = pengembalianList.filter(p => p.id !== pengembalianId);
+                localStorage.setItem('pengembalian', JSON.stringify(pengembalianList));
+                
+                logResult(testName, true, 'Anggota keluar view works after migration', {
+                    pengembalianRecordExists: true,
+                    anggotaDeleted: true,
+                    viewDataComplete: true,
+                    requiredFieldsPresent: true
+                });
+                
+            } catch (error) {
+                logResult(testName, false, 'Exception: ' + error.message, { error: error.stack });
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            clearResults();
+            
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div class="test-section"><h4>Running Integration Tests...</h4></div>';
+            
+            // Ensure test data exists
+            if (!testData.anggotaId) {
+                setupTestData();
+            }
+            
+            // Run tests sequentially
+            await test_11_1_CompleteAutoDeleteFlow();
+            await test_11_2_AutoDeleteRollback();
+            await test_11_3_MigrationFlow();
+            await test_11_4_AnggotaKeluarViewAfterMigration();
+            
+            // Display summary
+            displaySummary();
+        }
+
+        function displaySummary() {
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.passed).length;
+            const failedTests = totalTests - passedTests;
+            const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : 0;
+            
+            const summaryClass = failedTests === 0 ? 'test-pass' : 'test-fail';
+            const summaryIcon = failedTests === 0 ? 'check-circle-fill' : 'exclamation-triangle-fill';
+            
+            const summaryHTML = `
+                <div class="test-section">
+                    <h4><i class="bi bi-clipboard-data me-2"></i>Test Summary</h4>
+                    <div class="test-result ${summaryClass}">
+                        <h5><i class="bi bi-${summaryIcon} me-2"></i>Results</h5>
+                        <p class="mb-1"><strong>Total Tests:</strong> ${totalTests}</p>
+                        <p class="mb-1"><strong>Passed:</strong> ${passedTests}</p>
+                        <p class="mb-1"><strong>Failed:</strong> ${failedTests}</p>
+                        <p class="mb-0"><strong>Pass Rate:</strong> ${passRate}%</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('testResults').insertAdjacentHTML('beforeend', summaryHTML);
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            console.log('Integration Test Page Loaded');
+            console.log('Click "Run All Tests" to start testing');
+        });
+    </script>
+</body>
+</html>

@@ -332,9 +332,8 @@ function renderAnggota() {
     const content = document.getElementById('mainContent');
     const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
     
-    // Count only active members (exclude anggota keluar)
-    const activeAnggota = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
-    const totalActive = activeAnggota.length;
+    // No need to filter - anggota keluar already auto-deleted (Task 5.1)
+    const totalActive = anggota.length;
     
     content.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -604,8 +603,7 @@ function renderAnggota() {
 function renderTableAnggota(filteredData = null) {
     let anggota = filteredData || JSON.parse(localStorage.getItem('anggota') || '[]');
     
-    // Filter out anggota keluar from master anggota view
-    anggota = anggota.filter(a => a.statusKeanggotaan !== 'Keluar');
+    // No need to filter - anggota keluar already auto-deleted (Task 5.2)
     
     const tbody = document.getElementById('tbodyAnggota');
     
@@ -717,8 +715,7 @@ function filterAnggota() {
     const filterTanggalSampai = document.getElementById('filterTanggalSampai')?.value || '';
     
     let filtered = anggota.filter(a => {
-        // Exclude anggota keluar from master anggota
-        const notKeluar = a.statusKeanggotaan !== 'Keluar';
+        // No need to filter statusKeanggotaan - anggota keluar already auto-deleted (Task 5.3)
         
         // Search filter
         const matchSearch = !searchText || 
@@ -753,7 +750,7 @@ function filterAnggota() {
             }
         }
         
-        return notKeluar && matchSearch && matchDept && matchTipe && matchStatus && matchDateRange;
+        return matchSearch && matchDept && matchTipe && matchStatus && matchDateRange;
     });
     
     // Update count
@@ -798,8 +795,7 @@ function sortAnggotaByDate() {
     
     // Apply filters first
     let filtered = anggota.filter(a => {
-        // Exclude anggota keluar
-        const notKeluar = a.statusKeanggotaan !== 'Keluar';
+        // No need to filter statusKeanggotaan - anggota keluar already auto-deleted (Task 5.3)
         
         const matchSearch = !searchText || 
             a.nik.toLowerCase().includes(searchText) ||
@@ -810,7 +806,7 @@ function sortAnggotaByDate() {
         const matchTipe = !filterTipe || a.tipeAnggota === filterTipe;
         const matchStatus = !filterStatus || a.status === filterStatus;
         
-        return notKeluar && matchSearch && matchDept && matchTipe && matchStatus;
+        return matchSearch && matchDept && matchTipe && matchStatus;
     });
     
     // Sort by tanggalDaftar

@@ -59,8 +59,8 @@ function markAnggotaKeluar(anggotaId, tanggalKeluar, alasanKeluar) {
             };
         }
 
-        // Check if anggota is already marked as keluar
-        if (anggota.statusKeanggotaan === 'Keluar') {
+        // Check if anggota is already marked as keluar (check pengembalianStatus instead)
+        if (anggota.pengembalianStatus === 'Pending' || anggota.pengembalianStatus === 'Selesai') {
             return {
                 success: false,
                 error: {
@@ -103,15 +103,28 @@ function markAnggotaKeluar(anggotaId, tanggalKeluar, alasanKeluar) {
         // Get current user for audit log
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         
-        // Update anggota status
-        const updateSuccess = updateAnggotaStatus(anggotaId, 'Keluar', {
-            tanggalKeluar: tanggalKeluar,
-            alasanKeluar: alasanKeluar.trim(),
-            pengembalianStatus: 'Pending',
-            pengembalianId: null
-        });
-
-        if (!updateSuccess) {
+        // Store old status for audit log
+        const oldStatus = anggota.status;
+        
+        // Update anggota: change status to 'Nonaktif' (instead of statusKeanggotaan = 'Keluar')
+        anggota.status = 'Nonaktif';
+        anggota.tanggalKeluar = tanggalKeluar;
+        anggota.alasanKeluar = alasanKeluar.trim();
+        anggota.pengembalianStatus = 'Pending';
+        anggota.pengembalianId = null;
+        
+        // Remove statusKeanggotaan field if it exists (for backward compatibility)
+        if (anggota.hasOwnProperty('statusKeanggotaan')) {
+            delete anggota.statusKeanggotaan;
+        }
+        
+        // Save to localStorage
+        let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        const index = anggotaList.findIndex(a => a.id === anggotaId);
+        if (index !== -1) {
+            anggotaList[index] = anggota;
+            localStorage.setItem('anggota', JSON.stringify(anggotaList));
+        } else {
             return {
                 success: false,
                 error: {
@@ -122,21 +135,23 @@ function markAnggotaKeluar(anggotaId, tanggalKeluar, alasanKeluar) {
             };
         }
 
-        // Create audit log entry
+        // Create audit log entry for status change
         const auditLog = {
             id: generateId(),
             timestamp: new Date().toISOString(),
             userId: currentUser.id || 'system',
             userName: currentUser.username || 'System',
-            action: 'MARK_KELUAR',
+            action: 'MARK_ANGGOTA_KELUAR',
             anggotaId: anggotaId,
             anggotaNama: anggota.nama,
             details: {
+                oldStatus: oldStatus,
+                newStatus: 'Nonaktif',
                 tanggalKeluar: tanggalKeluar,
-                alasanKeluar: alasanKeluar.trim(),
-                previousStatus: anggota.statusKeanggotaan || 'Aktif'
+                alasanKeluar: alasanKeluar.trim()
             },
-            ipAddress: null // Can be added if available
+            ipAddress: null, // Can be added if available
+            severity: 'INFO'
         };
 
         saveAuditLog(auditLog);
@@ -153,16 +168,240 @@ function markAnggotaKeluar(anggotaId, tanggalKeluar, alasanKeluar) {
             data: {
                 anggotaId: anggotaId,
                 anggotaNama: anggota.nama,
-                statusKeanggotaan: 'Keluar',
+                status: 'Nonaktif',
                 tanggalKeluar: tanggalKeluar,
                 alasanKeluar: alasanKeluar.trim(),
                 pengembalianStatus: 'Pending'
             },
-            message: `Anggota ${anggota.nama} berhasil ditandai keluar dari koperasi`
+            message: `Anggota ${anggota.nama} berhasil ditandai keluar dari koperasi (status: Nonaktif)`
         };
 
     } catch (error) {
         console.error('Error in markAnggotaKeluar:', error);
+        return {
+            success: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        };
+    }
+}
+
+/**
+ * Validate if anggota keluar data can be permanently deleted
+ * Checks for active loans and outstanding debts before allowing deletion
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Validation result with valid flag and error details if invalid
+ */
+function validateDeletionEligibility(anggotaId) {
+    try {
+        // Validate input
+        if (!anggotaId || typeof anggotaId !== 'string') {
+            return {
+                valid: false,
+                error: {
+                    code: 'INVALID_PARAMETER',
+                    message: 'ID anggota tidak valid'
+                }
+            };
+        }
+        
+        // Get anggota data
+        const anggota = getAnggotaById(anggotaId);
+        if (!anggota) {
+            return {
+                valid: false,
+                error: {
+                    code: 'ANGGOTA_NOT_FOUND',
+                    message: 'Anggota tidak ditemukan'
+                }
+            };
+        }
+        
+        // Check for active loans
+        const pinjamanAktif = getPinjamanAktif(anggotaId);
+        if (pinjamanAktif.length > 0) {
+            return {
+                valid: false,
+                error: {
+                    code: 'ACTIVE_LOAN_EXISTS',
+                    message: `Anggota masih memiliki ${pinjamanAktif.length} pinjaman aktif`
+                }
+            };
+        }
+        
+        // Check for outstanding hutang POS
+        const hutangPOS = getKewajibanLain(anggotaId);
+        if (hutangPOS > 0) {
+            return {
+                valid: false,
+                error: {
+                    code: 'OUTSTANDING_DEBT_EXISTS',
+                    message: `Anggota masih memiliki hutang POS sebesar Rp ${hutangPOS.toLocaleString('id-ID')}`
+                }
+            };
+        }
+        
+        // All validations passed
+        return { valid: true };
+        
+    } catch (error) {
+        console.error('Error in validateDeletionEligibility:', error);
+        return {
+            valid: false,
+            error: {
+                code: 'SYSTEM_ERROR',
+                message: error.message
+            }
+        };
+    }
+}
+
+/**
+ * Auto-delete anggota keluar and all related data after pengembalian completed
+ * This function is called automatically after pengembalian selesai
+ * Task 3.1: Implement autoDeleteAnggotaKeluar() function
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Deletion result with success status and data/error
+ */
+function autoDeleteAnggotaKeluar(anggotaId) {
+    try {
+        // Create snapshot for rollback
+        const snapshot = createDeletionSnapshot();
+        
+        try {
+            // Get anggota data for audit log
+            const anggota = getAnggotaById(anggotaId);
+            if (!anggota) {
+                return {
+                    success: false,
+                    error: {
+                        code: 'ANGGOTA_NOT_FOUND',
+                        message: 'Anggota tidak ditemukan',
+                        timestamp: new Date().toISOString()
+                    }
+                };
+            }
+            
+            const deletedData = {
+                anggota: { ...anggota },
+                simpananPokok: [],
+                simpananWajib: [],
+                simpananSukarela: [],
+                penjualan: [],
+                pinjaman: [],
+                pembayaran: []
+            };
+            
+            // Delete from anggota (Requirement 1.2)
+            let anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            anggotaList = anggotaList.filter(a => a.id !== anggotaId);
+            localStorage.setItem('anggota', JSON.stringify(anggotaList));
+            
+            // Delete from simpananPokok (Requirement 1.3)
+            let simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            deletedData.simpananPokok = simpananPokok.filter(s => s.anggotaId === anggotaId);
+            simpananPokok = simpananPokok.filter(s => s.anggotaId !== anggotaId);
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            
+            // Delete from simpananWajib (Requirement 1.3)
+            let simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            deletedData.simpananWajib = simpananWajib.filter(s => s.anggotaId === anggotaId);
+            simpananWajib = simpananWajib.filter(s => s.anggotaId !== anggotaId);
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            
+            // Delete from simpananSukarela (Requirement 1.3)
+            let simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+            deletedData.simpananSukarela = simpananSukarela.filter(s => s.anggotaId === anggotaId);
+            simpananSukarela = simpananSukarela.filter(s => s.anggotaId !== anggotaId);
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+            
+            // Delete from penjualan (POS transactions) (Requirement 4.1)
+            let penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+            deletedData.penjualan = penjualan.filter(p => p.anggotaId === anggotaId);
+            penjualan = penjualan.filter(p => p.anggotaId !== anggotaId);
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            
+            // Delete from pinjaman (only if lunas) (Requirement 4.2)
+            let pinjaman = JSON.parse(localStorage.getItem('pinjaman') || '[]');
+            deletedData.pinjaman = pinjaman.filter(p => 
+                p.anggotaId === anggotaId && 
+                p.status && 
+                p.status.toLowerCase() === 'lunas'
+            );
+            pinjaman = pinjaman.filter(p => 
+                !(p.anggotaId === anggotaId && p.status && p.status.toLowerCase() === 'lunas')
+            );
+            localStorage.setItem('pinjaman', JSON.stringify(pinjaman));
+            
+            // Delete from pembayaranHutangPiutang (Requirement 4.3)
+            let pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+            deletedData.pembayaran = pembayaran.filter(p => p.anggotaId === anggotaId);
+            pembayaran = pembayaran.filter(p => p.anggotaId !== anggotaId);
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(pembayaran));
+            
+            // Create audit log (Requirements 4.1, 4.2, 4.3, 4.4, 4.5)
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const auditLog = {
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                userId: currentUser.id || 'system',
+                userName: currentUser.username || 'System',
+                action: 'AUTO_DELETE_ANGGOTA_KELUAR',
+                anggotaId: anggotaId,
+                anggotaNama: anggota.nama,
+                details: {
+                    deletedData: {
+                        anggotaNIK: anggota.nik,
+                        simpananPokokCount: deletedData.simpananPokok.length,
+                        simpananWajibCount: deletedData.simpananWajib.length,
+                        simpananSukarelaCount: deletedData.simpananSukarela.length,
+                        penjualanCount: deletedData.penjualan.length,
+                        pinjamanCount: deletedData.pinjaman.length,
+                        pembayaranCount: deletedData.pembayaran.length
+                    },
+                    reason: 'Auto-delete after pengembalian completed'
+                },
+                ipAddress: null,
+                severity: 'WARNING'
+            };
+            
+            saveAuditLog(auditLog);
+            
+            // Invalidate cache (Requirement 4.4)
+            if (typeof AnggotaKeluarCache !== 'undefined') {
+                AnggotaKeluarCache.invalidateAll();
+            }
+            
+            // Return success
+            return {
+                success: true,
+                data: {
+                    anggotaId: anggotaId,
+                    anggotaNama: anggota.nama,
+                    deletedRecords: {
+                        simpananPokok: deletedData.simpananPokok.length,
+                        simpananWajib: deletedData.simpananWajib.length,
+                        simpananSukarela: deletedData.simpananSukarela.length,
+                        penjualan: deletedData.penjualan.length,
+                        pinjaman: deletedData.pinjaman.length,
+                        pembayaran: deletedData.pembayaran.length
+                    }
+                },
+                message: `Data anggota ${anggota.nama} berhasil dihapus otomatis`
+            };
+            
+        } catch (innerError) {
+            // Rollback on error (Requirement 4.5)
+            console.error('Error during auto-delete, rolling back:', innerError);
+            restoreDeletionSnapshot(snapshot);
+            throw innerError;
+        }
+        
+    } catch (error) {
+        console.error('Error in autoDeleteAnggotaKeluar:', error);
         return {
             success: false,
             error: {
@@ -774,6 +1013,57 @@ function processPengembalian(anggotaId, metodePembayaran, tanggalPembayaran, ket
                 AnggotaKeluarCache.invalidateAnggota(anggotaId);
                 AnggotaKeluarCache.invalidateSimpanan();
                 AnggotaKeluarCache.invalidateReports();
+            }
+            
+            // Step 11: Auto-delete anggota after pengembalian selesai (Task 4)
+            // Validate deletion eligibility before auto-delete
+            const deletionValidation = validateDeletionEligibility(anggotaId);
+            if (!deletionValidation.valid) {
+                // If validation fails, keep anggota but log warning
+                console.warn('Cannot auto-delete anggota:', deletionValidation.error);
+                const autoDeleteFailedLog = {
+                    id: generateId(),
+                    timestamp: new Date().toISOString(),
+                    userId: currentUser.id || 'system',
+                    userName: currentUser.username || 'System',
+                    action: 'AUTO_DELETE_FAILED',
+                    anggotaId: anggotaId,
+                    anggotaNama: anggota.nama,
+                    details: {
+                        reason: deletionValidation.error.message,
+                        errorCode: deletionValidation.error.code,
+                        pengembalianId: pengembalianId
+                    },
+                    ipAddress: null,
+                    severity: 'WARNING'
+                };
+                saveAuditLog(autoDeleteFailedLog);
+            } else {
+                // Auto-delete anggota if validation passes
+                const deleteResult = autoDeleteAnggotaKeluar(anggotaId);
+                if (!deleteResult.success) {
+                    // Log error but don't fail the pengembalian process
+                    console.error('Auto-delete failed:', deleteResult.error);
+                    const autoDeleteErrorLog = {
+                        id: generateId(),
+                        timestamp: new Date().toISOString(),
+                        userId: currentUser.id || 'system',
+                        userName: currentUser.username || 'System',
+                        action: 'AUTO_DELETE_ERROR',
+                        anggotaId: anggotaId,
+                        anggotaNama: anggota.nama,
+                        details: {
+                            error: deleteResult.error,
+                            pengembalianId: pengembalianId
+                        },
+                        ipAddress: null,
+                        severity: 'ERROR'
+                    };
+                    saveAuditLog(autoDeleteErrorLog);
+                } else {
+                    // Auto-delete successful
+                    console.log('Auto-delete successful:', deleteResult.message);
+                }
             }
             
             // Return success

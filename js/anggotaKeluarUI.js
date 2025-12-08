@@ -25,8 +25,8 @@ function showAnggotaKeluarModal(anggotaId) {
         return;
     }
     
-    // Check if already keluar
-    if (anggota.statusKeanggotaan === 'Keluar') {
+    // Check if already keluar (Task 9.1: Updated to check pengembalianStatus)
+    if (anggota.pengembalianStatus === 'Pending' || anggota.pengembalianStatus === 'Selesai') {
         alert('Anggota sudah berstatus keluar');
         return;
     }
@@ -2198,4 +2198,189 @@ function showDeleteConfirmationModal(anggotaId) {
             this.innerHTML = 'Hapus Permanen';
         }
     });
+}
+
+
+/**
+ * Render Anggota Keluar view using pengembalian data
+ * Task 6.1: Get data from pengembalian table instead of anggota table
+ */
+function renderAnggotaKeluar() {
+    const content = document.getElementById('mainContent');
+    
+    // Get data from pengembalian table (not anggota table) - Task 6.1
+    const pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+    
+    // Sort by tanggal keluar (newest first)
+    pengembalianList.sort((a, b) => {
+        const dateA = new Date(a.tanggalPembayaran || a.createdAt || 0);
+        const dateB = new Date(b.tanggalPembayaran || b.createdAt || 0);
+        return dateB - dateA;
+    });
+    
+    content.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #2d6a4f; font-weight: 700;">
+                <i class="bi bi-box-arrow-right me-2"></i>Anggota Keluar
+            </h2>
+            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); font-size: 1rem;">
+                Total: ${pengembalianList.length} Anggota Keluar
+            </span>
+        </div>
+        
+        <!-- Filter dan Pencarian -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="bi bi-search me-1"></i>Pencarian
+                        </label>
+                        <input type="text" class="form-control" id="searchAnggotaKeluar" 
+                            placeholder="Cari NIK atau Nama..." 
+                            onkeyup="filterAnggotaKeluar()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            <i class="bi bi-calendar-range me-1"></i>Tanggal Dari
+                        </label>
+                        <input type="date" class="form-control" id="filterTanggalKeluarDari" onchange="filterAnggotaKeluar()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            <i class="bi bi-calendar-range me-1"></i>Tanggal Sampai
+                        </label>
+                        <input type="date" class="form-control" id="filterTanggalKeluarSampai" onchange="filterAnggotaKeluar()">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Menampilkan <strong id="countFilteredKeluar">${pengembalianList.length}</strong> dari <strong>${pengembalianList.length}</strong> anggota keluar
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-table me-2"></i>Daftar Anggota Keluar (Riwayat Pengembalian)
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>NIK</th>
+                                <th>Nama</th>
+                                <th>Tanggal Pengembalian</th>
+                                <th>Total Pengembalian</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyAnggotaKeluar">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Render table - Task 6.2
+    renderTableAnggotaKeluar(pengembalianList);
+}
+
+/**
+ * Render table for Anggota Keluar using pengembalian data
+ * Task 6.2: Use pengembalian data for rendering
+ */
+function renderTableAnggotaKeluar(data) {
+    const tbody = document.getElementById('tbodyAnggotaKeluar');
+    
+    if (!tbody) return;
+    
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center">
+                    <i class="bi bi-inbox me-2"></i>Tidak ada data anggota keluar
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = data.map(p => {
+        const statusBadge = p.status === 'Selesai' ? 
+            '<span class="badge bg-success">Selesai</span>' : 
+            '<span class="badge bg-warning">Diproses</span>';
+        
+        const totalPengembalian = (p.simpananPokok || 0) + 
+                                 (p.simpananWajib || 0);
+        
+        const tanggalPengembalian = p.tanggalPembayaran || p.createdAt || '-';
+        const tanggalDisplay = tanggalPengembalian !== '-' ? formatDateToDisplay(tanggalPengembalian) : '-';
+        
+        return `
+            <tr>
+                <td>${p.anggotaNIK || '-'}</td>
+                <td>${p.anggotaNama || '-'}</td>
+                <td>${tanggalDisplay}</td>
+                <td>Rp ${totalPengembalian.toLocaleString('id-ID')}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="showDetailPengembalian('${p.id}')" title="Lihat Detail">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="cetakSuratPengunduranDiri('${p.id}')" title="Cetak Surat">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Filter Anggota Keluar based on search and date range
+ * Task 6.3: Filter pengembalian data instead of anggota data
+ */
+function filterAnggotaKeluar() {
+    const pengembalianList = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+    const searchText = document.getElementById('searchAnggotaKeluar')?.value.toLowerCase() || '';
+    const filterTanggalDari = document.getElementById('filterTanggalKeluarDari')?.value || '';
+    const filterTanggalSampai = document.getElementById('filterTanggalKeluarSampai')?.value || '';
+    
+    let filtered = pengembalianList.filter(p => {
+        // Search filter (NIK or Nama)
+        const matchSearch = !searchText || 
+            (p.anggotaNIK && p.anggotaNIK.toLowerCase().includes(searchText)) ||
+            (p.anggotaNama && p.anggotaNama.toLowerCase().includes(searchText));
+        
+        // Date range filter
+        let matchDateRange = true;
+        if (filterTanggalDari || filterTanggalSampai) {
+            const pengembalianDate = p.tanggalPembayaran || p.createdAt || '1900-01-01';
+            
+            if (filterTanggalDari && filterTanggalSampai) {
+                matchDateRange = pengembalianDate >= filterTanggalDari && pengembalianDate <= filterTanggalSampai;
+            } else if (filterTanggalDari) {
+                matchDateRange = pengembalianDate >= filterTanggalDari;
+            } else if (filterTanggalSampai) {
+                matchDateRange = pengembalianDate <= filterTanggalSampai;
+            }
+        }
+        
+        return matchSearch && matchDateRange;
+    });
+    
+    // Update count
+    const countElement = document.getElementById('countFilteredKeluar');
+    if (countElement) {
+        countElement.textContent = filtered.length;
+    }
+    
+    // Render filtered table
+    renderTableAnggotaKeluar(filtered);
 }
