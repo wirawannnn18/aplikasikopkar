@@ -252,3 +252,149 @@ function getMigrationStatus() {
         hasBackup: hasBackup
     };
 }
+
+/**
+ * Migrate anggota keluar status to ensure consistency
+ * Fixes legacy data where statusKeanggotaan = 'Keluar' but status = 'Aktif'
+ * Or where tanggalKeluar exists but status is not 'Nonaktif'
+ * Task 1: Fix status display for anggota keluar
+ * @returns {Object} Migration result with count of fixed records
+ */
+function migrateAnggotaKeluarStatus() {
+    try {
+        // Task 5: Enhanced error handling and logging
+        // Validate localStorage availability
+        if (typeof localStorage === 'undefined') {
+            console.error('❌ localStorage tidak tersedia');
+            return {
+                success: false,
+                totalChecked: 0,
+                fixed: 0,
+                error: 'localStorage tidak tersedia',
+                message: 'Gagal: localStorage tidak tersedia'
+            };
+        }
+        
+        // Load anggota data with error handling
+        let anggotaList;
+        try {
+            anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        } catch (parseError) {
+            console.error('❌ Error parsing data anggota:', parseError.message);
+            return {
+                success: false,
+                totalChecked: 0,
+                fixed: 0,
+                error: 'Data anggota tidak valid (JSON parse error)',
+                message: 'Gagal: Data anggota rusak'
+            };
+        }
+        
+        // Validate anggotaList is an array
+        if (!Array.isArray(anggotaList)) {
+            console.error('❌ Data anggota bukan array:', typeof anggotaList);
+            return {
+                success: false,
+                totalChecked: 0,
+                fixed: 0,
+                error: 'Data anggota bukan array',
+                message: 'Gagal: Format data anggota tidak valid'
+            };
+        }
+        
+        if (anggotaList.length === 0) {
+            return {
+                success: true,
+                totalChecked: 0,
+                fixed: 0,
+                message: 'Tidak ada data anggota'
+            };
+        }
+        
+        let fixedCount = 0;
+        const totalChecked = anggotaList.length;
+        
+        // Process each anggota
+        anggotaList = anggotaList.map((anggota, index) => {
+            // Task 5: Handle invalid anggota objects gracefully
+            if (!anggota || typeof anggota !== 'object') {
+                console.warn(`⚠️ Anggota index ${index} tidak valid, dilewati`);
+                return anggota; // Return as-is, don't crash
+            }
+            
+            let needsFix = false;
+            const changes = [];
+            
+            // Check 1: Has tanggalKeluar but status is not 'Nonaktif'
+            if (anggota.tanggalKeluar && anggota.status !== 'Nonaktif') {
+                anggota.status = 'Nonaktif';
+                needsFix = true;
+                changes.push('status → Nonaktif (karena tanggalKeluar ada)');
+            }
+            
+            // Check 2: Has pengembalianStatus but status is not 'Nonaktif'
+            if (anggota.pengembalianStatus && anggota.status !== 'Nonaktif') {
+                anggota.status = 'Nonaktif';
+                needsFix = true;
+                changes.push('status → Nonaktif (karena pengembalianStatus ada)');
+            }
+            
+            // Check 3: Has legacy statusKeanggotaan = 'Keluar' but status is not 'Nonaktif'
+            if (anggota.statusKeanggotaan === 'Keluar' && anggota.status !== 'Nonaktif') {
+                anggota.status = 'Nonaktif';
+                needsFix = true;
+                changes.push('status → Nonaktif (karena statusKeanggotaan = Keluar)');
+            }
+            
+            // Check 4: Remove legacy statusKeanggotaan field
+            if (anggota.hasOwnProperty('statusKeanggotaan')) {
+                delete anggota.statusKeanggotaan;
+                needsFix = true;
+                changes.push('hapus field statusKeanggotaan (legacy)');
+            }
+            
+            if (needsFix) {
+                fixedCount++;
+                console.log(`✓ Fixed anggota: ${anggota.nama} (${anggota.nik}) - ${changes.join(', ')}`);
+            }
+            
+            return anggota;
+        });
+        
+        // Save updated anggota list if any fixes were made
+        if (fixedCount > 0) {
+            try {
+                localStorage.setItem('anggota', JSON.stringify(anggotaList));
+                console.log(`✅ Migrasi status anggota keluar selesai: ${fixedCount} dari ${totalChecked} anggota diperbaiki`);
+            } catch (saveError) {
+                console.error('❌ Error menyimpan data anggota:', saveError.message);
+                return {
+                    success: false,
+                    totalChecked: totalChecked,
+                    fixed: 0,
+                    error: 'Gagal menyimpan data ke localStorage',
+                    message: 'Gagal: Tidak bisa menyimpan perubahan'
+                };
+            }
+        }
+        
+        return {
+            success: true,
+            totalChecked: totalChecked,
+            fixed: fixedCount,
+            message: fixedCount > 0 
+                ? `Berhasil memperbaiki ${fixedCount} data anggota` 
+                : 'Semua data sudah konsisten'
+        };
+        
+    } catch (error) {
+        console.error('Error dalam migrateAnggotaKeluarStatus:', error);
+        return {
+            success: false,
+            totalChecked: 0,
+            fixed: 0,
+            error: error.message,
+            message: 'Gagal melakukan migrasi status'
+        };
+    }
+}

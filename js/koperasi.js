@@ -329,6 +329,14 @@ let anggotaSortState = {
 };
 
 function renderAnggota() {
+    // Run migration to fix status for anggota keluar (Task 2: Fix Status Anggota Keluar)
+    if (typeof migrateAnggotaKeluarStatus === 'function') {
+        const migrationResult = migrateAnggotaKeluarStatus();
+        if (migrationResult.success && migrationResult.fixed > 0) {
+            console.log(`✓ Status migration: Fixed ${migrationResult.fixed} anggota records`);
+        }
+    }
+    
     const content = document.getElementById('mainContent');
     const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
     
@@ -623,8 +631,12 @@ function renderTableAnggota(filteredData = null) {
     tbody.innerHTML = anggota.map(a => {
         const tipeBadge = a.tipeAnggota === 'Anggota' ? 'bg-primary' : 
                          a.tipeAnggota === 'Non-Anggota' ? 'bg-info' : 'bg-secondary';
-        const statusBadge = a.status === 'Aktif' ? 'bg-success' : 
-                           a.status === 'Nonaktif' ? 'bg-secondary' : 'bg-warning';
+        
+        // Task 3: Enhance display logic - fallback for status
+        // If tanggalKeluar exists, force status to 'Nonaktif' (defensive programming)
+        const actualStatus = a.tanggalKeluar ? 'Nonaktif' : (a.status || 'Aktif');
+        const statusBadge = actualStatus === 'Aktif' ? 'bg-success' : 
+                           actualStatus === 'Nonaktif' ? 'bg-secondary' : 'bg-warning';
         
         // Handle tanggalDaftar: format as DD/MM/YYYY or show "-" for legacy data
         let tanggalDaftarDisplay = '-';
@@ -681,7 +693,7 @@ function renderTableAnggota(filteredData = null) {
                 </td>
                 <td>
                     <span class="badge ${statusBadge}">
-                        ${a.status || 'Aktif'}
+                        ${actualStatus}
                     </span>
                 </td>
                 <td>${tanggalDaftarDisplay}</td>
@@ -729,8 +741,10 @@ function filterAnggota() {
         // Tipe filter
         const matchTipe = !filterTipe || a.tipeAnggota === filterTipe;
         
-        // Status filter
-        const matchStatus = !filterStatus || a.status === filterStatus;
+        // Task 4: Fix filter logic for status
+        // Use same fallback logic as display: if tanggalKeluar exists, treat as 'Nonaktif'
+        const actualStatus = a.tanggalKeluar ? 'Nonaktif' : (a.status || 'Aktif');
+        const matchStatus = !filterStatus || actualStatus === filterStatus;
         
         // Date range filter
         let matchDateRange = true;
