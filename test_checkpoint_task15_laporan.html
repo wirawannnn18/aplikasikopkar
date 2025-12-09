@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 15 Checkpoint - Laporan Transaksi Simpanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .checkpoint-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .test-category {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .test-pending {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .summary-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .btn-action {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4 mb-5">
+        <div class="checkpoint-header">
+            <h1><i class="fas fa-check-circle"></i> Task 15: Checkpoint</h1>
+            <p class="mb-0">Comprehensive testing of all implemented features</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4" id="summaryCards">
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <i class="fas fa-tasks fa-2x text-primary"></i>
+                    <div class="summary-number text-primary" id="totalTests">0</div>
+                    <div>Total Tests</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                    <div class="summary-number text-success" id="passedTests">0</div>
+                    <div>Passed</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <i class="fas fa-times-circle fa-2x text-danger"></i>
+                    <div class="summary-number text-danger" id="failedTests">0</div>
+                    <div>Failed</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <i class="fas fa-percentage fa-2x text-info"></i>
+                    <div class="summary-number text-info" id="successRate">0%</div>
+                    <div>Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mb-4">
+            <button class="btn btn-primary btn-lg btn-action" onclick="runAllTests()">
+                <i class="fas fa-play"></i> Run All Tests
+            </button>
+            <button class="btn btn-success btn-action" onclick="runCoreTests()">
+                <i class="fas fa-cog"></i> Core Features Only
+            </button>
+            <button class="btn btn-info btn-action" onclick="runPerformanceTests()">
+                <i class="fas fa-tachometer-alt"></i> Performance Tests
+            </button>
+            <button class="btn btn-warning btn-action" onclick="runErrorTests()">
+                <i class="fas fa-bug"></i> Error Handling
+            </button>
+            <button class="btn btn-secondary btn-action" onclick="clearResults()">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+
+        <!-- Final Report -->
+        <div id="finalReport" class="mt-4" style="display: none;">
+            <div class="alert alert-info">
+                <h4><i class="fas fa-clipboard-check"></i> Checkpoint Summary</h4>
+                <div id="reportContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = [];
+        let currentCategory = '';
+
+        function addCategory(name) {
+            currentCategory = name;
+            const container = document.getElementById('testResults');
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'test-category';
+            categoryDiv.id = `category-${name.replace(/\s+/g, '-')}`;
+            categoryDiv.innerHTML = `
+                <h3><i class="fas fa-folder-open"></i> ${name}</h3>
+                <div class="category-tests"></div>
+            `;
+            container.appendChild(categoryDiv);
+        }
+
+        function addTest(name, passed, message, details = '') {
+            const result = {
+                category: currentCategory,
+                name,
+                passed,
+                message,
+                details,
+                timestamp: new Date().toISOString()
+            };
+            testResults.push(result);
+
+            const categoryId = `category-${currentCategory.replace(/\s+/g, '-')}`;
+            const categoryDiv = document.getElementById(categoryId);
+            if (categoryDiv) {
+                const testsContainer = categoryDiv.querySelector('.category-tests');
+                const testDiv = document.createElement('div');
+                testDiv.className = `test-item ${passed ? 'test-pass' : 'test-fail'}`;
+                testDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>
+                                <i class="fas ${passed ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'}"></i>
+                                ${name}
+                            </strong>
+                            <p class="mb-0 mt-2">${message}</p>
+                            ${details ? `<small class="text-muted">${details}</small>` : ''}
+                        </div>
+                    </div>
+                `;
+                testsContainer.appendChild(testDiv);
+            }
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.passed).length;
+            const failed = total - passed;
+            const rate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('finalReport').style.display = 'none';
+            updateSummary();
+        }
+
+        // ============================================================================
+        // CATEGORY 1: Core Data Aggregation (Tasks 1-2)
+        // ============================================================================
+        function testCoreDataAggregation() {
+            addCategory('1. Core Data Aggregation');
+
+            // Test 1.1: AnggotaDataAggregator exists
+            try {
+                const exists = typeof AnggotaDataAggregator === 'function';
+                addTest(
+                    'AnggotaDataAggregator Class',
+                    exists,
+                    exists ? 'Class is defined and accessible' : 'Class not found',
+                    'Task 1: Core data aggregator'
+                );
+            } catch (e) {
+                addTest('AnggotaDataAggregator Class', false, `Error: ${e.message}`);
+            }
+
+            // Test 1.2: Safe data loading
+            try {
+                const exists = typeof safeGetData === 'function';
+                addTest(
+                    'Safe Data Loading',
+                    exists,
+                    exists ? 'safeGetData function available' : 'Function not found',
+                    'Task 1 & 14: Enhanced error handling'
+                );
+            } catch (e) {
+                addTest('Safe Data Loading', false, `Error: ${e.message}`);
+            }
+
+            // Test 1.3: Main render function
+            try {
+                const exists = typeof renderLaporanTransaksiSimpananAnggota === 'function';
+                addTest(
+                    'Main Render Function',
+                    exists,
+                    exists ? 'Render function is defined' : 'Function not found',
+                    'Task 2: Main report rendering'
+                );
+            } catch (e) {
+                addTest('Main Render Function', false, `Error: ${e.message}`);
+            }
+
+            // Test 1.4: Statistics calculation
+            try {
+                const exists = typeof calculateStatistics === 'function';
+                addTest(
+                    'Statistics Calculation',
+                    exists,
+                    exists ? 'Statistics function available' : 'Function not found',
+                    'Task 2: Statistics cards'
+                );
+            } catch (e) {
+                addTest('Statistics Calculation', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 2: Filter & Search (Task 3)
+        // ============================================================================
+        function testFilterAndSearch() {
+            addCategory('2. Filter & Search Functionality');
+
+            // Test 2.1: Filter Manager
+            try {
+                const exists = typeof LaporanFilterManager === 'function';
+                addTest(
+                    'Filter Manager Class',
+                    exists,
+                    exists ? 'LaporanFilterManager is defined' : 'Class not found',
+                    'Task 3: Filter and search'
+                );
+            } catch (e) {
+                addTest('Filter Manager Class', false, `Error: ${e.message}`);
+            }
+
+            // Test 2.2: Filter functions
+            try {
+                const filterManager = new LaporanFilterManager();
+                const hasSetData = typeof filterManager.setData === 'function';
+                const hasFilter = typeof filterManager.applyFilters === 'function';
+                const hasReset = typeof filterManager.resetFilters === 'function';
+                
+                const allExist = hasSetData && hasFilter && hasReset;
+                addTest(
+                    'Filter Methods',
+                    allExist,
+                    allExist ? 'All filter methods available' : 'Some methods missing',
+                    'setData, applyFilters, resetFilters'
+                );
+            } catch (e) {
+                addTest('Filter Methods', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 3: Detail Modals (Tasks 5-6)
+        // ============================================================================
+        function testDetailModals() {
+            addCategory('3. Detail Modals');
+
+            // Test 3.1: Transaction detail
+            try {
+                const exists = typeof showDetailTransaksi === 'function';
+                addTest(
+                    'Transaction Detail Modal',
+                    exists,
+                    exists ? 'showDetailTransaksi function available' : 'Function not found',
+                    'Task 5: Detail transaction modal'
+                );
+            } catch (e) {
+                addTest('Transaction Detail Modal', false, `Error: ${e.message}`);
+            }
+
+            // Test 3.2: Simpanan detail
+            try {
+                const exists = typeof showDetailSimpanan === 'function';
+                addTest(
+                    'Simpanan Detail Modal',
+                    exists,
+                    exists ? 'showDetailSimpanan function available' : 'Function not found',
+                    'Task 6: Detail simpanan modal'
+                );
+            } catch (e) {
+                addTest('Simpanan Detail Modal', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 4: Sorting (Task 7)
+        // ============================================================================
+        function testSorting() {
+            addCategory('4. Sorting Functionality');
+
+            // Test 4.1: Sort function
+            try {
+                const exists = typeof sortLaporanBy === 'function';
+                addTest(
+                    'Sort Function',
+                    exists,
+                    exists ? 'sortLaporanBy function available' : 'Function not found',
+                    'Task 7: Sorting functionality'
+                );
+            } catch (e) {
+                addTest('Sort Function', false, `Error: ${e.message}`);
+            }
+
+            // Test 4.2: Sort data helper
+            try {
+                const exists = typeof sortData === 'function';
+                addTest(
+                    'Sort Data Helper',
+                    exists,
+                    exists ? 'sortData helper function available' : 'Function not found',
+                    'Task 7: Sorting implementation'
+                );
+            } catch (e) {
+                addTest('Sort Data Helper', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 5: Export & Print (Tasks 8-9)
+        // ============================================================================
+        function testExportAndPrint() {
+            addCategory('5. Export & Print');
+
+            // Test 5.1: CSV Export
+            try {
+                const exists = typeof exportLaporanToCSV === 'function';
+                addTest(
+                    'CSV Export Function',
+                    exists,
+                    exists ? 'exportLaporanToCSV function available' : 'Function not found',
+                    'Task 8: CSV export functionality'
+                );
+            } catch (e) {
+                addTest('CSV Export Function', false, `Error: ${e.message}`);
+            }
+
+            // Test 5.2: CSV Content Generation
+            try {
+                const exists = typeof generateCSVContent === 'function';
+                addTest(
+                    'CSV Content Generator',
+                    exists,
+                    exists ? 'generateCSVContent function available' : 'Function not found',
+                    'Task 8: CSV generation'
+                );
+            } catch (e) {
+                addTest('CSV Content Generator', false, `Error: ${e.message}`);
+            }
+
+            // Test 5.3: Print Function
+            try {
+                const exists = typeof printLaporan === 'function';
+                addTest(
+                    'Print Function',
+                    exists,
+                    exists ? 'printLaporan function available' : 'Function not found',
+                    'Task 9: Print functionality'
+                );
+            } catch (e) {
+                addTest('Print Function', false, `Error: ${e.message}`);
+            }
+
+            // Test 5.4: Print Content Generation
+            try {
+                const exists = typeof generatePrintContent === 'function';
+                addTest(
+                    'Print Content Generator',
+                    exists,
+                    exists ? 'generatePrintContent function available' : 'Function not found',
+                    'Task 9: Print content generation'
+                );
+            } catch (e) {
+                addTest('Print Content Generator', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 6: Authorization (Task 10)
+        // ============================================================================
+        function testAuthorization() {
+            addCategory('6. Authorization & Access Control');
+
+            // Test 6.1: Access check
+            try {
+                const exists = typeof checkLaporanAccess === 'function';
+                addTest(
+                    'Access Check Function',
+                    exists,
+                    exists ? 'checkLaporanAccess function available' : 'Function not found',
+                    'Task 10: Authorization'
+                );
+            } catch (e) {
+                addTest('Access Check Function', false, `Error: ${e.message}`);
+            }
+
+            // Test 6.2: Role-based filtering
+            try {
+                const exists = typeof getFilteredReportDataByRole === 'function';
+                addTest(
+                    'Role-based Filtering',
+                    exists,
+                    exists ? 'getFilteredReportDataByRole function available' : 'Function not found',
+                    'Task 10: Role-based data filtering'
+                );
+            } catch (e) {
+                addTest('Role-based Filtering', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 7: Performance Optimizations (Task 13)
+        // ============================================================================
+        function testPerformanceOptimizations() {
+            addCategory('7. Performance Optimizations');
+
+            // Test 7.1: Cache Manager
+            try {
+                const exists = typeof LaporanCacheManager === 'function';
+                addTest(
+                    'Cache Manager',
+                    exists,
+                    exists ? 'LaporanCacheManager class available' : 'Class not found',
+                    'Task 13: Data caching'
+                );
+            } catch (e) {
+                addTest('Cache Manager', false, `Error: ${e.message}`);
+            }
+
+            // Test 7.2: Debounce Function
+            try {
+                const exists = typeof debounce === 'function';
+                addTest(
+                    'Debounce Function',
+                    exists,
+                    exists ? 'debounce function available' : 'Function not found',
+                    'Task 13: Search debouncing'
+                );
+            } catch (e) {
+                addTest('Debounce Function', false, `Error: ${e.message}`);
+            }
+
+            // Test 7.3: Pagination Manager
+            try {
+                const exists = typeof PaginationManager === 'function';
+                addTest(
+                    'Pagination Manager',
+                    exists,
+                    exists ? 'PaginationManager class available' : 'Class not found',
+                    'Task 13: Pagination'
+                );
+            } catch (e) {
+                addTest('Pagination Manager', false, `Error: ${e.message}`);
+            }
+
+            // Test 7.4: Loading Indicator
+            try {
+                const exists = typeof LoadingIndicatorManager === 'function';
+                addTest(
+                    'Loading Indicator Manager',
+                    exists,
+                    exists ? 'LoadingIndicatorManager class available' : 'Class not found',
+                    'Task 13: Loading indicators'
+                );
+            } catch (e) {
+                addTest('Loading Indicator Manager', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 8: Error Handling (Task 14)
+        // ============================================================================
+        function testErrorHandling() {
+            addCategory('8. Error Handling');
+
+            // Test 8.1: Custom Error Classes
+            try {
+                const hasLaporanError = typeof LaporanError === 'function';
+                const hasDataLoadError = typeof DataLoadError === 'function';
+                const hasValidationError = typeof ValidationError === 'function';
+                const hasExportError = typeof ExportError === 'function';
+                
+                const allExist = hasLaporanError && hasDataLoadError && hasValidationError && hasExportError;
+                addTest(
+                    'Custom Error Classes',
+                    allExist,
+                    allExist ? 'All error classes defined' : 'Some error classes missing',
+                    'Task 14: Error handling'
+                );
+            } catch (e) {
+                addTest('Custom Error Classes', false, `Error: ${e.message}`);
+            }
+
+            // Test 8.2: Error Tracker
+            try {
+                const exists = window.errorTracker && typeof window.errorTracker.log === 'function';
+                addTest(
+                    'Error Tracker',
+                    exists,
+                    exists ? 'Error tracker initialized and functional' : 'Error tracker not available',
+                    'Task 14: Error logging'
+                );
+            } catch (e) {
+                addTest('Error Tracker', false, `Error: ${e.message}`);
+            }
+
+            // Test 8.3: Data Validators
+            try {
+                const exists = typeof DataValidators === 'object' &&
+                              typeof DataValidators.isValidAnggotaArray === 'function' &&
+                              typeof DataValidators.isValidNumber === 'function';
+                addTest(
+                    'Data Validators',
+                    exists,
+                    exists ? 'Data validators available' : 'Validators not found',
+                    'Task 14: Data validation'
+                );
+            } catch (e) {
+                addTest('Data Validators', false, `Error: ${e.message}`);
+            }
+
+            // Test 8.4: Safe Calculation Functions
+            try {
+                const hasSafeAdd = typeof safeAdd === 'function';
+                const hasSafeDivide = typeof safeDivide === 'function';
+                const hasSafePercentage = typeof safePercentage === 'function';
+                const hasSafeCurrency = typeof safeCurrencyFormat === 'function';
+                
+                const allExist = hasSafeAdd && hasSafeDivide && hasSafePercentage && hasSafeCurrency;
+                addTest(
+                    'Safe Calculation Functions',
+                    allExist,
+                    allExist ? 'All safe calculation functions available' : 'Some functions missing',
+                    'Task 14: Safe calculations'
+                );
+            } catch (e) {
+                addTest('Safe Calculation Functions', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CATEGORY 9: Integration Tests
+        // ============================================================================
+        function testIntegration() {
+            addCategory('9. Integration & Dependencies');
+
+            // Test 9.1: Helper functions
+            try {
+                const hasFormatCurrency = typeof formatCurrency === 'function';
+                const hasFormatDate = typeof formatDate === 'function';
+                
+                const allExist = hasFormatCurrency && hasFormatDate;
+                addTest(
+                    'Helper Functions',
+                    allExist,
+                    allExist ? 'All helper functions available' : 'Some helpers missing',
+                    'Utility functions'
+                );
+            } catch (e) {
+                addTest('Helper Functions', false, `Error: ${e.message}`);
+            }
+
+            // Test 9.2: Filter active anggota
+            try {
+                const exists = typeof filterActiveAnggota === 'function';
+                addTest(
+                    'Filter Active Anggota',
+                    exists,
+                    exists ? 'filterActiveAnggota function available' : 'Function not found',
+                    'Anggota keluar exclusion'
+                );
+            } catch (e) {
+                addTest('Filter Active Anggota', false, `Error: ${e.message}`);
+            }
+        }
+
+        // ============================================================================
+        // RUN TEST SUITES
+        // ============================================================================
+        function runCoreTests() {
+            clearResults();
+            testCoreDataAggregation();
+            testFilterAndSearch();
+            testDetailModals();
+            testSorting();
+            showFinalReport();
+        }
+
+        function runPerformanceTests() {
+            clearResults();
+            testPerformanceOptimizations();
+            showFinalReport();
+        }
+
+        function runErrorTests() {
+            clearResults();
+            testErrorHandling();
+            showFinalReport();
+        }
+
+        function runAllTests() {
+            clearResults();
+            
+            console.log('🚀 Starting comprehensive checkpoint tests...');
+            
+            testCoreDataAggregation();
+            testFilterAndSearch();
+            testDetailModals();
+            testSorting();
+            testExportAndPrint();
+            testAuthorization();
+            testPerformanceOptimizations();
+            testErrorHandling();
+            testIntegration();
+            
+            console.log('✅ All checkpoint tests completed!');
+            
+            showFinalReport();
+        }
+
+        function showFinalReport() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.passed).length;
+            const failed = total - passed;
+            const rate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+
+            const reportDiv = document.getElementById('finalReport');
+            const contentDiv = document.getElementById('reportContent');
+
+            let status = 'success';
+            let icon = 'fa-check-circle';
+            let message = 'All tests passed! Ready to proceed.';
+
+            if (failed > 0) {
+                status = 'warning';
+                icon = 'fa-exclamation-triangle';
+                message = `${failed} test(s) failed. Please review and fix issues.`;
+            }
+
+            contentDiv.innerHTML = `
+                <div class="text-center mb-3">
+                    <i class="fas ${icon} fa-3x text-${status}"></i>
+                </div>
+                <h5>${message}</h5>
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <strong>Total Tests:</strong> ${total}
+                    </div>
+                    <div class="col-md-3">
+                        <strong class="text-success">Passed:</strong> ${passed}
+                    </div>
+                    <div class="col-md-3">
+                        <strong class="text-danger">Failed:</strong> ${failed}
+                    </div>
+                    <div class="col-md-3">
+                        <strong class="text-info">Success Rate:</strong> ${rate}%
+                    </div>
+                </div>
+                <hr>
+                <h6>Test Categories:</h6>
+                <ul>
+                    ${getCategories().map(cat => {
+                        const catTests = testResults.filter(r => r.category === cat);
+                        const catPassed = catTests.filter(r => r.passed).length;
+                        const catTotal = catTests.length;
+                        const catRate = ((catPassed / catTotal) * 100).toFixed(0);
+                        return `<li><strong>${cat}:</strong> ${catPassed}/${catTotal} (${catRate}%)</li>`;
+                    }).join('')}
+                </ul>
+                ${failed > 0 ? `
+                    <div class="alert alert-warning mt-3">
+                        <strong>Action Required:</strong> Review failed tests above and ensure all implementations are correct.
+                    </div>
+                ` : `
+                    <div class="alert alert-success mt-3">
+                        <strong>✅ Checkpoint Passed!</strong> All core features are implemented and functional. Ready for Task 16 (Documentation).
+                    </div>
+                `}
+            `;
+
+            reportDiv.style.display = 'block';
+        }
+
+        function getCategories() {
+            return [...new Set(testResults.map(r => r.category))];
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            console.log('Checkpoint test page loaded. Click "Run All Tests" to begin.');
+        });
+    </script>
+
+    <!-- Load the actual implementation -->
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>

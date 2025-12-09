@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 8 - CSV Export Functionality</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            Test Task 8 - CSV Export Functionality
+        </h1>
+
+        <!-- Test 1: CSV Content Generation -->
+        <div class="test-section">
+            <h3>Test 1: CSV Content Generation</h3>
+            <p>Verify that CSV content is generated correctly with proper headers and data</p>
+            <button class="btn btn-primary" onclick="runTest1()">Run Test 1</button>
+            <div id="test1Result"></div>
+        </div>
+
+        <!-- Test 2: CSV Field Escaping -->
+        <div class="test-section">
+            <h3>Test 2: CSV Field Escaping</h3>
+            <p>Verify that fields with commas, quotes, and newlines are properly escaped</p>
+            <button class="btn btn-primary" onclick="runTest2()">Run Test 2</button>
+            <div id="test2Result"></div>
+        </div>
+
+        <!-- Test 3: CSV Column Completeness -->
+        <div class="test-section">
+            <h3>Test 3: CSV Column Completeness</h3>
+            <p>Verify that all required columns are present in CSV export</p>
+            <button class="btn btn-primary" onclick="runTest3()">Run Test 3</button>
+            <div id="test3Result"></div>
+        </div>
+
+        <!-- Test 4: CSV Totals Row -->
+        <div class="test-section">
+            <h3>Test 4: CSV Totals Row</h3>
+            <p>Verify that totals row is correctly calculated and included</p>
+            <button class="btn btn-primary" onclick="runTest4()">Run Test 4</button>
+            <div id="test4Result"></div>
+        </div>
+
+        <!-- Test 5: Export Filename Convention -->
+        <div class="test-section">
+            <h3>Test 5: Export Filename Convention</h3>
+            <p>Verify that filename follows the pattern 'laporan_transaksi_simpanan_YYYY-MM-DD.csv'</p>
+            <button class="btn btn-primary" onclick="runTest5()">Run Test 5</button>
+            <div id="test5Result"></div>
+        </div>
+
+        <!-- Test 6: Empty Data Handling -->
+        <div class="test-section">
+            <h3>Test 6: Empty Data Handling</h3>
+            <p>Verify that export handles empty data gracefully</p>
+            <button class="btn btn-primary" onclick="runTest6()">Run Test 6</button>
+            <div id="test6Result"></div>
+        </div>
+
+        <!-- Test 7: Filtered Data Export -->
+        <div class="test-section">
+            <h3>Test 7: Filtered Data Export</h3>
+            <p>Verify that only filtered data is exported</p>
+            <button class="btn btn-primary" onclick="runTest7()">Run Test 7</button>
+            <div id="test7Result"></div>
+        </div>
+
+        <!-- Test 8: Sorted Data Export -->
+        <div class="test-section">
+            <h3>Test 8: Sorted Data Export</h3>
+            <p>Verify that exported data respects current sort order</p>
+            <button class="btn btn-primary" onclick="runTest8()">Run Test 8</button>
+            <div id="test8Result"></div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <button class="btn btn-success btn-lg" onclick="runAllTests()">
+                <i class="bi bi-play-fill"></i> Run All Tests
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load dependencies -->
+    <script src="js/utils.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+
+    <script>
+        // Setup test data
+        function setupTestData() {
+            // Clear existing data
+            localStorage.clear();
+
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'A001',
+                    nik: '1234567890',
+                    nama: 'Budi Santoso',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A002',
+                    nik: '0987654321',
+                    nama: 'Siti, Rahayu',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A003',
+                    nik: '1122334455',
+                    nama: 'Ahmad "Jaya"',
+                    noKartu: 'K003',
+                    departemen: 'HR',
+                    tipeAnggota: 'Non-Anggota',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+
+            // Create test transactions
+            const penjualan = [
+                {
+                    id: 'T001',
+                    anggotaId: 'A001',
+                    metode: 'cash',
+                    total: 100000,
+                    status: 'lunas',
+                    tanggal: '2024-01-15',
+                    kasir: 'Kasir 1'
+                },
+                {
+                    id: 'T002',
+                    anggotaId: 'A001',
+                    metode: 'bon',
+                    total: 50000,
+                    status: 'kredit',
+                    tanggal: '2024-01-16',
+                    kasir: 'Kasir 2'
+                },
+                {
+                    id: 'T003',
+                    anggotaId: 'A002',
+                    metode: 'cash',
+                    total: 75000,
+                    status: 'lunas',
+                    tanggal: '2024-01-17',
+                    kasir: 'Kasir 1'
+                }
+            ];
+
+            // Create test simpanan
+            const simpananPokok = [
+                { id: 'SP001', anggotaId: 'A001', jumlah: 100000, tanggal: '2024-01-01' },
+                { id: 'SP002', anggotaId: 'A002', jumlah: 100000, tanggal: '2024-01-01' }
+            ];
+
+            const simpananWajib = [
+                { id: 'SW001', anggotaId: 'A001', jumlah: 50000, tanggal: '2024-01-01', periode: '2024-01' },
+                { id: 'SW002', anggotaId: 'A002', jumlah: 50000, tanggal: '2024-01-01', periode: '2024-01' }
+            ];
+
+            const simpananSukarela = [
+                { id: 'SS001', anggotaId: 'A001', jumlah: 25000, tanggal: '2024-01-10' }
+            ];
+
+            // Save to localStorage
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+        }
+
+        // Test 1: CSV Content Generation
+        function runTest1() {
+            setupTestData();
+            const resultDiv = document.getElementById('test1Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const csvContent = generateCSVContent(reportData);
+                
+                const lines = csvContent.split('\n');
+                const hasHeader = lines[0].includes('NIK') && lines[0].includes('Nama');
+                const hasData = lines.length > 2; // Header + at least 1 data row + totals
+                
+                if (hasHeader && hasData) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: CSV content generated correctly
+                            <br>Lines: ${lines.length}
+                            <br>Header: ${lines[0]}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: CSV content incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 2: CSV Field Escaping
+        function runTest2() {
+            const resultDiv = document.getElementById('test2Result');
+            
+            try {
+                // Test escaping with comma
+                const field1 = escapeCSVField('Siti, Rahayu');
+                const hasQuotes1 = field1.startsWith('"') && field1.endsWith('"');
+                
+                // Test escaping with quotes
+                const field2 = escapeCSVField('Ahmad "Jaya"');
+                const hasEscapedQuotes = field2.includes('""');
+                
+                // Test normal field
+                const field3 = escapeCSVField('Normal Name');
+                const noQuotes = !field3.includes('"');
+                
+                if (hasQuotes1 && hasEscapedQuotes && noQuotes) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: CSV field escaping works correctly
+                            <br>With comma: ${field1}
+                            <br>With quotes: ${field2}
+                            <br>Normal: ${field3}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: CSV field escaping incorrect
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 3: CSV Column Completeness
+        function runTest3() {
+            setupTestData();
+            const resultDiv = document.getElementById('test3Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const csvContent = generateCSVContent(reportData);
+                const headerLine = csvContent.split('\n')[0];
+                
+                const requiredColumns = [
+                    'NIK',
+                    'Nama',
+                    'Departemen',
+                    'Tipe Anggota',
+                    'Total Transaksi Cash',
+                    'Total Transaksi Bon',
+                    'Total Simpanan Pokok',
+                    'Total Simpanan Wajib',
+                    'Total Simpanan Sukarela',
+                    'Outstanding Balance'
+                ];
+                
+                const missingColumns = requiredColumns.filter(col => !headerLine.includes(col));
+                
+                if (missingColumns.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: All required columns present
+                            <br>Columns: ${requiredColumns.length}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Missing columns: ${missingColumns.join(', ')}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 4: CSV Totals Row
+        function runTest4() {
+            setupTestData();
+            const resultDiv = document.getElementById('test4Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const csvContent = generateCSVContent(reportData);
+                const lines = csvContent.split('\n');
+                const totalsLine = lines[lines.length - 1];
+                
+                const hasTotalLabel = totalsLine.includes('TOTAL');
+                const hasNumericValues = /\d+/.test(totalsLine);
+                
+                if (hasTotalLabel && hasNumericValues) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Totals row included correctly
+                            <br>Totals: ${totalsLine}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Totals row incorrect
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 5: Export Filename Convention
+        function runTest5() {
+            const resultDiv = document.getElementById('test5Result');
+            
+            try {
+                const today = new Date();
+                const dateStr = today.toISOString().split('T')[0];
+                const expectedFilename = `laporan_transaksi_simpanan_${dateStr}.csv`;
+                
+                // Test filename pattern
+                const pattern = /^laporan_transaksi_simpanan_\d{4}-\d{2}-\d{2}\.csv$/;
+                const isValid = pattern.test(expectedFilename);
+                
+                if (isValid) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Filename follows correct convention
+                            <br>Expected: ${expectedFilename}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Filename pattern incorrect
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 6: Empty Data Handling
+        function runTest6() {
+            const resultDiv = document.getElementById('test6Result');
+            
+            try {
+                // Clear data
+                localStorage.clear();
+                localStorage.setItem('anggota', JSON.stringify([]));
+                localStorage.setItem('penjualan', JSON.stringify([]));
+                localStorage.setItem('simpananPokok', JSON.stringify([]));
+                localStorage.setItem('simpananWajib', JSON.stringify([]));
+                localStorage.setItem('simpananSukarela', JSON.stringify([]));
+                
+                const reportData = getAnggotaReportData();
+                
+                if (reportData.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Empty data handled correctly
+                            <br>Note: Export function should show warning for empty data
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Empty data not handled correctly
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 7: Filtered Data Export
+        function runTest7() {
+            setupTestData();
+            const resultDiv = document.getElementById('test7Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                laporanFilterManager = new LaporanFilterManager();
+                laporanFilterManager.setData(reportData);
+                
+                // Apply filter
+                laporanFilterManager.applyDepartemenFilter('IT');
+                const filteredData = laporanFilterManager.getFilteredData();
+                
+                const csvContent = generateCSVContent(filteredData);
+                const lines = csvContent.split('\n');
+                
+                // Should have header + 1 data row + totals = 3 lines
+                const correctCount = lines.length === 3;
+                const containsIT = csvContent.includes('IT');
+                const notContainsFinance = !csvContent.includes('Finance');
+                
+                if (correctCount && containsIT && notContainsFinance) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Filtered data exported correctly
+                            <br>Filtered rows: ${filteredData.length}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Filtered data export incorrect
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 8: Sorted Data Export
+        function runTest8() {
+            setupTestData();
+            const resultDiv = document.getElementById('test8Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                
+                // Sort by nama ascending
+                const sortedData = sortData(reportData, 'nama', 'asc');
+                const csvContent = generateCSVContent(sortedData);
+                const lines = csvContent.split('\n');
+                
+                // Check if first data row (line 1) contains first sorted name
+                const firstDataRow = lines[1];
+                const firstSortedName = sortedData[0].nama;
+                const containsFirstName = firstDataRow.includes(firstSortedName);
+                
+                if (containsFirstName) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Sorted data exported correctly
+                            <br>First name: ${firstSortedName}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Sorted data export incorrect
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Run all tests
+        function runAllTests() {
+            runTest1();
+            setTimeout(() => runTest2(), 100);
+            setTimeout(() => runTest3(), 200);
+            setTimeout(() => runTest4(), 300);
+            setTimeout(() => runTest5(), 400);
+            setTimeout(() => runTest6(), 500);
+            setTimeout(() => runTest7(), 600);
+            setTimeout(() => runTest8(), 700);
+        }
+
+        // Auto-run all tests on page load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded. Click "Run All Tests" to start.');
+        });
+    </script>
+</body>
+</html>

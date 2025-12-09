@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 6: Detail Simpanan Modal - Laporan Transaksi Simpanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Test Task 6: Detail Simpanan Modal</h1>
+        
+        <!-- Test Setup -->
+        <div class="test-section">
+            <h3>Test Setup</h3>
+            <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+            <button class="btn btn-danger" onclick="clearTestData()">Clear Test Data</button>
+            <div id="setupResult" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 1: showDetailSimpanan Function -->
+        <div class="test-section">
+            <h3>Test 1: showDetailSimpanan Function Exists</h3>
+            <button class="btn btn-success" onclick="testFunctionExists()">Run Test</button>
+            <div id="test1Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 2: Modal with Simpanan -->
+        <div class="test-section">
+            <h3>Test 2: Modal with Simpanan</h3>
+            <p>Test modal display for member with simpanan</p>
+            <button class="btn btn-success" onclick="testModalWithSimpanan()">Run Test</button>
+            <div id="test2Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 3: Modal with Empty Simpanan -->
+        <div class="test-section">
+            <h3>Test 3: Modal with Empty Simpanan</h3>
+            <p>Test modal display for member without simpanan</p>
+            <button class="btn btn-success" onclick="testModalEmptySimpanan()">Run Test</button>
+            <div id="test3Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 4: Simpanan Types Separation -->
+        <div class="test-section">
+            <h3>Test 4: Simpanan Types Separation</h3>
+            <p>Test that pokok, wajib, and sukarela are separated correctly</p>
+            <button class="btn btn-success" onclick="testSimpananSeparation()">Run Test</button>
+            <div id="test4Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 5: Simpanan Totals -->
+        <div class="test-section">
+            <h3>Test 5: Simpanan Totals Calculation</h3>
+            <p>Test that totals are calculated correctly</p>
+            <button class="btn btn-success" onclick="testSimpananTotals()">Run Test</button>
+            <div id="test5Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 6: Summary Cards -->
+        <div class="test-section">
+            <h3>Test 6: Summary Cards Display</h3>
+            <p>Test that summary cards show correct information</p>
+            <button class="btn btn-success" onclick="testSummaryCards()">Run Test</button>
+            <div id="test6Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 7: Helper Functions -->
+        <div class="test-section">
+            <h3>Test 7: Helper Functions</h3>
+            <p>Test render functions for each simpanan type</p>
+            <button class="btn btn-success" onclick="testHelperFunctions()">Run Test</button>
+            <div id="test7Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 8: Interactive Test -->
+        <div class="test-section">
+            <h3>Test 8: Interactive Modal Test</h3>
+            <p>Click buttons below to manually test modals</p>
+            <button class="btn btn-primary" onclick="showDetailSimpanan('A001')">
+                Show Modal - Budi (with all simpanan)
+            </button>
+            <button class="btn btn-primary" onclick="showDetailSimpanan('A002')">
+                Show Modal - Siti (partial simpanan)
+            </button>
+            <button class="btn btn-primary" onclick="showDetailSimpanan('A004')">
+                Show Modal - Dewi (no simpanan)
+            </button>
+            <button class="btn btn-warning" onclick="showDetailSimpanan('INVALID')">
+                Show Modal - Invalid ID
+            </button>
+            <div id="test8Result" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load App Scripts -->
+    <script>
+        // Mock functions
+        function showAlert(message, type) {
+            console.log(`[${type}] ${message}`);
+            alert(`[${type}] ${message}`);
+        }
+        
+        function formatRupiah(amount) {
+            if (!amount) return 'Rp 0';
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        function filterActiveAnggota(anggotaList) {
+            return anggotaList.filter(a => a.statusKeanggotaan !== 'Keluar');
+        }
+    </script>
+    
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+    
+    <!-- Test Scripts -->
+    <script>
+        function setupTestData() {
+            // Clear existing data
+            localStorage.clear();
+            
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'A001',
+                    nik: '1234567890',
+                    nama: 'Budi Santoso',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A002',
+                    nik: '0987654321',
+                    nama: 'Siti Aminah',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A003',
+                    nik: '1122334455',
+                    nama: 'Ahmad Yani',
+                    noKartu: 'K003',
+                    departemen: 'IT',
+                    tipeAnggota: 'Non-Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A004',
+                    nik: '5544332211',
+                    nama: 'Dewi Lestari',
+                    noKartu: 'K004',
+                    departemen: 'HR',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+            
+            // Create test simpanan
+            const simpananPokok = [
+                { 
+                    id: 'SP001', 
+                    anggotaId: 'A001', 
+                    jumlah: 500000,
+                    tanggal: '2024-01-01'
+                },
+                { 
+                    id: 'SP002', 
+                    anggotaId: 'A002', 
+                    jumlah: 500000,
+                    tanggal: '2024-01-02'
+                },
+                { 
+                    id: 'SP003', 
+                    anggotaId: 'A003', 
+                    jumlah: 500000,
+                    tanggal: '2024-01-03'
+                }
+            ];
+            
+            const simpananWajib = [
+                { 
+                    id: 'SW001', 
+                    anggotaId: 'A001', 
+                    jumlah: 100000,
+                    periode: 'Januari 2024',
+                    tanggal: '2024-01-15'
+                },
+                { 
+                    id: 'SW002', 
+                    anggotaId: 'A001', 
+                    jumlah: 100000,
+                    periode: 'Februari 2024',
+                    tanggal: '2024-02-15'
+                },
+                { 
+                    id: 'SW003', 
+                    anggotaId: 'A002', 
+                    jumlah: 100000,
+                    periode: 'Januari 2024',
+                    tanggal: '2024-01-15'
+                }
+            ];
+            
+            const simpananSukarela = [
+                { 
+                    id: 'SS001', 
+                    anggotaId: 'A001', 
+                    jumlah: 200000,
+                    tanggal: '2024-01-20'
+                },
+                { 
+                    id: 'SS002', 
+                    anggotaId: 'A001', 
+                    jumlah: 150000,
+                    tanggal: '2024-02-20'
+                }
+            ];
+            
+            // Create minimal penjualan for aggregator
+            const penjualan = [];
+            
+            // Save to localStorage
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+            
+            const result = document.getElementById('setupResult');
+            result.style.display = 'block';
+            result.className = 'test-result test-pass';
+            result.innerHTML = `
+                <strong>✓ Test data created successfully!</strong><br>
+                - 4 anggota<br>
+                - A001: Pokok (500k) + Wajib (200k) + Sukarela (350k) = 1,050k<br>
+                - A002: Pokok (500k) + Wajib (100k) = 600k<br>
+                - A003: Pokok (500k) only<br>
+                - A004: No simpanan
+            `;
+        }
+        
+        function clearTestData() {
+            localStorage.clear();
+            const result = document.getElementById('setupResult');
+            result.style.display = 'block';
+            result.className = 'test-result test-pass';
+            result.innerHTML = '<strong>✓ Test data cleared!</strong>';
+        }
+        
+        function testFunctionExists() {
+            const result = document.getElementById('test1Result');
+            result.style.display = 'block';
+            
+            try {
+                if (typeof showDetailSimpanan !== 'function') {
+                    throw new Error('showDetailSimpanan function not found');
+                }
+                
+                if (typeof renderSimpananPokokRows !== 'function') {
+                    throw new Error('renderSimpananPokokRows function not found');
+                }
+                
+                if (typeof renderSimpananWajibRows !== 'function') {
+                    throw new Error('renderSimpananWajibRows function not found');
+                }
+                
+                if (typeof renderSimpananSukarelaRows !== 'function') {
+                    throw new Error('renderSimpananSukarelaRows function not found');
+                }
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> All required functions exist';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testModalWithSimpanan() {
+            const result = document.getElementById('test2Result');
+            result.style.display = 'block';
+            
+            try {
+                // Show modal for A001 (has all types of simpanan)
+                showDetailSimpanan('A001');
+                
+                // Wait a bit for modal to render
+                setTimeout(() => {
+                    const modal = document.getElementById('modalDetailSimpanan');
+                    if (!modal) throw new Error('Modal not created');
+                    
+                    // Check modal title
+                    const title = modal.querySelector('.modal-title');
+                    if (!title || !title.textContent.includes('Budi Santoso')) {
+                        throw new Error('Modal title incorrect');
+                    }
+                    
+                    // Check if summary cards exist
+                    const cards = modal.querySelectorAll('.card');
+                    if (cards.length < 4) throw new Error('Summary cards not found'); // Member info + 3 summary cards
+                    
+                    result.className = 'test-result test-pass';
+                    result.innerHTML = '<strong>✓ PASS:</strong> Modal displays correctly with simpanan';
+                    
+                    // Close modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }, 500);
+                
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testModalEmptySimpanan() {
+            const result = document.getElementById('test3Result');
+            result.style.display = 'block';
+            
+            try {
+                // Show modal for A004 (no simpanan)
+                showDetailSimpanan('A004');
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('modalDetailSimpanan');
+                    if (!modal) throw new Error('Modal not created');
+                    
+                    // Check for empty state message
+                    const alertInfo = modal.querySelector('.alert-info');
+                    if (!alertInfo) throw new Error('Empty state message not found');
+                    
+                    if (!alertInfo.textContent.includes('Belum ada simpanan')) {
+                        throw new Error('Empty state message incorrect');
+                    }
+                    
+                    result.className = 'test-result test-pass';
+                    result.innerHTML = '<strong>✓ PASS:</strong> Modal handles empty simpanan correctly';
+                    
+                    // Close modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }, 500);
+                
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testSimpananSeparation() {
+            const result = document.getElementById('test4Result');
+            result.style.display = 'block';
+            
+            try {
+                const aggregator = new AnggotaDataAggregator('A001');
+                aggregator.loadData();
+                
+                const simpananPokok = aggregator.getSimpananList('pokok');
+                const simpananWajib = aggregator.getSimpananList('wajib');
+                const simpananSukarela = aggregator.getSimpananList('sukarela');
+                
+                if (simpananPokok.length !== 1) throw new Error('Simpanan pokok count incorrect');
+                if (simpananWajib.length !== 2) throw new Error('Simpanan wajib count incorrect');
+                if (simpananSukarela.length !== 2) throw new Error('Simpanan sukarela count incorrect');
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> Simpanan types separated correctly';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testSimpananTotals() {
+            const result = document.getElementById('test5Result');
+            result.style.display = 'block';
+            
+            try {
+                const aggregator = new AnggotaDataAggregator('A001');
+                aggregator.loadData();
+                
+                const totalPokok = aggregator.getTotalSimpananPokok();
+                const totalWajib = aggregator.getTotalSimpananWajib();
+                const totalSukarela = aggregator.getTotalSimpananSukarela();
+                const grandTotal = aggregator.getTotalSimpanan();
+                
+                // Expected: 500k pokok
+                if (totalPokok !== 500000) throw new Error(`Pokok total incorrect: ${totalPokok}, expected 500000`);
+                
+                // Expected: 200k wajib (100k + 100k)
+                if (totalWajib !== 200000) throw new Error(`Wajib total incorrect: ${totalWajib}, expected 200000`);
+                
+                // Expected: 350k sukarela (200k + 150k)
+                if (totalSukarela !== 350000) throw new Error(`Sukarela total incorrect: ${totalSukarela}, expected 350000`);
+                
+                // Expected: 1,050k grand total
+                if (grandTotal !== 1050000) throw new Error(`Grand total incorrect: ${grandTotal}, expected 1050000`);
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> Simpanan totals calculated correctly';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testSummaryCards() {
+            const result = document.getElementById('test6Result');
+            result.style.display = 'block';
+            
+            try {
+                showDetailSimpanan('A001');
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('modalDetailSimpanan');
+                    if (!modal) throw new Error('Modal not created');
+                    
+                    // Check summary cards
+                    const body = modal.querySelector('.modal-body');
+                    const summaryRow = body.querySelector('.row.mb-4');
+                    if (!summaryRow) throw new Error('Summary cards row not found');
+                    
+                    const cards = summaryRow.querySelectorAll('.card');
+                    if (cards.length !== 3) throw new Error('Should have 3 summary cards');
+                    
+                    // Check if cards contain amounts
+                    const cardTexts = Array.from(cards).map(c => c.textContent);
+                    const hasPokok = cardTexts.some(t => t.includes('Simpanan Pokok'));
+                    const hasWajib = cardTexts.some(t => t.includes('Simpanan Wajib'));
+                    const hasSukarela = cardTexts.some(t => t.includes('Simpanan Sukarela'));
+                    
+                    if (!hasPokok || !hasWajib || !hasSukarela) {
+                        throw new Error('Summary cards missing required types');
+                    }
+                    
+                    result.className = 'test-result test-pass';
+                    result.innerHTML = '<strong>✓ PASS:</strong> Summary cards display correctly';
+                    
+                    // Close modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }, 500);
+                
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testHelperFunctions() {
+            const result = document.getElementById('test7Result');
+            result.style.display = 'block';
+            
+            try {
+                // Test renderSimpananPokokRows
+                const testPokok = [
+                    { tanggal: '2024-01-01', jumlah: 500000 }
+                ];
+                const htmlPokok = renderSimpananPokokRows(testPokok);
+                if (!htmlPokok.includes('500000')) throw new Error('renderSimpananPokokRows failed');
+                
+                // Test renderSimpananWajibRows
+                const testWajib = [
+                    { periode: 'Januari 2024', tanggal: '2024-01-15', jumlah: 100000 }
+                ];
+                const htmlWajib = renderSimpananWajibRows(testWajib);
+                if (!htmlWajib.includes('Januari 2024')) throw new Error('renderSimpananWajibRows failed');
+                if (!htmlWajib.includes('100000')) throw new Error('renderSimpananWajibRows missing amount');
+                
+                // Test renderSimpananSukarelaRows
+                const testSukarela = [
+                    { tanggal: '2024-01-20', jumlah: 200000 }
+                ];
+                const htmlSukarela = renderSimpananSukarelaRows(testSukarela);
+                if (!htmlSukarela.includes('200000')) throw new Error('renderSimpananSukarelaRows failed');
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> All helper functions work correctly';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

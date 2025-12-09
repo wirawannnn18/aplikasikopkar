@@ -64,6 +64,7 @@ function renderMenu() {
             { icon: 'bi-clock-history', text: 'Riwayat Tutup Kasir', page: 'riwayat-tutup-kas' },
             { icon: 'bi-database', text: 'Backup & Restore', page: 'backup-restore' },
             { icon: 'bi-file-earmark-text', text: 'Laporan', page: 'laporan' },
+            { icon: 'bi-file-earmark-bar-graph', text: 'Laporan Transaksi & Simpanan', page: 'laporan-transaksi-simpanan' },
             { icon: 'bi-person-gear', text: 'Manajemen User', page: 'users' },
             { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
         ],
@@ -93,6 +94,7 @@ function renderMenu() {
             { icon: 'bi-clock-history', text: 'Riwayat Tutup Kasir', page: 'riwayat-tutup-kas' },
             { icon: 'bi-database', text: 'Backup & Restore', page: 'backup-restore' },
             { icon: 'bi-file-earmark-text', text: 'Laporan', page: 'laporan' },
+            { icon: 'bi-file-earmark-bar-graph', text: 'Laporan Transaksi & Simpanan', page: 'laporan-transaksi-simpanan' },
             { icon: 'bi-person-gear', text: 'Manajemen User', page: 'users' },
             { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
         ],
@@ -116,6 +118,12 @@ function renderMenu() {
             { icon: 'bi-trash', text: 'Hapus Transaksi', page: 'hapus-transaksi' },
             { icon: 'bi-clock-history', text: 'Riwayat Hapus Transaksi', page: 'riwayat-hapus-transaksi' },
             { icon: 'bi-clock-history', text: 'Riwayat Tutup Kasir', page: 'riwayat-tutup-kas' },
+            { icon: 'bi-file-earmark-bar-graph', text: 'Laporan Transaksi & Simpanan', page: 'laporan-transaksi-simpanan' },
+            { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
+        ],
+        anggota: [
+            { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+            { icon: 'bi-file-earmark-bar-graph', text: 'Laporan Transaksi & Simpanan', page: 'laporan-transaksi-simpanan' },
             { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
         ]
     };
@@ -236,6 +244,13 @@ function renderPage(page) {
                 renderAnggotaKeluarPage();
             } else {
                 content.innerHTML = '<div class="alert alert-danger">Fitur Anggota Keluar belum tersedia. Pastikan file js/anggotaKeluarUI.js sudah dimuat.</div>';
+            }
+            break;
+        case 'laporan-transaksi-simpanan':
+            if (typeof renderLaporanTransaksiSimpananAnggota === 'function') {
+                renderLaporanTransaksiSimpananAnggota();
+            } else {
+                content.innerHTML = '<div class="alert alert-danger">Fitur Laporan Transaksi & Simpanan belum tersedia. Pastikan file js/laporanTransaksiSimpananAnggota.js sudah dimuat.</div>';
             }
             break;
         default:

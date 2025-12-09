@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 5: Detail Transaction Modal - Laporan Transaksi Simpanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Test Task 5: Detail Transaction Modal</h1>
+        
+        <!-- Test Setup -->
+        <div class="test-section">
+            <h3>Test Setup</h3>
+            <button class="btn btn-primary" onclick="setupTestData()">Setup Test Data</button>
+            <button class="btn btn-danger" onclick="clearTestData()">Clear Test Data</button>
+            <div id="setupResult" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 1: showDetailTransaksi Function -->
+        <div class="test-section">
+            <h3>Test 1: showDetailTransaksi Function Exists</h3>
+            <button class="btn btn-success" onclick="testFunctionExists()">Run Test</button>
+            <div id="test1Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 2: Modal with Transactions -->
+        <div class="test-section">
+            <h3>Test 2: Modal with Transactions</h3>
+            <p>Test modal display for member with transactions</p>
+            <button class="btn btn-success" onclick="testModalWithTransactions()">Run Test</button>
+            <div id="test2Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 3: Modal with Empty Transactions -->
+        <div class="test-section">
+            <h3>Test 3: Modal with Empty Transactions</h3>
+            <p>Test modal display for member without transactions</p>
+            <button class="btn btn-success" onclick="testModalEmptyTransactions()">Run Test</button>
+            <div id="test3Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 4: Cash and Bon Separation -->
+        <div class="test-section">
+            <h3>Test 4: Cash and Bon Separation</h3>
+            <p>Test that cash and bon transactions are separated correctly</p>
+            <button class="btn btn-success" onclick="testCashBonSeparation()">Run Test</button>
+            <div id="test4Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 5: Transaction Totals -->
+        <div class="test-section">
+            <h3>Test 5: Transaction Totals Calculation</h3>
+            <p>Test that totals are calculated correctly</p>
+            <button class="btn btn-success" onclick="testTransactionTotals()">Run Test</button>
+            <div id="test5Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 6: Modal UI Elements -->
+        <div class="test-section">
+            <h3>Test 6: Modal UI Elements</h3>
+            <p>Test that all required UI elements are present</p>
+            <button class="btn btn-success" onclick="testModalUIElements()">Run Test</button>
+            <div id="test6Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 7: Helper Functions -->
+        <div class="test-section">
+            <h3>Test 7: Helper Functions</h3>
+            <p>Test renderTransaksiRows, getStatusBadgeClass, getStatusLabel</p>
+            <button class="btn btn-success" onclick="testHelperFunctions()">Run Test</button>
+            <div id="test7Result" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <!-- Test 8: Interactive Test -->
+        <div class="test-section">
+            <h3>Test 8: Interactive Modal Test</h3>
+            <p>Click buttons below to manually test modals</p>
+            <button class="btn btn-primary" onclick="showDetailTransaksi('A001')">
+                Show Modal - Budi (with transactions)
+            </button>
+            <button class="btn btn-primary" onclick="showDetailTransaksi('A004')">
+                Show Modal - Dewi (no transactions)
+            </button>
+            <button class="btn btn-warning" onclick="showDetailTransaksi('INVALID')">
+                Show Modal - Invalid ID
+            </button>
+            <div id="test8Result" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load App Scripts -->
+    <script>
+        // Mock functions
+        function showAlert(message, type) {
+            console.log(`[${type}] ${message}`);
+            alert(`[${type}] ${message}`);
+        }
+        
+        function formatRupiah(amount) {
+            if (!amount) return 'Rp 0';
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        function filterActiveAnggota(anggotaList) {
+            return anggotaList.filter(a => a.statusKeanggotaan !== 'Keluar');
+        }
+    </script>
+    
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+    
+    <!-- Test Scripts -->
+    <script>
+        function setupTestData() {
+            // Clear existing data
+            localStorage.clear();
+            
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'A001',
+                    nik: '1234567890',
+                    nama: 'Budi Santoso',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A002',
+                    nik: '0987654321',
+                    nama: 'Siti Aminah',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A003',
+                    nik: '1122334455',
+                    nama: 'Ahmad Yani',
+                    noKartu: 'K003',
+                    departemen: 'IT',
+                    tipeAnggota: 'Non-Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A004',
+                    nik: '5544332211',
+                    nama: 'Dewi Lestari',
+                    noKartu: 'K004',
+                    departemen: 'HR',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+            
+            // Create test transactions
+            const penjualan = [
+                { 
+                    id: 'T001', 
+                    anggotaId: 'A001', 
+                    metode: 'cash', 
+                    total: 100000, 
+                    status: 'lunas',
+                    tanggal: '2024-01-15',
+                    kasir: 'Kasir 1'
+                },
+                { 
+                    id: 'T002', 
+                    anggotaId: 'A001', 
+                    metode: 'bon', 
+                    total: 200000, 
+                    status: 'kredit',
+                    tanggal: '2024-01-16',
+                    kasir: 'Kasir 2'
+                },
+                { 
+                    id: 'T003', 
+                    anggotaId: 'A001', 
+                    metode: 'cash', 
+                    total: 150000, 
+                    status: 'lunas',
+                    tanggal: '2024-01-17',
+                    kasir: 'Kasir 1'
+                },
+                { 
+                    id: 'T004', 
+                    anggotaId: 'A002', 
+                    metode: 'bon', 
+                    total: 300000, 
+                    status: 'lunas',
+                    tanggal: '2024-01-18',
+                    kasir: 'Kasir 3'
+                },
+                { 
+                    id: 'T005', 
+                    anggotaId: 'A003', 
+                    metode: 'cash', 
+                    total: 50000, 
+                    status: 'lunas',
+                    tanggal: '2024-01-19',
+                    kasir: 'Kasir 2'
+                }
+            ];
+            
+            // Create test simpanan (for aggregator)
+            const simpananPokok = [
+                { id: 'SP001', anggotaId: 'A001', jumlah: 500000 },
+                { id: 'SP002', anggotaId: 'A002', jumlah: 500000 }
+            ];
+            
+            const simpananWajib = [
+                { id: 'SW001', anggotaId: 'A001', jumlah: 100000 },
+                { id: 'SW002', anggotaId: 'A002', jumlah: 100000 }
+            ];
+            
+            const simpananSukarela = [
+                { id: 'SS001', anggotaId: 'A001', jumlah: 200000 }
+            ];
+            
+            // Save to localStorage
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+            
+            const result = document.getElementById('setupResult');
+            result.style.display = 'block';
+            result.className = 'test-result test-pass';
+            result.innerHTML = `
+                <strong>✓ Test data created successfully!</strong><br>
+                - 4 anggota<br>
+                - 5 transaksi (3 for A001, 1 for A002, 1 for A003)<br>
+                - A001: 2 cash + 1 bon<br>
+                - A004: No transactions
+            `;
+        }
+        
+        function clearTestData() {
+            localStorage.clear();
+            const result = document.getElementById('setupResult');
+            result.style.display = 'block';
+            result.className = 'test-result test-pass';
+            result.innerHTML = '<strong>✓ Test data cleared!</strong>';
+        }
+        
+        function testFunctionExists() {
+            const result = document.getElementById('test1Result');
+            result.style.display = 'block';
+            
+            try {
+                if (typeof showDetailTransaksi !== 'function') {
+                    throw new Error('showDetailTransaksi function not found');
+                }
+                
+                if (typeof renderTransaksiRows !== 'function') {
+                    throw new Error('renderTransaksiRows function not found');
+                }
+                
+                if (typeof getStatusBadgeClass !== 'function') {
+                    throw new Error('getStatusBadgeClass function not found');
+                }
+                
+                if (typeof getStatusLabel !== 'function') {
+                    throw new Error('getStatusLabel function not found');
+                }
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> All required functions exist';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testModalWithTransactions() {
+            const result = document.getElementById('test2Result');
+            result.style.display = 'block';
+            
+            try {
+                // Show modal for A001 (has transactions)
+                showDetailTransaksi('A001');
+                
+                // Wait a bit for modal to render
+                setTimeout(() => {
+                    const modal = document.getElementById('modalDetailTransaksi');
+                    if (!modal) throw new Error('Modal not created');
+                    
+                    // Check modal title
+                    const title = modal.querySelector('.modal-title');
+                    if (!title || !title.textContent.includes('Budi Santoso')) {
+                        throw new Error('Modal title incorrect');
+                    }
+                    
+                    // Check if tables exist
+                    const tables = modal.querySelectorAll('table');
+                    if (tables.length === 0) throw new Error('No transaction tables found');
+                    
+                    result.className = 'test-result test-pass';
+                    result.innerHTML = '<strong>✓ PASS:</strong> Modal displays correctly with transactions';
+                    
+                    // Close modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }, 500);
+                
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testModalEmptyTransactions() {
+            const result = document.getElementById('test3Result');
+            result.style.display = 'block';
+            
+            try {
+                // Show modal for A004 (no transactions)
+                showDetailTransaksi('A004');
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('modalDetailTransaksi');
+                    if (!modal) throw new Error('Modal not created');
+                    
+                    // Check for empty state message
+                    const alertInfo = modal.querySelector('.alert-info');
+                    if (!alertInfo) throw new Error('Empty state message not found');
+                    
+                    if (!alertInfo.textContent.includes('Belum ada transaksi')) {
+                        throw new Error('Empty state message incorrect');
+                    }
+                    
+                    result.className = 'test-result test-pass';
+                    result.innerHTML = '<strong>✓ PASS:</strong> Modal handles empty transactions correctly';
+                    
+                    // Close modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }, 500);
+                
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testCashBonSeparation() {
+            const result = document.getElementById('test4Result');
+            result.style.display = 'block';
+            
+            try {
+                const aggregator = new AnggotaDataAggregator('A001');
+                aggregator.loadData();
+                
+                const transaksiList = aggregator.getTransaksiList();
+                const transaksiCash = transaksiList.filter(t => t.metode === 'cash');
+                const transaksiBon = transaksiList.filter(t => t.metode === 'bon');
+                
+                if (transaksiCash.length !== 2) throw new Error('Cash transactions count incorrect');
+                if (transaksiBon.length !== 1) throw new Error('Bon transactions count incorrect');
+                
+                // Verify all cash transactions have metode === 'cash'
+                if (!transaksiCash.every(t => t.metode === 'cash')) {
+                    throw new Error('Cash transactions contain non-cash items');
+                }
+                
+                // Verify all bon transactions have metode === 'bon'
+                if (!transaksiBon.every(t => t.metode === 'bon')) {
+                    throw new Error('Bon transactions contain non-bon items');
+                }
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> Cash and Bon transactions separated correctly';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testTransactionTotals() {
+            const result = document.getElementById('test5Result');
+            result.style.display = 'block';
+            
+            try {
+                const aggregator = new AnggotaDataAggregator('A001');
+                aggregator.loadData();
+                
+                const transaksiList = aggregator.getTransaksiList();
+                const transaksiCash = transaksiList.filter(t => t.metode === 'cash');
+                const transaksiBon = transaksiList.filter(t => t.metode === 'bon');
+                
+                const totalCash = safeSum(transaksiCash, 'total');
+                const totalBon = safeSum(transaksiBon, 'total');
+                
+                // Expected: T001 (100k) + T003 (150k) = 250k cash
+                if (totalCash !== 250000) throw new Error(`Cash total incorrect: ${totalCash}, expected 250000`);
+                
+                // Expected: T002 (200k) = 200k bon
+                if (totalBon !== 200000) throw new Error(`Bon total incorrect: ${totalBon}, expected 200000`);
+                
+                const grandTotal = totalCash + totalBon;
+                if (grandTotal !== 450000) throw new Error(`Grand total incorrect: ${grandTotal}, expected 450000`);
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> Transaction totals calculated correctly';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testModalUIElements() {
+            const result = document.getElementById('test6Result');
+            result.style.display = 'block';
+            
+            try {
+                showDetailTransaksi('A001');
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('modalDetailTransaksi');
+                    if (!modal) throw new Error('Modal not created');
+                    
+                    // Check header
+                    const header = modal.querySelector('.modal-header');
+                    if (!header) throw new Error('Modal header not found');
+                    
+                    // Check body
+                    const body = modal.querySelector('.modal-body');
+                    if (!body) throw new Error('Modal body not found');
+                    
+                    // Check footer
+                    const footer = modal.querySelector('.modal-footer');
+                    if (!footer) throw new Error('Modal footer not found');
+                    
+                    // Check close button
+                    const closeBtn = modal.querySelector('.btn-close');
+                    if (!closeBtn) throw new Error('Close button not found');
+                    
+                    // Check member info card
+                    const memberInfo = body.querySelector('.card');
+                    if (!memberInfo) throw new Error('Member info card not found');
+                    
+                    result.className = 'test-result test-pass';
+                    result.innerHTML = '<strong>✓ PASS:</strong> All modal UI elements present';
+                    
+                    // Close modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) modalInstance.hide();
+                }, 500);
+                
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+        
+        function testHelperFunctions() {
+            const result = document.getElementById('test7Result');
+            result.style.display = 'block';
+            
+            try {
+                // Test getStatusBadgeClass
+                if (getStatusBadgeClass('lunas') !== 'bg-success') {
+                    throw new Error('getStatusBadgeClass failed for lunas');
+                }
+                if (getStatusBadgeClass('kredit') !== 'bg-danger') {
+                    throw new Error('getStatusBadgeClass failed for kredit');
+                }
+                
+                // Test getStatusLabel
+                if (getStatusLabel('lunas') !== 'Lunas') {
+                    throw new Error('getStatusLabel failed for lunas');
+                }
+                if (getStatusLabel('kredit') !== 'Kredit') {
+                    throw new Error('getStatusLabel failed for kredit');
+                }
+                
+                // Test renderTransaksiRows
+                const testTransaksi = [
+                    { id: 'T001', tanggal: '2024-01-15', kasir: 'Kasir 1', total: 100000, status: 'lunas' }
+                ];
+                const html = renderTransaksiRows(testTransaksi);
+                if (!html.includes('T001')) throw new Error('renderTransaksiRows failed');
+                if (!html.includes('Kasir 1')) throw new Error('renderTransaksiRows missing kasir');
+                
+                result.className = 'test-result test-pass';
+                result.innerHTML = '<strong>✓ PASS:</strong> All helper functions work correctly';
+            } catch (error) {
+                result.className = 'test-result test-fail';
+                result.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

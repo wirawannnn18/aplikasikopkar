@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 9 - Print Functionality</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4">
+            <i class="bi bi-printer"></i>
+            Test Task 9 - Print Functionality
+        </h1>
+
+        <!-- Test 1: Print Content Generation -->
+        <div class="test-section">
+            <h3>Test 1: Print Content Generation</h3>
+            <p>Verify that print content HTML is generated correctly</p>
+            <button class="btn btn-primary" onclick="runTest1()">Run Test 1</button>
+            <div id="test1Result"></div>
+        </div>
+
+        <!-- Test 2: Print Header Completeness -->
+        <div class="test-section">
+            <h3>Test 2: Print Header Completeness</h3>
+            <p>Verify that print header includes koperasi name and date</p>
+            <button class="btn btn-primary" onclick="runTest2()">Run Test 2</button>
+            <div id="test2Result"></div>
+        </div>
+
+        <!-- Test 3: Print Statistics Section -->
+        <div class="test-section">
+            <h3>Test 3: Print Statistics Section</h3>
+            <p>Verify that statistics are included in print view</p>
+            <button class="btn btn-primary" onclick="runTest3()">Run Test 3</button>
+            <div id="test3Result"></div>
+        </div>
+
+        <!-- Test 4: Print Table Structure -->
+        <div class="test-section">
+            <h3>Test 4: Print Table Structure</h3>
+            <p>Verify that data table is properly formatted for print</p>
+            <button class="btn btn-primary" onclick="runTest4()">Run Test 4</button>
+            <div id="test4Result"></div>
+        </div>
+
+        <!-- Test 5: Print Footer -->
+        <div class="test-section">
+            <h3>Test 5: Print Footer</h3>
+            <p>Verify that footer with totals is included</p>
+            <button class="btn btn-primary" onclick="runTest5()">Run Test 5</button>
+            <div id="test5Result"></div>
+        </div>
+
+        <!-- Test 6: Print CSS Styles -->
+        <div class="test-section">
+            <h3>Test 6: Print CSS Styles</h3>
+            <p>Verify that print-specific CSS is included</p>
+            <button class="btn btn-primary" onclick="runTest6()">Run Test 6</button>
+            <div id="test6Result"></div>
+        </div>
+
+        <!-- Test 7: Empty Data Handling -->
+        <div class="test-section">
+            <h3>Test 7: Empty Data Handling</h3>
+            <p>Verify that print handles empty data gracefully</p>
+            <button class="btn btn-primary" onclick="runTest7()">Run Test 7</button>
+            <div id="test7Result"></div>
+        </div>
+
+        <!-- Test 8: Filtered Data Print -->
+        <div class="test-section">
+            <h3>Test 8: Filtered Data Print</h3>
+            <p>Verify that only filtered data is printed</p>
+            <button class="btn btn-primary" onclick="runTest8()">Run Test 8</button>
+            <div id="test8Result"></div>
+        </div>
+
+        <!-- Manual Test: Actual Print -->
+        <div class="test-section">
+            <h3>Manual Test: Actual Print Dialog</h3>
+            <p>Click button below to test actual print dialog (will open new window)</p>
+            <button class="btn btn-success" onclick="testActualPrint()">
+                <i class="bi bi-printer"></i> Test Print Dialog
+            </button>
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                This will open a new window with print preview. Check that:
+                <ul>
+                    <li>Header shows koperasi name and date</li>
+                    <li>Statistics cards are displayed</li>
+                    <li>All data rows are present</li>
+                    <li>Footer with totals is shown</li>
+                    <li>Print layout is landscape A4</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <button class="btn btn-success btn-lg" onclick="runAllTests()">
+                <i class="bi bi-play-fill"></i> Run All Tests
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load dependencies -->
+    <script src="js/utils.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+
+    <script>
+        // Setup test data
+        function setupTestData() {
+            // Clear existing data
+            localStorage.clear();
+
+            // Create koperasi info
+            const koperasi = {
+                nama: 'Koperasi Test Sejahtera',
+                alamat: 'Jl. Test No. 123'
+            };
+
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'A001',
+                    nik: '1234567890',
+                    nama: 'Budi Santoso',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A002',
+                    nik: '0987654321',
+                    nama: 'Siti Rahayu',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A003',
+                    nik: '1122334455',
+                    nama: 'Ahmad Jaya',
+                    noKartu: 'K003',
+                    departemen: 'HR',
+                    tipeAnggota: 'Non-Anggota',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+
+            // Create test transactions
+            const penjualan = [
+                {
+                    id: 'T001',
+                    anggotaId: 'A001',
+                    metode: 'cash',
+                    total: 100000,
+                    status: 'lunas',
+                    tanggal: '2024-01-15',
+                    kasir: 'Kasir 1'
+                },
+                {
+                    id: 'T002',
+                    anggotaId: 'A001',
+                    metode: 'bon',
+                    total: 50000,
+                    status: 'kredit',
+                    tanggal: '2024-01-16',
+                    kasir: 'Kasir 2'
+                },
+                {
+                    id: 'T003',
+                    anggotaId: 'A002',
+                    metode: 'cash',
+                    total: 75000,
+                    status: 'lunas',
+                    tanggal: '2024-01-17',
+                    kasir: 'Kasir 1'
+                }
+            ];
+
+            // Create test simpanan
+            const simpananPokok = [
+                { id: 'SP001', anggotaId: 'A001', jumlah: 100000, tanggal: '2024-01-01' },
+                { id: 'SP002', anggotaId: 'A002', jumlah: 100000, tanggal: '2024-01-01' }
+            ];
+
+            const simpananWajib = [
+                { id: 'SW001', anggotaId: 'A001', jumlah: 50000, tanggal: '2024-01-01', periode: '2024-01' },
+                { id: 'SW002', anggotaId: 'A002', jumlah: 50000, tanggal: '2024-01-01', periode: '2024-01' }
+            ];
+
+            const simpananSukarela = [
+                { id: 'SS001', anggotaId: 'A001', jumlah: 25000, tanggal: '2024-01-10' }
+            ];
+
+            // Save to localStorage
+            localStorage.setItem('koperasi', JSON.stringify(koperasi));
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+        }
+
+        // Test 1: Print Content Generation
+        function runTest1() {
+            setupTestData();
+            const resultDiv = document.getElementById('test1Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                const printContent = generatePrintContent(reportData, stats, 'Test Koperasi', '2024-12-09');
+                
+                const hasDoctype = printContent.includes('<!DOCTYPE html>');
+                const hasTitle = printContent.includes('<title>');
+                const hasStyles = printContent.includes('<style>');
+                const hasTable = printContent.includes('<table>');
+                
+                if (hasDoctype && hasTitle && hasStyles && hasTable) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Print content generated correctly
+                            <br>Content length: ${printContent.length} characters
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Print content incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 2: Print Header Completeness
+        function runTest2() {
+            setupTestData();
+            const resultDiv = document.getElementById('test2Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                const koperasiName = 'Koperasi Test';
+                const printDate = '2024-12-09';
+                const printContent = generatePrintContent(reportData, stats, koperasiName, printDate);
+                
+                const hasKoperasiName = printContent.includes(koperasiName);
+                const hasPrintDate = printContent.includes(printDate);
+                const hasHeader = printContent.includes('print-header');
+                
+                if (hasKoperasiName && hasPrintDate && hasHeader) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Print header complete with koperasi name and date
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Print header incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 3: Print Statistics Section
+        function runTest3() {
+            setupTestData();
+            const resultDiv = document.getElementById('test3Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                const printContent = generatePrintContent(reportData, stats, 'Test', '2024-12-09');
+                
+                const hasStatistics = printContent.includes('statistics-section');
+                const hasTotalAnggota = printContent.includes('Total Anggota');
+                const hasTotalTransaksi = printContent.includes('Total Transaksi');
+                const hasTotalSimpanan = printContent.includes('Total Simpanan');
+                
+                if (hasStatistics && hasTotalAnggota && hasTotalTransaksi && hasTotalSimpanan) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Statistics section included in print
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Statistics section incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 4: Print Table Structure
+        function runTest4() {
+            setupTestData();
+            const resultDiv = document.getElementById('test4Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                const printContent = generatePrintContent(reportData, stats, 'Test', '2024-12-09');
+                
+                const hasThead = printContent.includes('<thead>');
+                const hasTbody = printContent.includes('<tbody>');
+                const hasTfoot = printContent.includes('<tfoot>');
+                const hasColumns = printContent.includes('NIK') && 
+                                  printContent.includes('Nama') && 
+                                  printContent.includes('Departemen');
+                
+                if (hasThead && hasTbody && hasTfoot && hasColumns) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Table structure complete
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Table structure incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 5: Print Footer
+        function runTest5() {
+            setupTestData();
+            const resultDiv = document.getElementById('test5Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                const printContent = generatePrintContent(reportData, stats, 'Test', '2024-12-09');
+                
+                const hasFooter = printContent.includes('print-footer');
+                const hasTotals = printContent.includes('TOTAL:');
+                
+                if (hasFooter && hasTotals) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Footer with totals included
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Footer incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 6: Print CSS Styles
+        function runTest6() {
+            setupTestData();
+            const resultDiv = document.getElementById('test6Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                const printContent = generatePrintContent(reportData, stats, 'Test', '2024-12-09');
+                
+                const hasPrintMedia = printContent.includes('@media print');
+                const hasPageSize = printContent.includes('@page');
+                const hasTableStyles = printContent.includes('border-collapse');
+                
+                if (hasPrintMedia && hasPageSize && hasTableStyles) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Print-specific CSS included
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Print CSS incomplete
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 7: Empty Data Handling
+        function runTest7() {
+            const resultDiv = document.getElementById('test7Result');
+            
+            try {
+                // Clear data
+                localStorage.clear();
+                localStorage.setItem('anggota', JSON.stringify([]));
+                localStorage.setItem('penjualan', JSON.stringify([]));
+                localStorage.setItem('simpananPokok', JSON.stringify([]));
+                localStorage.setItem('simpananWajib', JSON.stringify([]));
+                localStorage.setItem('simpananSukarela', JSON.stringify([]));
+                
+                const reportData = getAnggotaReportData();
+                
+                if (reportData.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Empty data handled correctly
+                            <br>Note: Print function should show warning for empty data
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Empty data not handled correctly
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 8: Filtered Data Print
+        function runTest8() {
+            setupTestData();
+            const resultDiv = document.getElementById('test8Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                laporanFilterManager = new LaporanFilterManager();
+                laporanFilterManager.setData(reportData);
+                
+                // Apply filter
+                laporanFilterManager.applyDepartemenFilter('IT');
+                const filteredData = laporanFilterManager.getFilteredData();
+                
+                const stats = calculateStatistics(filteredData);
+                const printContent = generatePrintContent(filteredData, stats, 'Test', '2024-12-09');
+                
+                // Should only have 1 data row (IT department)
+                const containsIT = printContent.includes('IT');
+                const notContainsFinance = !printContent.includes('Finance');
+                
+                if (containsIT && notContainsFinance && filteredData.length === 1) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-pass">
+                            <i class="bi bi-check-circle"></i> PASS: Filtered data printed correctly
+                            <br>Filtered rows: ${filteredData.length}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-fail">
+                            <i class="bi bi-x-circle"></i> FAIL: Filtered data print incorrect
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result test-fail">
+                        <i class="bi bi-x-circle"></i> ERROR: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test actual print dialog
+        function testActualPrint() {
+            setupTestData();
+            
+            // Initialize filter manager
+            const reportData = getAnggotaReportData();
+            laporanFilterManager = new LaporanFilterManager();
+            laporanFilterManager.setData(reportData);
+            
+            // Call print function
+            printLaporan();
+        }
+
+        // Run all tests
+        function runAllTests() {
+            runTest1();
+            setTimeout(() => runTest2(), 100);
+            setTimeout(() => runTest3(), 200);
+            setTimeout(() => runTest4(), 300);
+            setTimeout(() => runTest5(), 400);
+            setTimeout(() => runTest6(), 500);
+            setTimeout(() => runTest7(), 600);
+            setTimeout(() => runTest8(), 700);
+        }
+
+        // Auto-run all tests on page load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded. Click "Run All Tests" to start.');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 1 - Laporan Transaksi Simpanan Anggota</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            color: #2d6a4f;
+            margin-top: 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #2d6a4f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1e4d36;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #2d6a4f 0%, #52b788 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #2d6a4f;
+            color: white;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Task 1: Setup Project Structure and Core Data Aggregator</h1>
+    
+    <div class="test-section">
+        <h2>📋 Test Setup</h2>
+        <button onclick="setupTestData()">Setup Test Data</button>
+        <button onclick="clearTestData()">Clear Test Data</button>
+        <div id="setupResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Test 1: Safe Data Loading</h2>
+        <button onclick="testSafeDataLoading()">Run Test</button>
+        <div id="test1Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Test 2: AnggotaDataAggregator Class</h2>
+        <button onclick="testDataAggregator()">Run Test</button>
+        <div id="test2Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Test 3: Get All Anggota Report Data</h2>
+        <button onclick="testGetAnggotaReportData()">Run Test</button>
+        <div id="test3Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Test 4: Calculate Statistics</h2>
+        <button onclick="testCalculateStatistics()">Run Test</button>
+        <div id="test4Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Test 5: Filter Active Anggota (Exclude Keluar)</h2>
+        <button onclick="testFilterActiveAnggota()">Run Test</button>
+        <div id="test5Result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Full Report Preview</h2>
+        <button onclick="showFullReport()">Show Full Report</button>
+        <div id="fullReportResult"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/utils.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+    
+    <script>
+        // Test data setup
+        function setupTestData() {
+            const result = document.getElementById('setupResult');
+            
+            try {
+                // Setup anggota
+                const anggota = [
+                    {
+                        id: 'ang001',
+                        nik: '3201010101010001',
+                        nama: 'Budi Santoso',
+                        noKartu: 'K001',
+                        departemen: 'IT',
+                        tipeAnggota: 'Anggota',
+                        status: 'Aktif'
+                    },
+                    {
+                        id: 'ang002',
+                        nik: '3201010101010002',
+                        nama: 'Siti Aminah',
+                        noKartu: 'K002',
+                        departemen: 'Finance',
+                        tipeAnggota: 'Anggota',
+                        status: 'Aktif'
+                    },
+                    {
+                        id: 'ang003',
+                        nik: '3201010101010003',
+                        nama: 'Ahmad Keluar',
+                        noKartu: 'K003',
+                        departemen: 'HR',
+                        tipeAnggota: 'Anggota',
+                        status: 'Aktif',
+                        statusKeanggotaan: 'Keluar'
+                    }
+                ];
+                localStorage.setItem('anggota', JSON.stringify(anggota));
+                
+                // Setup penjualan (transactions)
+                const penjualan = [
+                    {
+                        id: 'trx001',
+                        anggotaId: 'ang001',
+                        metode: 'cash',
+                        total: 100000,
+                        status: 'lunas'
+                    },
+                    {
+                        id: 'trx002',
+                        anggotaId: 'ang001',
+                        metode: 'bon',
+                        total: 200000,
+                        status: 'kredit'
+                    },
+                    {
+                        id: 'trx003',
+                        anggotaId: 'ang002',
+                        metode: 'cash',
+                        total: 150000,
+                        status: 'lunas'
+                    }
+                ];
+                localStorage.setItem('penjualan', JSON.stringify(penjualan));
+                
+                // Setup simpanan pokok
+                const simpananPokok = [
+                    { id: 'sp001', anggotaId: 'ang001', jumlah: 1000000, tanggal: '2024-01-01' },
+                    { id: 'sp002', anggotaId: 'ang002', jumlah: 1000000, tanggal: '2024-01-01' }
+                ];
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+                
+                // Setup simpanan wajib
+                const simpananWajib = [
+                    { id: 'sw001', anggotaId: 'ang001', jumlah: 50000, periode: '2024-01', tanggal: '2024-01-15' },
+                    { id: 'sw002', anggotaId: 'ang001', jumlah: 50000, periode: '2024-02', tanggal: '2024-02-15' },
+                    { id: 'sw003', anggotaId: 'ang002', jumlah: 50000, periode: '2024-01', tanggal: '2024-01-15' }
+                ];
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+                
+                // Setup simpanan sukarela
+                const simpananSukarela = [
+                    { id: 'ss001', anggotaId: 'ang001', jumlah: 500000, tanggal: '2024-01-20' },
+                    { id: 'ss002', anggotaId: 'ang002', jumlah: 300000, tanggal: '2024-01-25' }
+                ];
+                localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+                
+                result.innerHTML = '<div class="test-result success">✅ Test data berhasil di-setup!</div>';
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('penjualan');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            localStorage.removeItem('simpananSukarela');
+            
+            document.getElementById('setupResult').innerHTML = 
+                '<div class="test-result info">ℹ️ Test data cleared</div>';
+        }
+        
+        function testSafeDataLoading() {
+            const result = document.getElementById('test1Result');
+            let html = '';
+            
+            try {
+                // Test 1: Load existing data
+                const anggota = safeGetData('anggota', []);
+                html += `<div class="test-result success">✅ Test 1.1: Load anggota - ${anggota.length} records</div>`;
+                
+                // Test 2: Load non-existing data
+                const nonExist = safeGetData('nonExistentKey', []);
+                html += `<div class="test-result success">✅ Test 1.2: Load non-existent key - returns default: ${JSON.stringify(nonExist)}</div>`;
+                
+                // Test 3: Safe sum
+                const testArray = [{ total: 100 }, { total: 200 }, { total: 300 }];
+                const sum = safeSum(testArray, 'total');
+                html += `<div class="test-result success">✅ Test 1.3: Safe sum - Result: ${sum} (expected: 600)</div>`;
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function testDataAggregator() {
+            const result = document.getElementById('test2Result');
+            let html = '';
+            
+            try {
+                // Create aggregator for ang001
+                const aggregator = new AnggotaDataAggregator('ang001');
+                
+                // Load data
+                const loaded = aggregator.loadData();
+                html += `<div class="test-result ${loaded ? 'success' : 'error'}">
+                    ${loaded ? '✅' : '❌'} Test 2.1: Load data - ${loaded ? 'Success' : 'Failed'}
+                </div>`;
+                
+                if (loaded) {
+                    // Test calculations
+                    const totalCash = aggregator.getTotalTransaksiCash();
+                    html += `<div class="test-result success">✅ Test 2.2: Total Cash - Rp ${totalCash.toLocaleString('id-ID')}</div>`;
+                    
+                    const totalBon = aggregator.getTotalTransaksiBon();
+                    html += `<div class="test-result success">✅ Test 2.3: Total Bon - Rp ${totalBon.toLocaleString('id-ID')}</div>`;
+                    
+                    const outstanding = aggregator.getOutstandingBalance();
+                    html += `<div class="test-result success">✅ Test 2.4: Outstanding Balance - Rp ${outstanding.toLocaleString('id-ID')}</div>`;
+                    
+                    const totalPokok = aggregator.getTotalSimpananPokok();
+                    html += `<div class="test-result success">✅ Test 2.5: Total Simpanan Pokok - Rp ${totalPokok.toLocaleString('id-ID')}</div>`;
+                    
+                    const totalWajib = aggregator.getTotalSimpananWajib();
+                    html += `<div class="test-result success">✅ Test 2.6: Total Simpanan Wajib - Rp ${totalWajib.toLocaleString('id-ID')}</div>`;
+                    
+                    const totalSukarela = aggregator.getTotalSimpananSukarela();
+                    html += `<div class="test-result success">✅ Test 2.7: Total Simpanan Sukarela - Rp ${totalSukarela.toLocaleString('id-ID')}</div>`;
+                    
+                    const totalSimpanan = aggregator.getTotalSimpanan();
+                    html += `<div class="test-result success">✅ Test 2.8: Total All Simpanan - Rp ${totalSimpanan.toLocaleString('id-ID')}</div>`;
+                    
+                    // Test aggregated data
+                    const aggregatedData = aggregator.getAggregatedData();
+                    html += `<div class="test-result success">✅ Test 2.9: Get Aggregated Data</div>`;
+                    html += `<pre>${JSON.stringify(aggregatedData, null, 2)}</pre>`;
+                }
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}<br>${error.stack}</div>`;
+            }
+        }
+        
+        function testGetAnggotaReportData() {
+            const result = document.getElementById('test3Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                
+                let html = `<div class="test-result success">✅ Test 3.1: Get report data - ${reportData.length} anggota</div>`;
+                
+                html += '<table><thead><tr><th>NIK</th><th>Nama</th><th>Total Cash</th><th>Total Bon</th><th>Total Simpanan</th><th>Outstanding</th></tr></thead><tbody>';
+                
+                reportData.forEach(data => {
+                    html += `<tr>
+                        <td>${data.nik}</td>
+                        <td>${data.nama}</td>
+                        <td>Rp ${data.transaksi.totalCash.toLocaleString('id-ID')}</td>
+                        <td>Rp ${data.transaksi.totalBon.toLocaleString('id-ID')}</td>
+                        <td>Rp ${data.simpanan.total.toLocaleString('id-ID')}</td>
+                        <td>Rp ${data.transaksi.outstandingBalance.toLocaleString('id-ID')}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function testCalculateStatistics() {
+            const result = document.getElementById('test4Result');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                
+                let html = '<div class="stats-grid">';
+                html += `<div class="stat-card">
+                    <h3>Total Anggota</h3>
+                    <div class="value">${stats.totalAnggota}</div>
+                </div>`;
+                html += `<div class="stat-card">
+                    <h3>Total Transaksi</h3>
+                    <div class="value">Rp ${stats.totalTransaksi.toLocaleString('id-ID')}</div>
+                </div>`;
+                html += `<div class="stat-card">
+                    <h3>Total Simpanan</h3>
+                    <div class="value">Rp ${stats.totalSimpanan.toLocaleString('id-ID')}</div>
+                </div>`;
+                html += `<div class="stat-card">
+                    <h3>Total Outstanding</h3>
+                    <div class="value">Rp ${stats.totalOutstanding.toLocaleString('id-ID')}</div>
+                </div>`;
+                html += '</div>';
+                
+                html += '<div class="test-result success">✅ Statistics calculated successfully</div>';
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function testFilterActiveAnggota() {
+            const result = document.getElementById('test5Result');
+            
+            try {
+                const allAnggota = safeGetData('anggota', []);
+                const activeAnggota = filterActiveAnggota(allAnggota);
+                
+                let html = `<div class="test-result info">ℹ️ Total anggota in storage: ${allAnggota.length}</div>`;
+                html += `<div class="test-result success">✅ Active anggota (excluding Keluar): ${activeAnggota.length}</div>`;
+                
+                html += '<h3>All Anggota:</h3><ul>';
+                allAnggota.forEach(a => {
+                    html += `<li>${a.nama} - Status: ${a.statusKeanggotaan || 'Active'}</li>`;
+                });
+                html += '</ul>';
+                
+                html += '<h3>Active Anggota (Filtered):</h3><ul>';
+                activeAnggota.forEach(a => {
+                    html += `<li>${a.nama}</li>`;
+                });
+                html += '</ul>';
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function showFullReport() {
+            const result = document.getElementById('fullReportResult');
+            
+            try {
+                const reportData = getAnggotaReportData();
+                const stats = calculateStatistics(reportData);
+                
+                let html = '<h3>📊 Statistics Summary</h3>';
+                html += '<div class="stats-grid">';
+                html += `<div class="stat-card">
+                    <h3>Total Anggota</h3>
+                    <div class="value">${stats.totalAnggota}</div>
+                </div>`;
+                html += `<div class="stat-card">
+                    <h3>Total Transaksi</h3>
+                    <div class="value">Rp ${stats.totalTransaksi.toLocaleString('id-ID')}</div>
+                </div>`;
+                html += `<div class="stat-card">
+                    <h3>Total Simpanan</h3>
+                    <div class="value">Rp ${stats.totalSimpanan.toLocaleString('id-ID')}</div>
+                </div>`;
+                html += `<div class="stat-card">
+                    <h3>Total Outstanding</h3>
+                    <div class="value">Rp ${stats.totalOutstanding.toLocaleString('id-ID')}</div>
+                </div>`;
+                html += '</div>';
+                
+                html += '<h3>📋 Detailed Report</h3>';
+                html += '<table><thead><tr>';
+                html += '<th>NIK</th><th>Nama</th><th>Departemen</th><th>Tipe</th>';
+                html += '<th>Cash</th><th>Bon</th><th>Simpanan</th><th>Outstanding</th>';
+                html += '</tr></thead><tbody>';
+                
+                reportData.forEach(data => {
+                    html += `<tr>
+                        <td>${data.nik}</td>
+                        <td>${data.nama}</td>
+                        <td>${data.departemen}</td>
+                        <td>${data.tipeAnggota}</td>
+                        <td>Rp ${data.transaksi.totalCash.toLocaleString('id-ID')}</td>
+                        <td>Rp ${data.transaksi.totalBon.toLocaleString('id-ID')}</td>
+                        <td>Rp ${data.simpanan.total.toLocaleString('id-ID')}</td>
+                        <td>Rp ${data.transaksi.outstandingBalance.toLocaleString('id-ID')}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

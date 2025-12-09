@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Tests - Laporan Transaksi & Simpanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .test-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        .workflow-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+        .test-step {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s;
+        }
+        .test-step:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .test-step.running {
+            border-left: 4px solid #ffc107;
+            background: #fff3cd;
+        }
+        .test-step.passed {
+            border-left: 4px solid #28a745;
+            background: #d4edda;
+        }
+        .test-step.failed {
+            border-left: 4px solid #dc3545;
+            background: #f8d7da;
+        }
+        .progress-bar-custom {
+            height: 30px;
+            font-size: 14px;
+            line-height: 30px;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .summary-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .btn-test {
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1><i class="fas fa-flask"></i> Integration Tests</h1>
+            <p class="lead">End-to-End Workflow Testing - Laporan Transaksi & Simpanan Anggota</p>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="text-center mb-4">
+            <button class="btn btn-primary btn-test" onclick="runAllWorkflows()">
+                <i class="fas fa-play-circle"></i> Run All Workflows
+            </button>
+            <button class="btn btn-success btn-test" onclick="runWorkflow1()">
+                <i class="fas fa-search"></i> Workflow 1
+            </button>
+            <button class="btn btn-info btn-test" onclick="runWorkflow2()">
+                <i class="fas fa-eye"></i> Workflow 2
+            </button>
+            <button class="btn btn-warning btn-test" onclick="runWorkflow3()">
+                <i class="fas fa-user-shield"></i> Workflow 3
+            </button>
+            <button class="btn btn-secondary btn-test" onclick="clearTests()">
+                <i class="fas fa-redo"></i> Clear
+            </button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="mb-4">
+            <div class="progress">
+                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated progress-bar-custom" 
+                     role="progressbar" style="width: 0%">0%</div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4" id="summaryCards" style="display: none;">
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-number" id="totalSteps">0</div>
+                    <div>Total Steps</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <div class="summary-number" id="passedSteps">0</div>
+                    <div>Passed</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                    <div class="summary-number" id="failedSteps">0</div>
+                    <div>Failed</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="summary-number" id="successRate">0%</div>
+                    <div>Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+
+        <!-- Final Report -->
+        <div id="finalReport" class="mt-4" style="display: none;">
+            <div class="alert alert-info">
+                <h4><i class="fas fa-check-circle"></i> Integration Test Complete</h4>
+                <div id="reportContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testSteps = [];
+        let currentStep = 0;
+
+        // ============================================================================
+        // WORKFLOW 1: Full Report Flow (Load → Filter → Export)
+        // ============================================================================
+        async function runWorkflow1() {
+            clearTests();
+            addWorkflowSection('Workflow 1: Full Report Flow (Load → Filter → Export)');
+            
+            // Step 1: Load Report
+            await runStep('1.1', 'Load report page', async () => {
+                // Simulate loading
+                const exists = typeof renderLaporanTransaksiSimpananAnggota === 'function';
+                if (!exists) throw new Error('Render function not found');
+                return 'Report page loaded successfully';
+            });
+
+            // Step 2: Verify data loaded
+            await runStep('1.2', 'Verify data loaded', async () => {
+                const data = getAnggotaReportData();
+                if (!Array.isArray(data)) throw new Error('Data is not an array');
+                return `Loaded ${data.length} anggota records`;
+            });
+
+            // Step 3: Apply search filter
+            await runStep('1.3', 'Apply search filter', async () => {
+                if (typeof LaporanFilterManager !== 'function') {
+                    throw new Error('Filter manager not found');
+                }
+                const filterManager = new LaporanFilterManager();
+                const testData = [
+                    { nik: '001', nama: 'Ahmad', departemen: 'IT' },
+                    { nik: '002', nama: 'Budi', departemen: 'Finance' }
+                ];
+                filterManager.setData(testData);
+                filterManager.searchQuery = 'Ahmad';
+                filterManager.applyFilters();
+                const filtered = filterManager.getFilteredData();
+                if (filtered.length !== 1) throw new Error('Filter not working');
+                return 'Search filter applied successfully';
+            });
+
+            // Step 4: Apply departemen filter
+            await runStep('1.4', 'Apply departemen filter', async () => {
+                const filterManager = new LaporanFilterManager();
+                const testData = [
+                    { nik: '001', nama: 'Ahmad', departemen: 'IT' },
+                    { nik: '002', nama: 'Budi', departemen: 'Finance' }
+                ];
+                filterManager.setData(testData);
+                filterManager.departemenFilter = 'IT';
+                filterManager.applyFilters();
+                const filtered = filterManager.getFilteredData();
+                if (filtered.length !== 1) throw new Error('Departemen filter not working');
+                return 'Departemen filter applied successfully';
+            });
+
+            // Step 5: Export to CSV
+            await runStep('1.5', 'Export to CSV', async () => {
+                if (typeof generateCSVContent !== 'function') {
+                    throw new Error('CSV generator not found');
+                }
+                const testData = [
+                    {
+                        nik: '001',
+                        nama: 'Ahmad',
+                        noKartu: 'K001',
+                        departemen: 'IT',
+                        tipeAnggota: 'Anggota',
+                        transaksi: { totalCash: 100000, totalBon: 50000, outstandingBalance: 25000 },
+                        simpanan: { pokok: 500000, wajib: 300000, sukarela: 200000, total: 1000000 }
+                    }
+                ];
+                const csv = generateCSVContent(testData);
+                if (!csv || csv.length === 0) throw new Error('CSV generation failed');
+                if (!csv.includes('Ahmad')) throw new Error('CSV content invalid');
+                return 'CSV exported successfully';
+            });
+
+            showFinalReport();
+        }
+
+        // ============================================================================
+        // WORKFLOW 2: Detail View Flow (Open Modal → View Data → Close)
+        // ============================================================================
+        async function runWorkflow2() {
+            clearTests();
+            addWorkflowSection('Workflow 2: Detail View Flow (Open Modal → View Data → Close)');
+
+            // Step 1: Setup test data
+            await runStep('2.1', 'Setup test data', async () => {
+                // Create test anggota
+                const testAnggota = {
+                    id: 'test-001',
+                    nik: '001',
+                    nama: 'Test User',
+                    departemen: 'IT'
+                };
+                localStorage.setItem('anggota', JSON.stringify([testAnggota]));
+                
+                // Create test transactions
+                const testTransaksi = [
+                    {
+                        id: 't1',
+                        anggotaId: 'test-001',
+                        metode: 'cash',
+                        total: 100000,
+                        tanggal: '2024-01-01'
+                    }
+                ];
+                localStorage.setItem('penjualan', JSON.stringify(testTransaksi));
+                
+                // Create test simpanan
+                const testSimpanan = [
+                    {
+                        anggotaId: 'test-001',
+                        jenis: 'pokok',
+                        jumlah: 500000,
+                        tanggal: '2024-01-01'
+                    }
+                ];
+                localStorage.setItem('simpananPokok', JSON.stringify(testSimpanan));
+                localStorage.setItem('simpananWajib', JSON.stringify([]));
+                localStorage.setItem('simpananSukarela', JSON.stringify([]));
+                
+                return 'Test data created successfully';
+            });
+
+            // Step 2: Load anggota data
+            await runStep('2.2', 'Load anggota data', async () => {
+                const aggregator = new AnggotaDataAggregator('test-001');
+                const loaded = aggregator.loadData();
+                if (!loaded) throw new Error('Failed to load anggota data');
+                return 'Anggota data loaded successfully';
+            });
+
+            // Step 3: Get transaction details
+            await runStep('2.3', 'Get transaction details', async () => {
+                const aggregator = new AnggotaDataAggregator('test-001');
+                aggregator.loadData();
+                const transaksi = aggregator.getTransaksiList();
+                if (!Array.isArray(transaksi)) throw new Error('Transaksi not an array');
+                if (transaksi.length === 0) throw new Error('No transactions found');
+                return `Found ${transaksi.length} transaction(s)`;
+            });
+
+            // Step 4: Get simpanan details
+            await runStep('2.4', 'Get simpanan details', async () => {
+                const aggregator = new AnggotaDataAggregator('test-001');
+                aggregator.loadData();
+                const simpananPokok = aggregator.getSimpananList('pokok');
+                if (!Array.isArray(simpananPokok)) throw new Error('Simpanan not an array');
+                return `Found ${simpananPokok.length} simpanan pokok record(s)`;
+            });
+
+            // Step 5: Calculate totals
+            await runStep('2.5', 'Calculate totals', async () => {
+                const aggregator = new AnggotaDataAggregator('test-001');
+                aggregator.loadData();
+                const totalCash = aggregator.getTotalTransaksiCash();
+                const totalSimpanan = aggregator.getTotalSimpanan();
+                if (totalCash !== 100000) throw new Error('Cash total incorrect');
+                if (totalSimpanan !== 500000) throw new Error('Simpanan total incorrect');
+                return 'Totals calculated correctly';
+            });
+
+            // Cleanup
+            await runStep('2.6', 'Cleanup test data', async () => {
+                localStorage.removeItem('anggota');
+                localStorage.removeItem('penjualan');
+                localStorage.removeItem('simpananPokok');
+                localStorage.removeItem('simpananWajib');
+                localStorage.removeItem('simpananSukarela');
+                return 'Test data cleaned up';
+            });
+
+            showFinalReport();
+        }
+
+        // ============================================================================
+        // WORKFLOW 3: Authorization Flow (Each Role)
+        // ============================================================================
+        async function runWorkflow3() {
+            clearTests();
+            addWorkflowSection('Workflow 3: Authorization Flow (Each Role)');
+
+            // Step 1: Test admin access
+            await runStep('3.1', 'Test admin access', async () => {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 'admin1',
+                    username: 'admin',
+                    role: 'super_admin'
+                }));
+                const hasAccess = checkLaporanAccess();
+                if (!hasAccess) throw new Error('Admin should have access');
+                return 'Admin access granted';
+            });
+
+            // Step 2: Test kasir access
+            await runStep('3.2', 'Test kasir access', async () => {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 'kasir1',
+                    username: 'kasir',
+                    role: 'kasir'
+                }));
+                const hasAccess = checkLaporanAccess();
+                if (!hasAccess) throw new Error('Kasir should have access');
+                return 'Kasir access granted';
+            });
+
+            // Step 3: Test anggota access
+            await runStep('3.3', 'Test anggota access', async () => {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 'anggota1',
+                    username: 'anggota',
+                    role: 'anggota',
+                    anggotaId: 'test-001'
+                }));
+                const hasAccess = checkLaporanAccess();
+                if (!hasAccess) throw new Error('Anggota should have access');
+                return 'Anggota access granted';
+            });
+
+            // Step 4: Test role-based filtering for admin
+            await runStep('3.4', 'Test admin sees all data', async () => {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    role: 'super_admin'
+                }));
+                localStorage.setItem('anggota', JSON.stringify([
+                    { id: '1', nama: 'User 1' },
+                    { id: '2', nama: 'User 2' }
+                ]));
+                const data = getFilteredReportDataByRole();
+                if (data.length !== 2) throw new Error('Admin should see all data');
+                return 'Admin sees all data correctly';
+            });
+
+            // Step 5: Test role-based filtering for anggota
+            await runStep('3.5', 'Test anggota sees own data only', async () => {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    role: 'anggota',
+                    anggotaId: '1'
+                }));
+                localStorage.setItem('anggota', JSON.stringify([
+                    { id: '1', nama: 'User 1' },
+                    { id: '2', nama: 'User 2' }
+                ]));
+                const data = getFilteredReportDataByRole();
+                if (data.length !== 1) throw new Error('Anggota should see only own data');
+                if (data[0].anggotaId !== '1') throw new Error('Wrong data returned');
+                return 'Anggota sees own data only';
+            });
+
+            // Cleanup
+            await runStep('3.6', 'Cleanup', async () => {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('anggota');
+                return 'Cleanup complete';
+            });
+
+            showFinalReport();
+        }
+
+        // ============================================================================
+        // TEST EXECUTION HELPERS
+        // ============================================================================
+        function addWorkflowSection(title) {
+            const container = document.getElementById('testResults');
+            const section = document.createElement('div');
+            section.className = 'workflow-section';
+            section.innerHTML = `<h4><i class="fas fa-project-diagram"></i> ${title}</h4>`;
+            section.id = `workflow-${testSteps.length}`;
+            container.appendChild(section);
+        }
+
+        async function runStep(id, description, testFn) {
+            const step = {
+                id,
+                description,
+                status: 'running',
+                message: '',
+                timestamp: new Date().toISOString()
+            };
+            testSteps.push(step);
+
+            // Add step to UI
+            const workflowSection = document.querySelector('.workflow-section:last-child');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'test-step running';
+            stepDiv.id = `step-${id}`;
+            stepDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${id}:</strong> ${description}
+                        <div class="spinner-border spinner-border-sm ms-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <span class="badge bg-warning">Running</span>
+                </div>
+            `;
+            workflowSection.appendChild(stepDiv);
+
+            // Update progress
+            updateProgress();
+
+            // Run test
+            try {
+                await new Promise(resolve => setTimeout(resolve, 500)); // Simulate async
+                const result = await testFn();
+                step.status = 'passed';
+                step.message = result;
+                
+                // Update UI
+                stepDiv.className = 'test-step passed';
+                stepDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${id}:</strong> ${description}
+                            <div class="text-success mt-1"><small>${result}</small></div>
+                        </div>
+                        <span class="badge bg-success"><i class="fas fa-check"></i> Passed</span>
+                    </div>
+                `;
+            } catch (error) {
+                step.status = 'failed';
+                step.message = error.message;
+                
+                // Update UI
+                stepDiv.className = 'test-step failed';
+                stepDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${id}:</strong> ${description}
+                            <div class="text-danger mt-1"><small>${error.message}</small></div>
+                        </div>
+                        <span class="badge bg-danger"><i class="fas fa-times"></i> Failed</span>
+                    </div>
+                `;
+            }
+
+            currentStep++;
+            updateProgress();
+            updateSummary();
+        }
+
+        function updateProgress() {
+            const total = testSteps.length || 1;
+            const completed = testSteps.filter(s => s.status !== 'running').length;
+            const percentage = Math.round((completed / total) * 100);
+            
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+        }
+
+        function updateSummary() {
+            document.getElementById('summaryCards').style.display = 'flex';
+            
+            const total = testSteps.length;
+            const passed = testSteps.filter(s => s.status === 'passed').length;
+            const failed = testSteps.filter(s => s.status === 'failed').length;
+            const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
+
+            document.getElementById('totalSteps').textContent = total;
+            document.getElementById('passedSteps').textContent = passed;
+            document.getElementById('failedSteps').textContent = failed;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        function showFinalReport() {
+            const total = testSteps.length;
+            const passed = testSteps.filter(s => s.status === 'passed').length;
+            const failed = total - passed;
+            const rate = Math.round((passed / total) * 100);
+
+            const reportDiv = document.getElementById('finalReport');
+            const contentDiv = document.getElementById('reportContent');
+
+            let status = 'success';
+            let message = 'All integration tests passed!';
+
+            if (failed > 0) {
+                status = 'warning';
+                message = `${failed} test(s) failed. Please review.`;
+            }
+
+            contentDiv.innerHTML = `
+                <p><strong>${message}</strong></p>
+                <p>Total Steps: ${total} | Passed: ${passed} | Failed: ${failed} | Success Rate: ${rate}%</p>
+            `;
+
+            reportDiv.style.display = 'block';
+        }
+
+        async function runAllWorkflows() {
+            await runWorkflow1();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await runWorkflow2();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await runWorkflow3();
+        }
+
+        function clearTests() {
+            testSteps = [];
+            currentStep = 0;
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('finalReport').style.display = 'none';
+            document.getElementById('summaryCards').style.display = 'none';
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressBar').textContent = '0%';
+        }
+    </script>
+
+    <!-- Load implementation -->
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>

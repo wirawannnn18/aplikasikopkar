@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 10 - Authorization & Role-Based Access</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+        .code-block {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-shield-check me-2"></i>
+            Test Task 10: Authorization & Role-Based Access
+        </h1>
+
+        <div class="test-section">
+            <h3><i class="bi bi-info-circle me-2"></i>Test Overview</h3>
+            <p>Testing authorization and role-based access control for Laporan Transaksi & Simpanan Anggota:</p>
+            <ul>
+                <li><strong>Requirement 9.1:</strong> Admin role - full access</li>
+                <li><strong>Requirement 9.2:</strong> Kasir role - full access</li>
+                <li><strong>Requirement 9.3:</strong> Anggota role - only own data</li>
+                <li><strong>Requirement 9.4:</strong> Unauthorized access - error message</li>
+                <li><strong>Requirement 9.5:</strong> Failed validation - redirect to dashboard</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="bi bi-play-circle me-2"></i>Test Controls</h3>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100" onclick="runAllTests()">
+                        <i class="bi bi-play-fill me-1"></i>Run All Tests
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-warning w-100" onclick="setupTestData()">
+                        <i class="bi bi-database me-1"></i>Setup Test Data
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-danger w-100" onclick="clearTestData()">
+                        <i class="bi bi-trash me-1"></i>Clear Test Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="testResults"></div>
+
+        <div class="test-section">
+            <h3><i class="bi bi-eye me-2"></i>Manual Testing</h3>
+            <p>Test the laporan with different user roles:</p>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <button class="btn btn-outline-danger w-100" onclick="loginAsAdmin()">
+                        <i class="bi bi-person-badge me-1"></i>Login as Admin
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-success w-100" onclick="loginAsKasir()">
+                        <i class="bi bi-person-check me-1"></i>Login as Kasir
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-info w-100" onclick="loginAsAnggota()">
+                        <i class="bi bi-person me-1"></i>Login as Anggota
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-secondary w-100" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-1"></i>Logout
+                    </button>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary w-100" onclick="openLaporan()">
+                    <i class="bi bi-file-earmark-bar-graph me-1"></i>Open Laporan Page
+                </button>
+            </div>
+            <div class="mt-3" id="currentUserDisplay"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/laporanTransaksiSimpananAnggota.js"></script>
+    <script>
+        let testResults = [];
+
+        function logTest(name, passed, message) {
+            testResults.push({ name, passed, message });
+            displayResults();
+        }
+
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            const passCount = testResults.filter(t => t.passed).length;
+            const failCount = testResults.filter(t => !t.passed).length;
+
+            let html = `
+                <div class="test-section">
+                    <h3>
+                        <i class="bi bi-clipboard-check me-2"></i>Test Results
+                        <span class="badge bg-success ms-2">${passCount} Passed</span>
+                        <span class="badge bg-danger ms-2">${failCount} Failed</span>
+                    </h3>
+            `;
+
+            testResults.forEach(test => {
+                html += `
+                    <div class="test-result ${test.passed ? 'test-pass' : 'test-fail'}">
+                        <strong>${test.passed ? '✓' : '✗'} ${test.name}</strong>
+                        <div>${test.message}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function setupTestData() {
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'A001',
+                    nik: '1234567890',
+                    nama: 'Admin User',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif',
+                    userId: 'U001'
+                },
+                {
+                    id: 'A002',
+                    nik: '0987654321',
+                    nama: 'Kasir User',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif',
+                    userId: 'U002'
+                },
+                {
+                    id: 'A003',
+                    nik: '1122334455',
+                    nama: 'Anggota User',
+                    noKartu: 'K003',
+                    departemen: 'Sales',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif',
+                    userId: 'U003',
+                    anggotaId: 'A003'
+                },
+                {
+                    id: 'A004',
+                    nik: '5544332211',
+                    nama: 'Other Anggota',
+                    noKartu: 'K004',
+                    departemen: 'Marketing',
+                    tipeAnggota: 'Anggota',
+                    statusKeanggotaan: 'Aktif',
+                    userId: 'U004'
+                }
+            ];
+
+            // Create test transactions
+            const penjualan = [
+                {
+                    id: 'T001',
+                    anggotaId: 'A003',
+                    metode: 'cash',
+                    total: 100000,
+                    status: 'lunas',
+                    tanggal: new Date().toISOString()
+                },
+                {
+                    id: 'T002',
+                    anggotaId: 'A003',
+                    metode: 'bon',
+                    total: 50000,
+                    status: 'kredit',
+                    tanggal: new Date().toISOString()
+                },
+                {
+                    id: 'T003',
+                    anggotaId: 'A004',
+                    metode: 'cash',
+                    total: 75000,
+                    status: 'lunas',
+                    tanggal: new Date().toISOString()
+                }
+            ];
+
+            // Create test simpanan
+            const simpananPokok = [
+                { id: 'SP001', anggotaId: 'A003', jumlah: 100000, tanggal: new Date().toISOString() },
+                { id: 'SP002', anggotaId: 'A004', jumlah: 100000, tanggal: new Date().toISOString() }
+            ];
+
+            const simpananWajib = [
+                { id: 'SW001', anggotaId: 'A003', jumlah: 50000, periode: '2024-01', tanggal: new Date().toISOString() },
+                { id: 'SW002', anggotaId: 'A004', jumlah: 50000, periode: '2024-01', tanggal: new Date().toISOString() }
+            ];
+
+            const simpananSukarela = [
+                { id: 'SS001', anggotaId: 'A003', jumlah: 25000, tanggal: new Date().toISOString() },
+                { id: 'SS002', anggotaId: 'A004', jumlah: 30000, tanggal: new Date().toISOString() }
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+
+            alert('Test data setup complete!');
+            updateCurrentUserDisplay();
+        }
+
+        function clearTestData() {
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('penjualan');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            localStorage.removeItem('simpananSukarela');
+            localStorage.removeItem('currentUser');
+            testResults = [];
+            displayResults();
+            updateCurrentUserDisplay();
+            alert('Test data cleared!');
+        }
+
+        function loginAsAdmin() {
+            const user = {
+                id: 'U001',
+                username: 'admin',
+                name: 'Admin User',
+                role: 'administrator'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            alert('Logged in as Administrator');
+            updateCurrentUserDisplay();
+        }
+
+        function loginAsKasir() {
+            const user = {
+                id: 'U002',
+                username: 'kasir',
+                name: 'Kasir User',
+                role: 'kasir'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            alert('Logged in as Kasir');
+            updateCurrentUserDisplay();
+        }
+
+        function loginAsAnggota() {
+            const user = {
+                id: 'U003',
+                username: 'anggota',
+                name: 'Anggota User',
+                role: 'anggota',
+                anggotaId: 'A003'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            alert('Logged in as Anggota');
+            updateCurrentUserDisplay();
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            alert('Logged out');
+            updateCurrentUserDisplay();
+        }
+
+        function updateCurrentUserDisplay() {
+            const display = document.getElementById('currentUserDisplay');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            
+            if (currentUser.role) {
+                display.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Current User:</strong> ${currentUser.name} (${currentUser.role})
+                    </div>
+                `;
+            } else {
+                display.innerHTML = `
+                    <div class="alert alert-warning">
+                        <strong>Not logged in</strong>
+                    </div>
+                `;
+            }
+        }
+
+        function openLaporan() {
+            window.open('index.html#laporan-transaksi-simpanan', '_blank');
+        }
+
+        function runAllTests() {
+            testResults = [];
+            
+            // Setup test data first
+            setupTestData();
+
+            // Test 1: Check access function exists
+            logTest(
+                'Test 1: checkLaporanAccess function exists',
+                typeof checkLaporanAccess === 'function',
+                typeof checkLaporanAccess === 'function' ? 
+                    'Function checkLaporanAccess is defined' : 
+                    'Function checkLaporanAccess is NOT defined'
+            );
+
+            // Test 2: Check filtered data function exists
+            logTest(
+                'Test 2: getFilteredReportDataByRole function exists',
+                typeof getFilteredReportDataByRole === 'function',
+                typeof getFilteredReportDataByRole === 'function' ? 
+                    'Function getFilteredReportDataByRole is defined' : 
+                    'Function getFilteredReportDataByRole is NOT defined'
+            );
+
+            // Test 3: Admin access - should return true
+            loginAsAdmin();
+            const adminAccess = checkLaporanAccess();
+            logTest(
+                'Test 3: Admin has access (Requirement 9.1)',
+                adminAccess === true,
+                adminAccess ? 
+                    'Admin role has full access to laporan' : 
+                    'Admin role access FAILED'
+            );
+
+            // Test 4: Admin sees all data
+            const adminData = getFilteredReportDataByRole();
+            logTest(
+                'Test 4: Admin sees all data (Requirement 9.1)',
+                adminData.length === 4,
+                `Admin sees ${adminData.length} anggota (expected 4)`
+            );
+
+            // Test 5: Kasir access - should return true
+            loginAsKasir();
+            const kasirAccess = checkLaporanAccess();
+            logTest(
+                'Test 5: Kasir has access (Requirement 9.2)',
+                kasirAccess === true,
+                kasirAccess ? 
+                    'Kasir role has full access to laporan' : 
+                    'Kasir role access FAILED'
+            );
+
+            // Test 6: Kasir sees all data
+            const kasirData = getFilteredReportDataByRole();
+            logTest(
+                'Test 6: Kasir sees all data (Requirement 9.2)',
+                kasirData.length === 4,
+                `Kasir sees ${kasirData.length} anggota (expected 4)`
+            );
+
+            // Test 7: Anggota access - should return true
+            loginAsAnggota();
+            const anggotaAccess = checkLaporanAccess();
+            logTest(
+                'Test 7: Anggota has access (Requirement 9.3)',
+                anggotaAccess === true,
+                anggotaAccess ? 
+                    'Anggota role has access to laporan' : 
+                    'Anggota role access FAILED'
+            );
+
+            // Test 8: Anggota sees only own data
+            const anggotaData = getFilteredReportDataByRole();
+            logTest(
+                'Test 8: Anggota sees only own data (Requirement 9.3)',
+                anggotaData.length === 1 && anggotaData[0].anggotaId === 'A003',
+                `Anggota sees ${anggotaData.length} anggota (expected 1 with ID A003). ` +
+                `Actual: ${anggotaData.map(d => d.anggotaId).join(', ')}`
+            );
+
+            // Test 9: No user logged in - should return false
+            logout();
+            const noUserAccess = checkLaporanAccess();
+            logTest(
+                'Test 9: No user logged in - access denied (Requirement 9.4)',
+                noUserAccess === false,
+                noUserAccess === false ? 
+                    'Access correctly denied when not logged in' : 
+                    'Access check FAILED - should deny access when not logged in'
+            );
+
+            // Test 10: Invalid role - should return false
+            const invalidUser = {
+                id: 'U999',
+                username: 'invalid',
+                name: 'Invalid User',
+                role: 'invalid_role'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(invalidUser));
+            const invalidAccess = checkLaporanAccess();
+            logTest(
+                'Test 10: Invalid role - access denied (Requirement 9.4)',
+                invalidAccess === false,
+                invalidAccess === false ? 
+                    'Access correctly denied for invalid role' : 
+                    'Access check FAILED - should deny access for invalid role'
+            );
+
+            // Test 11: Super admin access
+            const superAdmin = {
+                id: 'U000',
+                username: 'superadmin',
+                name: 'Super Admin',
+                role: 'super_admin'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(superAdmin));
+            const superAdminAccess = checkLaporanAccess();
+            logTest(
+                'Test 11: Super Admin has access',
+                superAdminAccess === true,
+                superAdminAccess ? 
+                    'Super Admin role has full access to laporan' : 
+                    'Super Admin role access FAILED'
+            );
+
+            // Test 12: Super admin sees all data
+            const superAdminData = getFilteredReportDataByRole();
+            logTest(
+                'Test 12: Super Admin sees all data',
+                superAdminData.length === 4,
+                `Super Admin sees ${superAdminData.length} anggota (expected 4)`
+            );
+
+            updateCurrentUserDisplay();
+        }
+
+        // Initialize display
+        updateCurrentUserDisplay();
+    </script>
+</body>
+</html>
