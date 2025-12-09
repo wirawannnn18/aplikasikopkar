@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Anggota Keluar & COA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .data-table {
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check me-2"></i>
+            Verifikasi Anggota Keluar & COA
+        </h1>
+
+        <div class="test-section">
+            <h3>Test 1: Cek Anggota Keluar di Master Anggota</h3>
+            <button class="btn btn-primary" onclick="testMasterAnggota()">
+                <i class="bi bi-play-fill me-1"></i>Jalankan Test
+            </button>
+            <div id="result1" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Cek COA Kas & Simpanan</h3>
+            <button class="btn btn-primary" onclick="testCOA()">
+                <i class="bi bi-play-fill me-1"></i>Jalankan Test
+            </button>
+            <div id="result2" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Cek Jurnal Pengembalian</h3>
+            <button class="btn btn-primary" onclick="testJurnal()">
+                <i class="bi bi-play-fill me-1"></i>Jalankan Test
+            </button>
+            <div id="result3" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Cek Filter Function</h3>
+            <button class="btn btn-primary" onclick="testFilterFunction()">
+                <i class="bi bi-play-fill me-1"></i>Jalankan Test
+            </button>
+            <div id="result4" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Data Lengkap</h3>
+            <button class="btn btn-info" onclick="showAllData()">
+                <i class="bi bi-table me-1"></i>Tampilkan Semua Data
+            </button>
+            <div id="allData" style="display:none; margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <script>
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function testMasterAnggota() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.style.display = 'block';
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                
+                // Check for anggota keluar using ALL possible indicators
+                const anggotaKeluar = anggota.filter(a => {
+                    return a.statusKeanggotaan === 'Keluar' ||
+                           a.status === 'Nonaktif' ||
+                           a.tanggalKeluar ||
+                           a.pengembalianStatus;
+                });
+                
+                let html = '<strong>HASIL TEST MASTER ANGGOTA:</strong><br><br>';
+                html += `Total anggota di localStorage: ${anggota.length}<br>`;
+                html += `Anggota keluar yang terdeteksi: ${anggotaKeluar.length}<br><br>`;
+                
+                if (anggotaKeluar.length > 0) {
+                    html += '<strong>⚠️ MASALAH DITEMUKAN!</strong><br>';
+                    html += 'Anggota keluar masih ada di localStorage:<br><br>';
+                    
+                    anggotaKeluar.forEach(a => {
+                        html += `<div style="margin-left: 20px; margin-bottom: 10px;">`;
+                        html += `<strong>${a.nama}</strong> (NIK: ${a.nik})<br>`;
+                        html += `- statusKeanggotaan: ${a.statusKeanggotaan || 'tidak ada'}<br>`;
+                        html += `- status: ${a.status || 'tidak ada'}<br>`;
+                        html += `- tanggalKeluar: ${a.tanggalKeluar || 'tidak ada'}<br>`;
+                        html += `- pengembalianStatus: ${a.pengembalianStatus || 'tidak ada'}<br>`;
+                        html += `</div>`;
+                    });
+                    
+                    html += '<br><strong>CATATAN:</strong> Anggota keluar SEHARUSNYA tidak muncul di Master Anggota.<br>';
+                    html += 'Filter harus menyembunyikan mereka dari tampilan.';
+                    
+                    resultDiv.className = 'test-result test-fail';
+                } else {
+                    html += '<strong>✓ BAGUS!</strong><br>';
+                    html += 'Tidak ada anggota keluar di localStorage, atau semua sudah dihapus.';
+                    resultDiv.className = 'test-result test-pass';
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `<strong>ERROR:</strong> ${error.message}`;
+            }
+        }
+
+        function testCOA() {
+            const resultDiv = document.getElementById('result2');
+            resultDiv.style.display = 'block';
+            
+            try {
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                
+                // Find relevant accounts
+                const kas = coa.find(c => c.kode === '1-1000');
+                const simpananPokok = coa.find(c => c.kode === '2-1100');
+                const simpananWajib = coa.find(c => c.kode === '2-1200');
+                
+                let html = '<strong>HASIL TEST COA:</strong><br><br>';
+                
+                if (kas) {
+                    html += `<strong>Kas (1-1000):</strong> ${formatRupiah(kas.saldo)}<br>`;
+                } else {
+                    html += `<strong>⚠️ Kas (1-1000):</strong> Tidak ditemukan<br>`;
+                }
+                
+                if (simpananPokok) {
+                    html += `<strong>Simpanan Pokok (2-1100):</strong> ${formatRupiah(simpananPokok.saldo)}<br>`;
+                } else {
+                    html += `<strong>⚠️ Simpanan Pokok (2-1100):</strong> Tidak ditemukan<br>`;
+                }
+                
+                if (simpananWajib) {
+                    html += `<strong>Simpanan Wajib (2-1200):</strong> ${formatRupiah(simpananWajib.saldo)}<br>`;
+                } else {
+                    html += `<strong>⚠️ Simpanan Wajib (2-1200):</strong> Tidak ditemukan<br>`;
+                }
+                
+                html += `<br><strong>Total Pengembalian yang Diproses:</strong> ${pengembalian.length}<br>`;
+                
+                if (pengembalian.length > 0) {
+                    const totalPengembalian = pengembalian.reduce((sum, p) => sum + (p.totalPengembalian || 0), 0);
+                    html += `<strong>Total Nilai Pengembalian:</strong> ${formatRupiah(totalPengembalian)}<br><br>`;
+                    
+                    html += '<strong>CATATAN:</strong><br>';
+                    html += '- Kas SEHARUSNYA berkurang sebesar total pengembalian<br>';
+                    html += '- Simpanan Pokok & Wajib SEHARUSNYA berkurang sesuai pengembalian';
+                }
+                
+                resultDiv.className = 'test-result test-info';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `<strong>ERROR:</strong> ${error.message}`;
+            }
+        }
+
+        function testJurnal() {
+            const resultDiv = document.getElementById('result3');
+            resultDiv.style.display = 'block';
+            
+            try {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                
+                // Find pengembalian-related journals
+                const pengembalianJurnal = jurnal.filter(j => 
+                    j.keterangan && j.keterangan.toLowerCase().includes('pengembalian simpanan')
+                );
+                
+                let html = '<strong>HASIL TEST JURNAL:</strong><br><br>';
+                html += `Total jurnal entries: ${jurnal.length}<br>`;
+                html += `Jurnal pengembalian simpanan: ${pengembalianJurnal.length}<br>`;
+                html += `Record pengembalian: ${pengembalian.length}<br><br>`;
+                
+                if (pengembalian.length > 0 && pengembalianJurnal.length === 0) {
+                    html += '<strong>⚠️ MASALAH DITEMUKAN!</strong><br>';
+                    html += 'Ada record pengembalian tapi tidak ada jurnal yang dibuat.<br>';
+                    html += 'Ini berarti COA tidak terupdate!<br><br>';
+                    
+                    html += '<strong>Pengembalian yang tidak punya jurnal:</strong><br>';
+                    pengembalian.forEach(p => {
+                        html += `<div style="margin-left: 20px;">`;
+                        html += `- ${p.anggotaNama}: ${formatRupiah(p.totalPengembalian)}<br>`;
+                        html += `  Tanggal: ${p.tanggalPembayaran}<br>`;
+                        html += `  Status: ${p.status}<br>`;
+                        html += `</div>`;
+                    });
+                    
+                    resultDiv.className = 'test-result test-fail';
+                } else if (pengembalianJurnal.length > 0) {
+                    html += '<strong>✓ BAGUS!</strong><br>';
+                    html += 'Jurnal pengembalian ditemukan:<br><br>';
+                    
+                    pengembalianJurnal.forEach(j => {
+                        html += `<div style="margin-left: 20px; margin-bottom: 10px;">`;
+                        html += `<strong>${j.keterangan}</strong><br>`;
+                        html += `Tanggal: ${j.tanggal}<br>`;
+                        html += `Entries:<br>`;
+                        j.entries.forEach(e => {
+                            html += `  - ${e.akun}: Debit ${formatRupiah(e.debit)}, Kredit ${formatRupiah(e.kredit)}<br>`;
+                        });
+                        html += `</div>`;
+                    });
+                    
+                    resultDiv.className = 'test-result test-pass';
+                } else {
+                    html += '<strong>INFO:</strong> Belum ada pengembalian yang diproses.';
+                    resultDiv.className = 'test-result test-info';
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `<strong>ERROR:</strong> ${error.message}`;
+            }
+        }
+
+        function testFilterFunction() {
+            const resultDiv = document.getElementById('result4');
+            resultDiv.style.display = 'block';
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                
+                // Test the filter logic
+                const filtered = anggota.filter(a => {
+                    // Check OLD system: statusKeanggotaan
+                    if (a.statusKeanggotaan === 'Keluar') {
+                        return false;
+                    }
+                    
+                    // Check NEW system: status = 'Nonaktif'
+                    if (a.status === 'Nonaktif') {
+                        return false;
+                    }
+                    
+                    // Check NEW system: has tanggalKeluar
+                    if (a.tanggalKeluar) {
+                        return false;
+                    }
+                    
+                    // Check NEW system: has pengembalianStatus
+                    if (a.pengembalianStatus) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                let html = '<strong>HASIL TEST FILTER FUNCTION:</strong><br><br>';
+                html += `Total anggota: ${anggota.length}<br>`;
+                html += `Setelah filter: ${filtered.length}<br>`;
+                html += `Anggota yang difilter: ${anggota.length - filtered.length}<br><br>`;
+                
+                if (anggota.length - filtered.length > 0) {
+                    html += '<strong>✓ Filter berfungsi!</strong><br>';
+                    html += `${anggota.length - filtered.length} anggota keluar berhasil disembunyikan.<br><br>`;
+                    
+                    html += '<strong>Anggota yang difilter:</strong><br>';
+                    anggota.filter(a => !filtered.includes(a)).forEach(a => {
+                        html += `<div style="margin-left: 20px;">`;
+                        html += `- ${a.nama} (${a.nik})<br>`;
+                        html += `</div>`;
+                    });
+                    
+                    resultDiv.className = 'test-result test-pass';
+                } else {
+                    html += '<strong>INFO:</strong> Tidak ada anggota yang perlu difilter.';
+                    resultDiv.className = 'test-result test-info';
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.className = 'test-result test-fail';
+                resultDiv.innerHTML = `<strong>ERROR:</strong> ${error.message}`;
+            }
+        }
+
+        function showAllData() {
+            const dataDiv = document.getElementById('allData');
+            dataDiv.style.display = 'block';
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const pengembalian = JSON.parse(localStorage.getItem('pengembalian') || '[]');
+                
+                let html = '<h5>Data Anggota</h5>';
+                html += '<table class="table table-sm data-table">';
+                html += '<thead><tr><th>Nama</th><th>NIK</th><th>Status</th><th>StatusKeanggotaan</th><th>TanggalKeluar</th><th>PengembalianStatus</th></tr></thead>';
+                html += '<tbody>';
+                anggota.forEach(a => {
+                    html += `<tr>`;
+                    html += `<td>${a.nama}</td>`;
+                    html += `<td>${a.nik}</td>`;
+                    html += `<td>${a.status || '-'}</td>`;
+                    html += `<td>${a.statusKeanggotaan || '-'}</td>`;
+                    html += `<td>${a.tanggalKeluar || '-'}</td>`;
+                    html += `<td>${a.pengembalianStatus || '-'}</td>`;
+                    html += `</tr>`;
+                });
+                html += '</tbody></table>';
+                
+                html += '<h5 class="mt-4">COA (Akun Utama)</h5>';
+                html += '<table class="table table-sm data-table">';
+                html += '<thead><tr><th>Kode</th><th>Nama</th><th>Saldo</th></tr></thead>';
+                html += '<tbody>';
+                ['1-1000', '2-1100', '2-1200'].forEach(kode => {
+                    const akun = coa.find(c => c.kode === kode);
+                    if (akun) {
+                        html += `<tr>`;
+                        html += `<td>${akun.kode}</td>`;
+                        html += `<td>${akun.nama}</td>`;
+                        html += `<td>${formatRupiah(akun.saldo)}</td>`;
+                        html += `</tr>`;
+                    }
+                });
+                html += '</tbody></table>';
+                
+                html += '<h5 class="mt-4">Pengembalian</h5>';
+                if (pengembalian.length > 0) {
+                    html += '<table class="table table-sm data-table">';
+                    html += '<thead><tr><th>Anggota</th><th>Total</th><th>Tanggal</th><th>Status</th></tr></thead>';
+                    html += '<tbody>';
+                    pengembalian.forEach(p => {
+                        html += `<tr>`;
+                        html += `<td>${p.anggotaNama}</td>`;
+                        html += `<td>${formatRupiah(p.totalPengembalian)}</td>`;
+                        html += `<td>${p.tanggalPembayaran}</td>`;
+                        html += `<td>${p.status}</td>`;
+                        html += `</tr>`;
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html += '<p>Tidak ada data pengembalian.</p>';
+                }
+                
+                dataDiv.innerHTML = html;
+            } catch (error) {
+                dataDiv.innerHTML = `<div class="alert alert-danger">ERROR: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

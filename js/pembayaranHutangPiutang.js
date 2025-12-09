@@ -1,250 +1,132 @@
 // Pembayaran Hutang Piutang Module
+// Handles payment processing for member debts (hutang) and receivables (piutang)
+// Requirements: 1.1-8.5
 
 /**
- * Task 13.1: Check if user has permission to access this module
- * @returns {boolean} True if user has access
+ * Check if current user has permission to access pembayaran hutang piutang
+ * Requirements: Security - Role-based access control
+ * @returns {boolean} True if user has permission
  */
 function checkPembayaranAccess() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    if (!currentUser || !currentUser.role) {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const allowedRoles = ['admin', 'kasir'];
+        
+        if (!currentUser.role) {
+            return false;
+        }
+        
+        return allowedRoles.includes(currentUser.role.toLowerCase());
+    } catch (error) {
+        console.error('Error checking access:', error);
         return false;
     }
-    
-    // Kasir and Admin can access payment module
-    const allowedRoles = ['kasir', 'admin', 'super_admin'];
-    return allowedRoles.includes(currentUser.role);
 }
 
 /**
- * Task 13.1: Check if user can process payments
- * @returns {boolean} True if user can process payments
- */
-function canProcessPayment() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    if (!currentUser || !currentUser.role) {
-        return false;
-    }
-    
-    // Only Kasir and Admin can process payments
-    const allowedRoles = ['kasir', 'admin', 'super_admin'];
-    return allowedRoles.includes(currentUser.role);
-}
-
-/**
- * Task 13.1: Check if user can view all history
- * @returns {boolean} True if user can view all history
- */
-function canViewAllHistory() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    if (!currentUser || !currentUser.role) {
-        return false;
-    }
-    
-    // Admin and Super Admin can view all history
-    const allowedRoles = ['admin', 'super_admin'];
-    return allowedRoles.includes(currentUser.role);
-}
-
-/**
- * Task 13.2: Sanitize text input to prevent XSS
- * @param {string} input - Text input to sanitize
- * @returns {string} Sanitized text
- */
-function sanitizeInput(input) {
-    if (typeof input !== 'string') {
-        return '';
-    }
-    
-    // Remove HTML tags and encode special characters
-    return input
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;')
-        .replace(/\//g, '&#x2F;')
-        .trim();
-}
-
-/**
- * Task 13.2: Validate numeric input
- * @param {any} input - Input to validate
- * @returns {number|null} Valid number or null
- */
-function validateNumericInput(input) {
-    const num = parseFloat(input);
-    
-    if (isNaN(num) || !isFinite(num)) {
-        return null;
-    }
-    
-    // Check for negative numbers
-    if (num < 0) {
-        return null;
-    }
-    
-    return num;
-}
-
-/**
- * Task 13.2: Validate date format (ISO 8601)
- * @param {string} dateString - Date string to validate
- * @returns {boolean} True if valid date
- */
-function validateDateFormat(dateString) {
-    if (!dateString || typeof dateString !== 'string') {
-        return false;
-    }
-    
-    // Check ISO 8601 format
-    const isoDateRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
-    
-    if (!isoDateRegex.test(dateString)) {
-        return false;
-    }
-    
-    // Check if date is valid
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date.getTime());
-}
-
-/**
- * Main render function for Pembayaran Hutang Piutang page
- * Task 13.1: Add access control check
+ * Initialize and render the main pembayaran hutang piutang page
+ * Requirements: 6.1
  */
 function renderPembayaranHutangPiutang() {
-    // Task 13.1: Check access permission
+    // Check access permission
     if (!checkPembayaranAccess()) {
-        const content = document.getElementById('mainContent');
-        content.innerHTML = `
-            <div class="alert alert-danger">
-                <h4><i class="bi bi-shield-x me-2"></i>Akses Ditolak</h4>
-                <p>Anda tidak memiliki izin untuk mengakses modul Pembayaran Hutang Piutang.</p>
-                <p>Hubungi administrator untuk mendapatkan akses.</p>
-            </div>
-        `;
+        const content = document.getElementById('content');
+        if (content) {
+            content.innerHTML = `
+                <div class="container-fluid py-4">
+                    <div class="alert alert-danger">
+                        <h4><i class="bi bi-exclamation-triangle"></i> Akses Ditolak</h4>
+                        <p>Anda tidak memiliki izin untuk mengakses fitur Pembayaran Hutang/Piutang.</p>
+                        <p>Fitur ini hanya dapat diakses oleh Admin dan Kasir.</p>
+                    </div>
+                </div>
+            `;
+        }
         return;
     }
-    const content = document.getElementById('mainContent');
     
+    const content = document.getElementById('content');
+    if (!content) {
+        console.error('Content element not found');
+        return;
+    }
+
     content.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 style="color: #2d6a4f; font-weight: 700;">
-                <i class="bi bi-cash-coin me-2"></i>Pembayaran Hutang Piutang
-            </h2>
-        </div>
-        
-        <!-- Summary Cards -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card" style="border-left: 4px solid #e63946;">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">
-                            <i class="bi bi-exclamation-triangle me-1"></i>Total Hutang Anggota
-                        </h6>
-                        <h3 style="color: #e63946; font-weight: 700;" id="totalHutangDisplay">Rp 0</h3>
-                        <small class="text-muted">Belum dibayar dari transaksi kredit</small>
-                    </div>
+        <div class="container-fluid py-4">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2><i class="bi bi-cash-coin"></i> Pembayaran Hutang / Piutang Anggota</h2>
+                    <p class="text-muted">Proses pembayaran hutang dari anggota atau pembayaran piutang kepada anggota</p>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card" style="border-left: 4px solid #457b9d;">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">
-                            <i class="bi bi-wallet2 me-1"></i>Total Piutang Anggota
-                        </h6>
-                        <h3 style="color: #457b9d; font-weight: 700;" id="totalPiutangDisplay">Rp 0</h3>
-                        <small class="text-muted">Hak anggota yang belum dibayar</small>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">
+                                <i class="bi bi-arrow-down-circle"></i> Total Hutang Anggota
+                            </h5>
+                            <h3 class="mb-0" id="totalHutangDisplay">Rp 0</h3>
+                            <small class="text-muted">Kewajiban anggota kepada koperasi</small>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Tabs -->
-        <ul class="nav nav-tabs mb-3" id="pembayaranTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="hutang-tab" data-bs-toggle="tab" 
-                    data-bs-target="#hutang-panel" type="button" role="tab">
-                    <i class="bi bi-credit-card me-1"></i>Pembayaran Hutang
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="piutang-tab" data-bs-toggle="tab" 
-                    data-bs-target="#piutang-panel" type="button" role="tab">
-                    <i class="bi bi-wallet me-1"></i>Pembayaran Piutang
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="riwayat-tab" data-bs-toggle="tab" 
-                    data-bs-target="#riwayat-panel" type="button" role="tab">
-                    <i class="bi bi-clock-history me-1"></i>Riwayat Pembayaran
-                </button>
-            </li>
-        </ul>
-        
-        <!-- Tab Content -->
-        <div class="tab-content" id="pembayaranTabContent">
-            <!-- Pembayaran Hutang Panel -->
-            <div class="tab-pane fade show active" id="hutang-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header" style="background: linear-gradient(135deg, #e63946 0%, #f77f00 100%); color: white;">
-                        <h5 class="mb-0">
-                            <i class="bi bi-credit-card me-2"></i>Form Pembayaran Hutang
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Proses pembayaran hutang dari anggota untuk melunasi transaksi kredit POS.
-                        </p>
-                        <div id="formPembayaranHutang">
-                            <!-- Form will be rendered here -->
-                            <div class="alert alert-info">
-                                <i class="bi bi-tools me-2"></i>Form pembayaran hutang akan segera tersedia.
-                            </div>
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">
+                                <i class="bi bi-arrow-up-circle"></i> Total Piutang Anggota
+                            </h5>
+                            <h3 class="mb-0" id="totalPiutangDisplay">Rp 0</h3>
+                            <small class="text-muted">Hak anggota dari koperasi</small>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Pembayaran Piutang Panel -->
-            <div class="tab-pane fade" id="piutang-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header" style="background: linear-gradient(135deg, #457b9d 0%, #1d3557 100%); color: white;">
-                        <h5 class="mb-0">
-                            <i class="bi bi-wallet me-2"></i>Form Pembayaran Piutang
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Proses pembayaran piutang kepada anggota untuk melunasi hak anggota.
-                        </p>
-                        <div id="formPembayaranPiutang">
-                            <!-- Form will be rendered here -->
-                            <div class="alert alert-info">
-                                <i class="bi bi-tools me-2"></i>Form pembayaran piutang akan segera tersedia.
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" id="pembayaranTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="form-tab" data-bs-toggle="tab" 
+                            data-bs-target="#form-panel" type="button" role="tab">
+                        <i class="bi bi-plus-circle"></i> Form Pembayaran
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="riwayat-tab" data-bs-toggle="tab" 
+                            data-bs-target="#riwayat-panel" type="button" role="tab">
+                        <i class="bi bi-clock-history"></i> Riwayat Pembayaran
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="pembayaranTabContent">
+                <!-- Form Panel -->
+                <div class="tab-pane fade show active" id="form-panel" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Form Pembayaran</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="formPembayaranContainer">
+                                <!-- Form will be rendered here -->
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Riwayat Panel -->
-            <div class="tab-pane fade" id="riwayat-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-clock-history me-2"></i>Riwayat Pembayaran
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="riwayatPembayaran">
-                            <!-- History will be rendered here -->
-                            <div class="alert alert-info">
-                                <i class="bi bi-inbox me-2"></i>Belum ada riwayat pembayaran.
+
+                <!-- Riwayat Panel -->
+                <div class="tab-pane fade" id="riwayat-panel" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Riwayat Pembayaran</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="riwayatPembayaranContainer">
+                                <!-- Riwayat will be rendered here -->
                             </div>
                         </div>
                     </div>
@@ -252,327 +134,755 @@ function renderPembayaranHutangPiutang() {
             </div>
         </div>
     `;
-    
-    // Initialize summary
+
+    // Initialize
     updateSummaryCards();
-    
-    // Render forms
-    renderFormPembayaranHutang();
-    renderFormPembayaranPiutang();
+    renderFormPembayaran();
     renderRiwayatPembayaran();
-    
-    // Initialize autocomplete
-    setTimeout(() => {
-        initAutocompleteHutang();
-        initAutocompletePiutang();
-        
-        // Task 11.3: Add input listeners for button state and validation
-        const jumlahHutang = document.getElementById('jumlahPembayaranHutang');
-        if (jumlahHutang) {
-            jumlahHutang.addEventListener('input', updateButtonStateHutang);
-            // Add keyboard support
-            jumlahHutang.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const btn = document.getElementById('btnProsesPembayaranHutang');
-                    if (!btn.disabled) {
-                        prosesPembayaran('hutang');
-                    }
-                }
-            });
-        }
-        
-        const jumlahPiutang = document.getElementById('jumlahPembayaranPiutang');
-        if (jumlahPiutang) {
-            jumlahPiutang.addEventListener('input', updateButtonStatePiutang);
-            // Add keyboard support
-            jumlahPiutang.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const btn = document.getElementById('btnProsesPembayaranPiutang');
-                    if (!btn.disabled) {
-                        prosesPembayaran('piutang');
-                    }
-                }
-            });
-        }
-    }, 100);
 }
 
 /**
- * Update summary cards with current totals
+ * Update summary cards with total hutang and piutang
  */
 function updateSummaryCards() {
-    // Calculate total hutang
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
-    let totalHutang = 0;
-    let totalPiutang = 0;
+    try {
+        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        
+        let totalHutang = 0;
+        let totalPiutang = 0;
+
+        anggotaList.forEach(anggota => {
+            totalHutang += hitungSaldoHutang(anggota.id);
+            totalPiutang += hitungSaldoPiutang(anggota.id);
+        });
+
+        document.getElementById('totalHutangDisplay').textContent = formatRupiah(totalHutang);
+        document.getElementById('totalPiutangDisplay').textContent = formatRupiah(totalPiutang);
+    } catch (error) {
+        console.error('Error updating summary cards:', error);
+    }
+}
+
+/**
+ * Render form pembayaran
+ * Requirements: 6.1, 6.4
+ */
+function renderFormPembayaran() {
+    const container = document.getElementById('formPembayaranContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+        <form id="formPembayaran" onsubmit="event.preventDefault(); prosesPembayaran();">
+            <!-- Jenis Pembayaran -->
+            <div class="mb-3">
+                <label for="jenisPembayaran" class="form-label">Jenis Pembayaran <span class="text-danger">*</span></label>
+                <select class="form-select" id="jenisPembayaran" required onchange="onJenisChange()">
+                    <option value="">-- Pilih Jenis --</option>
+                    <option value="hutang">Pembayaran Hutang (Anggota bayar ke Koperasi)</option>
+                    <option value="piutang">Pembayaran Piutang (Koperasi bayar ke Anggota)</option>
+                </select>
+            </div>
+
+            <!-- Search Anggota -->
+            <div class="mb-3">
+                <label for="searchAnggota" class="form-label">Cari Anggota <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="searchAnggota" 
+                       placeholder="Ketik NIK atau Nama anggota..." 
+                       autocomplete="off"
+                       oninput="onSearchAnggota(this.value)">
+                <div id="anggotaSuggestions" class="list-group mt-1" style="position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                <input type="hidden" id="selectedAnggotaId">
+                <input type="hidden" id="selectedAnggotaNama">
+                <input type="hidden" id="selectedAnggotaNIK">
+            </div>
+
+            <!-- Display Saldo -->
+            <div id="saldoDisplay" style="display: none;">
+                <div class="alert alert-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Saldo Hutang:</strong>
+                            <h5 class="mb-0 text-danger" id="displaySaldoHutang">Rp 0</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Saldo Piutang:</strong>
+                            <h5 class="mb-0 text-success" id="displaySaldoPiutang">Rp 0</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jumlah Pembayaran -->
+            <div class="mb-3">
+                <label for="jumlahPembayaran" class="form-label">Jumlah Pembayaran <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="jumlahPembayaran" 
+                       placeholder="Masukkan jumlah pembayaran" 
+                       min="1" step="1" required>
+                <div class="form-text">Masukkan jumlah dalam Rupiah (tanpa titik atau koma)</div>
+            </div>
+
+            <!-- Keterangan -->
+            <div class="mb-3">
+                <label for="keteranganPembayaran" class="form-label">Keterangan</label>
+                <textarea class="form-control" id="keteranganPembayaran" rows="3" 
+                          placeholder="Keterangan tambahan (opsional)"></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="button" class="btn btn-secondary" onclick="resetFormPembayaran()">
+                    <i class="bi bi-x-circle"></i> Reset
+                </button>
+                <button type="submit" class="btn btn-primary" id="btnProsesPembayaran">
+                    <i class="bi bi-check-circle"></i> Proses Pembayaran
+                </button>
+            </div>
+        </form>
+    `;
+}
+
+/**
+ * Handle jenis pembayaran change
+ * Requirements: 6.4
+ */
+function onJenisChange() {
+    const jenis = document.getElementById('jenisPembayaran').value;
+    const saldoDisplay = document.getElementById('saldoDisplay');
     
-    anggota.forEach(a => {
-        totalHutang += hitungSaldoHutang(a.id);
-        totalPiutang += hitungSaldoPiutang(a.id);
+    if (jenis && document.getElementById('selectedAnggotaId').value) {
+        saldoDisplay.style.display = 'block';
+        highlightRelevantSaldo(jenis);
+    }
+}
+
+/**
+ * Highlight relevant saldo based on jenis
+ * Requirements: 6.4
+ */
+function highlightRelevantSaldo(jenis) {
+    const hutangDisplay = document.getElementById('displaySaldoHutang').parentElement;
+    const piutangDisplay = document.getElementById('displaySaldoPiutang').parentElement;
+    
+    if (jenis === 'hutang') {
+        hutangDisplay.classList.add('border', 'border-danger', 'p-2', 'rounded');
+        piutangDisplay.classList.remove('border', 'border-success', 'p-2', 'rounded');
+    } else if (jenis === 'piutang') {
+        piutangDisplay.classList.add('border', 'border-success', 'p-2', 'rounded');
+        hutangDisplay.classList.remove('border', 'border-danger', 'p-2', 'rounded');
+    }
+}
+
+/**
+ * Reset form pembayaran
+ */
+function resetFormPembayaran() {
+    document.getElementById('formPembayaran').reset();
+    document.getElementById('selectedAnggotaId').value = '';
+    document.getElementById('selectedAnggotaNama').value = '';
+    document.getElementById('selectedAnggotaNIK').value = '';
+    document.getElementById('saldoDisplay').style.display = 'none';
+    document.getElementById('anggotaSuggestions').style.display = 'none';
+}
+
+/**
+ * Calculate hutang saldo for an anggota
+ * Requirements: 1.1
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {number} Current hutang balance
+ */
+function hitungSaldoHutang(anggotaId) {
+    try {
+        const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+        const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        
+        // Total kredit from POS transactions
+        const totalKredit = penjualan
+            .filter(p => p.anggotaId === anggotaId && p.metodePembayaran === 'Kredit')
+            .reduce((sum, p) => sum + (parseFloat(p.total) || 0), 0);
+        
+        // Total payments already made
+        const totalBayar = pembayaran
+            .filter(p => p.anggotaId === anggotaId && p.jenis === 'hutang' && p.status === 'selesai')
+            .reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+        
+        return totalKredit - totalBayar;
+    } catch (error) {
+        console.error('Error calculating hutang saldo:', error);
+        return 0;
+    }
+}
+
+/**
+ * Calculate piutang saldo for an anggota
+ * Requirements: 2.1
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {number} Current piutang balance
+ */
+function hitungSaldoPiutang(anggotaId) {
+    try {
+        // Piutang comes from simpanan that need to be returned to anggota
+        // This includes pengembalian simpanan for anggota keluar
+        const simpananList = JSON.parse(localStorage.getItem('simpanan') || '[]');
+        const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        
+        // Get simpanan for this anggota that are marked for pengembalian
+        const anggotaSimpanan = simpananList.filter(s => 
+            s.anggotaId === anggotaId && 
+            s.statusPengembalian === 'pending'
+        );
+        
+        // Calculate total piutang from simpanan balances
+        let totalPiutang = 0;
+        anggotaSimpanan.forEach(simpanan => {
+            totalPiutang += parseFloat(simpanan.saldo || 0);
+        });
+        
+        // Subtract payments already made
+        const totalBayar = pembayaran
+            .filter(p => p.anggotaId === anggotaId && p.jenis === 'piutang' && p.status === 'selesai')
+            .reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+        
+        return totalPiutang - totalBayar;
+    } catch (error) {
+        console.error('Error calculating piutang saldo:', error);
+        return 0;
+    }
+}
+
+/**
+ * Render riwayat pembayaran
+ * Requirements: 4.1, 4.2
+ */
+function renderRiwayatPembayaran() {
+    const container = document.getElementById('riwayatPembayaranContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <!-- Filters -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Jenis Pembayaran</label>
+                <select class="form-select" id="filterJenis" onchange="applyFilters()">
+                    <option value="">Semua</option>
+                    <option value="hutang">Hutang</option>
+                    <option value="piutang">Piutang</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Dari Tanggal</label>
+                <input type="date" class="form-control" id="filterTanggalDari" onchange="applyFilters()">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Sampai Tanggal</label>
+                <input type="date" class="form-control" id="filterTanggalSampai" onchange="applyFilters()">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Anggota</label>
+                <select class="form-select" id="filterAnggota" onchange="applyFilters()">
+                    <option value="">Semua Anggota</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Anggota</th>
+                        <th>Jenis</th>
+                        <th>Jumlah</th>
+                        <th>Saldo Sebelum</th>
+                        <th>Saldo Sesudah</th>
+                        <th>Kasir</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="riwayatTableBody">
+                    <tr>
+                        <td colspan="8" class="text-center">Memuat data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    // Populate anggota filter
+    populateAnggotaFilter();
+    
+    // Load transactions
+    loadRiwayatPembayaran();
+}
+
+/**
+ * Populate anggota filter dropdown
+ */
+function populateAnggotaFilter() {
+    try {
+        const pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        const filterSelect = document.getElementById('filterAnggota');
+        if (!filterSelect) return;
+        
+        // Get unique anggota from transactions
+        const uniqueAnggota = {};
+        pembayaranList.forEach(p => {
+            if (!uniqueAnggota[p.anggotaId]) {
+                uniqueAnggota[p.anggotaId] = {
+                    id: p.anggotaId,
+                    nama: p.anggotaNama,
+                    nik: p.anggotaNIK
+                };
+            }
+        });
+        
+        // Add options
+        Object.values(uniqueAnggota).forEach(anggota => {
+            const option = document.createElement('option');
+            option.value = anggota.id;
+            option.textContent = `${anggota.nama} (${anggota.nik})`;
+            filterSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error populating anggota filter:', error);
+    }
+}
+
+/**
+ * Load and display riwayat pembayaran
+ * Requirements: 4.1, 4.2
+ */
+function loadRiwayatPembayaran() {
+    try {
+        let pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        
+        // Apply filters
+        pembayaranList = applyRiwayatFilters(pembayaranList);
+        
+        // Sort by date descending
+        pembayaranList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        const tbody = document.getElementById('riwayatTableBody');
+        if (!tbody) return;
+        
+        if (pembayaranList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center">Tidak ada data pembayaran</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = pembayaranList.map(p => {
+            const jenisClass = p.jenis === 'hutang' ? 'text-danger' : 'text-success';
+            const jenisText = p.jenis === 'hutang' ? 'Hutang' : 'Piutang';
+            
+            return `
+                <tr>
+                    <td>${formatTanggal(p.tanggal)}</td>
+                    <td>
+                        <strong>${escapeHtml(p.anggotaNama)}</strong><br>
+                        <small class="text-muted">${escapeHtml(p.anggotaNIK)}</small>
+                    </td>
+                    <td><span class="badge bg-${p.jenis === 'hutang' ? 'danger' : 'success'}">${jenisText}</span></td>
+                    <td class="${jenisClass}"><strong>${formatRupiah(p.jumlah)}</strong></td>
+                    <td>${formatRupiah(p.saldoSebelum)}</td>
+                    <td>${formatRupiah(p.saldoSesudah)}</td>
+                    <td>${escapeHtml(p.kasirNama)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="cetakBuktiPembayaran('${p.id}')" title="Cetak Bukti">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading riwayat:', error);
+        const tbody = document.getElementById('riwayatTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-danger">Error memuat data</td>
+                </tr>
+            `;
+        }
+    }
+}
+
+/**
+ * Apply filters to riwayat
+ * Requirements: 4.3, 4.4, 4.5
+ * @param {Array} list - Transaction list
+ * @returns {Array} Filtered list
+ */
+function applyRiwayatFilters(list) {
+    const filterJenis = document.getElementById('filterJenis')?.value || '';
+    const filterTanggalDari = document.getElementById('filterTanggalDari')?.value || '';
+    const filterTanggalSampai = document.getElementById('filterTanggalSampai')?.value || '';
+    const filterAnggota = document.getElementById('filterAnggota')?.value || '';
+    
+    return list.filter(p => {
+        // Filter by jenis
+        if (filterJenis && p.jenis !== filterJenis) {
+            return false;
+        }
+        
+        // Filter by date range
+        if (filterTanggalDari && p.tanggal < filterTanggalDari) {
+            return false;
+        }
+        if (filterTanggalSampai && p.tanggal > filterTanggalSampai) {
+            return false;
+        }
+        
+        // Filter by anggota
+        if (filterAnggota && p.anggotaId !== filterAnggota) {
+            return false;
+        }
+        
+        return true;
     });
-    
-    // Update display
-    const totalHutangEl = document.getElementById('totalHutangDisplay');
-    const totalPiutangEl = document.getElementById('totalPiutangDisplay');
-    
-    if (totalHutangEl) {
-        totalHutangEl.textContent = formatRupiah(totalHutang);
+}
+
+/**
+ * Apply filters and reload table
+ */
+function applyFilters() {
+    loadRiwayatPembayaran();
+}
+
+/**
+ * Format tanggal for display
+ * @param {string} tanggal - ISO date string
+ * @returns {string} Formatted date
+ */
+function formatTanggal(tanggal) {
+    try {
+        const date = new Date(tanggal);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    } catch (error) {
+        return tanggal;
     }
-    if (totalPiutangEl) {
-        totalPiutangEl.textContent = formatRupiah(totalPiutang);
+}
+
+/**
+ * Validate pembayaran data
+ * Requirements: 3.1, 3.2, 3.3, 3.4
+ * @param {Object} data - Payment data
+ * @returns {Object} Validation result {valid: boolean, message: string}
+ */
+function validatePembayaran(data) {
+    // Check anggota selected
+    if (!data.anggotaId) {
+        return { valid: false, message: 'Silakan pilih anggota terlebih dahulu' };
+    }
+    
+    // Check jenis selected
+    if (!data.jenis) {
+        return { valid: false, message: 'Silakan pilih jenis pembayaran' };
+    }
+    
+    // Check jumlah
+    if (!data.jumlah || data.jumlah <= 0) {
+        return { valid: false, message: 'Jumlah pembayaran harus lebih dari 0' };
+    }
+    
+    if (data.jumlah < 0) {
+        return { valid: false, message: 'Jumlah pembayaran tidak boleh negatif' };
+    }
+    
+    // Check against saldo
+    const saldo = data.jenis === 'hutang' 
+        ? hitungSaldoHutang(data.anggotaId)
+        : hitungSaldoPiutang(data.anggotaId);
+    
+    if (saldo === 0) {
+        const jenisText = data.jenis === 'hutang' ? 'hutang' : 'piutang';
+        return { valid: false, message: `Anggota tidak memiliki ${jenisText} yang perlu dibayar` };
+    }
+    
+    if (data.jumlah > saldo) {
+        const jenisText = data.jenis === 'hutang' ? 'hutang' : 'piutang';
+        return { valid: false, message: `Jumlah pembayaran melebihi saldo ${jenisText} (${formatRupiah(saldo)})` };
+    }
+    
+    return { valid: true, message: '' };
+}
+
+/**
+ * Process pembayaran
+ * Requirements: 1.3, 1.5, 2.3, 2.5, 7.4, 7.5
+ */
+function prosesPembayaran() {
+    // Check access permission
+    if (!checkPembayaranAccess()) {
+        showAlert('Anda tidak memiliki izin untuk memproses pembayaran', 'danger');
+        return;
+    }
+    
+    try {
+        // Get form data
+        const anggotaId = document.getElementById('selectedAnggotaId').value;
+        const anggotaNama = document.getElementById('selectedAnggotaNama').value;
+        const anggotaNIK = document.getElementById('selectedAnggotaNIK').value;
+        const jenis = document.getElementById('jenisPembayaran').value;
+        const jumlah = parseFloat(document.getElementById('jumlahPembayaran').value);
+        const keterangan = document.getElementById('keteranganPembayaran').value;
+        
+        const data = {
+            anggotaId,
+            anggotaNama,
+            anggotaNIK,
+            jenis,
+            jumlah,
+            keterangan
+        };
+        
+        // Validate
+        const validation = validatePembayaran(data);
+        if (!validation.valid) {
+            showAlert(validation.message, 'warning');
+            return;
+        }
+        
+        // Get saldo before
+        const saldoSebelum = jenis === 'hutang' 
+            ? hitungSaldoHutang(anggotaId)
+            : hitungSaldoPiutang(anggotaId);
+        
+        // Show confirmation
+        const jenisText = jenis === 'hutang' ? 'Hutang' : 'Piutang';
+        const confirmMessage = `
+            Konfirmasi Pembayaran ${jenisText}
+            
+            Anggota: ${anggotaNama} (${anggotaNIK})
+            Saldo Sebelum: ${formatRupiah(saldoSebelum)}
+            Jumlah Bayar: ${formatRupiah(jumlah)}
+            Saldo Sesudah: ${formatRupiah(saldoSebelum - jumlah)}
+            
+            Proses pembayaran ini?
+        `;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        // Save transaction
+        const transaksi = savePembayaran({
+            ...data,
+            saldoSebelum,
+            saldoSesudah: saldoSebelum - jumlah
+        });
+        
+        // Record journal
+        try {
+            if (jenis === 'hutang') {
+                createJurnalPembayaranHutang(transaksi);
+            } else {
+                createJurnalPembayaranPiutang(transaksi);
+            }
+        } catch (error) {
+            // Rollback on journal error
+            rollbackPembayaran(transaksi.id);
+            throw new Error('Gagal mencatat jurnal. Transaksi dibatalkan.');
+        }
+        
+        // Save audit log
+        saveAuditLog('PEMBAYARAN_' + jenis.toUpperCase(), transaksi);
+        
+        // Success
+        showAlert(`Pembayaran ${jenisText.toLowerCase()} berhasil diproses!`, 'success');
+        
+        // Ask to print receipt
+        if (confirm('Cetak bukti pembayaran?')) {
+            cetakBuktiPembayaran(transaksi.id);
+        }
+        
+        // Reset form and refresh
+        resetFormPembayaran();
+        updateSummaryCards();
+        renderRiwayatPembayaran();
+        
+    } catch (error) {
+        console.error('Error proses pembayaran:', error);
+        showAlert('Terjadi kesalahan: ' + error.message, 'danger');
     }
 }
 
 /**
- * NOTE: Calculation functions have been moved to js/utils.js for shared use
- * 
- * The following functions are now available from utils.js:
- * - hitungSaldoHutang(anggotaId): Calculate hutang balance
- * - hitungSaldoPiutang(anggotaId): Calculate piutang balance
- * - hitungTotalPembayaranHutang(anggotaId): Calculate total payments
- * - hitungTotalKredit(anggotaId): Calculate total credit transactions
- * - getPembayaranHutangHistory(anggotaId): Get payment history
- * - getPembayaranPiutangHistory(anggotaId): Get piutang payment history
- * 
- * These functions are loaded via <script src="js/utils.js"></script> in index.html
+ * Save pembayaran transaction
+ * Requirements: 1.3, 2.3
+ * @param {Object} data - Payment data
+ * @returns {Object} Saved transaction
  */
-
-/**
- * Render form pembayaran hutang
- * Task 3.2: Create form pembayaran UI
- */
-function renderFormPembayaranHutang() {
-    const formContainer = document.getElementById('formPembayaranHutang');
-    if (!formContainer) return;
+function savePembayaran(data) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const timestamp = new Date().toISOString();
     
-    formContainer.innerHTML = `
-        <form id="formHutang" onsubmit="return false;">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-person-search me-1"></i>Cari Anggota <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="searchAnggotaHutang" 
-                            placeholder="Ketik NIK atau Nama anggota..." 
-                            autocomplete="off">
-                        <div id="suggestionsHutang" class="list-group position-absolute" style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none;"></div>
-                        <input type="hidden" id="selectedAnggotaIdHutang">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-info-circle me-1"></i>Anggota Terpilih
-                        </label>
-                        <div class="form-control bg-light" id="selectedAnggotaDisplayHutang" style="min-height: 38px;">
-                            <span class="text-muted">Belum ada anggota dipilih</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-wallet2 me-1"></i>Saldo Hutang Saat Ini
-                        </label>
-                        <div class="form-control bg-light" id="saldoHutangDisplay" style="font-weight: 700; color: #e63946;">
-                            Rp 0
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-cash-stack me-1"></i>Jumlah Pembayaran <span class="text-danger">*</span>
-                        </label>
-                        <input type="number" class="form-control" id="jumlahPembayaranHutang" 
-                            placeholder="Masukkan jumlah pembayaran" min="0" step="1000">
-                        <div class="mt-2" id="quickAmountHutang" style="display: none;">
-                            <small class="text-muted d-block mb-1">Jumlah Cepat:</small>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-secondary" onclick="setQuickAmount('hutang', 0.25)">25%</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="setQuickAmount('hutang', 0.5)">50%</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="setQuickAmount('hutang', 0.75)">75%</button>
-                                <button type="button" class="btn btn-outline-primary" onclick="setQuickAmount('hutang', 1)">Lunas</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">
-                    <i class="bi bi-chat-left-text me-1"></i>Keterangan (Opsional)
-                </label>
-                <textarea class="form-control" id="keteranganHutang" rows="2" 
-                    placeholder="Tambahkan keterangan jika diperlukan"></textarea>
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center">
-                <button type="button" class="btn btn-secondary" onclick="resetFormHutang()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Form
-                </button>
-                <button type="button" class="btn btn-primary" id="btnProsesPembayaranHutang" 
-                    onclick="prosesPembayaran('hutang')" disabled>
-                    <i class="bi bi-check-circle me-1"></i>Proses Pembayaran
-                </button>
-            </div>
-        </form>
-    `;
-}
-
-/**
- * Render form pembayaran piutang
- * Task 3.2: Create form pembayaran UI
- */
-function renderFormPembayaranPiutang() {
-    const formContainer = document.getElementById('formPembayaranPiutang');
-    if (!formContainer) return;
+    const transaksi = {
+        id: generateId(),
+        tanggal: timestamp.split('T')[0],
+        anggotaId: data.anggotaId,
+        anggotaNama: data.anggotaNama,
+        anggotaNIK: data.anggotaNIK,
+        jenis: data.jenis,
+        jumlah: data.jumlah,
+        saldoSebelum: data.saldoSebelum,
+        saldoSesudah: data.saldoSesudah,
+        keterangan: data.keterangan || '',
+        kasirId: currentUser.id || '',
+        kasirNama: currentUser.nama || '',
+        jurnalId: '',
+        status: 'selesai',
+        createdAt: timestamp,
+        updatedAt: timestamp
+    };
     
-    formContainer.innerHTML = `
-        <form id="formPiutang" onsubmit="return false;">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-person-search me-1"></i>Cari Anggota <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="searchAnggotaPiutang" 
-                            placeholder="Ketik NIK atau Nama anggota..." 
-                            autocomplete="off">
-                        <div id="suggestionsPiutang" class="list-group position-absolute" style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none;"></div>
-                        <input type="hidden" id="selectedAnggotaIdPiutang">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-info-circle me-1"></i>Anggota Terpilih
-                        </label>
-                        <div class="form-control bg-light" id="selectedAnggotaDisplayPiutang" style="min-height: 38px;">
-                            <span class="text-muted">Belum ada anggota dipilih</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-wallet2 me-1"></i>Saldo Piutang Saat Ini
-                        </label>
-                        <div class="form-control bg-light" id="saldoPiutangDisplay" style="font-weight: 700; color: #457b9d;">
-                            Rp 0
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-cash-stack me-1"></i>Jumlah Pembayaran <span class="text-danger">*</span>
-                        </label>
-                        <input type="number" class="form-control" id="jumlahPembayaranPiutang" 
-                            placeholder="Masukkan jumlah pembayaran" min="0" step="1000">
-                        <div class="mt-2" id="quickAmountPiutang" style="display: none;">
-                            <small class="text-muted d-block mb-1">Jumlah Cepat:</small>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-secondary" onclick="setQuickAmount('piutang', 0.25)">25%</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="setQuickAmount('piutang', 0.5)">50%</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="setQuickAmount('piutang', 0.75)">75%</button>
-                                <button type="button" class="btn btn-outline-primary" onclick="setQuickAmount('piutang', 1)">Lunas</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">
-                    <i class="bi bi-chat-left-text me-1"></i>Keterangan (Opsional)
-                </label>
-                <textarea class="form-control" id="keteranganPiutang" rows="2" 
-                    placeholder="Tambahkan keterangan jika diperlukan"></textarea>
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center">
-                <button type="button" class="btn btn-secondary" onclick="resetFormPiutang()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Form
-                </button>
-                <button type="button" class="btn btn-primary" id="btnProsesPembayaranPiutang" 
-                    onclick="prosesPembayaran('piutang')" disabled>
-                    <i class="bi bi-check-circle me-1"></i>Proses Pembayaran
-                </button>
-            </div>
-        </form>
-    `;
+    const pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+    pembayaranList.push(transaksi);
+    localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(pembayaranList));
+    
+    return transaksi;
 }
 
 /**
- * Reset form pembayaran hutang
+ * Rollback pembayaran transaction
+ * Requirements: 7.4
+ * @param {string} transaksiId - Transaction ID to rollback
  */
-function resetFormHutang() {
-    document.getElementById('searchAnggotaHutang').value = '';
-    document.getElementById('selectedAnggotaIdHutang').value = '';
-    document.getElementById('selectedAnggotaDisplayHutang').innerHTML = '<span class="text-muted">Belum ada anggota dipilih</span>';
-    document.getElementById('saldoHutangDisplay').textContent = 'Rp 0';
-    document.getElementById('jumlahPembayaranHutang').value = '';
-    document.getElementById('keteranganHutang').value = '';
-    document.getElementById('btnProsesPembayaranHutang').disabled = true;
-    document.getElementById('suggestionsHutang').style.display = 'none';
+function rollbackPembayaran(transaksiId) {
+    try {
+        const pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        const filtered = pembayaranList.filter(p => p.id !== transaksiId);
+        localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(filtered));
+        console.log('Transaction rolled back:', transaksiId);
+    } catch (error) {
+        console.error('Error rolling back transaction:', error);
+    }
 }
 
 /**
- * Reset form pembayaran piutang
+ * Create journal entry for hutang payment
+ * Requirements: 1.4, 7.1, 7.3
+ * @param {Object} transaksi - Transaction data
  */
-function resetFormPiutang() {
-    document.getElementById('searchAnggotaPiutang').value = '';
-    document.getElementById('selectedAnggotaIdPiutang').value = '';
-    document.getElementById('selectedAnggotaDisplayPiutang').innerHTML = '<span class="text-muted">Belum ada anggota dipilih</span>';
-    document.getElementById('saldoPiutangDisplay').textContent = 'Rp 0';
-    document.getElementById('jumlahPembayaranPiutang').value = '';
-    document.getElementById('keteranganPiutang').value = '';
-    document.getElementById('btnProsesPembayaranPiutang').disabled = true;
-    document.getElementById('suggestionsPiutang').style.display = 'none';
+function createJurnalPembayaranHutang(transaksi) {
+    const keterangan = `Pembayaran Hutang - ${transaksi.anggotaNama}`;
+    const entries = [
+        { akun: '1-1000', debit: transaksi.jumlah, kredit: 0 },  // Kas bertambah
+        { akun: '2-1000', debit: 0, kredit: transaksi.jumlah }   // Hutang berkurang
+    ];
+    
+    addJurnal(keterangan, entries, transaksi.tanggal);
 }
 
 /**
- * Task 4.1: Search anggota by NIK or nama
+ * Create journal entry for piutang payment
+ * Requirements: 2.4, 7.2, 7.3
+ * @param {Object} transaksi - Transaction data
+ */
+function createJurnalPembayaranPiutang(transaksi) {
+    const keterangan = `Pembayaran Piutang - ${transaksi.anggotaNama}`;
+    const entries = [
+        { akun: '1-1200', debit: transaksi.jumlah, kredit: 0 },  // Piutang berkurang
+        { akun: '1-1000', debit: 0, kredit: transaksi.jumlah }   // Kas berkurang
+    ];
+    
+    addJurnal(keterangan, entries, transaksi.tanggal);
+}
+
+/**
+ * Save audit log
+ * Requirements: 5.1, 5.2, 5.3
+ * @param {string} action - Action type
+ * @param {Object} details - Transaction details
+ */
+function saveAuditLog(action, details) {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+        
+        const logEntry = {
+            id: generateId(),
+            timestamp: new Date().toISOString(),
+            userId: currentUser.id || '',
+            userName: currentUser.nama || '',
+            action: action,
+            details: details,
+            module: 'pembayaran-hutang-piutang'
+        };
+        
+        auditLog.push(logEntry);
+        localStorage.setItem('auditLog', JSON.stringify(auditLog));
+    } catch (error) {
+        console.error('Error saving audit log:', error);
+    }
+}
+
+/**
+ * Search anggota with debounce
+ * Requirements: 6.2
+ */
+let searchDebounceTimer;
+function onSearchAnggota(query) {
+    clearTimeout(searchDebounceTimer);
+    
+    searchDebounceTimer = setTimeout(() => {
+        if (!query || query.length < 2) {
+            document.getElementById('anggotaSuggestions').style.display = 'none';
+            return;
+        }
+        
+        const results = searchAnggota(query);
+        renderAnggotaSuggestions(results);
+    }, 300);
+}
+
+/**
+ * Search anggota by NIK or nama
+ * Requirements: 6.2
  * @param {string} query - Search query
  * @returns {Array} Matching anggota (max 10)
  */
 function searchAnggota(query) {
-    if (!query || query.trim().length < 2) {
+    try {
+        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        const searchLower = query.toLowerCase();
+        
+        // Filter anggota that are active (not keluar)
+        const results = anggotaList.filter(anggota => {
+            // Skip anggota keluar
+            if (anggota.status === 'Nonaktif' || anggota.statusKeanggotaan === 'Keluar') {
+                return false;
+            }
+            
+            const nikMatch = (anggota.nik || '').toLowerCase().includes(searchLower);
+            const namaMatch = (anggota.nama || '').toLowerCase().includes(searchLower);
+            
+            return nikMatch || namaMatch;
+        });
+        
+        // Limit to 10 results
+        return results.slice(0, 10);
+    } catch (error) {
+        console.error('Error searching anggota:', error);
         return [];
     }
-    
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
-    const searchTerm = query.toLowerCase().trim();
-    
-    // Filter by NIK or nama
-    const results = anggota.filter(a => {
-        const nik = (a.nik || '').toLowerCase();
-        const nama = (a.nama || '').toLowerCase();
-        return nik.includes(searchTerm) || nama.includes(searchTerm);
-    });
-    
-    // Limit to 10 results
-    return results.slice(0, 10);
 }
 
 /**
- * Task 4.2: Render autocomplete suggestions
+ * Render anggota suggestions dropdown
+ * Requirements: 6.2, 6.3
  * @param {Array} results - Search results
- * @param {string} containerId - ID of suggestions container
- * @param {string} jenis - 'hutang' or 'piutang'
  */
-function renderAnggotaSuggestions(results, containerId, jenis) {
-    const container = document.getElementById(containerId);
+function renderAnggotaSuggestions(results) {
+    const container = document.getElementById('anggotaSuggestions');
     if (!container) return;
     
     if (results.length === 0) {
@@ -580,17 +890,14 @@ function renderAnggotaSuggestions(results, containerId, jenis) {
         return;
     }
     
-    container.innerHTML = results.map(a => `
+    container.innerHTML = results.map(anggota => `
         <button type="button" class="list-group-item list-group-item-action" 
-            onclick="selectAnggota('${a.id}', '${jenis}')">
-            <div class="d-flex justify-content-between align-items-center">
+                onclick="selectAnggota('${anggota.id}', '${escapeHtml(anggota.nama)}', '${escapeHtml(anggota.nik)}')">
+            <div class="d-flex justify-content-between">
                 <div>
-                    <strong>${a.nama}</strong>
+                    <strong>${escapeHtml(anggota.nama)}</strong>
                     <br>
-                    <small class="text-muted">NIK: ${a.nik}</small>
-                </div>
-                <div class="text-end">
-                    <small class="badge bg-secondary">${a.departemen || '-'}</small>
+                    <small class="text-muted">NIK: ${escapeHtml(anggota.nik)}</small>
                 </div>
             </div>
         </button>
@@ -600,1556 +907,275 @@ function renderAnggotaSuggestions(results, containerId, jenis) {
 }
 
 /**
- * Select anggota from autocomplete
- * Task 11.1: Add automatic saldo display on anggota selection
- * @param {string} anggotaId - Selected anggota ID
- * @param {string} jenis - 'hutang' or 'piutang'
+ * Select anggota from suggestions
+ * Requirements: 6.3
+ * @param {string} id - Anggota ID
+ * @param {string} nama - Anggota nama
+ * @param {string} nik - Anggota NIK
  */
-function selectAnggota(anggotaId, jenis) {
-    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
-    const selected = anggota.find(a => a.id === anggotaId);
+function selectAnggota(id, nama, nik) {
+    // Set hidden fields
+    document.getElementById('selectedAnggotaId').value = id;
+    document.getElementById('selectedAnggotaNama').value = nama;
+    document.getElementById('selectedAnggotaNIK').value = nik;
     
-    if (!selected) return;
+    // Update search input
+    document.getElementById('searchAnggota').value = `${nama} (${nik})`;
     
-    if (jenis === 'hutang') {
-        // Update hutang form
-        document.getElementById('selectedAnggotaIdHutang').value = selected.id;
-        document.getElementById('selectedAnggotaDisplayHutang').innerHTML = `
-            <strong>${selected.nama}</strong> - NIK: ${selected.nik}
-        `;
-        
-        // Task 11.1: Calculate and display BOTH hutang and piutang saldo
-        const saldoHutang = hitungSaldoHutang(selected.id);
-        const saldoPiutang = hitungSaldoPiutang(selected.id);
-        
-        // Display hutang saldo with visual feedback
-        const saldoHutangEl = document.getElementById('saldoHutangDisplay');
-        saldoHutangEl.textContent = formatRupiah(saldoHutang);
-        
-        // Add visual feedback based on saldo
-        if (saldoHutang > 0) {
-            saldoHutangEl.style.color = '#e63946';
-            saldoHutangEl.style.fontWeight = '700';
-        } else {
-            saldoHutangEl.style.color = '#52b788';
-            saldoHutangEl.style.fontWeight = '400';
-        }
-        
-        // Task 11.2: Show/hide quick amount buttons based on saldo
-        const quickAmountEl = document.getElementById('quickAmountHutang');
-        if (quickAmountEl) {
-            if (saldoHutang > 0) {
-                quickAmountEl.style.display = 'block';
-            } else {
-                quickAmountEl.style.display = 'none';
-            }
-        }
-        
-        // Show info about piutang if exists
-        showSaldoInfo('hutang', saldoHutang, saldoPiutang, selected.nama);
-        
-        // Hide suggestions
-        document.getElementById('suggestionsHutang').style.display = 'none';
-        
-        // Clear search input
-        document.getElementById('searchAnggotaHutang').value = '';
-        
-        // Enable/disable button based on saldo
-        updateButtonStateHutang();
-    } else if (jenis === 'piutang') {
-        // Update piutang form
-        document.getElementById('selectedAnggotaIdPiutang').value = selected.id;
-        document.getElementById('selectedAnggotaDisplayPiutang').innerHTML = `
-            <strong>${selected.nama}</strong> - NIK: ${selected.nik}
-        `;
-        
-        // Task 11.1: Calculate and display BOTH hutang and piutang saldo
-        const saldoHutang = hitungSaldoHutang(selected.id);
-        const saldoPiutang = hitungSaldoPiutang(selected.id);
-        
-        // Display piutang saldo with visual feedback
-        const saldoPiutangEl = document.getElementById('saldoPiutangDisplay');
-        saldoPiutangEl.textContent = formatRupiah(saldoPiutang);
-        
-        // Add visual feedback based on saldo
-        if (saldoPiutang > 0) {
-            saldoPiutangEl.style.color = '#457b9d';
-            saldoPiutangEl.style.fontWeight = '700';
-        } else {
-            saldoPiutangEl.style.color = '#52b788';
-            saldoPiutangEl.style.fontWeight = '400';
-        }
-        
-        // Task 11.2: Show/hide quick amount buttons based on saldo
-        const quickAmountEl = document.getElementById('quickAmountPiutang');
-        if (quickAmountEl) {
-            if (saldoPiutang > 0) {
-                quickAmountEl.style.display = 'block';
-            } else {
-                quickAmountEl.style.display = 'none';
-            }
-        }
-        
-        // Show info about hutang if exists
-        showSaldoInfo('piutang', saldoHutang, saldoPiutang, selected.nama);
-        
-        // Hide suggestions
-        document.getElementById('suggestionsPiutang').style.display = 'none';
-        
-        // Clear search input
-        document.getElementById('searchAnggotaPiutang').value = '';
-        
-        // Enable/disable button based on saldo
-        updateButtonStatePiutang();
+    // Hide suggestions
+    document.getElementById('anggotaSuggestions').style.display = 'none';
+    
+    // Display saldo
+    displaySaldoAnggota(id);
+}
+
+/**
+ * Display saldo for selected anggota
+ * Requirements: 6.3
+ * @param {string} anggotaId - Anggota ID
+ */
+function displaySaldoAnggota(anggotaId) {
+    const saldoHutang = hitungSaldoHutang(anggotaId);
+    const saldoPiutang = hitungSaldoPiutang(anggotaId);
+    
+    document.getElementById('displaySaldoHutang').textContent = formatRupiah(saldoHutang);
+    document.getElementById('displaySaldoPiutang').textContent = formatRupiah(saldoPiutang);
+    
+    document.getElementById('saldoDisplay').style.display = 'block';
+    
+    // Highlight relevant saldo if jenis is selected
+    const jenis = document.getElementById('jenisPembayaran').value;
+    if (jenis) {
+        highlightRelevantSaldo(jenis);
     }
 }
 
 /**
- * Task 11.1: Show additional saldo information
- * Display both hutang and piutang saldo for selected anggota
- * @param {string} currentJenis - Current form type ('hutang' or 'piutang')
- * @param {number} saldoHutang - Hutang balance
- * @param {number} saldoPiutang - Piutang balance
- * @param {string} anggotaNama - Anggota name
+ * Escape HTML to prevent XSS
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped text
  */
-function showSaldoInfo(currentJenis, saldoHutang, saldoPiutang, anggotaNama) {
-    const formId = currentJenis === 'hutang' ? 'formHutang' : 'formPiutang';
-    const form = document.getElementById(formId);
-    if (!form) return;
-    
-    // Remove existing info if any
-    const existingInfo = form.querySelector('.saldo-info-alert');
-    if (existingInfo) {
-        existingInfo.remove();
-    }
-    
-    // Create info message
-    let infoHTML = '';
-    
-    if (currentJenis === 'hutang') {
-        if (saldoHutang <= 0) {
-            infoHTML = `
-                <div class="alert alert-success saldo-info-alert mt-2">
-                    <i class="bi bi-check-circle me-2"></i>
-                    <strong>${anggotaNama}</strong> tidak memiliki hutang yang perlu dibayar.
-                </div>
-            `;
-        } else if (saldoPiutang > 0) {
-            infoHTML = `
-                <div class="alert alert-info saldo-info-alert mt-2">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>${anggotaNama}</strong> juga memiliki piutang sebesar <strong>${formatRupiah(saldoPiutang)}</strong>
-                </div>
-            `;
-        }
-    } else if (currentJenis === 'piutang') {
-        if (saldoPiutang <= 0) {
-            infoHTML = `
-                <div class="alert alert-success saldo-info-alert mt-2">
-                    <i class="bi bi-check-circle me-2"></i>
-                    <strong>${anggotaNama}</strong> tidak memiliki piutang yang perlu dibayar.
-                </div>
-            `;
-        } else if (saldoHutang > 0) {
-            infoHTML = `
-                <div class="alert alert-warning saldo-info-alert mt-2">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>${anggotaNama}</strong> juga memiliki hutang sebesar <strong>${formatRupiah(saldoHutang)}</strong>
-                </div>
-            `;
-        }
-    }
-    
-    // Insert info after the first row
-    if (infoHTML) {
-        const firstRow = form.querySelector('.row');
-        if (firstRow) {
-            firstRow.insertAdjacentHTML('afterend', infoHTML);
-        }
-    }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
- * Task 4.3: Debounce function
- * @param {Function} func - Function to debounce
- * @param {number} wait - Wait time in ms
- * @returns {Function} Debounced function
- */
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-/**
- * Initialize autocomplete for hutang form
- */
-function initAutocompleteHutang() {
-    const searchInput = document.getElementById('searchAnggotaHutang');
-    if (!searchInput) return;
-    
-    const debouncedSearch = debounce((query) => {
-        const results = searchAnggota(query);
-        renderAnggotaSuggestions(results, 'suggestionsHutang', 'hutang');
-    }, 300);
-    
-    searchInput.addEventListener('input', (e) => {
-        debouncedSearch(e.target.value);
-    });
-    
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#searchAnggotaHutang') && !e.target.closest('#suggestionsHutang')) {
-            const container = document.getElementById('suggestionsHutang');
-            if (container) container.style.display = 'none';
-        }
-    });
-}
-
-/**
- * Initialize autocomplete for piutang form
- */
-function initAutocompletePiutang() {
-    const searchInput = document.getElementById('searchAnggotaPiutang');
-    if (!searchInput) return;
-    
-    const debouncedSearch = debounce((query) => {
-        const results = searchAnggota(query);
-        renderAnggotaSuggestions(results, 'suggestionsPiutang', 'piutang');
-    }, 300);
-    
-    searchInput.addEventListener('input', (e) => {
-        debouncedSearch(e.target.value);
-    });
-    
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#searchAnggotaPiutang') && !e.target.closest('#suggestionsPiutang')) {
-            const container = document.getElementById('suggestionsPiutang');
-            if (container) container.style.display = 'none';
-        }
-    });
-}
-
-/**
- * Task 11.2 & 11.3: Update button state for hutang form with validation feedback
- */
-function updateButtonStateHutang() {
-    const anggotaId = document.getElementById('selectedAnggotaIdHutang').value;
-    const jumlahInput = document.getElementById('jumlahPembayaranHutang');
-    const jumlah = parseFloat(jumlahInput.value) || 0;
-    const button = document.getElementById('btnProsesPembayaranHutang');
-    const saldoDisplay = document.getElementById('saldoHutangDisplay');
-    
-    // Remove existing validation feedback
-    removeValidationFeedback('jumlahPembayaranHutang');
-    
-    // Get current saldo
-    const saldo = anggotaId ? hitungSaldoHutang(anggotaId) : 0;
-    
-    // Task 11.2: Highlight relevant saldo
-    if (saldoDisplay) {
-        if (saldo > 0) {
-            saldoDisplay.parentElement.classList.add('border', 'border-danger', 'border-2');
-            saldoDisplay.parentElement.classList.remove('border-success');
-        } else {
-            saldoDisplay.parentElement.classList.add('border', 'border-success', 'border-2');
-            saldoDisplay.parentElement.classList.remove('border-danger');
-        }
-    }
-    
-    // Task 11.3: Real-time validation feedback
-    let isValid = true;
-    let feedbackMessage = '';
-    
-    if (!anggotaId) {
-        isValid = false;
-        feedbackMessage = 'Pilih anggota terlebih dahulu';
-    } else if (saldo <= 0) {
-        isValid = false;
-        feedbackMessage = 'Anggota tidak memiliki hutang';
-        showValidationFeedback('jumlahPembayaranHutang', feedbackMessage, 'warning');
-    } else if (jumlah <= 0 && jumlahInput.value !== '') {
-        isValid = false;
-        feedbackMessage = 'Jumlah harus lebih dari 0';
-        showValidationFeedback('jumlahPembayaranHutang', feedbackMessage, 'danger');
-    } else if (jumlah > saldo) {
-        isValid = false;
-        feedbackMessage = `Jumlah melebihi saldo hutang (${formatRupiah(saldo)})`;
-        showValidationFeedback('jumlahPembayaranHutang', feedbackMessage, 'danger');
-    } else if (jumlah > 0 && jumlah <= saldo) {
-        feedbackMessage = `Sisa hutang setelah pembayaran: ${formatRupiah(saldo - jumlah)}`;
-        showValidationFeedback('jumlahPembayaranHutang', feedbackMessage, 'success');
-    }
-    
-    // Enable/disable button
-    button.disabled = !isValid || jumlah <= 0;
-}
-
-/**
- * Task 11.2 & 11.3: Update button state for piutang form with validation feedback
- */
-function updateButtonStatePiutang() {
-    const anggotaId = document.getElementById('selectedAnggotaIdPiutang').value;
-    const jumlahInput = document.getElementById('jumlahPembayaranPiutang');
-    const jumlah = parseFloat(jumlahInput.value) || 0;
-    const button = document.getElementById('btnProsesPembayaranPiutang');
-    const saldoDisplay = document.getElementById('saldoPiutangDisplay');
-    
-    // Remove existing validation feedback
-    removeValidationFeedback('jumlahPembayaranPiutang');
-    
-    // Get current saldo
-    const saldo = anggotaId ? hitungSaldoPiutang(anggotaId) : 0;
-    
-    // Task 11.2: Highlight relevant saldo
-    if (saldoDisplay) {
-        if (saldo > 0) {
-            saldoDisplay.parentElement.classList.add('border', 'border-info', 'border-2');
-            saldoDisplay.parentElement.classList.remove('border-success');
-        } else {
-            saldoDisplay.parentElement.classList.add('border', 'border-success', 'border-2');
-            saldoDisplay.parentElement.classList.remove('border-info');
-        }
-    }
-    
-    // Task 11.3: Real-time validation feedback
-    let isValid = true;
-    let feedbackMessage = '';
-    
-    if (!anggotaId) {
-        isValid = false;
-        feedbackMessage = 'Pilih anggota terlebih dahulu';
-    } else if (saldo <= 0) {
-        isValid = false;
-        feedbackMessage = 'Anggota tidak memiliki piutang';
-        showValidationFeedback('jumlahPembayaranPiutang', feedbackMessage, 'warning');
-    } else if (jumlah <= 0 && jumlahInput.value !== '') {
-        isValid = false;
-        feedbackMessage = 'Jumlah harus lebih dari 0';
-        showValidationFeedback('jumlahPembayaranPiutang', feedbackMessage, 'danger');
-    } else if (jumlah > saldo) {
-        isValid = false;
-        feedbackMessage = `Jumlah melebihi saldo piutang (${formatRupiah(saldo)})`;
-        showValidationFeedback('jumlahPembayaranPiutang', feedbackMessage, 'danger');
-    } else if (jumlah > 0 && jumlah <= saldo) {
-        feedbackMessage = `Sisa piutang setelah pembayaran: ${formatRupiah(saldo - jumlah)}`;
-        showValidationFeedback('jumlahPembayaranPiutang', feedbackMessage, 'success');
-    }
-    
-    // Enable/disable button
-    button.disabled = !isValid || jumlah <= 0;
-}
-
-/**
- * Task 11.3: Show validation feedback message
- * @param {string} inputId - Input element ID
- * @param {string} message - Feedback message
- * @param {string} type - Feedback type ('success', 'danger', 'warning')
- */
-function showValidationFeedback(inputId, message, type) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    
-    // Remove existing feedback
-    removeValidationFeedback(inputId);
-    
-    // Add validation class to input
-    input.classList.remove('is-valid', 'is-invalid');
-    if (type === 'success') {
-        input.classList.add('is-valid');
-    } else if (type === 'danger') {
-        input.classList.add('is-invalid');
-    }
-    
-    // Create feedback element
-    const feedbackClass = type === 'success' ? 'valid-feedback' : 
-                         type === 'danger' ? 'invalid-feedback' : 
-                         'text-warning';
-    
-    const feedback = document.createElement('div');
-    feedback.className = `${feedbackClass} d-block validation-feedback-custom`;
-    feedback.innerHTML = `<small><i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'x-circle' : 'exclamation-triangle'} me-1"></i>${message}</small>`;
-    
-    // Insert after input
-    input.parentElement.appendChild(feedback);
-}
-
-/**
- * Task 11.3: Remove validation feedback
- * @param {string} inputId - Input element ID
- */
-function removeValidationFeedback(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    
-    // Remove validation classes
-    input.classList.remove('is-valid', 'is-invalid');
-    
-    // Remove feedback elements
-    const feedback = input.parentElement.querySelector('.validation-feedback-custom');
-    if (feedback) {
-        feedback.remove();
-    }
-}
-
-/**
- * Task 11.2: Set quick amount for payment
- * @param {string} jenis - Payment type ('hutang' or 'piutang')
- * @param {number} percentage - Percentage of saldo (0.25, 0.5, 0.75, 1)
- */
-function setQuickAmount(jenis, percentage) {
-    if (jenis === 'hutang') {
-        const anggotaId = document.getElementById('selectedAnggotaIdHutang').value;
-        if (!anggotaId) return;
-        
-        const saldo = hitungSaldoHutang(anggotaId);
-        const jumlah = Math.round(saldo * percentage);
-        
-        document.getElementById('jumlahPembayaranHutang').value = jumlah;
-        updateButtonStateHutang();
-    } else if (jenis === 'piutang') {
-        const anggotaId = document.getElementById('selectedAnggotaIdPiutang').value;
-        if (!anggotaId) return;
-        
-        const saldo = hitungSaldoPiutang(anggotaId);
-        const jumlah = Math.round(saldo * percentage);
-        
-        document.getElementById('jumlahPembayaranPiutang').value = jumlah;
-        updateButtonStatePiutang();
-    }
-}
-
-
-/**
- * Task 5.1: Validate pembayaran data
- * @param {Object} data - Payment data to validate
- * @param {string} data.anggotaId - Selected anggota ID
- * @param {string} data.jenis - Payment type ('hutang' or 'piutang')
- * @param {number} data.jumlah - Payment amount
- * @param {number} data.saldo - Current saldo
- * @returns {Object} Validation result with isValid and errors array
- */
-function validatePembayaran(data) {
-    const errors = [];
-    
-    // Validate anggota is selected
-    if (!data.anggotaId || data.anggotaId.trim() === '') {
-        errors.push('Anggota harus dipilih');
-    }
-    
-    // Validate jenis pembayaran
-    if (!data.jenis || (data.jenis !== 'hutang' && data.jenis !== 'piutang')) {
-        errors.push('Jenis pembayaran tidak valid');
-    }
-    
-    // Validate jumlah > 0
-    if (!data.jumlah || data.jumlah <= 0) {
-        errors.push('Jumlah pembayaran harus lebih besar dari 0');
-    }
-    
-    // Validate jumlah is a valid number
-    if (isNaN(data.jumlah)) {
-        errors.push('Jumlah pembayaran harus berupa angka');
-    }
-    
-    // Validate jumlah <= saldo
-    if (data.jumlah > data.saldo) {
-        const jenisText = data.jenis === 'hutang' ? 'hutang' : 'piutang';
-        errors.push(`Jumlah pembayaran tidak boleh melebihi saldo ${jenisText} (Rp ${formatRupiah(data.saldo)})`);
-    }
-    
-    // Validate saldo exists (for hutang, must have outstanding balance)
-    if (data.jenis === 'hutang' && (!data.saldo || data.saldo <= 0)) {
-        errors.push('Anggota tidak memiliki hutang yang perlu dibayar');
-    }
-    
-    return {
-        isValid: errors.length === 0,
-        errors: errors
-    };
-}
-
-
-/**
- * Task 6.2 & 13.2: Save pembayaran to localStorage with input sanitization
- * @param {Object} data - Payment data
- * @returns {Object} Saved transaction object
- */
-function savePembayaran(data) {
-    const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
-    
-    // Generate unique transaction ID
-    const transaksiId = 'PHT-' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-    
-    // Get current user
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    // Task 13.2: Sanitize all text inputs
-    const sanitizedData = {
-        anggotaId: sanitizeInput(data.anggotaId),
-        anggotaNama: sanitizeInput(data.anggotaNama),
-        anggotaNIK: sanitizeInput(data.anggotaNIK),
-        jenis: sanitizeInput(data.jenis),
-        keterangan: sanitizeInput(data.keterangan || '')
-    };
-    
-    // Task 13.2: Validate numeric inputs
-    const validatedJumlah = validateNumericInput(data.jumlah);
-    const validatedSaldoSebelum = validateNumericInput(data.saldoSebelum);
-    const validatedSaldoSesudah = validateNumericInput(data.saldoSesudah);
-    
-    if (validatedJumlah === null || validatedSaldoSebelum === null || validatedSaldoSesudah === null) {
-        throw new Error('Invalid numeric data in transaction');
-    }
-    
-    // Task 13.2: Validate date format
-    const tanggal = data.tanggal || new Date().toISOString();
-    if (!validateDateFormat(tanggal)) {
-        throw new Error('Invalid date format');
-    }
-    
-    // Create transaction object
-    const transaksi = {
-        id: transaksiId,
-        tanggal: tanggal,
-        anggotaId: sanitizedData.anggotaId,
-        anggotaNama: sanitizedData.anggotaNama,
-        anggotaNIK: sanitizedData.anggotaNIK,
-        jenis: sanitizedData.jenis,
-        jumlah: validatedJumlah,
-        saldoSebelum: validatedSaldoSebelum,
-        saldoSesudah: validatedSaldoSesudah,
-        keterangan: sanitizedData.keterangan,
-        kasirId: currentUser.id || '',
-        kasirNama: sanitizeInput(currentUser.nama || 'System'),
-        status: 'selesai',
-        createdAt: new Date().toISOString()
-    };
-    
-    // Add to array
-    pembayaran.push(transaksi);
-    
-    // Save to localStorage
-    localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(pembayaran));
-    
-    return transaksi;
-}
-
-/**
- * Task 6.3: Rollback pembayaran transaction
- * @param {string} transaksiId - Transaction ID to rollback
- * @returns {boolean} Success status
- */
-function rollbackPembayaran(transaksiId) {
-    try {
-        const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
-        
-        // Find and remove transaction
-        const index = pembayaran.findIndex(p => p.id === transaksiId);
-        
-        if (index === -1) {
-            console.error('Transaction not found:', transaksiId);
-            return false;
-        }
-        
-        // Remove transaction
-        pembayaran.splice(index, 1);
-        
-        // Save updated array
-        localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(pembayaran));
-        
-        return true;
-    } catch (error) {
-        console.error('Rollback error:', error);
-        return false;
-    }
-}
-
-/**
- * Task 6.1, 12.1 & 13: Process pembayaran transaction
- * Main function to process payment with validation, journal entry, and error handling
- * @param {string} jenis - Payment type ('hutang' or 'piutang')
- */
-function prosesPembayaran(jenis) {
-    try {
-        // Task 13.1: Check if user can process payment
-        if (!canProcessPayment()) {
-            showAlert('Anda tidak memiliki izin untuk memproses pembayaran', 'danger');
-            return;
-        }
-        
-        // Get form data based on jenis
-        let anggotaId, jumlah, keterangan;
-        
-        if (jenis === 'hutang') {
-            anggotaId = document.getElementById('selectedAnggotaIdHutang').value;
-            jumlah = parseFloat(document.getElementById('jumlahPembayaranHutang').value) || 0;
-            keterangan = document.getElementById('keteranganHutang').value;
-        } else if (jenis === 'piutang') {
-            anggotaId = document.getElementById('selectedAnggotaIdPiutang').value;
-            jumlah = parseFloat(document.getElementById('jumlahPembayaranPiutang').value) || 0;
-            keterangan = document.getElementById('keteranganPiutang').value;
-        } else {
-            showAlert('Jenis pembayaran tidak valid', 'danger');
-            return;
-        }
-        
-        // Task 13.2: Sanitize text inputs
-        anggotaId = sanitizeInput(anggotaId);
-        keterangan = sanitizeInput(keterangan);
-        
-        // Task 13.2: Validate numeric input
-        const validatedJumlah = validateNumericInput(jumlah);
-        if (validatedJumlah === null) {
-            showAlert('Jumlah pembayaran tidak valid', 'danger');
-            return;
-        }
-        jumlah = validatedJumlah;
-        
-        // Get anggota data
-        const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
-        const selectedAnggota = anggota.find(a => a.id === anggotaId);
-        
-        if (!selectedAnggota) {
-            showAlert('Data anggota tidak ditemukan', 'danger');
-            return;
-        }
-        
-        // Calculate saldo before
-        const saldoSebelum = jenis === 'hutang' 
-            ? hitungSaldoHutang(anggotaId) 
-            : hitungSaldoPiutang(anggotaId);
-        
-        // Validate payment data
-        const validationData = {
-            anggotaId: anggotaId,
-            jenis: jenis,
-            jumlah: jumlah,
-            saldo: saldoSebelum
-        };
-        
-        const validation = validatePembayaran(validationData);
-        
-        if (!validation.isValid) {
-            const errorMessage = validation.errors.join('<br>');
-            showAlert(errorMessage, 'danger');
-            return;
-        }
-        
-        // Calculate saldo after
-        const saldoSesudah = saldoSebelum - jumlah;
-        
-        // Task 12.1: Show confirmation dialog before processing
-        showConfirmationDialog(jenis, selectedAnggota, jumlah, saldoSebelum, saldoSesudah, keterangan);
-        
-    } catch (error) {
-        console.error('Process payment error:', error);
-        
-        // Log error
-        saveAuditLog('PAYMENT_ERROR', {
-            jenis: jenis,
-            error: error.message,
-            stack: error.stack
-        });
-        
-        showAlert('Terjadi kesalahan saat memproses pembayaran: ' + error.message, 'danger');
-    }
-}
-
-/**
- * Helper function to create journal entry for hutang payment
- * @param {Object} transaksi - Transaction object
- * @returns {boolean} Success status
- */
-function createJurnalPembayaranHutang(transaksi) {
-    try {
-        const keterangan = `Pembayaran Hutang - ${transaksi.anggotaNama} (${transaksi.anggotaNIK})`;
-        
-        const entries = [
-            {
-                akunKode: '1-1000', // Kas
-                akunNama: 'Kas',
-                debit: transaksi.jumlah,
-                kredit: 0
-            },
-            {
-                akunKode: '2-1000', // Hutang Anggota
-                akunNama: 'Hutang Anggota',
-                debit: 0,
-                kredit: transaksi.jumlah
-            }
-        ];
-        
-        // Call addJurnal function
-        if (typeof addJurnal === 'function') {
-            addJurnal(keterangan, entries, transaksi.tanggal);
-            return true;
-        } else {
-            console.error('addJurnal function not found');
-            return false;
-        }
-    } catch (error) {
-        console.error('Create journal hutang error:', error);
-        return false;
-    }
-}
-
-/**
- * Helper function to create journal entry for piutang payment
- * @param {Object} transaksi - Transaction object
- * @returns {boolean} Success status
- */
-function createJurnalPembayaranPiutang(transaksi) {
-    try {
-        const keterangan = `Pembayaran Piutang - ${transaksi.anggotaNama} (${transaksi.anggotaNIK})`;
-        
-        const entries = [
-            {
-                akunKode: '1-1200', // Piutang Anggota
-                akunNama: 'Piutang Anggota',
-                debit: transaksi.jumlah,
-                kredit: 0
-            },
-            {
-                akunKode: '1-1000', // Kas
-                akunNama: 'Kas',
-                debit: 0,
-                kredit: transaksi.jumlah
-            }
-        ];
-        
-        // Call addJurnal function
-        if (typeof addJurnal === 'function') {
-            addJurnal(keterangan, entries, transaksi.tanggal);
-            return true;
-        } else {
-            console.error('addJurnal function not found');
-            return false;
-        }
-    } catch (error) {
-        console.error('Create journal piutang error:', error);
-        return false;
-    }
-}
-
-
-/**
- * Task 8.1: Save audit log entry
- * @param {string} action - Action performed (e.g., 'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PRINT_RECEIPT')
- * @param {Object} details - Details of the action
- * @returns {Object} Saved audit log entry
- */
-function saveAuditLog(action, details) {
-    try {
-        const auditLog = JSON.parse(localStorage.getItem('auditLogPembayaranHutangPiutang') || '[]');
-        
-        // Get current user
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        
-        // Generate audit log entry
-        const logEntry = {
-            id: 'AUDIT-' + Date.now().toString(36) + Math.random().toString(36).substr(2),
-            timestamp: new Date().toISOString(),
-            userId: currentUser.id || '',
-            userName: currentUser.nama || 'System',
-            action: action,
-            details: details,
-            createdAt: new Date().toISOString()
-        };
-        
-        // Add to array
-        auditLog.push(logEntry);
-        
-        // Save to localStorage
-        localStorage.setItem('auditLogPembayaranHutangPiutang', JSON.stringify(auditLog));
-        
-        return logEntry;
-    } catch (error) {
-        console.error('Save audit log error:', error);
-        return null;
-    }
-}
-
-
-/**
- * Task 9.1 & 13.1: Render riwayat pembayaran with access control
- * Display all payment transactions in a table
- */
-function renderRiwayatPembayaran() {
-	const container = document.getElementById('riwayatPembayaran');
-	if (!container) return;
-	
-	// Task 13.1: Check if user can view history
-	if (!canViewAllHistory()) {
-		container.innerHTML = `
-			<div class="alert alert-warning">
-				<i class="bi bi-shield-exclamation me-2"></i>
-				Anda tidak memiliki izin untuk melihat riwayat pembayaran lengkap.
-			</div>
-		`;
-		return;
-	}
-	
-	// Load all transactions
-	const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
-	
-	if (pembayaran.length === 0) {
-		container.innerHTML = `
-			<div class="alert alert-info">
-				<i class="bi bi-inbox me-2"></i>Belum ada riwayat pembayaran.
-			</div>
-		`;
-		return;
-	}
-	
-	// Sort by date descending (newest first)
-	const sortedPembayaran = pembayaran.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-	
-	// Render filters
-	const filterHTML = `
-		<div class="row mb-3">
-			<div class="col-md-3">
-				<label class="form-label">Filter Jenis</label>
-				<select class="form-select" id="filterJenis" onchange="applyFilters()">
-					<option value="">Semua</option>
-					<option value="hutang">Hutang</option>
-					<option value="piutang">Piutang</option>
-				</select>
-			</div>
-			<div class="col-md-3">
-				<label class="form-label">Dari Tanggal</label>
-				<input type="date" class="form-control" id="filterTanggalMulai" onchange="applyFilters()">
-			</div>
-			<div class="col-md-3">
-				<label class="form-label">Sampai Tanggal</label>
-				<input type="date" class="form-control" id="filterTanggalAkhir" onchange="applyFilters()">
-			</div>
-			<div class="col-md-3">
-				<label class="form-label">Filter Anggota</label>
-				<select class="form-select" id="filterAnggota" onchange="applyFilters()">
-					<option value="">Semua Anggota</option>
-					${getUniqueAnggotaOptions(sortedPembayaran)}
-				</select>
-			</div>
-		</div>
-	`;
-	
-	// Render table
-	const tableHTML = `
-		<div class="table-responsive">
-			<table class="table table-striped table-hover" id="tableRiwayat">
-				<thead class="table-dark">
-					<tr>
-						<th>Tanggal</th>
-						<th>Anggota</th>
-						<th>Jenis</th>
-						<th>Jumlah</th>
-						<th>Kasir</th>
-						<th>Keterangan</th>
-						<th>Aksi</th>
-					</tr>
-				</thead>
-				<tbody id="tbodyRiwayat">
-					${renderTransactionRows(sortedPembayaran)}
-				</tbody>
-			</table>
-		</div>
-	`;
-	
-	container.innerHTML = filterHTML + tableHTML;
-}
-
-/**
- * Helper: Get unique anggota options for filter
- */
-function getUniqueAnggotaOptions(pembayaran) {
-	const uniqueAnggota = {};
-	pembayaran.forEach(p => {
-		if (p.anggotaId && !uniqueAnggota[p.anggotaId]) {
-			uniqueAnggota[p.anggotaId] = p.anggotaNama;
-		}
-	});
-	
-	return Object.keys(uniqueAnggota)
-		.map(id => `<option value="${id}">${uniqueAnggota[id]}</option>`)
-		.join('');
-}
-
-/**
- * Helper: Render transaction rows
- */
-function renderTransactionRows(pembayaran) {
-	if (pembayaran.length === 0) {
-		return `
-			<tr>
-				<td colspan="7" class="text-center text-muted">
-					Tidak ada data yang sesuai dengan filter
-				</td>
-			</tr>
-		`;
-	}
-	
-	return pembayaran.map(p => {
-		const tanggal = new Date(p.tanggal).toLocaleDateString('id-ID', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-		
-		const jenisBadge = p.jenis === 'hutang' 
-			? '<span class="badge bg-danger">Hutang</span>'
-			: '<span class="badge bg-info">Piutang</span>';
-		
-		return `
-			<tr>
-				<td>${tanggal}</td>
-				<td>
-					<strong>${p.anggotaNama}</strong><br>
-					<small class="text-muted">NIK: ${p.anggotaNIK}</small>
-				</td>
-				<td>${jenisBadge}</td>
-				<td><strong>${formatRupiah(p.jumlah)}</strong></td>
-				<td>${p.kasirNama}</td>
-				<td>${p.keterangan || '-'}</td>
-				<td>
-					<button class="btn btn-sm btn-outline-primary" onclick="cetakBuktiPembayaran('${p.id}')" title="Cetak Bukti">
-						<i class="bi bi-printer"></i>
-					</button>
-				</td>
-			</tr>
-		`;
-	}).join('');
-}
-
-/**
- * Task 9.2, 9.3, 9.4: Apply filters to transaction history
- */
-function applyFilters() {
-	// Load all transactions
-	const allPembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
-	
-	// Get filter values
-	const filterJenis = document.getElementById('filterJenis')?.value || '';
-	const filterTanggalMulai = document.getElementById('filterTanggalMulai')?.value || '';
-	const filterTanggalAkhir = document.getElementById('filterTanggalAkhir')?.value || '';
-	const filterAnggota = document.getElementById('filterAnggota')?.value || '';
-	
-	// Apply filters
-	let filtered = allPembayaran;
-	
-	// Filter by jenis
-	if (filterJenis) {
-		filtered = filtered.filter(p => p.jenis === filterJenis);
-	}
-	
-	// Filter by date range
-	if (filterTanggalMulai) {
-		const startDate = new Date(filterTanggalMulai);
-		startDate.setHours(0, 0, 0, 0);
-		filtered = filtered.filter(p => new Date(p.tanggal) >= startDate);
-	}
-	
-	if (filterTanggalAkhir) {
-		const endDate = new Date(filterTanggalAkhir);
-		endDate.setHours(23, 59, 59, 999);
-		filtered = filtered.filter(p => new Date(p.tanggal) <= endDate);
-	}
-	
-	// Filter by anggota
-	if (filterAnggota) {
-		filtered = filtered.filter(p => p.anggotaId === filterAnggota);
-	}
-	
-	// Sort by date descending
-	filtered.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-	
-	// Update table
-	const tbody = document.getElementById('tbodyRiwayat');
-	if (tbody) {
-		tbody.innerHTML = renderTransactionRows(filtered);
-	}
-}
-
-
-/**
- * Task 12.1: Show confirmation dialog before processing payment
- * @param {string} jenis - Payment type
- * @param {Object} anggota - Selected anggota object
- * @param {number} jumlah - Payment amount
- * @param {number} saldoSebelum - Balance before payment
- * @param {number} saldoSesudah - Balance after payment
- * @param {string} keterangan - Notes
- */
-function showConfirmationDialog(jenis, anggota, jumlah, saldoSebelum, saldoSesudah, keterangan) {
-    const jenisText = jenis === 'hutang' ? 'Hutang' : 'Piutang';
-    const jenisColor = jenis === 'hutang' ? '#e63946' : '#457b9d';
-    
-    // Create modal HTML
-    const modalHTML = `
-        <div class="modal fade" id="confirmPaymentModal" tabindex="-1" aria-labelledby="confirmPaymentModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header" style="background: ${jenisColor}; color: white;">
-                        <h5 class="modal-title" id="confirmPaymentModalLabel">
-                            <i class="bi bi-exclamation-circle me-2"></i>Konfirmasi Pembayaran ${jenisText}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <i class="bi bi-info-circle me-2"></i>
-                            Pastikan data pembayaran sudah benar sebelum melanjutkan.
-                        </div>
-                        
-                        <table class="table table-borderless">
-                            <tr>
-                                <td class="text-muted" style="width: 40%;">Anggota:</td>
-                                <td><strong>${anggota.nama}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">NIK:</td>
-                                <td>${anggota.nik}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Jenis Pembayaran:</td>
-                                <td><span class="badge" style="background: ${jenisColor};">${jenisText}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Saldo Sebelum:</td>
-                                <td><strong>${formatRupiah(saldoSebelum)}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Jumlah Pembayaran:</td>
-                                <td><strong style="color: ${jenisColor}; font-size: 1.2em;">${formatRupiah(jumlah)}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Saldo Sesudah:</td>
-                                <td><strong style="color: #52b788;">${formatRupiah(saldoSesudah)}</strong></td>
-                            </tr>
-                            ${keterangan ? `
-                            <tr>
-                                <td class="text-muted">Keterangan:</td>
-                                <td>${keterangan}</td>
-                            </tr>
-                            ` : ''}
-                        </table>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="bi bi-x-circle me-1"></i>Batal
-                        </button>
-                        <button type="button" class="btn btn-primary" id="btnConfirmPayment" style="background: ${jenisColor}; border-color: ${jenisColor};">
-                            <i class="bi bi-check-circle me-1"></i>Ya, Proses Pembayaran
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remove existing modal if any
-    const existingModal = document.getElementById('confirmPaymentModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Add modal to body
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('confirmPaymentModal'));
-    modal.show();
-    
-    // Handle confirmation
-    document.getElementById('btnConfirmPayment').addEventListener('click', () => {
-        modal.hide();
-        // Process payment after confirmation
-        executePayment(jenis, anggota, jumlah, saldoSebelum, saldoSesudah, keterangan);
-    });
-    
-    // Clean up modal after hide
-    document.getElementById('confirmPaymentModal').addEventListener('hidden.bs.modal', () => {
-        document.getElementById('confirmPaymentModal').remove();
-    });
-}
-
-/**
- * Task 12.1: Execute payment after confirmation
- * @param {string} jenis - Payment type
- * @param {Object} anggota - Selected anggota object
- * @param {number} jumlah - Payment amount
- * @param {number} saldoSebelum - Balance before payment
- * @param {number} saldoSesudah - Balance after payment
- * @param {string} keterangan - Notes
- */
-function executePayment(jenis, anggota, jumlah, saldoSebelum, saldoSesudah, keterangan) {
-    try {
-        // Prepare transaction data
-        const transaksiData = {
-            anggotaId: anggota.id,
-            anggotaNama: anggota.nama,
-            anggotaNIK: anggota.nik,
-            jenis: jenis,
-            jumlah: jumlah,
-            saldoSebelum: saldoSebelum,
-            saldoSesudah: saldoSesudah,
-            keterangan: keterangan
-        };
-        
-        // Save transaction
-        const transaksi = savePembayaran(transaksiData);
-        
-        // Create journal entry
-        let jurnalSuccess = false;
-        try {
-            if (jenis === 'hutang') {
-                jurnalSuccess = createJurnalPembayaranHutang(transaksi);
-            } else if (jenis === 'piutang') {
-                jurnalSuccess = createJurnalPembayaranPiutang(transaksi);
-            }
-        } catch (jurnalError) {
-            console.error('Journal entry error:', jurnalError);
-            // Rollback transaction
-            rollbackPembayaran(transaksi.id);
-            
-            // Task 12.3: Show user-friendly error message
-            showErrorDialog(
-                'Gagal Mencatat Jurnal',
-                'Terjadi kesalahan saat mencatat jurnal akuntansi. Transaksi telah dibatalkan.',
-                'Silakan coba lagi atau hubungi administrator jika masalah berlanjut.'
-            );
-            return;
-        }
-        
-        if (!jurnalSuccess) {
-            // Rollback transaction
-            rollbackPembayaran(transaksi.id);
-            
-            // Log failed payment
-            saveAuditLog('PAYMENT_FAILED', {
-                anggotaId: anggota.id,
-                anggotaNama: anggota.nama,
-                anggotaNIK: anggota.nik,
-                jenis: jenis,
-                jumlah: jumlah,
-                error: 'Gagal mencatat jurnal',
-                transaksiId: transaksi.id
-            });
-            
-            // Task 12.3: Show user-friendly error message
-            showErrorDialog(
-                'Gagal Mencatat Jurnal',
-                'Sistem tidak dapat mencatat jurnal akuntansi. Transaksi telah dibatalkan.',
-                'Pastikan akun-akun berikut tersedia di Chart of Accounts:<br>- Kas (1-1000)<br>- Hutang Anggota (2-1000)<br>- Piutang Anggota (1-1200)'
-            );
-            return;
-        }
-        
-        // Log successful payment
-        saveAuditLog('PAYMENT_SUCCESS', {
-            transaksiId: transaksi.id,
-            anggotaId: anggota.id,
-            anggotaNama: anggota.nama,
-            anggotaNIK: anggota.nik,
-            jenis: jenis,
-            jumlah: jumlah,
-            saldoSebelum: saldoSebelum,
-            saldoSesudah: saldoSesudah,
-            keterangan: keterangan
-        });
-        
-        // Task 12.2: Show success notification with details and print option
-        showSuccessDialog(jenis, anggota, jumlah, saldoSesudah, transaksi.id);
-        
-        // Reset form
-        if (jenis === 'hutang') {
-            resetFormHutang();
-        } else {
-            resetFormPiutang();
-        }
-        
-        // Update summary cards
-        updateSummaryCards();
-        
-        // Refresh riwayat if visible
-        renderRiwayatPembayaran();
-        
-    } catch (error) {
-        console.error('Execute payment error:', error);
-        
-        // Log error
-        saveAuditLog('PAYMENT_ERROR', {
-            jenis: jenis,
-            error: error.message,
-            stack: error.stack
-        });
-        
-        // Task 12.3: Show user-friendly error message
-        showErrorDialog(
-            'Terjadi Kesalahan',
-            'Sistem mengalami kesalahan yang tidak terduga.',
-            `Detail error: ${error.message}<br><br>Silakan coba lagi atau hubungi administrator.`
-        );
-    }
-}
-
-/**
- * Task 12.2: Show success dialog with payment details and print option
- * @param {string} jenis - Payment type
- * @param {Object} anggota - Anggota object
- * @param {number} jumlah - Payment amount
- * @param {number} saldoSesudah - Balance after payment
+ * Cetak bukti pembayaran
+ * Requirements: 8.1, 8.2, 8.3, 8.5
  * @param {string} transaksiId - Transaction ID
  */
-function showSuccessDialog(jenis, anggota, jumlah, saldoSesudah, transaksiId) {
-    const jenisText = jenis === 'hutang' ? 'Hutang' : 'Piutang';
-    const jenisColor = jenis === 'hutang' ? '#e63946' : '#457b9d';
-    
-    // Create success modal HTML
-    const modalHTML = `
-        <div class="modal fade" id="successPaymentModal" tabindex="-1" aria-labelledby="successPaymentModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header" style="background: #52b788; color: white;">
-                        <h5 class="modal-title" id="successPaymentModalLabel">
-                            <i class="bi bi-check-circle me-2"></i>Pembayaran Berhasil!
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="text-center mb-3">
-                            <i class="bi bi-check-circle-fill" style="font-size: 4rem; color: #52b788;"></i>
-                        </div>
-                        
-                        <div class="alert alert-success">
-                            <strong>Pembayaran ${jenisText} telah berhasil diproses!</strong>
-                        </div>
-                        
-                        <table class="table table-borderless">
-                            <tr>
-                                <td class="text-muted" style="width: 40%;">Anggota:</td>
-                                <td><strong>${anggota.nama}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">NIK:</td>
-                                <td>${anggota.nik}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Jenis Pembayaran:</td>
-                                <td><span class="badge" style="background: ${jenisColor};">${jenisText}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Jumlah Dibayar:</td>
-                                <td><strong style="color: ${jenisColor}; font-size: 1.2em;">${formatRupiah(jumlah)}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Saldo ${jenisText} Sekarang:</td>
-                                <td><strong style="color: #52b788; font-size: 1.1em;">${formatRupiah(saldoSesudah)}</strong></td>
-                            </tr>
-                        </table>
-                        
-                        <div class="alert alert-info mt-3">
-                            <i class="bi bi-printer me-2"></i>
-                            Cetak bukti pembayaran untuk diberikan kepada anggota.
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="bi bi-x-circle me-1"></i>Tutup
-                        </button>
-                        <button type="button" class="btn btn-primary" onclick="cetakBuktiPembayaran('${transaksiId}'); bootstrap.Modal.getInstance(document.getElementById('successPaymentModal')).hide();">
-                            <i class="bi bi-printer me-1"></i>Cetak Bukti Pembayaran
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remove existing modal if any
-    const existingModal = document.getElementById('successPaymentModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Add modal to body
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('successPaymentModal'));
-    modal.show();
-    
-    // Clean up modal after hide
-    document.getElementById('successPaymentModal').addEventListener('hidden.bs.modal', () => {
-        document.getElementById('successPaymentModal').remove();
-    });
-}
-
-/**
- * Task 12.3: Show error dialog with user-friendly message
- * @param {string} title - Error title
- * @param {string} message - Error message
- * @param {string} guidance - Guidance for resolution
- */
-function showErrorDialog(title, message, guidance) {
-    // Create error modal HTML
-    const modalHTML = `
-        <div class="modal fade" id="errorPaymentModal" tabindex="-1" aria-labelledby="errorPaymentModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header" style="background: #e63946; color: white;">
-                        <h5 class="modal-title" id="errorPaymentModalLabel">
-                            <i class="bi bi-exclamation-triangle me-2"></i>${title}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="text-center mb-3">
-                            <i class="bi bi-x-circle-fill" style="font-size: 4rem; color: #e63946;"></i>
-                        </div>
-                        
-                        <div class="alert alert-danger">
-                            <strong>${message}</strong>
-                        </div>
-                        
-                        <div class="card">
-                            <div class="card-body">
-                                <h6 class="card-title">
-                                    <i class="bi bi-lightbulb me-2"></i>Panduan Penyelesaian:
-                                </h6>
-                                <p class="card-text">${guidance}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
-                            <i class="bi bi-check-circle me-1"></i>Mengerti
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remove existing modal if any
-    const existingModal = document.getElementById('errorPaymentModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Add modal to body
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('errorPaymentModal'));
-    modal.show();
-    
-    // Clean up modal after hide
-    document.getElementById('errorPaymentModal').addEventListener('hidden.bs.modal', () => {
-        document.getElementById('errorPaymentModal').remove();
-    });
-}
-
-/**
- * Task 10.1 & 10.2: Cetak bukti pembayaran
- * Generate and print receipt for a transaction
- * @param {string} transaksiId - Transaction ID to print
- */
 function cetakBuktiPembayaran(transaksiId) {
-	try {
-		// Load transaction data
-		const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
-		const transaksi = pembayaran.find(p => p.id === transaksiId);
-		
-		if (!transaksi) {
-			showAlert('Transaksi tidak ditemukan', 'danger');
-			return;
-		}
-		
-		// Get system settings for koperasi info
-		const systemSettings = JSON.parse(localStorage.getItem('systemSettings') || '{}');
-		const koperasiNama = systemSettings.namaKoperasi || 'Koperasi';
-		
-		// Format tanggal
-		const tanggal = new Date(transaksi.tanggal).toLocaleDateString('id-ID', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-		
-		const jenisText = transaksi.jenis === 'hutang' ? 'HUTANG' : 'PIUTANG';
-		
-		// Generate receipt HTML
-		const receiptHTML = `
-			<!DOCTYPE html>
-			<html>
-			<head>
-				<meta charset="UTF-8">
-				<title>Bukti Pembayaran ${jenisText}</title>
-				<style>
-					body {
-						font-family: 'Courier New', monospace;
-						width: 80mm;
-						margin: 0 auto;
-						padding: 10px;
-					}
-					.header {
-						text-align: center;
-						border-bottom: 2px dashed #000;
-						padding-bottom: 10px;
-						margin-bottom: 10px;
-					}
-					.header h2 {
-						margin: 5px 0;
-						font-size: 18px;
-					}
-					.header p {
-						margin: 2px 0;
-						font-size: 12px;
-					}
-					.content {
-						font-size: 12px;
-					}
-					.row {
-						display: flex;
-						justify-content: space-between;
-						margin: 5px 0;
-					}
-					.label {
-						font-weight: bold;
-					}
-					.divider {
-						border-top: 1px dashed #000;
-						margin: 10px 0;
-					}
-					.total {
-						font-size: 14px;
-						font-weight: bold;
-						text-align: center;
-						margin: 10px 0;
-					}
-					.footer {
-						text-align: center;
-						border-top: 2px dashed #000;
-						padding-top: 10px;
-						margin-top: 10px;
-						font-size: 10px;
-					}
-					@media print {
-						body {
-							width: auto;
-						}
-					}
-				</style>
-			</head>
-			<body>
-				<div class="header">
-					<h2>${koperasiNama}</h2>
-					<p>BUKTI PEMBAYARAN ${jenisText}</p>
-				</div>
-				
-				<div class="content">
-					<div class="row">
-						<span class="label">No. Transaksi:</span>
-						<span>${transaksi.id}</span>
-					</div>
-					<div class="row">
-						<span class="label">Tanggal:</span>
-						<span>${tanggal}</span>
-					</div>
-					
-					<div class="divider"></div>
-					
-					<div class="row">
-						<span class="label">Anggota:</span>
-						<span>${transaksi.anggotaNama}</span>
-					</div>
-					<div class="row">
-						<span class="label">NIK:</span>
-						<span>${transaksi.anggotaNIK}</span>
-					</div>
-					
-					<div class="divider"></div>
-					
-					<div class="row">
-						<span class="label">Jenis:</span>
-						<span>${jenisText}</span>
-					</div>
-					<div class="row">
-						<span class="label">Saldo Sebelum:</span>
-						<span>${formatRupiah(transaksi.saldoSebelum)}</span>
-					</div>
-					<div class="row">
-						<span class="label">Jumlah Bayar:</span>
-						<span>${formatRupiah(transaksi.jumlah)}</span>
-					</div>
-					<div class="row">
-						<span class="label">Saldo Sesudah:</span>
-						<span>${formatRupiah(transaksi.saldoSesudah)}</span>
-					</div>
-					
-					${transaksi.keterangan ? `
-					<div class="divider"></div>
-					<div class="row">
-						<span class="label">Keterangan:</span>
-					</div>
-					<div style="margin-top: 5px;">
-						${transaksi.keterangan}
-					</div>
-					` : ''}
-					
-					<div class="divider"></div>
-					
-					<div class="row">
-						<span class="label">Kasir:</span>
-						<span>${transaksi.kasirNama}</span>
-					</div>
-				</div>
-				
-				<div class="footer">
-					<p>Terima kasih atas pembayaran Anda</p>
-					<p>Dicetak: ${new Date().toLocaleString('id-ID')}</p>
-				</div>
-			</body>
-			</html>
-		`;
-		
-		// Open print dialog
-		const printWindow = window.open('', '_blank', 'width=300,height=600');
-		if (printWindow) {
-			printWindow.document.write(receiptHTML);
-			printWindow.document.close();
-			
-			// Wait for content to load then print
-			printWindow.onload = function() {
-				printWindow.print();
-			};
-			
-			// Log print action to audit
-			saveAuditLog('PRINT_RECEIPT', {
-				transaksiId: transaksi.id,
-				anggotaId: transaksi.anggotaId,
-				anggotaNama: transaksi.anggotaNama,
-				jenis: transaksi.jenis,
-				jumlah: transaksi.jumlah
-			});
-		} else {
-			showAlert('Gagal membuka jendela cetak. Pastikan popup tidak diblokir.', 'warning');
-		}
-		
-	} catch (error) {
-		console.error('Print receipt error:', error);
-		showAlert('Terjadi kesalahan saat mencetak bukti: ' + error.message, 'danger');
-	}
+    // Check access permission
+    if (!checkPembayaranAccess()) {
+        showAlert('Anda tidak memiliki izin untuk mencetak bukti pembayaran', 'danger');
+        return;
+    }
+    
+    try {
+        const pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        const transaksi = pembayaranList.find(p => p.id === transaksiId);
+        
+        if (!transaksi) {
+            showAlert('Transaksi tidak ditemukan', 'danger');
+            return;
+        }
+        
+        const systemSettings = JSON.parse(localStorage.getItem('systemSettings') || '{}');
+        const namaKoperasi = systemSettings.namaKoperasi || 'KOPERASI';
+        const alamatKoperasi = systemSettings.alamat || '';
+        const teleponKoperasi = systemSettings.telepon || '';
+        
+        const jenisText = transaksi.jenis === 'hutang' ? 'HUTANG' : 'PIUTANG';
+        
+        const receiptHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Bukti Pembayaran ${jenisText}</title>
+                <style>
+                    body {
+                        font-family: 'Courier New', monospace;
+                        width: 80mm;
+                        margin: 0 auto;
+                        padding: 10px;
+                    }
+                    .header {
+                        text-align: center;
+                        border-bottom: 2px dashed #000;
+                        padding-bottom: 10px;
+                        margin-bottom: 10px;
+                    }
+                    .header h2 {
+                        margin: 5px 0;
+                        font-size: 18px;
+                    }
+                    .header p {
+                        margin: 2px 0;
+                        font-size: 12px;
+                    }
+                    .content {
+                        font-size: 12px;
+                    }
+                    .row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin: 5px 0;
+                    }
+                    .row.total {
+                        border-top: 1px dashed #000;
+                        border-bottom: 2px solid #000;
+                        padding: 5px 0;
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+                    .footer {
+                        text-align: center;
+                        margin-top: 20px;
+                        padding-top: 10px;
+                        border-top: 2px dashed #000;
+                        font-size: 11px;
+                    }
+                    @media print {
+                        body {
+                            width: 80mm;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>${namaKoperasi}</h2>
+                    <p>${alamatKoperasi}</p>
+                    <p>Telp: ${teleponKoperasi}</p>
+                    <p style="margin-top: 10px; font-weight: bold;">BUKTI PEMBAYARAN ${jenisText}</p>
+                </div>
+                
+                <div class="content">
+                    <div class="row">
+                        <span>No. Transaksi</span>
+                        <span>${transaksi.id}</span>
+                    </div>
+                    <div class="row">
+                        <span>Tanggal</span>
+                        <span>${formatTanggal(transaksi.tanggal)}</span>
+                    </div>
+                    <div class="row">
+                        <span>Waktu</span>
+                        <span>${new Date(transaksi.createdAt).toLocaleTimeString('id-ID')}</span>
+                    </div>
+                    <div class="row" style="border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px;">
+                        <span>Kasir</span>
+                        <span>${transaksi.kasirNama}</span>
+                    </div>
+                    
+                    <div class="row">
+                        <span>Anggota</span>
+                        <span>${transaksi.anggotaNama}</span>
+                    </div>
+                    <div class="row" style="margin-bottom: 10px;">
+                        <span>NIK</span>
+                        <span>${transaksi.anggotaNIK}</span>
+                    </div>
+                    
+                    <div class="row">
+                        <span>Jenis Pembayaran</span>
+                        <span>${jenisText}</span>
+                    </div>
+                    <div class="row">
+                        <span>Saldo Sebelum</span>
+                        <span>${formatRupiah(transaksi.saldoSebelum)}</span>
+                    </div>
+                    <div class="row total">
+                        <span>JUMLAH BAYAR</span>
+                        <span>${formatRupiah(transaksi.jumlah)}</span>
+                    </div>
+                    <div class="row">
+                        <span>Saldo Sesudah</span>
+                        <span>${formatRupiah(transaksi.saldoSesudah)}</span>
+                    </div>
+                    
+                    ${transaksi.keterangan ? `
+                    <div class="row" style="margin-top: 10px;">
+                        <span>Keterangan:</span>
+                    </div>
+                    <div style="margin-left: 10px; font-style: italic;">
+                        ${transaksi.keterangan}
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="footer">
+                    <p>Terima kasih atas pembayaran Anda</p>
+                    <p>Simpan bukti ini sebagai tanda terima yang sah</p>
+                    <p style="margin-top: 10px; font-size: 10px;">
+                        Dicetak: ${new Date().toLocaleString('id-ID')}
+                    </p>
+                </div>
+                
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+        
+        // Open print window
+        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        printWindow.document.write(receiptHTML);
+        printWindow.document.close();
+        
+        // Log print action
+        saveAuditLog('CETAK_BUKTI_PEMBAYARAN', {
+            transaksiId: transaksi.id,
+            jenis: transaksi.jenis,
+            anggotaNama: transaksi.anggotaNama,
+            jumlah: transaksi.jumlah
+        });
+        
+    } catch (error) {
+        console.error('Error printing receipt:', error);
+        showAlert('Gagal mencetak bukti pembayaran', 'danger');
+    }
 }
+
+// Export functions for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        renderPembayaranHutangPiutang,
+        hitungSaldoHutang,
+        hitungSaldoPiutang,
+        updateSummaryCards,
+        renderFormPembayaran,
+        searchAnggota,
+        validatePembayaran,
+        savePembayaran,
+        rollbackPembayaran,
+        createJurnalPembayaranHutang,
+        createJurnalPembayaranPiutang,
+        saveAuditLog,
+        cetakBuktiPembayaran,
+        checkPembayaranAccess
+    };
+}
+
+// ES module exports for testing
+export {
+    renderPembayaranHutangPiutang,
+    hitungSaldoHutang,
+    hitungSaldoPiutang,
+    updateSummaryCards,
+    renderFormPembayaran,
+    searchAnggota,
+    validatePembayaran,
+    savePembayaran,
+    rollbackPembayaran,
+    createJurnalPembayaranHutang,
+    createJurnalPembayaranPiutang,
+    saveAuditLog,
+    cetakBuktiPembayaran,
+    checkPembayaranAccess
+};

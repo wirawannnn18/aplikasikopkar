@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</head>
+<body>
+    <div id="content"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Setup test data
+        function setupTestData() {
+            // System settings
+            localStorage.setItem('systemSettings', JSON.stringify({
+                namaKoperasi: 'KOPERASI TEST',
+                alamat: 'Jl. Test No. 123',
+                telepon: '021-12345678'
+            }));
+
+            // Current user
+            localStorage.setItem('currentUser', JSON.stringify({
+                id: 'U001',
+                nama: 'Kasir Test',
+                role: 'kasir'
+            }));
+
+            // Anggota
+            const anggota = [
+                { id: 'A001', nik: '001', nama: 'Ahmad Santoso', status: 'Aktif' },
+                { id: 'A002', nik: '002', nama: 'Budi Hartono', status: 'Aktif' },
+                { id: 'A003', nik: '003', nama: 'Citra Dewi', status: 'Aktif' },
+                { id: 'A004', nik: '004', nama: 'Dewi Lestari', status: 'Aktif' },
+                { id: 'A005', nik: '005', nama: 'Eko Prasetyo', status: 'Aktif' }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+
+            // Penjualan (POS transactions with kredit)
+            const penjualan = [
+                {
+                    id: 'P001',
+                    tanggal: '2024-12-01',
+                    anggotaId: 'A001',
+                    metodePembayaran: 'Kredit',
+                    total: 500000,
+                    items: []
+                },
+                {
+                    id: 'P002',
+                    tanggal: '2024-12-05',
+                    anggotaId: 'A001',
+                    metodePembayaran: 'Kredit',
+                    total: 300000,
+                    items: []
+                },
+                {
+                    id: 'P003',
+                    tanggal: '2024-12-03',
+                    anggotaId: 'A002',
+                    metodePembayaran: 'Kredit',
+                    total: 750000,
+                    items: []
+                }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+
+            // Simpanan (for piutang)
+            const simpanan = [
+                {
+                    id: 'S001',
+                    anggotaId: 'A003',
+                    jenis: 'Pokok',
+                    saldo: 1000000,
+                    statusPengembalian: 'pending'
+                },
+                {
+                    id: 'S002',
+                    anggotaId: 'A003',
+                    jenis: 'Wajib',
+                    saldo: 500000,
+                    statusPengembalian: 'pending'
+                }
+            ];
+            localStorage.setItem('simpanan', JSON.stringify(simpanan));
+
+            // Initialize empty arrays
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            localStorage.setItem('auditLog', JSON.stringify([]));
+
+            // COA
+            const coa = [
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 10000000 },
+                { kode: '1-1200', nama: 'Piutang Anggota', tipe: 'Aset', saldo: 0 },
+                { kode: '2-1000', nama: 'Hutang Anggota', tipe: 'Kewajiban', saldo: 0 }
+            ];
+            localStorage.setItem('coa', JSON.stringify(coa));
+
+            console.log('✅ Test data setup complete');
+            console.log('Anggota A001 (Ahmad) has hutang: Rp 800,000');
+            console.log('Anggota A002 (Budi) has hutang: Rp 750,000');
+            console.log('Anggota A003 (Citra) has piutang: Rp 1,500,000');
+        }
+
+        // Utility functions
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        function generateId() {
+            return 'TXN-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function addJurnal(keterangan, entries, tanggal) {
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            const jurnalEntry = {
+                id: generateId(),
+                tanggal: tanggal || new Date().toISOString().split('T')[0],
+                keterangan: keterangan,
+                entries: entries,
+                createdAt: new Date().toISOString()
+            };
+            jurnal.push(jurnalEntry);
+            localStorage.setItem('jurnal', JSON.stringify(jurnal));
+            console.log('✅ Journal entry created:', keterangan);
+        }
+
+        // Setup test data on load
+        setupTestData();
+    </script>
+
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        // Render the page
+        renderPembayaranHutangPiutang();
+
+        // Add test buttons
+        setTimeout(() => {
+            const content = document.getElementById('content');
+            const testPanel = document.createElement('div');
+            testPanel.className = 'container-fluid py-3 bg-light border-top';
+            testPanel.innerHTML = `
+                <h5>🧪 Test Panel</h5>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-info" onclick="viewTestData()">View Test Data</button>
+                    <button class="btn btn-sm btn-warning" onclick="resetTestData()">Reset Data</button>
+                    <button class="btn btn-sm btn-success" onclick="viewTransactions()">View Transactions</button>
+                    <button class="btn btn-sm btn-primary" onclick="viewJournal()">View Journal</button>
+                    <button class="btn btn-sm btn-secondary" onclick="viewAuditLog()">View Audit Log</button>
+                </div>
+            `;
+            content.appendChild(testPanel);
+        }, 500);
+
+        function viewTestData() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+            const simpanan = JSON.parse(localStorage.getItem('simpanan') || '[]');
+            
+            console.log('=== TEST DATA ===');
+            console.log('Anggota:', anggota);
+            console.log('Penjualan (Kredit):', penjualan);
+            console.log('Simpanan (Pending):', simpanan);
+            
+            alert('Test data logged to console. Press F12 to view.');
+        }
+
+        function resetTestData() {
+            if (confirm('Reset all test data?')) {
+                setupTestData();
+                renderPembayaranHutangPiutang();
+                showAlert('Test data reset successfully', 'success');
+            }
+        }
+
+        function viewTransactions() {
+            const transactions = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+            console.log('=== TRANSACTIONS ===');
+            console.log(transactions);
+            alert(`${transactions.length} transactions found. Check console for details.`);
+        }
+
+        function viewJournal() {
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            console.log('=== JOURNAL ENTRIES ===');
+            console.log(jurnal);
+            alert(`${jurnal.length} journal entries found. Check console for details.`);
+        }
+
+        function viewAuditLog() {
+            const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+            console.log('=== AUDIT LOG ===');
+            console.log(auditLog);
+            alert(`${auditLog.length} audit log entries found. Check console for details.`);
+        }
+    </script>
+</body>
+</html>

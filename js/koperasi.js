@@ -200,14 +200,31 @@ function filterActiveAnggota(anggotaList) {
         return [];
     }
     
-    // Filter out anggota with statusKeanggotaan === 'Keluar'
-    // Note: Anggota without statusKeanggotaan field are treated as active (backward compatibility)
+    // Filter out anggota keluar using BOTH old and new system
+    // OLD SYSTEM: statusKeanggotaan === 'Keluar'
+    // NEW SYSTEM: status === 'Nonaktif' OR tanggalKeluar exists
     return anggotaList.filter(a => {
-        // Handle missing statusKeanggotaan field (legacy data)
-        if (!a.statusKeanggotaan) {
-            return true; // Treat as active
+        // Check OLD system: statusKeanggotaan
+        if (a.statusKeanggotaan === 'Keluar') {
+            return false; // Exclude
         }
-        return a.statusKeanggotaan !== 'Keluar';
+        
+        // Check NEW system: status = 'Nonaktif'
+        if (a.status === 'Nonaktif') {
+            return false; // Exclude
+        }
+        
+        // Check NEW system: has tanggalKeluar
+        if (a.tanggalKeluar) {
+            return false; // Exclude
+        }
+        
+        // Check NEW system: has pengembalianStatus (means they went through exit process)
+        if (a.pengembalianStatus) {
+            return false; // Exclude
+        }
+        
+        return true; // Include (active member)
     });
 }
 

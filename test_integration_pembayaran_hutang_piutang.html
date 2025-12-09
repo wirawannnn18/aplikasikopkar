@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .test-running {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .log-entry {
+            font-family: monospace;
+            font-size: 12px;
+            padding: 5px;
+            margin: 2px 0;
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+        }
+        .log-error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .log-success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h1><i class="bi bi-check2-circle"></i> Integration Test - Pembayaran Hutang Piutang</h1>
+        <p class="text-muted">Comprehensive integration testing for payment processing system</p>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <button class="btn btn-primary" onclick="runAllTests()">
+                    <i class="bi bi-play-fill"></i> Run All Tests
+                </button>
+                <button class="btn btn-secondary" onclick="setupTestData()">
+                    <i class="bi bi-database"></i> Setup Test Data
+                </button>
+                <button class="btn btn-danger" onclick="clearTestData()">
+                    <i class="bi bi-trash"></i> Clear Test Data
+                </button>
+            </div>
+        </div>
+
+        <div id="testResults"></div>
+        <div id="testLogs" class="mt-4"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/pembayaranHutangPiutang.js" type="module"></script>
+    <script>
+        // Test utilities
+        const testLogs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testLogs.push({ timestamp, message, type });
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const container = document.getElementById('testLogs');
+            container.innerHTML = '<h4>Test Logs</h4>' + testLogs.map(entry => {
+                const className = entry.type === 'error' ? 'log-error' : 
+                                 entry.type === 'success' ? 'log-success' : '';
+                return `<div class="log-entry ${className}">[${entry.timestamp}] ${entry.message}</div>`;
+            }).join('');
+        }
+
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(`Assertion failed: ${message}`);
+            }
+        }
+
+        function assertEquals(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message}: expected ${expected}, got ${actual}`);
+            }
+        }
+
+        // Setup test data
+        function setupTestData() {
+            log('Setting up test data...', 'info');
+            
+            // Clear existing data
+            localStorage.removeItem('pembayaranHutangPiutang');
+            localStorage.removeItem('penjualan');
+            localStorage.removeItem('simpanan');
+            localStorage.removeItem('jurnal');
+            localStorage.removeItem('auditLog');
+            
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'TEST001',
+                    nik: '1234567890',
+                    nama: 'Test Anggota 1',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'TEST002',
+                    nik: '0987654321',
+                    nama: 'Test Anggota 2',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            
+            // Create test penjualan (kredit transactions)
+            const penjualan = [
+                {
+                    id: 'POS001',
+                    anggotaId: 'TEST001',
+                    total: 500000,
+                    metodePembayaran: 'Kredit',
+                    tanggal: '2024-12-01'
+                },
+                {
+                    id: 'POS002',
+                    anggotaId: 'TEST001',
+                    total: 300000,
+                    metodePembayaran: 'Kredit',
+                    tanggal: '2024-12-05'
+                }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            
+            // Create test simpanan (for piutang)
+            const simpanan = [
+                {
+                    id: 'SIM001',
+                    anggotaId: 'TEST002',
+                    jenis: 'Pokok',
+                    saldo: 1000000,
+                    statusPengembalian: 'pending'
+                },
+                {
+                    id: 'SIM002',
+                    anggotaId: 'TEST002',
+                    jenis: 'Wajib',
+                    saldo: 500000,
+                    statusPengembalian: 'pending'
+                }
+            ];
+            localStorage.setItem('simpanan', JSON.stringify(simpanan));
+            
+            // Create test user
+            const currentUser = {
+                id: 'USER001',
+                nama: 'Test Kasir',
+                role: 'kasir'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            log('Test data setup complete', 'success');
+            showAlert('Test data berhasil dibuat', 'success');
+        }
+
+        function clearTestData() {
+            localStorage.removeItem('pembayaranHutangPiutang');
+            localStorage.removeItem('penjualan');
+            localStorage.removeItem('simpanan');
+            localStorage.removeItem('jurnal');
+            localStorage.removeItem('auditLog');
+            localStorage.removeItem('anggota');
+            log('Test data cleared', 'info');
+            showAlert('Test data berhasil dihapus', 'info');
+        }
+
+        // Test cases
+        async function testHutangPaymentFlow() {
+            log('Testing hutang payment flow...', 'info');
+            
+            try {
+                // Get initial saldo
+                const initialSaldo = hitungSaldoHutang('TEST001');
+                log(`Initial hutang saldo: ${initialSaldo}`, 'info');
+                assertEquals(initialSaldo, 800000, 'Initial hutang saldo');
+                
+                // Create payment
+                const paymentData = {
+                    anggotaId: 'TEST001',
+                    anggotaNama: 'Test Anggota 1',
+                    anggotaNIK: '1234567890',
+                    jenis: 'hutang',
+                    jumlah: 300000,
+                    keterangan: 'Test payment',
+                    saldoSebelum: initialSaldo,
+                    saldoSesudah: initialSaldo - 300000
+                };
+                
+                // Validate
+                const validation = validatePembayaran(paymentData);
+                assert(validation.valid, 'Payment validation should pass');
+                log('Payment validation passed', 'success');
+                
+                // Save payment
+                const transaksi = savePembayaran(paymentData);
+                assert(transaksi.id, 'Transaction should have ID');
+                log(`Transaction saved: ${transaksi.id}`, 'success');
+                
+                // Create journal
+                createJurnalPembayaranHutang(transaksi);
+                log('Journal entry created', 'success');
+                
+                // Verify saldo updated
+                const newSaldo = hitungSaldoHutang('TEST001');
+                assertEquals(newSaldo, 500000, 'Saldo should be reduced');
+                log(`New hutang saldo: ${newSaldo}`, 'success');
+                
+                // Verify journal balance
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const lastJurnal = jurnal[jurnal.length - 1];
+                const totalDebit = lastJurnal.entries.reduce((sum, e) => sum + e.debit, 0);
+                const totalKredit = lastJurnal.entries.reduce((sum, e) => sum + e.kredit, 0);
+                assertEquals(totalDebit, totalKredit, 'Journal should be balanced');
+                log('Journal is balanced', 'success');
+                
+                return { success: true, message: 'Hutang payment flow test passed' };
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function testPiutangPaymentFlow() {
+            log('Testing piutang payment flow...', 'info');
+            
+            try {
+                // Get initial saldo
+                const initialSaldo = hitungSaldoPiutang('TEST002');
+                log(`Initial piutang saldo: ${initialSaldo}`, 'info');
+                assertEquals(initialSaldo, 1500000, 'Initial piutang saldo');
+                
+                // Create payment
+                const paymentData = {
+                    anggotaId: 'TEST002',
+                    anggotaNama: 'Test Anggota 2',
+                    anggotaNIK: '0987654321',
+                    jenis: 'piutang',
+                    jumlah: 500000,
+                    keterangan: 'Test piutang payment',
+                    saldoSebelum: initialSaldo,
+                    saldoSesudah: initialSaldo - 500000
+                };
+                
+                // Validate
+                const validation = validatePembayaran(paymentData);
+                assert(validation.valid, 'Payment validation should pass');
+                log('Payment validation passed', 'success');
+                
+                // Save payment
+                const transaksi = savePembayaran(paymentData);
+                assert(transaksi.id, 'Transaction should have ID');
+                log(`Transaction saved: ${transaksi.id}`, 'success');
+                
+                // Create journal
+                createJurnalPembayaranPiutang(transaksi);
+                log('Journal entry created', 'success');
+                
+                // Verify saldo updated
+                const newSaldo = hitungSaldoPiutang('TEST002');
+                assertEquals(newSaldo, 1000000, 'Saldo should be reduced');
+                log(`New piutang saldo: ${newSaldo}`, 'success');
+                
+                return { success: true, message: 'Piutang payment flow test passed' };
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function testValidationErrors() {
+            log('Testing validation errors...', 'info');
+            
+            try {
+                // Test missing anggota
+                let result = validatePembayaran({ jenis: 'hutang', jumlah: 100000 });
+                assert(!result.valid, 'Should reject missing anggota');
+                log('Missing anggota validation: PASS', 'success');
+                
+                // Test missing jenis
+                result = validatePembayaran({ anggotaId: 'TEST001', jumlah: 100000 });
+                assert(!result.valid, 'Should reject missing jenis');
+                log('Missing jenis validation: PASS', 'success');
+                
+                // Test zero jumlah
+                result = validatePembayaran({ anggotaId: 'TEST001', jenis: 'hutang', jumlah: 0 });
+                assert(!result.valid, 'Should reject zero jumlah');
+                log('Zero jumlah validation: PASS', 'success');
+                
+                // Test negative jumlah
+                result = validatePembayaran({ anggotaId: 'TEST001', jenis: 'hutang', jumlah: -100 });
+                assert(!result.valid, 'Should reject negative jumlah');
+                log('Negative jumlah validation: PASS', 'success');
+                
+                // Test jumlah exceeds saldo
+                const saldo = hitungSaldoHutang('TEST001');
+                result = validatePembayaran({ 
+                    anggotaId: 'TEST001', 
+                    jenis: 'hutang', 
+                    jumlah: saldo + 1000000 
+                });
+                assert(!result.valid, 'Should reject jumlah > saldo');
+                log('Jumlah exceeds saldo validation: PASS', 'success');
+                
+                return { success: true, message: 'Validation error tests passed' };
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function testRollbackMechanism() {
+            log('Testing rollback mechanism...', 'info');
+            
+            try {
+                // Create a payment
+                const paymentData = {
+                    anggotaId: 'TEST001',
+                    anggotaNama: 'Test Anggota 1',
+                    anggotaNIK: '1234567890',
+                    jenis: 'hutang',
+                    jumlah: 100000,
+                    keterangan: 'Test rollback',
+                    saldoSebelum: 500000,
+                    saldoSesudah: 400000
+                };
+                
+                const transaksi = savePembayaran(paymentData);
+                log(`Transaction created: ${transaksi.id}`, 'info');
+                
+                // Verify it exists
+                let pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                const exists = pembayaranList.some(p => p.id === transaksi.id);
+                assert(exists, 'Transaction should exist');
+                log('Transaction exists in storage', 'success');
+                
+                // Rollback
+                rollbackPembayaran(transaksi.id);
+                log('Rollback executed', 'info');
+                
+                // Verify it's removed
+                pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                const stillExists = pembayaranList.some(p => p.id === transaksi.id);
+                assert(!stillExists, 'Transaction should be removed');
+                log('Transaction removed from storage', 'success');
+                
+                return { success: true, message: 'Rollback mechanism test passed' };
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function testAuditLogging() {
+            log('Testing audit logging...', 'info');
+            
+            try {
+                const initialLogs = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const initialCount = initialLogs.length;
+                log(`Initial audit log count: ${initialCount}`, 'info');
+                
+                // Save audit log
+                const testDetails = {
+                    action: 'TEST_ACTION',
+                    data: { test: 'value' }
+                };
+                saveAuditLog('TEST_ACTION', testDetails);
+                log('Audit log saved', 'info');
+                
+                // Verify log was saved
+                const newLogs = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                assertEquals(newLogs.length, initialCount + 1, 'Audit log count should increase');
+                
+                const lastLog = newLogs[newLogs.length - 1];
+                assert(lastLog.action === 'TEST_ACTION', 'Action should match');
+                assert(lastLog.timestamp, 'Should have timestamp');
+                assert(lastLog.userId, 'Should have user ID');
+                log('Audit log verified', 'success');
+                
+                return { success: true, message: 'Audit logging test passed' };
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function testAccessControl() {
+            log('Testing access control...', 'info');
+            
+            try {
+                // Test with kasir role
+                localStorage.setItem('currentUser', JSON.stringify({ role: 'kasir' }));
+                let hasAccess = checkPembayaranAccess();
+                assert(hasAccess, 'Kasir should have access');
+                log('Kasir access: PASS', 'success');
+                
+                // Test with admin role
+                localStorage.setItem('currentUser', JSON.stringify({ role: 'admin' }));
+                hasAccess = checkPembayaranAccess();
+                assert(hasAccess, 'Admin should have access');
+                log('Admin access: PASS', 'success');
+                
+                // Test with other role
+                localStorage.setItem('currentUser', JSON.stringify({ role: 'user' }));
+                hasAccess = checkPembayaranAccess();
+                assert(!hasAccess, 'Other roles should not have access');
+                log('Other role access denied: PASS', 'success');
+                
+                // Test with no role
+                localStorage.setItem('currentUser', JSON.stringify({}));
+                hasAccess = checkPembayaranAccess();
+                assert(!hasAccess, 'No role should not have access');
+                log('No role access denied: PASS', 'success');
+                
+                // Restore kasir role
+                localStorage.setItem('currentUser', JSON.stringify({ 
+                    id: 'USER001', 
+                    nama: 'Test Kasir', 
+                    role: 'kasir' 
+                }));
+                
+                return { success: true, message: 'Access control test passed' };
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = '<h3>Running Tests...</h3>';
+            testLogs.length = 0;
+            
+            // Setup test data first
+            setupTestData();
+            
+            const tests = [
+                { name: 'Hutang Payment Flow', fn: testHutangPaymentFlow },
+                { name: 'Piutang Payment Flow', fn: testPiutangPaymentFlow },
+                { name: 'Validation Errors', fn: testValidationErrors },
+                { name: 'Rollback Mechanism', fn: testRollbackMechanism },
+                { name: 'Audit Logging', fn: testAuditLogging },
+                { name: 'Access Control', fn: testAccessControl }
+            ];
+            
+            const results = [];
+            
+            for (const test of tests) {
+                log(`\n=== Running: ${test.name} ===`, 'info');
+                const result = await test.fn();
+                results.push({ name: test.name, ...result });
+                log(`=== ${test.name}: ${result.success ? 'PASS' : 'FAIL'} ===\n`, result.success ? 'success' : 'error');
+            }
+            
+            // Display results
+            const passCount = results.filter(r => r.success).length;
+            const failCount = results.length - passCount;
+            
+            resultsContainer.innerHTML = `
+                <h3>Test Results</h3>
+                <div class="alert ${failCount === 0 ? 'alert-success' : 'alert-warning'}">
+                    <strong>Summary:</strong> ${passCount} passed, ${failCount} failed out of ${results.length} tests
+                </div>
+                ${results.map(r => `
+                    <div class="test-section ${r.success ? 'test-pass' : 'test-fail'}">
+                        <h5>
+                            <i class="bi bi-${r.success ? 'check-circle' : 'x-circle'}"></i>
+                            ${r.name}
+                        </h5>
+                        <p>${r.message}</p>
+                    </div>
+                `).join('')}
+            `;
+            
+            log(`\n=== ALL TESTS COMPLETE: ${passCount}/${results.length} PASSED ===`, passCount === results.length ? 'success' : 'error');
+        }
+
+        // Helper function for alerts
+        function showAlert(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Integration test page loaded', 'info');
+        });
+    </script>
+</body>
+</html>
