@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fix: COA Integration - Anggota Keluar</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .test-warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        .data-display { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+        .balance-display { display: flex; gap: 20px; margin: 15px 0; }
+        .balance-item { background: #e9ecef; padding: 15px; border-radius: 4px; text-align: center; flex: 1; }
+        .balance-before { border-left: 4px solid #007bff; }
+        .balance-after { border-left: 4px solid #28a745; }
+        .balance-diff { border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Fix: COA Integration - Anggota Keluar</h1>
+        <p><strong>Tujuan:</strong> Memverifikasi bahwa proses anggota keluar sudah terintegrasi dengan COA dan saldo Kas berkurang dengan benar.</p>
+        
+        <div class="test-section">
+            <h3>🔍 Step 1: Environment Check</h3>
+            <p>Memeriksa ketersediaan fungsi dan data yang diperlukan.</p>
+            <button onclick="checkEnvironment()">Check Environment</button>
+            <div id="environmentResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Step 2: Setup Test Data</h3>
+            <p>Menyiapkan data test untuk simulasi proses anggota keluar.</p>
+            <button onclick="setupTestData()">Setup Test Data</button>
+            <button class="danger" onclick="clearTestData()">Clear Test Data</button>
+            <div id="setupResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>💰 Step 3: Check Initial Balances</h3>
+            <p>Memeriksa saldo awal sebelum proses anggota keluar.</p>
+            <button onclick="checkInitialBalances()">Check Initial Balances</button>
+            <div id="initialBalanceResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚪 Step 4: Process Anggota Keluar</h3>
+            <p>Menjalankan proses anggota keluar dan memeriksa integrasi COA.</p>
+            <button class="success" onclick="processAnggotaKeluar()">Process Anggota Keluar</button>
+            <div id="processResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ Step 5: Verify COA Integration</h3>
+            <p>Memverifikasi bahwa saldo COA sudah terupdate dengan benar.</p>
+            <button onclick="verifyCOAIntegration()">Verify COA Integration</button>
+            <div id="verificationResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test Summary</h3>
+            <div id="testSummary"></div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="js/keuangan.js"></script>
+    <script src="js/simpanan.js"></script>
+    <script src="js/koperasi.js"></script>
+
+    <script>
+        let testState = {
+            testAnggotaId: 'TEST-ANGGOTA-001',
+            initialKasBalance: 0,
+            initialSimpananBalances: {},
+            pencairanAmount: 0,
+            testResults: []
+        };
+
+        function logResult(type, message, containerId = 'testSummary') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const div = document.createElement('div');
+            div.className = `test-result test-${type}`;
+            div.innerHTML = message.replace(/\n/g, '<br>');
+            container.appendChild(div);
+            
+            // Store result for summary
+            testState.testResults.push({ type, message });
+            
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function checkEnvironment() {
+            logResult('info', '🔍 Checking environment...', 'environmentResults');
+            
+            const checks = [
+                { name: 'addJurnal function', check: () => typeof addJurnal === 'function' },
+                { name: 'createPencairanJournal function', check: () => typeof createPencairanJournal === 'function' },
+                { name: 'processPencairanSimpanan function', check: () => typeof processPencairanSimpanan === 'function' },
+                { name: 'generateId function', check: () => typeof generateId === 'function' },
+                { name: 'formatRupiah function', check: () => typeof formatRupiah === 'function' },
+                { name: 'localStorage available', check: () => typeof localStorage !== 'undefined' }
+            ];
+
+            let allPassed = true;
+            checks.forEach(check => {
+                const passed = check.check();
+                const status = passed ? 'pass' : 'fail';
+                const icon = passed ? '✅' : '❌';
+                
+                logResult(status, `${icon} ${check.name}: ${passed ? 'Available' : 'Not Available'}`, 'environmentResults');
+                
+                if (!passed) allPassed = false;
+            });
+
+            if (allPassed) {
+                logResult('pass', '🎉 Environment check passed! All required functions are available.', 'environmentResults');
+            } else {
+                logResult('fail', '❌ Environment check failed! Some required functions are missing.', 'environmentResults');
+            }
+
+            return allPassed;
+        }
+
+        function setupTestData() {
+            logResult('info', '📊 Setting up test data...', 'setupResults');
+            
+            try {
+                // Create test anggota
+                const testAnggota = {
+                    id: testState.testAnggotaId,
+                    nama: 'Test Anggota COA Integration',
+                    nik: '1234567890123456',
+                    statusKeanggotaan: 'Keluar',
+                    status: 'Keluar',
+                    tanggalKeluar: new Date().toISOString().split('T')[0],
+                    pengembalianStatus: 'Belum'
+                };
+
+                // Setup anggota data
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const existingIndex = anggota.findIndex(a => a.id === testState.testAnggotaId);
+                if (existingIndex >= 0) {
+                    anggota[existingIndex] = testAnggota;
+                } else {
+                    anggota.push(testAnggota);
+                }
+                localStorage.setItem('anggota', JSON.stringify(anggota));
+
+                // Setup simpanan data with realistic amounts
+                const simpananAmounts = {
+                    pokok: 1000000,   // 1 juta
+                    wajib: 2500000,   // 2.5 juta
+                    sukarela: 3500000 // 3.5 juta
+                };
+
+                testState.pencairanAmount = simpananAmounts.pokok + simpananAmounts.wajib + simpananAmounts.sukarela;
+
+                // Simpanan Pokok
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                const pokokIndex = simpananPokok.findIndex(s => s.anggotaId === testState.testAnggotaId);
+                const pokokData = {
+                    id: 'POKOK-' + testState.testAnggotaId,
+                    anggotaId: testState.testAnggotaId,
+                    jumlah: simpananAmounts.pokok,
+                    tanggal: new Date().toISOString().split('T')[0]
+                };
+                if (pokokIndex >= 0) {
+                    simpananPokok[pokokIndex] = pokokData;
+                } else {
+                    simpananPokok.push(pokokData);
+                }
+                localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+
+                // Simpanan Wajib
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                const wajibIndex = simpananWajib.findIndex(s => s.anggotaId === testState.testAnggotaId);
+                const wajibData = {
+                    id: 'WAJIB-' + testState.testAnggotaId,
+                    anggotaId: testState.testAnggotaId,
+                    jumlah: simpananAmounts.wajib,
+                    tanggal: new Date().toISOString().split('T')[0]
+                };
+                if (wajibIndex >= 0) {
+                    simpananWajib[wajibIndex] = wajibData;
+                } else {
+                    simpananWajib.push(wajibData);
+                }
+                localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+
+                // Simpanan Sukarela
+                const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+                const sukarelaIndex = simpananSukarela.findIndex(s => s.anggotaId === testState.testAnggotaId);
+                const sukarelaData = {
+                    id: 'SUKARELA-' + testState.testAnggotaId,
+                    anggotaId: testState.testAnggotaId,
+                    jumlah: simpananAmounts.sukarela,
+                    tanggal: new Date().toISOString().split('T')[0]
+                };
+                if (sukarelaIndex >= 0) {
+                    simpananSukarela[sukarelaIndex] = sukarelaData;
+                } else {
+                    simpananSukarela.push(sukarelaData);
+                }
+                localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+
+                // Setup COA if not exists
+                let coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                if (coa.length === 0) {
+                    coa = [
+                        { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 10000000 }, // 10 juta initial
+                        { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 0 },
+                        { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'Kewajiban', saldo: 0 },
+                        { kode: '2-1300', nama: 'Simpanan Sukarela', tipe: 'Kewajiban', saldo: 0 },
+                        { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'Modal', saldo: 10000000 }
+                    ];
+                    localStorage.setItem('coa', JSON.stringify(coa));
+                }
+
+                // Ensure Kas has sufficient balance
+                const kasAccount = coa.find(c => c.kode === '1-1000');
+                if (kasAccount && kasAccount.saldo < testState.pencairanAmount) {
+                    kasAccount.saldo = testState.pencairanAmount + 5000000; // Add 5M buffer
+                    localStorage.setItem('coa', JSON.stringify(coa));
+                }
+
+                logResult('pass', `✅ Test data setup complete:
+                    - Test Anggota: ${testAnggota.nama}
+                    - Simpanan Pokok: ${formatRupiah(simpananAmounts.pokok)}
+                    - Simpanan Wajib: ${formatRupiah(simpananAmounts.wajib)}
+                    - Simpanan Sukarela: ${formatRupiah(simpananAmounts.sukarela)}
+                    - Total Pencairan: ${formatRupiah(testState.pencairanAmount)}`, 'setupResults');
+
+            } catch (error) {
+                logResult('fail', `❌ Error setting up test data: ${error.message}`, 'setupResults');
+            }
+        }
+
+        function clearTestData() {
+            try {
+                // Remove test anggota
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filteredAnggota = anggota.filter(a => a.id !== testState.testAnggotaId);
+                localStorage.setItem('anggota', JSON.stringify(filteredAnggota));
+
+                // Remove test simpanan
+                ['simpananPokok', 'simpananWajib', 'simpananSukarela'].forEach(type => {
+                    const simpanan = JSON.parse(localStorage.getItem(type) || '[]');
+                    const filtered = simpanan.filter(s => s.anggotaId !== testState.testAnggotaId);
+                    localStorage.setItem(type, JSON.stringify(filtered));
+                });
+
+                logResult('pass', '✅ Test data cleared successfully', 'setupResults');
+            } catch (error) {
+                logResult('fail', `❌ Error clearing test data: ${error.message}`, 'setupResults');
+            }
+        }
+
+        function checkInitialBalances() {
+            logResult('info', '💰 Checking initial balances...', 'initialBalanceResults');
+            
+            try {
+                // Get COA balances
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const kasAccount = coa.find(c => c.kode === '1-1000');
+                const simpananPokokAccount = coa.find(c => c.kode === '2-1100');
+                const simpananWajibAccount = coa.find(c => c.kode === '2-1200');
+                const simpananSukarelaAccount = coa.find(c => c.kode === '2-1300');
+
+                testState.initialKasBalance = kasAccount ? kasAccount.saldo : 0;
+
+                // Get simpanan balances for test anggota
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+                const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+
+                const testPokok = simpananPokok.find(s => s.anggotaId === testState.testAnggotaId);
+                const testWajib = simpananWajib.find(s => s.anggotaId === testState.testAnggotaId);
+                const testSukarela = simpananSukarela.find(s => s.anggotaId === testState.testAnggotaId);
+
+                testState.initialSimpananBalances = {
+                    pokok: testPokok ? testPokok.jumlah : 0,
+                    wajib: testWajib ? testWajib.jumlah : 0,
+                    sukarela: testSukarela ? testSukarela.jumlah : 0
+                };
+
+                const balanceDisplay = `
+                    <div class="balance-display">
+                        <div class="balance-item balance-before">
+                            <h6>Kas (COA)</h6>
+                            <h4>${formatRupiah(testState.initialKasBalance)}</h4>
+                        </div>
+                        <div class="balance-item balance-before">
+                            <h6>Simpanan Pokok</h6>
+                            <h4>${formatRupiah(testState.initialSimpananBalances.pokok)}</h4>
+                        </div>
+                        <div class="balance-item balance-before">
+                            <h6>Simpanan Wajib</h6>
+                            <h4>${formatRupiah(testState.initialSimpananBalances.wajib)}</h4>
+                        </div>
+                        <div class="balance-item balance-before">
+                            <h6>Simpanan Sukarela</h6>
+                            <h4>${formatRupiah(testState.initialSimpananBalances.sukarela)}</h4>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('initialBalanceResults').innerHTML = balanceDisplay;
+
+                logResult('pass', `✅ Initial balances recorded:
+                    - Kas: ${formatRupiah(testState.initialKasBalance)}
+                    - Total Simpanan: ${formatRupiah(testState.initialSimpananBalances.pokok + testState.initialSimpananBalances.wajib + testState.initialSimpananBalances.sukarela)}`, 'initialBalanceResults');
+
+            } catch (error) {
+                logResult('fail', `❌ Error checking initial balances: ${error.message}`, 'initialBalanceResults');
+            }
+        }
+
+        function processAnggotaKeluar() {
+            logResult('info', '🚪 Processing anggota keluar...', 'processResults');
+            
+            try {
+                if (typeof processPencairanSimpanan !== 'function') {
+                    logResult('fail', '❌ processPencairanSimpanan function not available', 'processResults');
+                    return;
+                }
+
+                // Process pencairan
+                const result = processPencairanSimpanan(testState.testAnggotaId);
+                
+                if (result.success) {
+                    logResult('pass', `✅ Pencairan processed successfully:
+                        - Anggota: ${result.anggotaNama}
+                        - Total Amount: ${formatRupiah(result.totalAmount)}
+                        - Details: ${JSON.stringify(result.details, null, 2)}`, 'processResults');
+                } else {
+                    logResult('fail', `❌ Pencairan failed: ${result.error}`, 'processResults');
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Error processing anggota keluar: ${error.message}`, 'processResults');
+            }
+        }
+
+        function verifyCOAIntegration() {
+            logResult('info', '✅ Verifying COA integration...', 'verificationResults');
+            
+            try {
+                // Get current COA balances
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const kasAccount = coa.find(c => c.kode === '1-1000');
+                const currentKasBalance = kasAccount ? kasAccount.saldo : 0;
+
+                // Calculate expected balance
+                const expectedKasBalance = testState.initialKasBalance - testState.pencairanAmount;
+                const actualDifference = testState.initialKasBalance - currentKasBalance;
+
+                // Check jurnal entries
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const pencairanEntries = jurnal.filter(j => 
+                    j.keterangan && j.keterangan.includes('Pencairan') && 
+                    j.keterangan.includes('Test Anggota COA Integration')
+                );
+
+                const balanceComparison = `
+                    <div class="balance-display">
+                        <div class="balance-item balance-before">
+                            <h6>Kas Sebelum</h6>
+                            <h4>${formatRupiah(testState.initialKasBalance)}</h4>
+                        </div>
+                        <div class="balance-item balance-after">
+                            <h6>Kas Sesudah</h6>
+                            <h4>${formatRupiah(currentKasBalance)}</h4>
+                        </div>
+                        <div class="balance-item balance-diff">
+                            <h6>Selisih</h6>
+                            <h4>${formatRupiah(actualDifference)}</h4>
+                        </div>
+                        <div class="balance-item balance-diff">
+                            <h6>Expected</h6>
+                            <h4>${formatRupiah(testState.pencairanAmount)}</h4>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('verificationResults').innerHTML = balanceComparison;
+
+                // Verify results
+                const tests = [
+                    {
+                        name: 'Kas balance reduced correctly',
+                        condition: Math.abs(actualDifference - testState.pencairanAmount) < 1,
+                        details: `Expected: ${formatRupiah(testState.pencairanAmount)}, Actual: ${formatRupiah(actualDifference)}`
+                    },
+                    {
+                        name: 'Journal entries created',
+                        condition: pencairanEntries.length > 0,
+                        details: `Found ${pencairanEntries.length} pencairan journal entries`
+                    },
+                    {
+                        name: 'COA integration working',
+                        condition: currentKasBalance === expectedKasBalance,
+                        details: `Current: ${formatRupiah(currentKasBalance)}, Expected: ${formatRupiah(expectedKasBalance)}`
+                    }
+                ];
+
+                let allPassed = true;
+                tests.forEach(test => {
+                    const status = test.condition ? 'pass' : 'fail';
+                    const icon = test.condition ? '✅' : '❌';
+                    
+                    logResult(status, `${icon} ${test.name}: ${test.details}`, 'verificationResults');
+                    
+                    if (!test.condition) allPassed = false;
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 COA INTEGRATION TEST PASSED! Saldo Kas berkurang dengan benar.', 'verificationResults');
+                } else {
+                    logResult('fail', '❌ COA INTEGRATION TEST FAILED! Ada masalah dengan integrasi COA.', 'verificationResults');
+                }
+
+                // Show journal entries for verification
+                if (pencairanEntries.length > 0) {
+                    const journalDisplay = pencairanEntries.map(entry => 
+                        `<div class="data-display">
+                            <strong>Jurnal:</strong> ${entry.keterangan}<br>
+                            <strong>Tanggal:</strong> ${entry.tanggal}<br>
+                            <strong>Entries:</strong><br>
+                            ${entry.entries.map(e => `  - ${e.akun}: Debit ${formatRupiah(e.debit)}, Kredit ${formatRupiah(e.kredit)}`).join('<br>')}
+                        </div>`
+                    ).join('');
+                    
+                    document.getElementById('verificationResults').innerHTML += journalDisplay;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Error verifying COA integration: ${error.message}`, 'verificationResults');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('info', '🧪 COA Integration Test Suite Ready');
+            logResult('info', 'Klik tombol di atas untuk menjalankan test secara berurutan.');
+        });
+    </script>
+</body>
+</html>

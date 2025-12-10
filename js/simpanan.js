@@ -2025,36 +2025,100 @@ function createPencairanJournal(anggotaId, jenisSimpanan, jumlah) {
         const referensi = `PENCAIRAN-${anggotaId}-${Date.now()}`;
         const keterangan = `Pencairan ${jenisSimpanan} - ${anggota.nama}`;
         
-        // Create journal entries with enhanced error handling
-        const newEntries = [];
-        
+        // Create journal entries using addJurnal function to ensure COA is updated
         try {
-            // Entry 1: Debit Simpanan (mengurangi kewajiban)
-            const debitEntry = {
-                id: typeof generateId === 'function' ? generateId() : `JRN-${Date.now()}-1`,
-                tanggal: tanggal,
-                keterangan: keterangan,
-                coa: coaSimpanan,
-                debit: parseFloat(jumlah),
-                kredit: 0,
-                referensi: referensi,
-                createdAt: tanggal
-            };
-            
-            // Entry 2: Kredit Kas (mengurangi aset)
-            const kreditEntry = {
-                id: typeof generateId === 'function' ? generateId() : `JRN-${Date.now()}-2`,
-                tanggal: tanggal,
-                keterangan: keterangan,
-                coa: 'Kas',
-                debit: 0,
-                kredit: parseFloat(jumlah),
-                referensi: referensi,
-                createdAt: tanggal
-            };
-            
-            newEntries.push(debitEntry, kreditEntry);
-            jurnal.push(...newEntries);
+            // Use addJurnal function to create entries and update COA automatically
+            if (typeof addJurnal === 'function') {
+                // Create entries array for addJurnal function
+                const jurnalEntries = [
+                    {
+                        akun: coaSimpanan === 'Simpanan Pokok' ? '2-1100' : 
+                              coaSimpanan === 'Simpanan Wajib' ? '2-1200' : 
+                              coaSimpanan === 'Simpanan Sukarela' ? '2-1300' : '2-1100',
+                        debit: parseFloat(jumlah),
+                        kredit: 0
+                    },
+                    {
+                        akun: '1-1000', // Kas account code
+                        debit: 0,
+                        kredit: parseFloat(jumlah)
+                    }
+                ];
+                
+                // Use addJurnal to create entries and update COA saldo
+                addJurnal(keterangan, jurnalEntries, tanggal);
+                
+                // Log successful operation
+                if (typeof logError === 'function') {
+                    logError('createPencairanJournal', 'Journal entries created successfully with COA update', { 
+                        anggotaId,
+                        jenisSimpanan,
+                        jumlah,
+                        referensi,
+                        level: 'info'
+                    });
+                }
+                
+                return {
+                    success: true,
+                    message: `Journal entries created for ${jenisSimpanan}: ${formatRupiah(jumlah)}`,
+                    referensi: referensi,
+                    entries: jurnalEntries.length,
+                    coaUpdated: true
+                };
+            } else {
+                // Fallback: Create entries manually (without COA update)
+                const newEntries = [];
+                
+                // Entry 1: Debit Simpanan (mengurangi kewajiban)
+                const debitEntry = {
+                    id: typeof generateId === 'function' ? generateId() : `JRN-${Date.now()}-1`,
+                    tanggal: tanggal,
+                    keterangan: keterangan,
+                    coa: coaSimpanan,
+                    debit: parseFloat(jumlah),
+                    kredit: 0,
+                    referensi: referensi,
+                    createdAt: tanggal
+                };
+                
+                // Entry 2: Kredit Kas (mengurangi aset)
+                const kreditEntry = {
+                    id: typeof generateId === 'function' ? generateId() : `JRN-${Date.now()}-2`,
+                    tanggal: tanggal,
+                    keterangan: keterangan,
+                    coa: 'Kas',
+                    debit: 0,
+                    kredit: parseFloat(jumlah),
+                    referensi: referensi,
+                    createdAt: tanggal
+                };
+                
+                newEntries.push(debitEntry, kreditEntry);
+                jurnal.push(...newEntries);
+                
+                // Save updated journal
+                if (typeof safeSetLocalStorage === 'function') {
+                    const saveSuccess = safeSetLocalStorage('jurnal', jurnal);
+                    if (!saveSuccess) {
+                        throw new Error('Failed to save to localStorage');
+                    }
+                } else {
+                    localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                }
+                
+                // WARNING: COA not updated in fallback mode
+                console.warn('createPencairanJournal: addJurnal function not available, COA saldo not updated');
+                
+                return {
+                    success: true,
+                    message: `Journal entries created for ${jenisSimpanan}: ${formatRupiah(jumlah)} (COA not updated)`,
+                    referensi: referensi,
+                    entries: newEntries.length,
+                    coaUpdated: false,
+                    warning: 'COA saldo not updated - addJurnal function not available'
+                };
+            }
             
         } catch (entryError) {
             if (typeof logError === 'function') {
@@ -2065,36 +2129,7 @@ function createPencairanJournal(anggotaId, jenisSimpanan, jumlah) {
             }
             return {
                 success: false,
-                error: 'Gagal membuat entri jurnal'
-            };
-        }
-        
-        // Save updated journal with error handling
-        try {
-            if (typeof safeSetLocalStorage === 'function') {
-                const saveSuccess = safeSetLocalStorage('jurnal', jurnal);
-                if (!saveSuccess) {
-                    throw new Error('Failed to save to localStorage');
-                }
-            } else {
-                localStorage.setItem('jurnal', JSON.stringify(jurnal));
-            }
-        } catch (saveError) {
-            if (typeof logError === 'function') {
-                logError('createPencairanJournal', 'Failed to save journal entries', { 
-                    anggotaId,
-                    saveError: saveError.message,
-                    entriesCount: newEntries.length
-                });
-            }
-            
-            if (typeof showUserError === 'function') {
-                showUserError('system_error', 'createPencairanJournal');
-            }
-            
-            return {
-                success: false,
-                error: 'Gagal menyimpan entri jurnal'
+                error: 'Gagal membuat entri jurnal: ' + entryError.message
             };
         }
         
