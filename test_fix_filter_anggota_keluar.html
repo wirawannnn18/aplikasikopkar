@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fix Filter Anggota Keluar</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; }
+        .pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .info { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>✅ Test Fix Filter Anggota Keluar</h1>
+    <p>Verifikasi bahwa perbaikan filtering sudah benar</p>
+
+    <div class="test-section">
+        <h3>Test Perbaikan Filter</h3>
+        <button onclick="testFixedFilter()">Test Fixed Filter</button>
+        <button onclick="testCurrentData()">Test Current Data</button>
+        <button onclick="fixProblematicData()">Fix Problematic Data</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script src="js/koperasi.js"></script>
+    <script>
+        function testFixedFilter() {
+            const testData = [
+                {
+                    id: 1,
+                    nama: 'Anggota Aktif Normal',
+                    statusKeanggotaan: 'Aktif',
+                    pengembalianStatus: null
+                },
+                {
+                    id: 2,
+                    nama: 'Anggota Nonaktif',
+                    statusKeanggotaan: 'Nonaktif',
+                    pengembalianStatus: null
+                },
+                {
+                    id: 3,
+                    nama: 'Anggota Keluar (Harus Disembunyikan)',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-15',
+                    pengembalianStatus: 'Selesai'
+                },
+                {
+                    id: 4,
+                    nama: 'Anggota Aktif dengan Pengembalian Status (Harus Ditampilkan)',
+                    statusKeanggotaan: 'Aktif',
+                    pengembalianStatus: 'Proses'
+                },
+                {
+                    id: 5,
+                    nama: 'Anggota Cuti',
+                    statusKeanggotaan: 'Cuti',
+                    pengembalianStatus: null
+                },
+                {
+                    id: 6,
+                    nama: 'Anggota Aktif dengan Tanggal Keluar (Harus Ditampilkan)',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: '2024-01-20' // Mungkin data tidak konsisten
+                }
+            ];
+
+            const result = filterActiveAnggota(testData);
+
+            let html = '<h4>Test Results:</h4>';
+            
+            html += '<div class="info"><strong>Input Data:</strong><pre>' + JSON.stringify(testData, null, 2) + '</pre></div>';
+            
+            html += '<div class="info"><strong>Filter Result:</strong><pre>' + JSON.stringify(result, null, 2) + '</pre></div>';
+
+            // Verify results
+            const expectedVisible = [1, 2, 4, 5, 6]; // IDs that should be visible
+            const actualVisible = result.map(a => a.id);
+            
+            const isCorrect = expectedVisible.every(id => actualVisible.includes(id)) && 
+                             actualVisible.length === expectedVisible.length &&
+                             !actualVisible.includes(3); // ID 3 should be hidden
+
+            if (isCorrect) {
+                html += '<div class="pass"><strong>✅ TEST PASSED!</strong>';
+                html += '<ul>';
+                html += '<li>Anggota dengan statusKeanggotaan = "Keluar" disembunyikan ✅</li>';
+                html += '<li>Anggota Aktif dengan pengembalianStatus tetap ditampilkan ✅</li>';
+                html += '<li>Anggota Nonaktif dan Cuti tetap ditampilkan ✅</li>';
+                html += '<li>Total yang ditampilkan: ' + result.length + ' dari ' + testData.length + ' ✅</li>';
+                html += '</ul></div>';
+            } else {
+                html += '<div class="fail"><strong>❌ TEST FAILED!</strong>';
+                html += '<ul>';
+                html += '<li>Expected IDs: ' + expectedVisible.join(', ') + '</li>';
+                html += '<li>Actual IDs: ' + actualVisible.join(', ') + '</li>';
+                html += '</ul></div>';
+            }
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        function testCurrentData() {
+            const anggotaData = JSON.parse(localStorage.getItem('anggota') || '[]');
+            
+            if (anggotaData.length === 0) {
+                document.getElementById('testResults').innerHTML = 
+                    '<div class="info">Tidak ada data anggota di localStorage</div>';
+                return;
+            }
+
+            const filteredData = filterActiveAnggota(anggotaData);
+            
+            const keluarMembers = anggotaData.filter(a => a.statusKeanggotaan === 'Keluar');
+            const visibleMembers = filteredData;
+            const hiddenMembers = anggotaData.filter(a => !filteredData.some(f => f.id === a.id));
+
+            let html = '<h4>Current Data Analysis:</h4>';
+            
+            html += '<div class="info"><strong>Total Anggota:</strong> ' + anggotaData.length + '</div>';
+            html += '<div class="info"><strong>Anggota Keluar (statusKeanggotaan = "Keluar"):</strong> ' + keluarMembers.length + '</div>';
+            html += '<div class="info"><strong>Anggota Ditampilkan di Master:</strong> ' + visibleMembers.length + '</div>';
+            html += '<div class="info"><strong>Anggota Disembunyikan:</strong> ' + hiddenMembers.length + '</div>';
+
+            if (hiddenMembers.length > 0) {
+                html += '<div class="info"><strong>Detail Anggota yang Disembunyikan:</strong><pre>' + 
+                    JSON.stringify(hiddenMembers.map(a => ({
+                        id: a.id,
+                        nama: a.nama,
+                        statusKeanggotaan: a.statusKeanggotaan,
+                        pengembalianStatus: a.pengembalianStatus,
+                        tanggalKeluar: a.tanggalKeluar
+                    })), null, 2) + '</pre></div>';
+            }
+
+            // Check for problematic data
+            const problematicMembers = anggotaData.filter(a => 
+                a.statusKeanggotaan !== 'Keluar' && 
+                (a.pengembalianStatus || a.tanggalKeluar)
+            );
+
+            if (problematicMembers.length > 0) {
+                html += '<div class="fail"><strong>⚠️ Data Bermasalah Ditemukan:</strong>';
+                html += '<p>Anggota berikut memiliki pengembalianStatus atau tanggalKeluar tapi statusKeanggotaan bukan "Keluar":</p>';
+                html += '<pre>' + JSON.stringify(problematicMembers.map(a => ({
+                    id: a.id,
+                    nama: a.nama,
+                    statusKeanggotaan: a.statusKeanggotaan,
+                    pengembalianStatus: a.pengembalianStatus,
+                    tanggalKeluar: a.tanggalKeluar
+                })), null, 2) + '</pre></div>';
+            } else {
+                html += '<div class="pass"><strong>✅ Data Konsisten</strong> - Tidak ada data bermasalah</div>';
+            }
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        function fixProblematicData() {
+            const anggotaData = JSON.parse(localStorage.getItem('anggota') || '[]');
+            
+            if (anggotaData.length === 0) {
+                document.getElementById('testResults').innerHTML = 
+                    '<div class="info">Tidak ada data anggota di localStorage</div>';
+                return;
+            }
+
+            let fixedCount = 0;
+            const fixedMembers = [];
+
+            anggotaData.forEach(anggota => {
+                // If anggota has pengembalianStatus = 'Selesai' but statusKeanggotaan is not 'Keluar'
+                if (anggota.pengembalianStatus === 'Selesai' && anggota.statusKeanggotaan !== 'Keluar') {
+                    anggota.statusKeanggotaan = 'Keluar';
+                    fixedMembers.push({
+                        id: anggota.id,
+                        nama: anggota.nama,
+                        action: 'Set statusKeanggotaan to Keluar'
+                    });
+                    fixedCount++;
+                }
+                
+                // If anggota has tanggalKeluar but statusKeanggotaan is not 'Keluar'
+                else if (anggota.tanggalKeluar && anggota.statusKeanggotaan !== 'Keluar') {
+                    anggota.statusKeanggotaan = 'Keluar';
+                    fixedMembers.push({
+                        id: anggota.id,
+                        nama: anggota.nama,
+                        action: 'Set statusKeanggotaan to Keluar (had tanggalKeluar)'
+                    });
+                    fixedCount++;
+                }
+            });
+
+            if (fixedCount > 0) {
+                localStorage.setItem('anggota', JSON.stringify(anggotaData));
+                
+                let html = '<div class="pass"><strong>✅ Data Fixed!</strong>';
+                html += '<p>Fixed ' + fixedCount + ' anggota records:</p>';
+                html += '<pre>' + JSON.stringify(fixedMembers, null, 2) + '</pre>';
+                html += '<p><strong>Action:</strong> Data telah diperbaiki dan disimpan ke localStorage</p></div>';
+                
+                document.getElementById('testResults').innerHTML = html;
+            } else {
+                document.getElementById('testResults').innerHTML = 
+                    '<div class="info">Tidak ada data yang perlu diperbaiki</div>';
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            testFixedFilter();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Filter Anggota Keluar</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; }
+        .pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .info { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Filter Anggota Keluar</h1>
+    <p>Test untuk mengidentifikasi masalah filtering anggota keluar</p>
+
+    <div class="test-section">
+        <h3>Test Data Anggota</h3>
+        <button onclick="testFilterLogic()">Test Filter Logic</button>
+        <button onclick="checkCurrentData()">Check Current Data</button>
+        <button onclick="simulateAnggotaKeluar()">Simulate Anggota Keluar Process</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Simulate the current filterActiveAnggota function
+        function filterActiveAnggota(anggotaList) {
+            if (!Array.isArray(anggotaList)) {
+                return [];
+            }
+            
+            return anggotaList.filter(a => {
+                if (!a || typeof a !== 'object') return false;
+                if (!a.id) return false;
+                
+                // Current logic (PROBLEMATIC)
+                if (a.statusKeanggotaan === 'Keluar') {
+                    return false; // Exclude - permanently left (old system)
+                }
+                
+                if (a.tanggalKeluar) {
+                    return false; // Exclude - permanently left (new system)
+                }
+                
+                // PROBLEM: This is too broad!
+                if (a.pengembalianStatus) {
+                    return false; // Exclude - in exit process or completed
+                }
+                
+                return true;
+            });
+        }
+
+        // Corrected version
+        function filterActiveAnggotaCorrected(anggotaList) {
+            if (!Array.isArray(anggotaList)) {
+                return [];
+            }
+            
+            return anggotaList.filter(a => {
+                if (!a || typeof a !== 'object') return false;
+                if (!a.id) return false;
+                
+                // Only exclude if statusKeanggotaan is 'Keluar'
+                if (a.statusKeanggotaan === 'Keluar') {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+
+        function testFilterLogic() {
+            const testData = [
+                {
+                    id: 1,
+                    nama: 'Anggota Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    pengembalianStatus: null
+                },
+                {
+                    id: 2,
+                    nama: 'Anggota Nonaktif',
+                    statusKeanggotaan: 'Nonaktif',
+                    pengembalianStatus: null
+                },
+                {
+                    id: 3,
+                    nama: 'Anggota Keluar (Benar)',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-15',
+                    pengembalianStatus: 'Selesai'
+                },
+                {
+                    id: 4,
+                    nama: 'Anggota Aktif dengan Pengembalian Status (MASALAH)',
+                    statusKeanggotaan: 'Aktif',
+                    pengembalianStatus: 'Proses' // This causes the bug!
+                },
+                {
+                    id: 5,
+                    nama: 'Anggota Cuti',
+                    statusKeanggotaan: 'Cuti',
+                    pengembalianStatus: null
+                }
+            ];
+
+            const currentResult = filterActiveAnggota(testData);
+            const correctedResult = filterActiveAnggotaCorrected(testData);
+
+            let html = '<h4>Test Results:</h4>';
+            
+            html += '<div class="info"><strong>Test Data:</strong><pre>' + JSON.stringify(testData, null, 2) + '</pre></div>';
+            
+            html += '<div class="fail"><strong>Current Filter Result (BUGGY):</strong><pre>' + JSON.stringify(currentResult, null, 2) + '</pre></div>';
+            
+            html += '<div class="pass"><strong>Corrected Filter Result:</strong><pre>' + JSON.stringify(correctedResult, null, 2) + '</pre></div>';
+
+            html += '<div class="info"><strong>Analysis:</strong>';
+            html += '<ul>';
+            html += '<li>Current filter excludes ' + (testData.length - currentResult.length) + ' members</li>';
+            html += '<li>Corrected filter excludes ' + (testData.length - correctedResult.length) + ' members</li>';
+            html += '<li><strong>Problem:</strong> Current filter excludes anggota with pengembalianStatus even if statusKeanggotaan is not "Keluar"</li>';
+            html += '<li><strong>Solution:</strong> Only check statusKeanggotaan === "Keluar"</li>';
+            html += '</ul></div>';
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        function checkCurrentData() {
+            // Check localStorage data
+            const anggotaData = JSON.parse(localStorage.getItem('anggota') || '[]');
+            
+            let html = '<h4>Current Data Analysis:</h4>';
+            
+            const problematicMembers = anggotaData.filter(a => 
+                a.statusKeanggotaan !== 'Keluar' && a.pengembalianStatus
+            );
+            
+            const actualKeluarMembers = anggotaData.filter(a => 
+                a.statusKeanggotaan === 'Keluar'
+            );
+
+            html += '<div class="info"><strong>Total Anggota:</strong> ' + anggotaData.length + '</div>';
+            html += '<div class="info"><strong>Anggota dengan statusKeanggotaan = "Keluar":</strong> ' + actualKeluarMembers.length + '</div>';
+            html += '<div class="fail"><strong>Anggota bermasalah (bukan Keluar tapi ada pengembalianStatus):</strong> ' + problematicMembers.length + '</div>';
+            
+            if (problematicMembers.length > 0) {
+                html += '<div class="fail"><strong>Detail Anggota Bermasalah:</strong><pre>' + JSON.stringify(problematicMembers.map(a => ({
+                    id: a.id,
+                    nama: a.nama,
+                    statusKeanggotaan: a.statusKeanggotaan,
+                    pengembalianStatus: a.pengembalianStatus,
+                    tanggalKeluar: a.tanggalKeluar
+                })), null, 2) + '</pre></div>';
+            }
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        function simulateAnggotaKeluar() {
+            let html = '<h4>Simulation: Anggota Keluar Process</h4>';
+            
+            html += '<div class="info"><strong>Correct Process:</strong>';
+            html += '<ol>';
+            html += '<li>Anggota starts with statusKeanggotaan = "Aktif"</li>';
+            html += '<li>During wizard process, pengembalianStatus might be set to "Proses"</li>';
+            html += '<li>At completion, statusKeanggotaan should be changed to "Keluar"</li>';
+            html += '<li>pengembalianStatus should be "Selesai"</li>';
+            html += '<li>tanggalKeluar should be set</li>';
+            html += '</ol></div>';
+
+            html += '<div class="fail"><strong>Current Bug:</strong>';
+            html += '<ul>';
+            html += '<li>If pengembalianStatus is set but statusKeanggotaan is not changed to "Keluar"</li>';
+            html += '<li>The member will be hidden from Master Anggota incorrectly</li>';
+            html += '<li>This happens if wizard process is incomplete or interrupted</li>';
+            html += '</ul></div>';
+
+            html += '<div class="pass"><strong>Fix:</strong>';
+            html += '<ul>';
+            html += '<li>Only use statusKeanggotaan === "Keluar" as the filter criteria</li>';
+            html += '<li>Remove pengembalianStatus and tanggalKeluar from filtering logic</li>';
+            html += '<li>These fields are for process tracking, not display filtering</li>';
+            html += '</ul></div>';
+
+            document.getElementById('testResults').innerHTML = html;
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            testFilterLogic();
+        };
+    </script>
+</body>
+</html>

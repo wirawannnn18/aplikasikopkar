@@ -332,25 +332,15 @@ function filterActiveAnggota(anggotaList) {
                 }
                 
                 // FILTERING LOGIC FOR MASTER ANGGOTA DISPLAY:
-                // The goal is to hide only members who have PERMANENTLY LEFT the koperasi
-                // while preserving inactive and leave members for administrative purposes
+                // Only exclude members who have statusKeanggotaan === 'Keluar'
+                // This is the definitive field that indicates permanent exit from koperasi
                 
-                // Check OLD system: statusKeanggotaan === 'Keluar'
-                // This is the legacy field used to mark exited members
+                // IMPORTANT: Only use statusKeanggotaan as the filtering criteria
+                // Other fields like pengembalianStatus and tanggalKeluar are for process tracking
+                // and should NOT be used for display filtering to avoid bugs
+                
                 if (a.statusKeanggotaan === 'Keluar') {
-                    return false; // Exclude - permanently left (old system)
-                }
-                
-                // Check NEW system: has tanggalKeluar (exit date set)
-                // This indicates the member has gone through the exit process
-                if (a.tanggalKeluar) {
-                    return false; // Exclude - permanently left (new system)
-                }
-                
-                // Check NEW system: has pengembalianStatus (went through exit process)
-                // This indicates pencairan process is in progress or completed
-                if (a.pengembalianStatus) {
-                    return false; // Exclude - in exit process or completed
+                    return false; // Exclude - permanently left koperasi
                 }
                 
                 // Include all others (Aktif, Nonaktif, Cuti)
