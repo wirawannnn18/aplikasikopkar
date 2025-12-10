@@ -114,7 +114,7 @@ function renderPinjaman() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaPinjaman" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${anggota.map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterTransactableAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 7: Simpanan Transaction Dropdowns</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .test-case.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .summary {
+            background: #2196F3;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary h2 {
+            margin: 0 0 10px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .clear-btn {
+            background: #f44336;
+        }
+        .clear-btn:hover {
+            background: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <div class="summary">
+        <h2>Test Task 7: Simpanan Transaction Dropdowns</h2>
+        <p>Testing that simpanan dropdowns use filterTransactableAnggota()</p>
+        <p><strong>Total Tests:</strong> <span id="totalTests">0</span></p>
+        <p><strong>Passed:</strong> <span id="passedTests">0</span></p>
+        <p><strong>Failed:</strong> <span id="failedTests">0</span></p>
+    </div>
+
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearStorage()" class="clear-btn">Clear Storage</button>
+
+    <div id="testResults"></div>
+
+    <script src="js/koperasi.js"></script>
+    <script src="js/simpanan.js"></script>
+    <script>
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function clearStorage() {
+            localStorage.clear();
+            alert('Storage cleared!');
+            location.reload();
+        }
+
+        function setupTestData() {
+            // Clear existing data
+            localStorage.removeItem('anggota');
+
+            // Create test anggota with various statuses
+            const anggota = [
+                {
+                    id: 'anggota-1',
+                    nik: '1111111111',
+                    nama: 'Anggota Aktif',
+                    noKartu: 'K001',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'anggota-2',
+                    nik: '2222222222',
+                    nama: 'Anggota Nonaktif',
+                    noKartu: 'K002',
+                    status: 'Nonaktif',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'anggota-3',
+                    nik: '3333333333',
+                    nama: 'Anggota Cuti',
+                    noKartu: 'K003',
+                    status: 'Cuti',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'anggota-4',
+                    nik: '4444444444',
+                    nama: 'Anggota Keluar',
+                    noKartu: 'K004',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-15'
+                },
+                {
+                    id: 'anggota-5',
+                    nik: '5555555555',
+                    nama: 'Anggota Aktif 2',
+                    noKartu: 'K005',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            localStorage.setItem('simpananPokok', JSON.stringify([]));
+            localStorage.setItem('simpananWajib', JSON.stringify([]));
+            localStorage.setItem('simpananSukarela', JSON.stringify([]));
+        }
+
+        function runTest(testName, testFn) {
+            totalTests++;
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'test-title';
+            titleDiv.textContent = `Test ${totalTests}: ${testName}`;
+            testDiv.appendChild(titleDiv);
+
+            try {
+                const result = testFn();
+                if (result.pass) {
+                    testDiv.classList.add('pass');
+                    passedTests++;
+                } else {
+                    testDiv.classList.add('fail');
+                    failedTests++;
+                }
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-result';
+                resultDiv.innerHTML = result.message;
+                testDiv.appendChild(resultDiv);
+            } catch (error) {
+                testDiv.classList.add('fail');
+                failedTests++;
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'test-result';
+                errorDiv.innerHTML = `❌ Error: ${error.message}`;
+                testDiv.appendChild(errorDiv);
+            }
+
+            return testDiv;
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = passedTests;
+            document.getElementById('failedTests').textContent = failedTests;
+        }
+
+        function runAllTests() {
+            // Reset counters
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '';
+
+            // Setup test data
+            setupTestData();
+
+            // Test 1: filterTransactableAnggota behavior
+            const section1 = document.createElement('div');
+            section1.className = 'test-section';
+            section1.innerHTML = '<h3>Test 1: filterTransactableAnggota() Behavior</h3>';
+            
+            section1.appendChild(runTest('Should only include Aktif status', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterTransactableAnggota(allAnggota);
+                const allAktif = filtered.every(a => a.status === 'Aktif');
+                return {
+                    pass: allAktif,
+                    message: allAktif ? 
+                        `✅ All ${filtered.length} anggota have status Aktif` : 
+                        `❌ Some anggota have non-Aktif status`
+                };
+            }));
+
+            section1.appendChild(runTest('Should exclude statusKeanggotaan === Keluar', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterTransactableAnggota(allAnggota);
+                const hasKeluar = filtered.some(a => a.statusKeanggotaan === 'Keluar');
+                return {
+                    pass: !hasKeluar,
+                    message: !hasKeluar ? 
+                        `✅ No anggota keluar in filtered list` : 
+                        `❌ Found anggota keluar in filtered list`
+                };
+            }));
+
+            section1.appendChild(runTest('Should return correct count (2 transactable from 5 total)', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterTransactableAnggota(allAnggota);
+                const expectedCount = 2; // Only 2 with Aktif status AND not Keluar
+                return {
+                    pass: filtered.length === expectedCount,
+                    message: filtered.length === expectedCount ? 
+                        `✅ Correct count: ${filtered.length} transactable anggota` : 
+                        `❌ Expected ${expectedCount}, got ${filtered.length}`
+                };
+            }));
+
+            section1.appendChild(runTest('Should exclude Nonaktif status', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterTransactableAnggota(allAnggota);
+                const hasNonaktif = filtered.some(a => a.status === 'Nonaktif');
+                return {
+                    pass: !hasNonaktif,
+                    message: !hasNonaktif ? 
+                        `✅ No Nonaktif anggota in filtered list` : 
+                        `❌ Found Nonaktif anggota in filtered list`
+                };
+            }));
+
+            section1.appendChild(runTest('Should exclude Cuti status', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterTransactableAnggota(allAnggota);
+                const hasCuti = filtered.some(a => a.status === 'Cuti');
+                return {
+                    pass: !hasCuti,
+                    message: !hasCuti ? 
+                        `✅ No Cuti anggota in filtered list` : 
+                        `❌ Found Cuti anggota in filtered list`
+                };
+            }));
+
+            resultsDiv.appendChild(section1);
+
+            // Test 2: Simpanan Pokok dropdown
+            const section2 = document.createElement('div');
+            section2.className = 'test-section';
+            section2.innerHTML = '<h3>Test 2: Simpanan Pokok Dropdown</h3>';
+
+            section2.appendChild(runTest('Should use filterTransactableAnggota', () => {
+                const html = renderSimpananPokok();
+                const hasAnggotaAktif = html.includes('Anggota Aktif');
+                const hasAnggotaAktif2 = html.includes('Anggota Aktif 2');
+                const hasAnggotaNonaktif = html.includes('Anggota Nonaktif');
+                const hasAnggotaCuti = html.includes('Anggota Cuti');
+                const hasAnggotaKeluar = html.includes('Anggota Keluar');
+                
+                return {
+                    pass: hasAnggotaAktif && hasAnggotaAktif2 && !hasAnggotaNonaktif && !hasAnggotaCuti && !hasAnggotaKeluar,
+                    message: (hasAnggotaAktif && hasAnggotaAktif2 && !hasAnggotaNonaktif && !hasAnggotaCuti && !hasAnggotaKeluar) ? 
+                        `✅ Dropdown shows only Aktif anggota (excluding Nonaktif, Cuti, Keluar)` : 
+                        `❌ Dropdown includes non-transactable anggota (Aktif: ${hasAnggotaAktif}, Aktif2: ${hasAnggotaAktif2}, Nonaktif: ${hasAnggotaNonaktif}, Cuti: ${hasCuti}, Keluar: ${hasAnggotaKeluar})`
+                };
+            }));
+
+            section2.appendChild(runTest('Should have correct option count', () => {
+                const html = renderSimpananPokok();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const select = doc.querySelector('#anggotaPokok');
+                const options = select ? select.querySelectorAll('option') : [];
+                // Should have 3 options: 1 placeholder + 2 transactable anggota
+                const expectedCount = 3;
+                return {
+                    pass: options.length === expectedCount,
+                    message: options.length === expectedCount ? 
+                        `✅ Correct option count: ${options.length} (1 placeholder + 2 anggota)` : 
+                        `❌ Expected ${expectedCount} options, got ${options.length}`
+                };
+            }));
+
+            resultsDiv.appendChild(section2);
+
+            // Test 3: Simpanan Wajib dropdown
+            const section3 = document.createElement('div');
+            section3.className = 'test-section';
+            section3.innerHTML = '<h3>Test 3: Simpanan Wajib Dropdown</h3>';
+
+            section3.appendChild(runTest('Should use filterTransactableAnggota', () => {
+                const html = renderSimpananWajib();
+                const hasAnggotaAktif = html.includes('Anggota Aktif');
+                const hasAnggotaAktif2 = html.includes('Anggota Aktif 2');
+                const hasAnggotaNonaktif = html.includes('Anggota Nonaktif');
+                const hasAnggotaCuti = html.includes('Anggota Cuti');
+                const hasAnggotaKeluar = html.includes('Anggota Keluar');
+                
+                return {
+                    pass: hasAnggotaAktif && hasAnggotaAktif2 && !hasAnggotaNonaktif && !hasAnggotaCuti && !hasAnggotaKeluar,
+                    message: (hasAnggotaAktif && hasAnggotaAktif2 && !hasAnggotaNonaktif && !hasAnggotaCuti && !hasAnggotaKeluar) ? 
+                        `✅ Dropdown shows only Aktif anggota (excluding Nonaktif, Cuti, Keluar)` : 
+                        `❌ Dropdown includes non-transactable anggota`
+                };
+            }));
+
+            section3.appendChild(runTest('Should have correct option count', () => {
+                const html = renderSimpananWajib();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const select = doc.querySelector('#anggotaWajib');
+                const options = select ? select.querySelectorAll('option') : [];
+                const expectedCount = 3;
+                return {
+                    pass: options.length === expectedCount,
+                    message: options.length === expectedCount ? 
+                        `✅ Correct option count: ${options.length}` : 
+                        `❌ Expected ${expectedCount} options, got ${options.length}`
+                };
+            }));
+
+            resultsDiv.appendChild(section3);
+
+            // Test 4: Simpanan Sukarela dropdown
+            const section4 = document.createElement('div');
+            section4.className = 'test-section';
+            section4.innerHTML = '<h3>Test 4: Simpanan Sukarela Dropdown</h3>';
+
+            section4.appendChild(runTest('Should use filterTransactableAnggota for setor', () => {
+                const html = renderSimpananSukarela();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const select = doc.querySelector('#anggotaSukarela');
+                const options = select ? select.querySelectorAll('option') : [];
+                const expectedCount = 3;
+                return {
+                    pass: options.length === expectedCount,
+                    message: options.length === expectedCount ? 
+                        `✅ Setor dropdown has correct count: ${options.length}` : 
+                        `❌ Expected ${expectedCount} options, got ${options.length}`
+                };
+            }));
+
+            section4.appendChild(runTest('Should use filterTransactableAnggota for tarik', () => {
+                const html = renderSimpananSukarela();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const select = doc.querySelector('#anggotaTarik');
+                const options = select ? select.querySelectorAll('option') : [];
+                const expectedCount = 3;
+                return {
+                    pass: options.length === expectedCount,
+                    message: options.length === expectedCount ? 
+                        `✅ Tarik dropdown has correct count: ${options.length}` : 
+                        `❌ Expected ${expectedCount} options, got ${options.length}`
+                };
+            }));
+
+            resultsDiv.appendChild(section4);
+
+            // Test 5: Data preservation
+            const section5 = document.createElement('div');
+            section5.className = 'test-section';
+            section5.innerHTML = '<h3>Test 5: Data Preservation</h3>';
+
+            section5.appendChild(runTest('Should preserve all anggota in localStorage', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                return {
+                    pass: allAnggota.length === 5,
+                    message: allAnggota.length === 5 ? 
+                        `✅ All 5 anggota preserved in localStorage` : 
+                        `❌ Expected 5, got ${allAnggota.length}`
+                };
+            }));
+
+            section5.appendChild(runTest('Filtering should not modify localStorage', () => {
+                const beforeFilter = JSON.parse(localStorage.getItem('anggota') || '[]').length;
+                filterTransactableAnggota(JSON.parse(localStorage.getItem('anggota') || '[]'));
+                const afterFilter = JSON.parse(localStorage.getItem('anggota') || '[]').length;
+                return {
+                    pass: beforeFilter === afterFilter,
+                    message: beforeFilter === afterFilter ? 
+                        `✅ localStorage unchanged (${beforeFilter} anggota)` : 
+                        `❌ localStorage modified (before: ${beforeFilter}, after: ${afterFilter})`
+                };
+            }));
+
+            resultsDiv.appendChild(section5);
+
+            updateSummary();
+        }
+
+        // Run tests on page load
+        window.onload = () => {
+            runAllTests();
+        };
+    </script>
+</body>
+</html>

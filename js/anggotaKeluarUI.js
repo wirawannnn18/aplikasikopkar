@@ -3569,15 +3569,14 @@ function renderAnggotaKeluarPage() {
     const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
     
     // Separate active and keluar anggota
+    // Anggota Aktif: Can be processed for keluar (not keluar yet)
     const anggotaAktif = anggotaList.filter(a => 
-        a.status === 'Aktif' && 
-        (!a.pengembalianStatus || a.pengembalianStatus === '')
+        a.statusKeanggotaan !== 'Keluar'
     );
     
+    // Anggota Keluar: Only those with statusKeanggotaan === 'Keluar'
     const anggotaKeluar = anggotaList.filter(a => 
-        a.status === 'Nonaktif' || 
-        a.pengembalianStatus === 'Pending' || 
-        a.pengembalianStatus === 'Selesai'
+        a.statusKeanggotaan === 'Keluar'
     );
     
     content.innerHTML = `
@@ -3692,6 +3691,33 @@ function renderAnggotaKeluarPage() {
                 
                 <!-- Anggota Keluar Tab -->
                 <div class="tab-pane fade" id="keluar" role="tabpanel">
+                    <!-- Search Box -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label">
+                                        <i class="bi bi-search me-1"></i>Pencarian
+                                    </label>
+                                    <input type="text" class="form-control" id="searchAnggotaKeluarPage" 
+                                        placeholder="Cari NIK atau Nama..." 
+                                        onkeyup="filterAnggotaKeluarPage()">
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button class="btn btn-secondary" onclick="resetSearchAnggotaKeluarPage()">
+                                        <i class="bi bi-x-circle me-1"></i>Reset
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Menampilkan <strong id="countFilteredAnggotaKeluar">${anggotaKeluar.length}</strong> dari <strong id="countTotalAnggotaKeluar">${anggotaKeluar.length}</strong> anggota keluar
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="card">
                         <div class="card-header bg-warning text-dark">
                             <i class="bi bi-box-arrow-right me-2"></i>Daftar Anggota Keluar
@@ -3716,7 +3742,7 @@ function renderAnggotaKeluarPage() {
                                                 <th>Aksi</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody id="tbodyAnggotaKeluarPage">
                                             ${anggotaKeluar.map((anggota, index) => `
                                                 <tr>
                                                     <td>${index + 1}</td>
@@ -3786,4 +3812,116 @@ function renderAnggotaKeluarPage() {
             </div>
         </div>
     `;
+}
+
+/**
+ * Filter Anggota Keluar based on search text
+ * Task 17: Search only within anggota with statusKeanggotaan === 'Keluar'
+ * Requirements: 7.4, 7.5
+ */
+function filterAnggotaKeluarPage() {
+    const searchText = document.getElementById('searchAnggotaKeluarPage')?.value.toLowerCase() || '';
+    
+    // Get all anggota keluar (statusKeanggotaan === 'Keluar')
+    const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+    const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+    
+    // Filter by search text (NIK or Nama)
+    const filtered = anggotaKeluar.filter(a => {
+        if (!searchText) return true;
+        
+        const nikMatch = a.nik && a.nik.toLowerCase().includes(searchText);
+        const namaMatch = a.nama && a.nama.toLowerCase().includes(searchText);
+        
+        return nikMatch || namaMatch;
+    });
+    
+    // Update count display
+    const countFilteredElement = document.getElementById('countFilteredAnggotaKeluar');
+    const countTotalElement = document.getElementById('countTotalAnggotaKeluar');
+    
+    if (countFilteredElement) {
+        countFilteredElement.textContent = filtered.length;
+    }
+    if (countTotalElement) {
+        countTotalElement.textContent = anggotaKeluar.length;
+    }
+    
+    // Render filtered table
+    renderTableAnggotaKeluarPage(filtered);
+}
+
+/**
+ * Reset search for Anggota Keluar page
+ * Task 17: Clear search and show all anggota keluar
+ */
+function resetSearchAnggotaKeluarPage() {
+    // Clear search input
+    const searchInput = document.getElementById('searchAnggotaKeluarPage');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Re-filter (will show all)
+    filterAnggotaKeluarPage();
+}
+
+/**
+ * Render table for Anggota Keluar page
+ * Task 17: Render filtered anggota keluar
+ */
+function renderTableAnggotaKeluarPage(anggotaKeluar) {
+    const tbody = document.getElementById('tbodyAnggotaKeluarPage');
+    
+    if (!tbody) return;
+    
+    if (anggotaKeluar.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">
+                    <i class="bi bi-inbox me-2"></i>Tidak ada data yang sesuai dengan pencarian
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = anggotaKeluar.map((anggota, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${anggota.nik}</td>
+            <td>${anggota.nama}</td>
+            <td>${anggota.departemen || '-'}</td>
+            <td>${anggota.tanggalKeluar ? formatDateToDisplay(anggota.tanggalKeluar) : '-'}</td>
+            <td>
+                ${anggota.pengembalianStatus === 'Selesai' 
+                    ? '<span class="badge bg-success">Selesai</span>'
+                    : anggota.pengembalianStatus === 'Pending'
+                    ? '<span class="badge bg-warning">Pending</span>'
+                    : '<span class="badge bg-secondary">-</span>'
+                }
+            </td>
+            <td>
+                ${anggota.pengembalianStatus === 'Pending' ? `
+                    <button class="btn btn-sm btn-primary" 
+                            onclick="showWizardAnggotaKeluar('${anggota.id}')"
+                            title="Lanjutkan Proses dengan Wizard">
+                        <i class="bi bi-play-circle me-1"></i>Lanjutkan
+                    </button>
+                ` : anggota.pengembalianStatus === 'Selesai' ? `
+                    <button class="btn btn-sm btn-info" 
+                            onclick="handleCetakBuktiAnggotaKeluar('${anggota.id}')"
+                            title="Cetak Bukti">
+                        <i class="bi bi-printer me-1"></i>Cetak
+                    </button>
+                ` : `
+                    <button class="btn btn-sm btn-warning" 
+                            onclick="showWizardAnggotaKeluar('${anggota.id}')"
+                            title="Proses dengan Wizard">
+                        <i class="bi bi-magic me-1"></i>Proses
+                    </button>
+                `}
+            </td>
+        </tr>
+    `).join('');
 }

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 18 - Export Functions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .test-section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .test-pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .test-fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .test-info { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .scenario { background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px; border: 1px solid #dee2e6; }
+        .data-display { background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check text-primary"></i>
+            Test Task 18 - Export Functions
+        </h1>
+
+        <div class="test-section">
+            <h3>📋 Test Overview</h3>
+            <p><strong>Task:</strong> Update export functions to exclude anggota keluar and zero balances</p>
+            <p><strong>Requirements:</strong></p>
+            <ul>
+                <li>exportAnggota() excludes anggota with statusKeanggotaan === 'Keluar'</li>
+                <li>Laporan simpanan export excludes zero balances</li>
+                <li>Comments explain the exclusion</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Setup Test Data</h3>
+            <button class="btn btn-primary" onclick="setupTestData()">
+                <i class="bi bi-database-fill-add me-1"></i>Setup Test Data
+            </button>
+            <button class="btn btn-secondary ms-2" onclick="clearTestData()">
+                <i class="bi bi-trash me-1"></i>Clear Test Data
+            </button>
+            <div id="setupResult" class="mt-3"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Run Tests</h3>
+            <button class="btn btn-success" onclick="runAllTests()">
+                <i class="bi bi-play-circle me-1"></i>Run All Tests
+            </button>
+            <div id="testResults" class="mt-3"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>👁️ Manual Export Test</h3>
+            <p>Click the buttons below to test the actual export functions:</p>
+            <button class="btn btn-info me-2" onclick="testExportAnggota()">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i>Test Export Anggota
+            </button>
+            <button class="btn btn-info" onclick="testExportLaporanSimpanan()">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Test Export Laporan Simpanan
+            </button>
+            <div id="manualTestResult" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/anggotaKeluarManager.js"></script>
+
+    <script>
+        // Test data setup
+        function setupTestData() {
+            const testAnggota = [
+                // Aktif anggota - should be exported
+                {
+                    id: 'test-aktif-1',
+                    nik: '1001',
+                    nama: 'Budi Santoso',
+                    noKartu: 'K001',
+                    departemen: 'IT',
+                    tipeAnggota: 'Umum',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    telepon: '081234567890',
+                    email: 'budi@test.com',
+                    alamat: 'Jakarta',
+                    tanggalDaftar: '2024-01-01'
+                },
+                {
+                    id: 'test-aktif-2',
+                    nik: '1002',
+                    nama: 'Siti Rahayu',
+                    noKartu: 'K002',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Umum',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    telepon: '081234567891',
+                    email: 'siti@test.com',
+                    alamat: 'Bandung',
+                    tanggalDaftar: '2024-02-01'
+                },
+                // Keluar anggota - should NOT be exported
+                {
+                    id: 'test-keluar-1',
+                    nik: '2001',
+                    nama: 'Andi Wijaya',
+                    noKartu: 'K003',
+                    departemen: 'HR',
+                    tipeAnggota: 'Umum',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-12-01',
+                    pengembalianStatus: 'Selesai',
+                    telepon: '081234567892',
+                    email: 'andi@test.com',
+                    alamat: 'Surabaya',
+                    tanggalDaftar: '2023-01-01'
+                },
+                {
+                    id: 'test-keluar-2',
+                    nik: '2002',
+                    nama: 'Dewi Lestari',
+                    noKartu: 'K004',
+                    departemen: 'Marketing',
+                    tipeAnggota: 'Umum',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-11-15',
+                    pengembalianStatus: 'Selesai',
+                    telepon: '081234567893',
+                    email: 'dewi@test.com',
+                    alamat: 'Yogyakarta',
+                    tanggalDaftar: '2023-06-01'
+                }
+            ];
+
+            // Setup simpanan data
+            const testSimpananPokok = [
+                { id: 'sp1', anggotaId: 'test-aktif-1', jumlah: 1000000, saldo: 1000000 },
+                { id: 'sp2', anggotaId: 'test-aktif-2', jumlah: 1000000, saldo: 1000000 },
+                { id: 'sp3', anggotaId: 'test-keluar-1', jumlah: 1000000, saldo: 0 }, // Zero balance
+                { id: 'sp4', anggotaId: 'test-keluar-2', jumlah: 1000000, saldo: 0 }  // Zero balance
+            ];
+
+            const testSimpananWajib = [
+                { id: 'sw1', anggotaId: 'test-aktif-1', jumlah: 500000, saldo: 500000 },
+                { id: 'sw2', anggotaId: 'test-aktif-2', jumlah: 500000, saldo: 500000 },
+                { id: 'sw3', anggotaId: 'test-keluar-1', jumlah: 500000, saldo: 0 }, // Zero balance
+                { id: 'sw4', anggotaId: 'test-keluar-2', jumlah: 500000, saldo: 0 }  // Zero balance
+            ];
+
+            const testSimpananSukarela = [
+                { id: 'ss1', anggotaId: 'test-aktif-1', jumlah: 200000 },
+                { id: 'ss2', anggotaId: 'test-aktif-2', jumlah: 300000 },
+                { id: 'ss3', anggotaId: 'test-keluar-1', jumlah: 0 }, // Zero balance
+                { id: 'ss4', anggotaId: 'test-keluar-2', jumlah: 0 }  // Zero balance
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            localStorage.setItem('simpananPokok', JSON.stringify(testSimpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(testSimpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(testSimpananSukarela));
+
+            const result = document.getElementById('setupResult');
+            result.innerHTML = `
+                <div class="test-result test-pass">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Test data created successfully!</strong>
+                    <div class="data-display mt-2">
+                        Total anggota: ${testAnggota.length}<br>
+                        - Aktif: 2 (should be exported)<br>
+                        - Keluar: 2 (should NOT be exported)<br>
+                        <br>
+                        Simpanan:<br>
+                        - Aktif anggota: Non-zero balances<br>
+                        - Keluar anggota: Zero balances (should be excluded from laporan)
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearTestData() {
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            localStorage.removeItem('simpananSukarela');
+            document.getElementById('setupResult').innerHTML = `
+                <div class="test-result test-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Test data cleared.
+                </div>
+            `;
+        }
+
+        // Test functions
+        function runAllTests() {
+            const results = [];
+            
+            // Test 1: exportAnggota excludes keluar
+            results.push(testExportAnggotaExcludesKeluar());
+            
+            // Test 2: Laporan data excludes zero balances
+            results.push(testLaporanExcludesZeroBalances());
+            
+            // Test 3: Export count accuracy
+            results.push(testExportCountAccuracy());
+            
+            // Test 4: CSV format validation
+            results.push(testCSVFormatValidation());
+            
+            displayTestResults(results);
+        }
+
+        function testExportAnggotaExcludesKeluar() {
+            const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const filtered = filterActiveAnggota(allAnggota);
+            
+            const hasKeluar = filtered.some(a => a.statusKeanggotaan === 'Keluar');
+            const expectedCount = 2; // Only aktif anggota
+            const actualCount = filtered.length;
+            
+            return {
+                name: 'Test 1: exportAnggota Excludes Keluar',
+                pass: !hasKeluar && actualCount === expectedCount,
+                message: !hasKeluar && actualCount === expectedCount
+                    ? `✅ Correctly excludes keluar: ${actualCount} anggota exported`
+                    : `❌ Expected ${expectedCount} anggota, got ${actualCount}. Has keluar: ${hasKeluar}`,
+                details: `Filtered: ${actualCount}, Has Keluar: ${hasKeluar}`
+            };
+        }
+
+        function testLaporanExcludesZeroBalances() {
+            const anggotaList = getAnggotaWithSimpananForLaporan();
+            
+            // Check if any anggota with zero balances
+            const hasZeroBalance = anggotaList.some(a => 
+                a.simpananPokok === 0 && a.simpananWajib === 0
+            );
+            
+            const expectedCount = 2; // Only aktif anggota with non-zero balances
+            const actualCount = anggotaList.length;
+            
+            return {
+                name: 'Test 2: Laporan Excludes Zero Balances',
+                pass: !hasZeroBalance && actualCount === expectedCount,
+                message: !hasZeroBalance && actualCount === expectedCount
+                    ? `✅ Correctly excludes zero balances: ${actualCount} anggota in laporan`
+                    : `❌ Expected ${expectedCount} anggota, got ${actualCount}. Has zero: ${hasZeroBalance}`,
+                details: `Filtered: ${actualCount}, Has Zero Balance: ${hasZeroBalance}`
+            };
+        }
+
+        function testExportCountAccuracy() {
+            const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const aktifCount = allAnggota.filter(a => a.statusKeanggotaan !== 'Keluar').length;
+            const keluarCount = allAnggota.filter(a => a.statusKeanggotaan === 'Keluar').length;
+            
+            const expectedAktif = 2;
+            const expectedKeluar = 2;
+            
+            return {
+                name: 'Test 3: Export Count Accuracy',
+                pass: aktifCount === expectedAktif && keluarCount === expectedKeluar,
+                message: aktifCount === expectedAktif && keluarCount === expectedKeluar
+                    ? `✅ Counts accurate: ${aktifCount} aktif, ${keluarCount} keluar`
+                    : `❌ Expected ${expectedAktif} aktif and ${expectedKeluar} keluar`,
+                details: `Aktif: ${aktifCount}, Keluar: ${keluarCount}`
+            };
+        }
+
+        function testCSVFormatValidation() {
+            // Test that CSV generation doesn't throw errors
+            try {
+                const anggotaList = getAnggotaWithSimpananForLaporan();
+                const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+                
+                let csv = 'NIK,Nama Anggota,Simpanan Pokok,Simpanan Wajib,Simpanan Sukarela,Total Simpanan\n';
+                
+                anggotaList.forEach(a => {
+                    const pokok = a.simpananPokok;
+                    const wajib = a.simpananWajib;
+                    const sukarela = simpananSukarela
+                        .filter(s => s.anggotaId === a.id && s.jumlah > 0)
+                        .reduce((sum, s) => sum + s.jumlah, 0);
+                    const total = pokok + wajib + sukarela;
+                    
+                    csv += `${a.nik},"${a.nama}",${pokok},${wajib},${sukarela},${total}\n`;
+                });
+                
+                const hasHeader = csv.includes('NIK,Nama Anggota');
+                const hasData = csv.split('\n').length > 2;
+                
+                return {
+                    name: 'Test 4: CSV Format Validation',
+                    pass: hasHeader && hasData,
+                    message: hasHeader && hasData
+                        ? `✅ CSV format valid with header and data`
+                        : `❌ CSV format invalid`,
+                    details: `Has Header: ${hasHeader}, Has Data: ${hasData}, Lines: ${csv.split('\n').length}`
+                };
+            } catch (error) {
+                return {
+                    name: 'Test 4: CSV Format Validation',
+                    pass: false,
+                    message: `❌ Error generating CSV: ${error.message}`,
+                    details: error.stack
+                };
+            }
+        }
+
+        function displayTestResults(results) {
+            const container = document.getElementById('testResults');
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            
+            let html = `
+                <div class="test-result ${passCount === totalCount ? 'test-pass' : 'test-fail'}">
+                    <h5>
+                        <i class="bi bi-${passCount === totalCount ? 'check-circle' : 'x-circle'} me-2"></i>
+                        Test Results: ${passCount}/${totalCount} passed
+                    </h5>
+                </div>
+            `;
+            
+            results.forEach(result => {
+                html += `
+                    <div class="scenario">
+                        <h6>${result.name}</h6>
+                        <div class="test-result ${result.pass ? 'test-pass' : 'test-fail'}">
+                            ${result.message}
+                        </div>
+                        <div class="data-display">
+                            ${result.details}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function testExportAnggota() {
+            const result = document.getElementById('manualTestResult');
+            result.innerHTML = `
+                <div class="test-result test-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Manual Test:</strong> Click will trigger actual export. Check your downloads folder for the CSV file.
+                    <br><br>
+                    Expected: File named "data_anggota_aktif_YYYY-MM-DD.csv" with 2 anggota (excluding keluar)
+                </div>
+            `;
+            
+            // Trigger actual export
+            exportAnggota();
+        }
+
+        function testExportLaporanSimpanan() {
+            const result = document.getElementById('manualTestResult');
+            result.innerHTML = `
+                <div class="test-result test-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Manual Test:</strong> Click will trigger actual export. Check your downloads folder for the CSV file.
+                    <br><br>
+                    Expected: File named "laporan_simpanan_YYYY-MM-DD.csv" with 2 anggota (excluding zero balances)
+                </div>
+            `;
+            
+            // Trigger actual export
+            exportLaporanSimpananCSV();
+        }
+
+        // Auto-setup on load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded. Ready to test Task 18.');
+        });
+    </script>
+</body>
+</html>

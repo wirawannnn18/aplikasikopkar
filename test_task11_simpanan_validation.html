@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 11 - Simpanan Transaction Validation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-shield-check"></i> Test Task 11 - Simpanan Transaction Validation</h1>
+        <p class="lead">Testing validateAnggotaForTransaction() integration in simpanan save functions</p>
+
+        <div class="alert alert-info">
+            <strong>Test Objective:</strong> Verify that simpanan save functions (Pokok, Wajib, Sukarela) 
+            use validateAnggotaForTransaction() to reject transactions for Nonaktif, Cuti, and Keluar anggota.
+        </div>
+
+        <button class="btn btn-primary mb-3" onclick="runAllTests()">
+            <i class="bi bi-play-fill"></i> Run All Tests
+        </button>
+        <button class="btn btn-secondary mb-3" onclick="clearResults()">
+            <i class="bi bi-x-circle"></i> Clear Results
+        </button>
+
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/koperasi.js"></script>
+    <script src="js/transactionValidator.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function addResult(testName, passed, message, details = '') {
+            testResults.push({ testName, passed, message, details });
+            displayResults();
+        }
+
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            const passCount = testResults.filter(r => r.passed).length;
+            const failCount = testResults.filter(r => !r.passed).length;
+
+            let html = `
+                <div class="alert ${failCount === 0 ? 'alert-success' : 'alert-warning'}">
+                    <strong>Test Summary:</strong> ${passCount} passed, ${failCount} failed out of ${testResults.length} tests
+                </div>
+            `;
+
+            testResults.forEach((result, index) => {
+                html += `
+                    <div class="test-section">
+                        <h5>Test ${index + 1}: ${result.testName}</h5>
+                        <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                            <strong>${result.passed ? '✓ PASS' : '✗ FAIL'}:</strong> ${result.message}
+                        </div>
+                        ${result.details ? `<div class="test-info mt-2"><small>${result.details}</small></div>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function setupTestData() {
+            // Create test anggota with various statuses
+            const testAnggota = [
+                // Valid for transactions
+                { id: 'A001', nik: '1001', nama: 'Aktif Normal', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+                
+                // Invalid for transactions
+                { id: 'A002', nik: '1002', nama: 'Nonaktif User', status: 'Nonaktif', statusKeanggotaan: 'Aktif' },
+                { id: 'A003', nik: '1003', nama: 'Cuti User', status: 'Cuti', statusKeanggotaan: 'Aktif' },
+                { id: 'A004', nik: '1004', nama: 'Keluar User', status: 'Aktif', statusKeanggotaan: 'Keluar', tanggalKeluar: '2024-01-01' },
+                { id: 'A005', nik: '1005', nama: 'Keluar Pending', status: 'Aktif', statusKeanggotaan: 'Keluar', pengembalianStatus: 'pending' }
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            return testAnggota;
+        }
+
+        // Test 1: validateAnggotaForSimpanan exists
+        function test1_FunctionExists() {
+            if (typeof validateAnggotaForSimpanan === 'function') {
+                addResult(
+                    'validateAnggotaForSimpanan function exists',
+                    true,
+                    'Function is defined and available',
+                    'This function wraps validateAnggotaForTransaction with simpanan-specific error messages'
+                );
+            } else {
+                addResult(
+                    'validateAnggotaForSimpanan function exists',
+                    false,
+                    'Function is not defined',
+                    'Expected validateAnggotaForSimpanan to be defined in transactionValidator.js'
+                );
+            }
+        }
+
+        // Test 2: Rejects Nonaktif anggota
+        function test2_RejectsNonaktif() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('A002'); // Nonaktif
+            
+            if (!result.valid && result.error.includes('Nonaktif')) {
+                addResult(
+                    'Reject Nonaktif anggota',
+                    true,
+                    'Validation correctly rejects Nonaktif anggota',
+                    `Error message: "${result.error}"`
+                );
+            } else {
+                addResult(
+                    'Reject Nonaktif anggota',
+                    false,
+                    'Validation did not reject Nonaktif anggota',
+                    `Result: valid=${result.valid}, error="${result.error}"`
+                );
+            }
+        }
+
+        // Test 3: Rejects Cuti anggota
+        function test3_RejectsCuti() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('A003'); // Cuti
+            
+            if (!result.valid && result.error.includes('Cuti')) {
+                addResult(
+                    'Reject Cuti anggota',
+                    true,
+                    'Validation correctly rejects Cuti anggota',
+                    `Error message: "${result.error}"`
+                );
+            } else {
+                addResult(
+                    'Reject Cuti anggota',
+                    false,
+                    'Validation did not reject Cuti anggota',
+                    `Result: valid=${result.valid}, error="${result.error}"`
+                );
+            }
+        }
+
+        // Test 4: Rejects Keluar anggota
+        function test4_RejectsKeluar() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('A004'); // Keluar
+            
+            if (!result.valid && result.error.includes('keluar')) {
+                addResult(
+                    'Reject Keluar anggota',
+                    true,
+                    'Validation correctly rejects Keluar anggota',
+                    `Error message: "${result.error}"`
+                );
+            } else {
+                addResult(
+                    'Reject Keluar anggota',
+                    false,
+                    'Validation did not reject Keluar anggota',
+                    `Result: valid=${result.valid}, error="${result.error}"`
+                );
+            }
+        }
+
+        // Test 5: Rejects Keluar with pending pengembalian
+        function test5_RejectsKeluarPending() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('A005'); // Keluar with pending
+            
+            if (!result.valid) {
+                addResult(
+                    'Reject Keluar with pending pengembalian',
+                    true,
+                    'Validation correctly rejects Keluar anggota with pending status',
+                    `Error message: "${result.error}"`
+                );
+            } else {
+                addResult(
+                    'Reject Keluar with pending pengembalian',
+                    false,
+                    'Validation did not reject Keluar anggota with pending status',
+                    `Result: valid=${result.valid}`
+                );
+            }
+        }
+
+        // Test 6: Accepts Aktif anggota
+        function test6_AcceptsAktif() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('A001'); // Aktif
+            
+            if (result.valid) {
+                addResult(
+                    'Accept Aktif anggota',
+                    true,
+                    'Validation correctly accepts Aktif anggota',
+                    'Aktif anggota can perform simpanan transactions'
+                );
+            } else {
+                addResult(
+                    'Accept Aktif anggota',
+                    false,
+                    'Validation rejected Aktif anggota',
+                    `Error: "${result.error}"`
+                );
+            }
+        }
+
+        // Test 7: Returns proper error structure
+        function test7_ErrorStructure() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('A002'); // Nonaktif
+            
+            const hasValidField = typeof result.valid === 'boolean';
+            const hasErrorField = typeof result.error === 'string';
+            const errorIncludesSimpanan = result.error && result.error.includes('simpanan');
+            
+            if (hasValidField && hasErrorField && errorIncludesSimpanan) {
+                addResult(
+                    'Error structure is correct',
+                    true,
+                    'Validation returns proper error structure with simpanan context',
+                    `Structure: { valid: ${result.valid}, error: "${result.error}" }`
+                );
+            } else {
+                addResult(
+                    'Error structure is correct',
+                    false,
+                    'Validation error structure is incorrect',
+                    `hasValidField: ${hasValidField}, hasErrorField: ${hasErrorField}, errorIncludesSimpanan: ${errorIncludesSimpanan}`
+                );
+            }
+        }
+
+        // Test 8: Handles missing anggota
+        function test8_HandlesMissingAnggota() {
+            setupTestData();
+            const result = validateAnggotaForSimpanan('NONEXISTENT');
+            
+            if (!result.valid && result.error) {
+                addResult(
+                    'Handle missing anggota',
+                    true,
+                    'Validation correctly handles non-existent anggota',
+                    `Error message: "${result.error}"`
+                );
+            } else {
+                addResult(
+                    'Handle missing anggota',
+                    false,
+                    'Validation did not handle missing anggota properly',
+                    `Result: valid=${result.valid}`
+                );
+            }
+        }
+
+        // Test 9: Handles null/undefined anggotaId
+        function test9_HandlesNullId() {
+            setupTestData();
+            const result1 = validateAnggotaForSimpanan(null);
+            const result2 = validateAnggotaForSimpanan(undefined);
+            const result3 = validateAnggotaForSimpanan('');
+            
+            if (!result1.valid && !result2.valid && !result3.valid) {
+                addResult(
+                    'Handle null/undefined/empty anggotaId',
+                    true,
+                    'Validation correctly rejects null, undefined, and empty IDs',
+                    'All three cases properly rejected'
+                );
+            } else {
+                addResult(
+                    'Handle null/undefined/empty anggotaId',
+                    false,
+                    'Validation did not handle invalid IDs properly',
+                    `null: ${result1.valid}, undefined: ${result2.valid}, empty: ${result3.valid}`
+                );
+            }
+        }
+
+        // Test 10: Calls validateAnggotaForTransaction internally
+        function test10_CallsBaseValidator() {
+            setupTestData();
+            
+            // Test with Nonaktif - should get same base error
+            const baseResult = validateAnggotaForTransaction('A002');
+            const simpananResult = validateAnggotaForSimpanan('A002');
+            
+            // Simpanan error should contain base error message
+            const containsBaseError = simpananResult.error.includes('Nonaktif');
+            const addsSimpananContext = simpananResult.error.includes('simpanan');
+            
+            if (containsBaseError && addsSimpananContext) {
+                addResult(
+                    'Calls validateAnggotaForTransaction internally',
+                    true,
+                    'validateAnggotaForSimpanan wraps base validator correctly',
+                    `Base error included with simpanan context added`
+                );
+            } else {
+                addResult(
+                    'Calls validateAnggotaForTransaction internally',
+                    false,
+                    'validateAnggotaForSimpanan does not properly wrap base validator',
+                    `containsBaseError: ${containsBaseError}, addsSimpananContext: ${addsSimpananContext}`
+                );
+            }
+        }
+
+        function runAllTests() {
+            clearResults();
+            
+            console.log('Starting Task 11 tests...');
+            
+            test1_FunctionExists();
+            test2_RejectsNonaktif();
+            test3_RejectsCuti();
+            test4_RejectsKeluar();
+            test5_RejectsKeluarPending();
+            test6_AcceptsAktif();
+            test7_ErrorStructure();
+            test8_HandlesMissingAnggota();
+            test9_HandlesNullId();
+            test10_CallsBaseValidator();
+            
+            console.log('All tests completed!');
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, ready to run tests');
+        });
+    </script>
+</body>
+</html>

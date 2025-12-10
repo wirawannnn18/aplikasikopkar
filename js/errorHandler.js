@@ -1,378 +1,451 @@
 /**
- * Error Handler
- * Centralized error handling and user feedback system
+ * Comprehensive Error Handler Module
+ * Provides centralized error handling, logging, and user-friendly error messages
+ * for the Anggota Keluar feature implementation
  */
 
-class ErrorHandler {
-    constructor() {
-        this.errorMessages = {
-            // Generic errors
-            'UNKNOWN_ERROR': 'Terjadi kesalahan yang tidak diketahui',
-            'NETWORK_ERROR': 'Kesalahan koneksi jaringan',
-            'TIMEOUT_ERROR': 'Operasi melebihi batas waktu',
-            
-            // Data errors
-            'DATA_NOT_FOUND': 'Data tidak ditemukan',
-            'DATA_INVALID': 'Data tidak valid',
-            'DATA_DUPLICATE': 'Data sudah ada',
-            'DATA_CORRUPTED': 'Data rusak atau tidak dapat dibaca',
-            
-            // Permission errors
-            'PERMISSION_DENIED': 'Anda tidak memiliki izin untuk operasi ini',
-            'SESSION_EXPIRED': 'Sesi Anda telah berakhir, silakan login kembali',
-            'UNAUTHORIZED': 'Akses tidak diizinkan',
-            
-            // Validation errors
-            'VALIDATION_FAILED': 'Validasi data gagal',
-            'REQUIRED_FIELD': 'Field wajib tidak boleh kosong',
-            'INVALID_FORMAT': 'Format data tidak valid',
-            'INVALID_RANGE': 'Nilai di luar rentang yang diizinkan',
-            
-            // Business logic errors
-            'INSUFFICIENT_BALANCE': 'Saldo tidak mencukupi',
-            'STOCK_UNAVAILABLE': 'Stok barang tidak tersedia',
-            'TRANSACTION_FAILED': 'Transaksi gagal',
-            'ACCOUNTING_UNBALANCED': 'Jurnal tidak seimbang',
-            
-            // Storage errors
-            'STORAGE_FULL': 'Penyimpanan penuh',
-            'STORAGE_ERROR': 'Kesalahan penyimpanan data',
-            'BACKUP_FAILED': 'Backup gagal',
-            'RESTORE_FAILED': 'Restore gagal'
-        };
+// ===== Error Logging and Debugging =====
 
-        this.notificationContainer = null;
-        this.loadingOverlay = null;
-        this.init();
-    }
-
-    /**
-     * Initialize error handler
-     */
-    init() {
-        // Create notification container
-        this.createNotificationContainer();
-        
-        // Create loading overlay
-        this.createLoadingOverlay();
-        
-        // Setup global error handler
-        window.addEventListener('error', (event) => {
-            this.logError(event.error, 'Global Error');
-        });
-
-        window.addEventListener('unhandledrejection', (event) => {
-            this.logError(event.reason, 'Unhandled Promise Rejection');
-        });
-    }
-
-    /**
-     * Handle error with user-friendly message
-     */
-    handleError(error, context = '') {
-        // Log to console
-        this.logError(error, context);
-
-        // Get user-friendly message
-        const message = this.getUserFriendlyMessage(error);
-
-        // Show notification
-        this.showError(message, context);
-
-        // Log to audit
-        if (typeof auditLogger !== 'undefined') {
-            auditLogger.logOperation('ERROR', 'SYSTEM', 'ERROR', {
-                error: error.message || error,
-                context: context,
-                stack: error.stack
-            });
-        }
-    }
-
-    /**
-     * Log error for debugging
-     */
-    logError(error, context = '') {
-        const timestamp = new Date().toISOString();
-        const errorInfo = {
-            timestamp,
-            context,
-            message: error.message || error,
+/**
+ * Enhanced error logger with context and stack trace
+ * @param {string} context - Context where error occurred (e.g., 'filterActiveAnggota')
+ * @param {Error|string} error - Error object or message
+ * @param {object} additionalData - Additional context data
+ */
+function logError(context, error, additionalData = {}) {
+    const timestamp = new Date().toISOString();
+    const errorInfo = {
+        timestamp,
+        context,
+        error: error instanceof Error ? {
+            message: error.message,
             stack: error.stack,
-            type: error.name || 'Error'
-        };
-
-        console.error(`[ERROR] ${context}:`, errorInfo);
-
-        // Store in localStorage for debugging
-        try {
-            const errorLog = JSON.parse(localStorage.getItem('errorLog') || '[]');
-            errorLog.unshift(errorInfo);
-            
-            // Keep only last 50 errors
-            if (errorLog.length > 50) {
-                errorLog.length = 50;
-            }
-            
-            localStorage.setItem('errorLog', JSON.stringify(errorLog));
-        } catch (e) {
-            console.error('Failed to log error to localStorage:', e);
-        }
+            name: error.name
+        } : error,
+        additionalData,
+        userAgent: navigator.userAgent,
+        url: window.location.href
+    };
+    
+    // Log to console with structured format
+    console.group(`🚨 Error in ${context} at ${timestamp}`);
+    console.error('Error Details:', errorInfo);
+    if (error instanceof Error && error.stack) {
+        console.error('Stack Trace:', error.stack);
     }
-
-    /**
-     * Show success notification
-     */
-    showSuccess(message, details = null) {
-        this.showNotification(message, 'success', details);
+    if (Object.keys(additionalData).length > 0) {
+        console.error('Additional Context:', additionalData);
     }
-
-    /**
-     * Show error notification
-     */
-    showError(message, details = null) {
-        this.showNotification(message, 'error', details);
-    }
-
-    /**
-     * Show warning notification
-     */
-    showWarning(message, details = null) {
-        this.showNotification(message, 'warning', details);
-    }
-
-    /**
-     * Show info notification
-     */
-    showInfo(message, details = null) {
-        this.showNotification(message, 'info', details);
-    }
-
-    /**
-     * Show notification
-     */
-    showNotification(message, type = 'info', details = null) {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
+    console.groupEnd();
+    
+    // Store error in localStorage for debugging (keep last 50 errors)
+    try {
+        const errorLog = JSON.parse(localStorage.getItem('errorLog') || '[]');
+        errorLog.unshift(errorInfo);
         
-        const icon = this.getIconForType(type);
+        // Keep only last 50 errors to prevent localStorage bloat
+        if (errorLog.length > 50) {
+            errorLog.splice(50);
+        }
         
-        notification.innerHTML = `
-            <div class="notification-icon">${icon}</div>
-            <div class="notification-content">
-                <div class="notification-message">${AuditUtils.sanitizeHtml(message)}</div>
-                ${details ? `<div class="notification-details">${AuditUtils.sanitizeHtml(details)}</div>` : ''}
-            </div>
-            <button class="notification-close">&times;</button>
-        `;
-
-        // Add close handler
-        notification.querySelector('.notification-close').addEventListener('click', () => {
-            this.removeNotification(notification);
-        });
-
-        // Add to container
-        this.notificationContainer.appendChild(notification);
-
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            this.removeNotification(notification);
-        }, 5000);
-
-        // Animate in
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
+        localStorage.setItem('errorLog', JSON.stringify(errorLog));
+    } catch (logStorageError) {
+        console.warn('Failed to store error in localStorage:', logStorageError);
     }
+}
 
-    /**
-     * Remove notification
-     */
-    removeNotification(notification) {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }
-
-    /**
-     * Show loading indicator
-     */
-    showLoading(message = 'Memproses...') {
-        this.loadingOverlay.querySelector('.loading-message').textContent = message;
-        this.loadingOverlay.classList.add('show');
-
-        return {
-            hide: () => this.hideLoading(),
-            updateMessage: (newMessage) => {
-                this.loadingOverlay.querySelector('.loading-message').textContent = newMessage;
-            }
-        };
-    }
-
-    /**
-     * Hide loading indicator
-     */
-    hideLoading() {
-        this.loadingOverlay.classList.remove('show');
-    }
-
-    /**
-     * Show confirmation dialog for destructive actions
-     */
-    confirmDestructiveAction(message, requireReason = false) {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            
-            modal.innerHTML = `
-                <div class="modal-content confirmation-modal">
-                    <div class="modal-header">
-                        <h3>Konfirmasi</h3>
-                    </div>
-                    <div class="modal-body">
-                        <p>${AuditUtils.sanitizeHtml(message)}</p>
-                        ${requireReason ? `
-                            <div class="form-group">
-                                <label>Alasan:</label>
-                                <textarea id="confirmReason" class="form-control" rows="3" required></textarea>
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" id="cancelBtn">Batal</button>
-                        <button class="btn btn-danger" id="confirmBtn">Ya, Lanjutkan</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            // Show modal
-            setTimeout(() => modal.classList.add('show'), 10);
-
-            // Handle confirm
-            modal.querySelector('#confirmBtn').addEventListener('click', () => {
-                if (requireReason) {
-                    const reason = modal.querySelector('#confirmReason').value.trim();
-                    if (!reason) {
-                        this.showWarning('Alasan harus diisi');
-                        return;
-                    }
-                    this.removeModal(modal);
-                    resolve({ confirmed: true, reason });
-                } else {
-                    this.removeModal(modal);
-                    resolve({ confirmed: true });
-                }
-            });
-
-            // Handle cancel
-            modal.querySelector('#cancelBtn').addEventListener('click', () => {
-                this.removeModal(modal);
-                resolve({ confirmed: false });
-            });
-
-            // Handle click outside
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.removeModal(modal);
-                    resolve({ confirmed: false });
-                }
-            });
-        });
-    }
-
-    /**
-     * Remove modal
-     */
-    removeModal(modal) {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
-    }
-
-    /**
-     * Get user-friendly error message
-     */
-    getUserFriendlyMessage(error) {
-        if (typeof error === 'string') {
-            return this.errorMessages[error] || error;
-        }
-
-        if (error.code && this.errorMessages[error.code]) {
-            return this.errorMessages[error.code];
-        }
-
-        if (error.message) {
-            return error.message;
-        }
-
-        return this.errorMessages['UNKNOWN_ERROR'];
-    }
-
-    /**
-     * Get icon for notification type
-     */
-    getIconForType(type) {
-        const icons = {
-            success: '✓',
-            error: '✕',
-            warning: '⚠',
-            info: 'ℹ'
-        };
-        return icons[type] || icons.info;
-    }
-
-    /**
-     * Create notification container
-     */
-    createNotificationContainer() {
-        this.notificationContainer = document.createElement('div');
-        this.notificationContainer.id = 'notificationContainer';
-        this.notificationContainer.className = 'notification-container';
-        document.body.appendChild(this.notificationContainer);
-    }
-
-    /**
-     * Create loading overlay
-     */
-    createLoadingOverlay() {
-        this.loadingOverlay = document.createElement('div');
-        this.loadingOverlay.className = 'loading-overlay';
-        this.loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-                <div class="loading-message">Memproses...</div>
-            </div>
-        `;
-        document.body.appendChild(this.loadingOverlay);
-    }
-
-    /**
-     * Get error log
-     */
-    getErrorLog() {
+/**
+ * Get error log for debugging
+ * @returns {Array} Array of error log entries
+ */
+function getErrorLog() {
+    try {
         return JSON.parse(localStorage.getItem('errorLog') || '[]');
-    }
-
-    /**
-     * Clear error log
-     */
-    clearErrorLog() {
-        localStorage.setItem('errorLog', '[]');
+    } catch (error) {
+        console.warn('Failed to retrieve error log:', error);
+        return [];
     }
 }
 
-// Create global instance
-const errorHandler = new ErrorHandler();
+/**
+ * Clear error log
+ */
+function clearErrorLog() {
+    try {
+        localStorage.removeItem('errorLog');
+        console.log('Error log cleared');
+    } catch (error) {
+        console.warn('Failed to clear error log:', error);
+    }
+}
 
-// Export for use in other modules
+// ===== User-Friendly Error Messages =====
+
+/**
+ * Error message mappings for user-friendly display
+ */
+const ERROR_MESSAGES = {
+    // Data access errors
+    'localStorage_not_available': 'Penyimpanan data tidak tersedia. Pastikan browser mendukung localStorage.',
+    'data_corrupted': 'Data rusak atau tidak valid. Silakan refresh halaman atau hubungi administrator.',
+    'data_not_found': 'Data tidak ditemukan. Pastikan data sudah tersimpan dengan benar.',
+    
+    // Anggota-related errors
+    'anggota_not_found': 'Anggota tidak ditemukan dalam sistem.',
+    'anggota_already_keluar': 'Anggota sudah keluar dari koperasi dan tidak dapat melakukan transaksi.',
+    'anggota_nonaktif': 'Anggota berstatus non-aktif dan tidak dapat melakukan transaksi.',
+    'anggota_cuti': 'Anggota sedang cuti dan tidak dapat melakukan transaksi.',
+    'anggota_in_exit_process': 'Anggota sedang dalam proses keluar dan tidak dapat melakukan transaksi.',
+    
+    // Transaction errors
+    'invalid_amount': 'Jumlah tidak valid. Pastikan memasukkan angka yang benar.',
+    'insufficient_balance': 'Saldo tidak mencukupi untuk transaksi ini.',
+    'transaction_already_processed': 'Transaksi sudah diproses sebelumnya.',
+    
+    // Validation errors
+    'required_field_empty': 'Field yang wajib diisi tidak boleh kosong.',
+    'invalid_date': 'Format tanggal tidak valid.',
+    'invalid_format': 'Format data tidak sesuai.',
+    
+    // System errors
+    'system_error': 'Terjadi kesalahan sistem. Silakan coba lagi atau hubungi administrator.',
+    'network_error': 'Terjadi kesalahan jaringan. Periksa koneksi internet Anda.',
+    'permission_denied': 'Akses ditolak. Anda tidak memiliki izin untuk melakukan operasi ini.'
+};
+
+/**
+ * Get user-friendly error message
+ * @param {string} errorCode - Error code
+ * @param {string} fallbackMessage - Fallback message if code not found
+ * @returns {string} User-friendly error message
+ */
+function getUserFriendlyMessage(errorCode, fallbackMessage = 'Terjadi kesalahan yang tidak diketahui.') {
+    return ERROR_MESSAGES[errorCode] || fallbackMessage;
+}
+
+/**
+ * Show user-friendly error alert
+ * @param {string} errorCode - Error code or custom message
+ * @param {string} context - Context for debugging
+ * @param {object} additionalData - Additional data for logging
+ */
+function showUserError(errorCode, context = 'unknown', additionalData = {}) {
+    const message = ERROR_MESSAGES[errorCode] || errorCode;
+    
+    // Log the error for debugging
+    logError(context, errorCode, additionalData);
+    
+    // Show user-friendly alert
+    if (typeof showAlert === 'function') {
+        showAlert(message, 'error');
+    } else {
+        alert(message);
+    }
+}
+
+// ===== Input Validation Helpers =====
+
+/**
+ * Validate anggota ID
+ * @param {string} anggotaId - Anggota ID to validate
+ * @returns {object} Validation result
+ */
+function validateAnggotaId(anggotaId) {
+    if (!anggotaId || typeof anggotaId !== 'string') {
+        return {
+            valid: false,
+            error: 'required_field_empty',
+            message: 'ID anggota tidak boleh kosong'
+        };
+    }
+    
+    if (anggotaId.trim().length === 0) {
+        return {
+            valid: false,
+            error: 'required_field_empty',
+            message: 'ID anggota tidak boleh kosong'
+        };
+    }
+    
+    return { valid: true };
+}
+
+/**
+ * Validate amount/jumlah
+ * @param {number|string} amount - Amount to validate
+ * @returns {object} Validation result
+ */
+function validateAmount(amount) {
+    const numAmount = parseFloat(amount);
+    
+    if (isNaN(numAmount)) {
+        return {
+            valid: false,
+            error: 'invalid_amount',
+            message: 'Jumlah harus berupa angka yang valid'
+        };
+    }
+    
+    if (numAmount <= 0) {
+        return {
+            valid: false,
+            error: 'invalid_amount',
+            message: 'Jumlah harus lebih dari 0'
+        };
+    }
+    
+    if (numAmount > 999999999999) { // 999 billion limit
+        return {
+            valid: false,
+            error: 'invalid_amount',
+            message: 'Jumlah terlalu besar'
+        };
+    }
+    
+    return { valid: true, amount: numAmount };
+}
+
+/**
+ * Validate array input
+ * @param {any} input - Input to validate as array
+ * @param {string} fieldName - Name of the field for error messages
+ * @returns {object} Validation result
+ */
+function validateArray(input, fieldName = 'data') {
+    if (!Array.isArray(input)) {
+        return {
+            valid: false,
+            error: 'invalid_format',
+            message: `${fieldName} harus berupa array`,
+            fallback: []
+        };
+    }
+    
+    return { valid: true, array: input };
+}
+
+// ===== Safe Data Access Helpers =====
+
+/**
+ * Safely get data from localStorage with error handling
+ * @param {string} key - localStorage key
+ * @param {any} defaultValue - Default value if key doesn't exist or is invalid
+ * @returns {any} Parsed data or default value
+ */
+function safeGetLocalStorage(key, defaultValue = null) {
+    try {
+        const item = localStorage.getItem(key);
+        if (item === null) {
+            return defaultValue;
+        }
+        return JSON.parse(item);
+    } catch (error) {
+        logError('safeGetLocalStorage', error, { key, defaultValue });
+        return defaultValue;
+    }
+}
+
+/**
+ * Safely set data to localStorage with error handling
+ * @param {string} key - localStorage key
+ * @param {any} value - Value to store
+ * @returns {boolean} Success status
+ */
+function safeSetLocalStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (error) {
+        logError('safeSetLocalStorage', error, { key, valueType: typeof value });
+        
+        // Try to handle quota exceeded error
+        if (error.name === 'QuotaExceededError') {
+            showUserError('Penyimpanan penuh. Silakan hapus data yang tidak diperlukan.', 'localStorage_quota');
+        } else {
+            showUserError('system_error', 'localStorage_set');
+        }
+        
+        return false;
+    }
+}
+
+/**
+ * Safely find anggota by ID with comprehensive error handling
+ * @param {string} anggotaId - ID of anggota to find
+ * @returns {object} Result with anggota data or error
+ */
+function safeFindAnggota(anggotaId) {
+    try {
+        // Validate input
+        const validation = validateAnggotaId(anggotaId);
+        if (!validation.valid) {
+            return {
+                success: false,
+                error: validation.error,
+                message: validation.message
+            };
+        }
+        
+        // Get anggota data safely
+        const anggotaList = safeGetLocalStorage('anggota', []);
+        if (!Array.isArray(anggotaList)) {
+            return {
+                success: false,
+                error: 'data_corrupted',
+                message: 'Data anggota rusak atau tidak valid'
+            };
+        }
+        
+        // Find anggota
+        const anggota = anggotaList.find(a => a && a.id === anggotaId);
+        if (!anggota) {
+            return {
+                success: false,
+                error: 'anggota_not_found',
+                message: 'Anggota tidak ditemukan dalam sistem'
+            };
+        }
+        
+        return {
+            success: true,
+            anggota: anggota
+        };
+    } catch (error) {
+        logError('safeFindAnggota', error, { anggotaId });
+        return {
+            success: false,
+            error: 'system_error',
+            message: 'Terjadi kesalahan saat mencari data anggota'
+        };
+    }
+}
+
+// ===== Recovery Mechanisms =====
+
+/**
+ * Attempt to recover corrupted localStorage data
+ * @param {string} key - localStorage key to recover
+ * @param {any} backupValue - Backup value to use if recovery fails
+ * @returns {any} Recovered or backup data
+ */
+function recoverLocalStorageData(key, backupValue = []) {
+    try {
+        const item = localStorage.getItem(key);
+        if (item === null) {
+            logError('recoverLocalStorageData', `Key ${key} not found`, { key });
+            return backupValue;
+        }
+        
+        // Try to parse the data
+        const parsed = JSON.parse(item);
+        
+        // Validate the parsed data structure
+        if (Array.isArray(parsed)) {
+            // Filter out any null or invalid entries
+            const cleaned = parsed.filter(item => item !== null && typeof item === 'object');
+            if (cleaned.length !== parsed.length) {
+                logError('recoverLocalStorageData', `Cleaned ${parsed.length - cleaned.length} invalid entries from ${key}`);
+                // Save the cleaned data back
+                safeSetLocalStorage(key, cleaned);
+            }
+            return cleaned;
+        }
+        
+        return parsed;
+    } catch (error) {
+        logError('recoverLocalStorageData', error, { key });
+        
+        // Attempt to backup corrupted data
+        try {
+            const corruptedData = localStorage.getItem(key);
+            if (corruptedData) {
+                localStorage.setItem(`${key}_corrupted_backup_${Date.now()}`, corruptedData);
+            }
+        } catch (backupError) {
+            logError('recoverLocalStorageData', 'Failed to backup corrupted data', { key, backupError });
+        }
+        
+        return backupValue;
+    }
+}
+
+/**
+ * Check localStorage health and attempt repairs
+ * @returns {object} Health check results
+ */
+function checkLocalStorageHealth() {
+    const results = {
+        healthy: true,
+        issues: [],
+        repairs: []
+    };
+    
+    const keysToCheck = ['anggota', 'simpananPokok', 'simpananWajib', 'simpananSukarela', 'jurnal'];
+    
+    keysToCheck.forEach(key => {
+        try {
+            const data = localStorage.getItem(key);
+            if (data === null) {
+                results.issues.push(`${key}: Data tidak ditemukan`);
+                // Initialize with empty array
+                safeSetLocalStorage(key, []);
+                results.repairs.push(`${key}: Diinisialisasi dengan array kosong`);
+            } else {
+                const parsed = JSON.parse(data);
+                if (!Array.isArray(parsed)) {
+                    results.issues.push(`${key}: Data bukan array`);
+                    results.healthy = false;
+                }
+            }
+        } catch (error) {
+            results.issues.push(`${key}: ${error.message}`);
+            results.healthy = false;
+            
+            // Attempt recovery
+            const recovered = recoverLocalStorageData(key, []);
+            results.repairs.push(`${key}: Dipulihkan dengan ${recovered.length} item`);
+        }
+    });
+    
+    return results;
+}
+
+// ===== Export for use in other modules =====
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ErrorHandler;
+    module.exports = {
+        logError,
+        getErrorLog,
+        clearErrorLog,
+        getUserFriendlyMessage,
+        showUserError,
+        validateAnggotaId,
+        validateAmount,
+        validateArray,
+        safeGetLocalStorage,
+        safeSetLocalStorage,
+        safeFindAnggota,
+        recoverLocalStorageData,
+        checkLocalStorageHealth
+    };
 }
+
+// ===== Global Error Handler =====
+
+// Catch unhandled errors
+window.addEventListener('error', function(event) {
+    logError('window.error', event.error || event.message, {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+    });
+});
+
+// Catch unhandled promise rejections
+window.addEventListener('unhandledrejection', function(event) {
+    logError('unhandledrejection', event.reason, {
+        promise: event.promise
+    });
+});
+
+console.log('✅ Comprehensive Error Handler loaded successfully');

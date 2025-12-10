@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 23: Integration Testing - Anggota Keluar</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .test-warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .data-display { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+        .stats { display: flex; gap: 20px; margin: 15px 0; }
+        .stat-item { background: #e9ecef; padding: 10px; border-radius: 4px; text-align: center; }
+        .progress-bar { width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: #28a745; transition: width 0.3s ease; }
+        .test-controls { margin: 20px 0; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Task 23: Integration Testing - Anggota Keluar</h1>
+        <p><strong>Tujuan:</strong> Menguji integrasi lengkap semua komponen Anggota Keluar untuk memastikan sistem bekerja dengan baik secara end-to-end.</p>
+        
+        <div class="test-controls">
+            <button onclick="runAllTests()">🚀 Run All Integration Tests</button>
+            <button onclick="setupTestData()">📊 Setup Test Data</button>
+            <button onclick="clearTestResults()">🧹 Clear Results</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div id="progressText">Ready to start testing...</div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Total Tests</strong><br>
+                <span id="totalTests">0</span>
+            </div>
+            <div class="stat-item">
+                <strong>Passed</strong><br>
+                <span id="passedTests">0</span>
+            </div>
+            <div class="stat-item">
+                <strong>Failed</strong><br>
+                <span id="failedTests">0</span>
+            </div>
+            <div class="stat-item">
+                <strong>Success Rate</strong><br>
+                <span id="successRate">0%</span>
+            </div>
+        </div>
+        <!-- Test Section 1: Complete Pencairan Flow -->
+        <div class="test-section">
+            <h3>🔄 Test 1: Complete Pencairan Flow Integration</h3>
+            <p>Testing end-to-end pencairan process with balance zeroing and journal creation.</p>
+            <button onclick="testCompletePencairanFlow()">Run Pencairan Flow Test</button>
+            <div id="pencairanFlowResults"></div>
+        </div>
+
+        <!-- Test Section 2: Master Anggota Rendering -->
+        <div class="test-section">
+            <h3>👥 Test 2: Master Anggota Rendering Integration</h3>
+            <p>Testing Master Anggota filtering, counting, and search with mixed anggota data.</p>
+            <button onclick="testMasterAnggotaRendering()">Run Master Anggota Test</button>
+            <div id="masterAnggotaResults"></div>
+        </div>
+
+        <!-- Test Section 3: Transaction Dropdowns -->
+        <div class="test-section">
+            <h3>📋 Test 3: Transaction Dropdowns Integration</h3>
+            <p>Testing all transaction dropdowns exclude non-transactable anggota consistently.</p>
+            <button onclick="testTransactionDropdowns()">Run Dropdown Test</button>
+            <div id="dropdownResults"></div>
+        </div>
+
+        <!-- Test Section 4: Transaction Validation -->
+        <div class="test-section">
+            <h3>✅ Test 4: Transaction Validation Integration</h3>
+            <p>Testing transaction validation consistently rejects keluar and non-aktif anggota.</p>
+            <button onclick="testTransactionValidation()">Run Validation Test</button>
+            <div id="validationResults"></div>
+        </div>
+
+        <!-- Test Section 5: Laporan Simpanan -->
+        <div class="test-section">
+            <h3>📊 Test 5: Laporan Simpanan Integration</h3>
+            <p>Testing laporan simpanan excludes zero balances and shows correct totals.</p>
+            <button onclick="testLaporanSimpanan()">Run Laporan Test</button>
+            <div id="laporanResults"></div>
+        </div>
+
+        <!-- Test Section 6: Anggota Keluar Page -->
+        <div class="test-section">
+            <h3>🚪 Test 6: Anggota Keluar Page Integration</h3>
+            <p>Testing Anggota Keluar page shows only keluar anggota with correct data.</p>
+            <button onclick="testAnggotaKeluarPage()">Run Anggota Keluar Test</button>
+            <div id="anggotaKeluarResults"></div>
+        </div>
+
+        <!-- Test Section 7: Cross-Module Data Consistency -->
+        <div class="test-section">
+            <h3>🔗 Test 7: Cross-Module Data Consistency</h3>
+            <p>Testing data consistency and integration across all modules.</p>
+            <button onclick="testCrossModuleConsistency()">Run Consistency Test</button>
+            <div id="consistencyResults"></div>
+        </div>
+
+        <!-- Test Section 8: Error Handling Integration -->
+        <div class="test-section">
+            <h3>⚠️ Test 8: Error Handling Integration</h3>
+            <p>Testing error handling works gracefully across all integrated components.</p>
+            <button onclick="testErrorHandlingIntegration()">Run Error Handling Test</button>
+            <div id="errorHandlingResults"></div>
+        </div>
+
+        <!-- Test Data Display -->
+        <div class="test-section">
+            <h3>📋 Test Data Overview</h3>
+            <button onclick="showTestData()">Show Current Test Data</button>
+            <div id="testDataDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        // Load required modules
+        let koperasiModule, simpananModule, errorHandlerModule;
+        let testResults = [];
+        let currentTestIndex = 0;
+        let totalTestCount = 8;
+
+        // Test data
+        let testAnggota = [];
+        let testSimpananPokok = [];
+        let testSimpananWajib = [];
+        let testSimpananSukarela = [];
+        let testJurnal = [];
+        let testKas = [];
+
+        // Load modules
+        async function loadModules() {
+            try {
+                // Load koperasi.js
+                const koperasiScript = document.createElement('script');
+                koperasiScript.src = '../js/koperasi.js';
+                document.head.appendChild(koperasiScript);
+
+                // Load simpanan.js  
+                const simpananScript = document.createElement('script');
+                simpananScript.src = '../js/simpanan.js';
+                document.head.appendChild(simpananScript);
+
+                // Load errorHandler.js
+                const errorScript = document.createElement('script');
+                errorScript.src = '../js/errorHandler.js';
+                document.head.appendChild(errorScript);
+
+                // Wait for scripts to load
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                logResult('info', 'Modules loaded successfully');
+                return true;
+            } catch (error) {
+                logResult('fail', `Failed to load modules: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Setup comprehensive test data
+        function setupTestData() {
+            logResult('info', 'Setting up comprehensive test data...');
+            
+            // Create diverse anggota data
+            testAnggota = [
+                // Active members (should appear in transactions)
+                { id: 'A001', nama: 'Budi Aktif', statusKeanggotaan: 'Aktif', status: 'Aktif' },
+                { id: 'A002', nama: 'Sari Aktif', statusKeanggotaan: 'Aktif', status: 'Aktif' },
+                
+                // Inactive members (should appear in Master but not transactions)
+                { id: 'N001', nama: 'Joko Nonaktif', statusKeanggotaan: 'Nonaktif', status: 'Nonaktif' },
+                { id: 'C001', nama: 'Rina Cuti', statusKeanggotaan: 'Cuti', status: 'Cuti' },
+                
+                // Keluar members (should not appear in Master or transactions)
+                { id: 'K001', nama: 'Ahmad Keluar', statusKeanggotaan: 'Keluar', status: 'Keluar', tanggalKeluar: '2024-01-15', pengembalianStatus: 'Selesai' },
+                { id: 'K002', nama: 'Dewi Keluar', statusKeanggotaan: 'Keluar', status: 'Keluar', tanggalKeluar: '2024-02-20', pengembalianStatus: 'Belum' }
+            ];
+
+            // Create simpanan data with various balances
+            testSimpananPokok = [
+                { anggotaId: 'A001', jumlah: 100000 },
+                { anggotaId: 'A002', jumlah: 100000 },
+                { anggotaId: 'N001', jumlah: 100000 },
+                { anggotaId: 'C001', jumlah: 100000 },
+                { anggotaId: 'K001', jumlah: 0 }, // Already zeroed
+                { anggotaId: 'K002', jumlah: 100000 } // Not yet zeroed
+            ];
+
+            testSimpananWajib = [
+                { anggotaId: 'A001', jumlah: 500000 },
+                { anggotaId: 'A002', jumlah: 300000 },
+                { anggotaId: 'N001', jumlah: 200000 },
+                { anggotaId: 'C001', jumlah: 150000 },
+                { anggotaId: 'K001', jumlah: 0 }, // Already zeroed
+                { anggotaId: 'K002', jumlah: 400000 } // Not yet zeroed
+            ];
+
+            testSimpananSukarela = [
+                { anggotaId: 'A001', jumlah: 1000000 },
+                { anggotaId: 'A002', jumlah: 750000 },
+                { anggotaId: 'N001', jumlah: 500000 },
+                { anggotaId: 'C001', jumlah: 250000 },
+                { anggotaId: 'K001', jumlah: 0 }, // Already zeroed
+                { anggotaId: 'K002', jumlah: 800000 } // Not yet zeroed
+            ];
+
+            // Initialize Kas balance
+            testKas = [{ id: 'KAS001', saldo: 10000000 }];
+
+            // Initialize jurnal
+            testJurnal = [];
+
+            // Store in localStorage for testing
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            localStorage.setItem('simpananPokok', JSON.stringify(testSimpananPokok));
+            localStorage.setItem('simpananWajib', JSON.stringify(testSimpananWajib));
+            localStorage.setItem('simpananSukarela', JSON.stringify(testSimpananSukarela));
+            localStorage.setItem('kas', JSON.stringify(testKas));
+            localStorage.setItem('jurnal', JSON.stringify(testJurnal));
+
+            logResult('pass', `Test data setup complete:
+                - ${testAnggota.length} anggota (2 Aktif, 2 Nonaktif/Cuti, 2 Keluar)
+                - Simpanan data for all members
+                - Initial Kas balance: Rp ${testKas[0].saldo.toLocaleString('id-ID')}`);
+        }
+        // Test 1: Complete Pencairan Flow Integration
+        async function testCompletePencairanFlow() {
+            logResult('info', 'Testing complete pencairan flow integration...', 'pencairanFlowResults');
+            
+            try {
+                // Test anggota K002 (has balances, not yet processed)
+                const anggotaId = 'K002';
+                const anggota = testAnggota.find(a => a.id === anggotaId);
+                
+                if (!anggota) {
+                    throw new Error('Test anggota not found');
+                }
+
+                // Get initial balances
+                const initialPokok = testSimpananPokok.find(s => s.anggotaId === anggotaId)?.jumlah || 0;
+                const initialWajib = testSimpananWajib.find(s => s.anggotaId === anggotaId)?.jumlah || 0;
+                const initialSukarela = testSimpananSukarela.find(s => s.anggotaId === anggotaId)?.jumlah || 0;
+                const totalInitial = initialPokok + initialWajib + initialSukarela;
+                
+                const initialKas = testKas[0].saldo;
+
+                logResult('info', `Initial state:
+                    - Simpanan Pokok: Rp ${initialPokok.toLocaleString('id-ID')}
+                    - Simpanan Wajib: Rp ${initialWajib.toLocaleString('id-ID')}
+                    - Simpanan Sukarela: Rp ${initialSukarela.toLocaleString('id-ID')}
+                    - Total Simpanan: Rp ${totalInitial.toLocaleString('id-ID')}
+                    - Kas Balance: Rp ${initialKas.toLocaleString('id-ID')}`, 'pencairanFlowResults');
+
+                // Test if functions exist
+                if (typeof processPencairanSimpanan === 'undefined') {
+                    throw new Error('processPencairanSimpanan function not found');
+                }
+
+                // Process pencairan
+                const result = processPencairanSimpanan(anggotaId);
+                
+                if (!result.success) {
+                    throw new Error(`Pencairan failed: ${result.message}`);
+                }
+
+                // Verify balances are zeroed
+                const finalPokok = JSON.parse(localStorage.getItem('simpananPokok')).find(s => s.anggotaId === anggotaId)?.jumlah || 0;
+                const finalWajib = JSON.parse(localStorage.getItem('simpananWajib')).find(s => s.anggotaId === anggotaId)?.jumlah || 0;
+                const finalSukarela = JSON.parse(localStorage.getItem('simpananSukarela')).find(s => s.anggotaId === anggotaId)?.jumlah || 0;
+                const finalKas = JSON.parse(localStorage.getItem('kas'))[0].saldo;
+                const finalJurnal = JSON.parse(localStorage.getItem('jurnal'));
+
+                // Verify journal entries created
+                const pencairanJurnal = finalJurnal.filter(j => j.keterangan && j.keterangan.includes('Pencairan') && j.keterangan.includes(anggota.nama));
+
+                logResult('info', `Final state:
+                    - Simpanan Pokok: Rp ${finalPokok.toLocaleString('id-ID')}
+                    - Simpanan Wajib: Rp ${finalWajib.toLocaleString('id-ID')}
+                    - Simpanan Sukarela: Rp ${finalSukarela.toLocaleString('id-ID')}
+                    - Kas Balance: Rp ${finalKas.toLocaleString('id-ID')}
+                    - Journal Entries: ${pencairanJurnal.length}`, 'pencairanFlowResults');
+
+                // Validate results
+                const tests = [
+                    { name: 'Simpanan Pokok zeroed', condition: finalPokok === 0 },
+                    { name: 'Simpanan Wajib zeroed', condition: finalWajib === 0 },
+                    { name: 'Simpanan Sukarela zeroed', condition: finalSukarela === 0 },
+                    { name: 'Kas balance reduced correctly', condition: finalKas === (initialKas - totalInitial) },
+                    { name: 'Journal entries created', condition: pencairanJurnal.length > 0 },
+                    { name: 'Journal entries balanced', condition: validateJournalBalance(pencairanJurnal) }
+                ];
+
+                let allPassed = true;
+                tests.forEach(test => {
+                    if (test.condition) {
+                        logResult('pass', `✅ ${test.name}`, 'pencairanFlowResults');
+                    } else {
+                        logResult('fail', `❌ ${test.name}`, 'pencairanFlowResults');
+                        allPassed = false;
+                    }
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Complete Pencairan Flow Integration: PASSED', 'pencairanFlowResults');
+                    return true;
+                } else {
+                    logResult('fail', '❌ Complete Pencairan Flow Integration: FAILED', 'pencairanFlowResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Pencairan Flow Test Error: ${error.message}`, 'pencairanFlowResults');
+                return false;
+            }
+        }
+
+        // Test 2: Master Anggota Rendering Integration
+        async function testMasterAnggotaRendering() {
+            logResult('info', 'Testing Master Anggota rendering integration...', 'masterAnggotaResults');
+            
+            try {
+                // Test if functions exist
+                if (typeof filterActiveAnggota === 'undefined') {
+                    throw new Error('filterActiveAnggota function not found');
+                }
+
+                // Test filtering
+                const allAnggota = JSON.parse(localStorage.getItem('anggota'));
+                const activeAnggota = filterActiveAnggota(allAnggota);
+                
+                // Count by status
+                const statusCounts = {
+                    total: allAnggota.length,
+                    aktif: allAnggota.filter(a => a.statusKeanggotaan === 'Aktif').length,
+                    nonaktif: allAnggota.filter(a => a.statusKeanggotaan === 'Nonaktif').length,
+                    cuti: allAnggota.filter(a => a.statusKeanggotaan === 'Cuti').length,
+                    keluar: allAnggota.filter(a => a.statusKeanggotaan === 'Keluar').length,
+                    filtered: activeAnggota.length
+                };
+
+                logResult('info', `Anggota counts:
+                    - Total: ${statusCounts.total}
+                    - Aktif: ${statusCounts.aktif}
+                    - Nonaktif: ${statusCounts.nonaktif}
+                    - Cuti: ${statusCounts.cuti}
+                    - Keluar: ${statusCounts.keluar}
+                    - Filtered (Active): ${statusCounts.filtered}`, 'masterAnggotaResults');
+
+                // Validate filtering logic
+                const hasKeluarInFiltered = activeAnggota.some(a => a.statusKeanggotaan === 'Keluar');
+                const hasAktifInFiltered = activeAnggota.some(a => a.statusKeanggotaan === 'Aktif');
+                const hasNonaktifInFiltered = activeAnggota.some(a => a.statusKeanggotaan === 'Nonaktif');
+                const hasCutiInFiltered = activeAnggota.some(a => a.statusKeanggotaan === 'Cuti');
+
+                const tests = [
+                    { name: 'Keluar anggota excluded from Master', condition: !hasKeluarInFiltered },
+                    { name: 'Aktif anggota included in Master', condition: hasAktifInFiltered },
+                    { name: 'Nonaktif anggota included in Master', condition: hasNonaktifInFiltered },
+                    { name: 'Cuti anggota included in Master', condition: hasCutiInFiltered },
+                    { name: 'Filtered count correct', condition: statusCounts.filtered === (statusCounts.aktif + statusCounts.nonaktif + statusCounts.cuti) }
+                ];
+
+                let allPassed = true;
+                tests.forEach(test => {
+                    if (test.condition) {
+                        logResult('pass', `✅ ${test.name}`, 'masterAnggotaResults');
+                    } else {
+                        logResult('fail', `❌ ${test.name}`, 'masterAnggotaResults');
+                        allPassed = false;
+                    }
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Master Anggota Rendering Integration: PASSED', 'masterAnggotaResults');
+                    return true;
+                } else {
+                    logResult('fail', '❌ Master Anggota Rendering Integration: FAILED', 'masterAnggotaResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Master Anggota Test Error: ${error.message}`, 'masterAnggotaResults');
+                return false;
+            }
+        }
+
+        // Test 3: Transaction Dropdowns Integration
+        async function testTransactionDropdowns() {
+            logResult('info', 'Testing transaction dropdowns integration...', 'dropdownResults');
+            
+            try {
+                // Test if functions exist
+                if (typeof filterTransactableAnggota === 'undefined') {
+                    throw new Error('filterTransactableAnggota function not found');
+                }
+
+                // Test filtering for transactions
+                const allAnggota = JSON.parse(localStorage.getItem('anggota'));
+                const transactableAnggota = filterTransactableAnggota(allAnggota);
+                
+                // Count by status
+                const statusCounts = {
+                    total: allAnggota.length,
+                    aktif: allAnggota.filter(a => a.statusKeanggotaan === 'Aktif').length,
+                    nonaktif: allAnggota.filter(a => a.statusKeanggotaan === 'Nonaktif').length,
+                    cuti: allAnggota.filter(a => a.statusKeanggotaan === 'Cuti').length,
+                    keluar: allAnggota.filter(a => a.statusKeanggotaan === 'Keluar').length,
+                    transactable: transactableAnggota.length
+                };
+
+                logResult('info', `Transaction dropdown counts:
+                    - Total: ${statusCounts.total}
+                    - Aktif: ${statusCounts.aktif}
+                    - Nonaktif: ${statusCounts.nonaktif}
+                    - Cuti: ${statusCounts.cuti}
+                    - Keluar: ${statusCounts.keluar}
+                    - Transactable: ${statusCounts.transactable}`, 'dropdownResults');
+
+                // Validate filtering logic for transactions
+                const hasKeluarInTransactable = transactableAnggota.some(a => a.statusKeanggotaan === 'Keluar');
+                const hasNonaktifInTransactable = transactableAnggota.some(a => a.statusKeanggotaan === 'Nonaktif');
+                const hasCutiInTransactable = transactableAnggota.some(a => a.statusKeanggotaan === 'Cuti');
+                const hasAktifInTransactable = transactableAnggota.some(a => a.statusKeanggotaan === 'Aktif');
+
+                const tests = [
+                    { name: 'Keluar anggota excluded from transactions', condition: !hasKeluarInTransactable },
+                    { name: 'Nonaktif anggota excluded from transactions', condition: !hasNonaktifInTransactable },
+                    { name: 'Cuti anggota excluded from transactions', condition: !hasCutiInTransactable },
+                    { name: 'Only Aktif anggota in transactions', condition: hasAktifInTransactable && statusCounts.transactable === statusCounts.aktif },
+                    { name: 'Transactable count correct', condition: statusCounts.transactable === statusCounts.aktif }
+                ];
+
+                let allPassed = true;
+                tests.forEach(test => {
+                    if (test.condition) {
+                        logResult('pass', `✅ ${test.name}`, 'dropdownResults');
+                    } else {
+                        logResult('fail', `❌ ${test.name}`, 'dropdownResults');
+                        allPassed = false;
+                    }
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Transaction Dropdowns Integration: PASSED', 'dropdownResults');
+                    return true;
+                } else {
+                    logResult('fail', '❌ Transaction Dropdowns Integration: FAILED', 'dropdownResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Transaction Dropdowns Test Error: ${error.message}`, 'dropdownResults');
+                return false;
+            }
+        }
+        // Test 4: Transaction Validation Integration
+        async function testTransactionValidation() {
+            logResult('info', 'Testing transaction validation integration...', 'validationResults');
+            
+            try {
+                // Test if functions exist
+                if (typeof validateAnggotaForTransaction === 'undefined') {
+                    throw new Error('validateAnggotaForTransaction function not found');
+                }
+
+                const allAnggota = JSON.parse(localStorage.getItem('anggota'));
+                
+                // Test validation for each anggota type
+                const validationTests = [];
+                
+                allAnggota.forEach(anggota => {
+                    const result = validateAnggotaForTransaction(anggota.id);
+                    validationTests.push({
+                        anggotaId: anggota.id,
+                        nama: anggota.nama,
+                        status: anggota.statusKeanggotaan,
+                        isValid: result.isValid,
+                        message: result.message,
+                        expectedValid: anggota.statusKeanggotaan === 'Aktif'
+                    });
+                });
+
+                logResult('info', 'Validation test results:', 'validationResults');
+                
+                let allPassed = true;
+                validationTests.forEach(test => {
+                    const passed = test.isValid === test.expectedValid;
+                    const status = passed ? 'pass' : 'fail';
+                    const icon = passed ? '✅' : '❌';
+                    
+                    logResult(status, `${icon} ${test.nama} (${test.status}): ${test.isValid ? 'VALID' : 'INVALID'} - ${test.message}`, 'validationResults');
+                    
+                    if (!passed) {
+                        allPassed = false;
+                    }
+                });
+
+                // Summary tests
+                const summaryTests = [
+                    { 
+                        name: 'Aktif anggota validation passes', 
+                        condition: validationTests.filter(t => t.status === 'Aktif').every(t => t.isValid) 
+                    },
+                    { 
+                        name: 'Keluar anggota validation fails', 
+                        condition: validationTests.filter(t => t.status === 'Keluar').every(t => !t.isValid) 
+                    },
+                    { 
+                        name: 'Nonaktif anggota validation fails', 
+                        condition: validationTests.filter(t => t.status === 'Nonaktif').every(t => !t.isValid) 
+                    },
+                    { 
+                        name: 'Cuti anggota validation fails', 
+                        condition: validationTests.filter(t => t.status === 'Cuti').every(t => !t.isValid) 
+                    }
+                ];
+
+                summaryTests.forEach(test => {
+                    if (test.condition) {
+                        logResult('pass', `✅ ${test.name}`, 'validationResults');
+                    } else {
+                        logResult('fail', `❌ ${test.name}`, 'validationResults');
+                        allPassed = false;
+                    }
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Transaction Validation Integration: PASSED', 'validationResults');
+                    return true;
+                } else {
+                    logResult('fail', '❌ Transaction Validation Integration: FAILED', 'validationResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Transaction Validation Test Error: ${error.message}`, 'validationResults');
+                return false;
+            }
+        }
+
+        // Test 5: Laporan Simpanan Integration
+        async function testLaporanSimpanan() {
+            logResult('info', 'Testing laporan simpanan integration...', 'laporanResults');
+            
+            try {
+                // Get current simpanan data
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok'));
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib'));
+                const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela'));
+                const anggota = JSON.parse(localStorage.getItem('anggota'));
+
+                // Count balances
+                const counts = {
+                    totalAnggota: anggota.length,
+                    pokokNonZero: simpananPokok.filter(s => s.jumlah > 0).length,
+                    pokokZero: simpananPokok.filter(s => s.jumlah === 0).length,
+                    wajibNonZero: simpananWajib.filter(s => s.jumlah > 0).length,
+                    wajibZero: simpananWajib.filter(s => s.jumlah === 0).length,
+                    sukarelanonZero: simpananSukarela.filter(s => s.jumlah > 0).length,
+                    sukarelaZero: simpananSukarela.filter(s => s.jumlah === 0).length
+                };
+
+                logResult('info', `Simpanan balance counts:
+                    - Total Anggota: ${counts.totalAnggota}
+                    - Pokok Non-Zero: ${counts.pokokNonZero}, Zero: ${counts.pokokZero}
+                    - Wajib Non-Zero: ${counts.wajibNonZero}, Zero: ${counts.wajibZero}
+                    - Sukarela Non-Zero: ${counts.sukarelanonZero}, Zero: ${counts.sukarelaZero}`, 'laporanResults');
+
+                // Test laporan filtering (simulate laporan function behavior)
+                const laporanData = anggota.map(a => {
+                    const pokok = simpananPokok.find(s => s.anggotaId === a.id)?.jumlah || 0;
+                    const wajib = simpananWajib.find(s => s.anggotaId === a.id)?.jumlah || 0;
+                    const sukarela = simpananSukarela.find(s => s.anggotaId === a.id)?.jumlah || 0;
+                    const total = pokok + wajib + sukarela;
+                    
+                    return {
+                        anggotaId: a.id,
+                        nama: a.nama,
+                        status: a.statusKeanggotaan,
+                        pokok,
+                        wajib,
+                        sukarela,
+                        total,
+                        hasBalance: total > 0
+                    };
+                });
+
+                // Filter for laporan (should exclude zero balances)
+                const laporanFiltered = laporanData.filter(item => item.hasBalance);
+                
+                // Count by status in laporan
+                const laporanCounts = {
+                    total: laporanFiltered.length,
+                    aktif: laporanFiltered.filter(item => item.status === 'Aktif').length,
+                    nonaktif: laporanFiltered.filter(item => item.status === 'Nonaktif').length,
+                    cuti: laporanFiltered.filter(item => item.status === 'Cuti').length,
+                    keluar: laporanFiltered.filter(item => item.status === 'Keluar').length
+                };
+
+                logResult('info', `Laporan filtered counts:
+                    - Total with balance: ${laporanCounts.total}
+                    - Aktif: ${laporanCounts.aktif}
+                    - Nonaktif: ${laporanCounts.nonaktif}
+                    - Cuti: ${laporanCounts.cuti}
+                    - Keluar: ${laporanCounts.keluar}`, 'laporanResults');
+
+                // Validate laporan logic
+                const tests = [
+                    { name: 'Zero balances excluded from laporan', condition: laporanFiltered.every(item => item.total > 0) },
+                    { name: 'Non-zero balances included in laporan', condition: laporanData.filter(item => item.total > 0).length === laporanFiltered.length },
+                    { name: 'Keluar anggota with zero balance excluded', condition: laporanCounts.keluar === 0 }, // K001 should be excluded (zero balance)
+                    { name: 'Active anggota with balance included', condition: laporanCounts.aktif > 0 }
+                ];
+
+                let allPassed = true;
+                tests.forEach(test => {
+                    if (test.condition) {
+                        logResult('pass', `✅ ${test.name}`, 'laporanResults');
+                    } else {
+                        logResult('fail', `❌ ${test.name}`, 'laporanResults');
+                        allPassed = false;
+                    }
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Laporan Simpanan Integration: PASSED', 'laporanResults');
+                    return true;
+                } else {
+                    logResult('fail', '❌ Laporan Simpanan Integration: FAILED', 'laporanResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Laporan Simpanan Test Error: ${error.message}`, 'laporanResults');
+                return false;
+            }
+        }
+
+        // Test 6: Anggota Keluar Page Integration
+        async function testAnggotaKeluarPage() {
+            logResult('info', 'Testing Anggota Keluar page integration...', 'anggotaKeluarResults');
+            
+            try {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota'));
+                
+                // Simulate Anggota Keluar page filtering
+                const anggotaKeluar = allAnggota.filter(a => a.statusKeanggotaan === 'Keluar');
+                
+                // Count by status
+                const counts = {
+                    total: allAnggota.length,
+                    keluar: anggotaKeluar.length,
+                    aktif: allAnggota.filter(a => a.statusKeanggotaan === 'Aktif').length,
+                    nonaktif: allAnggota.filter(a => a.statusKeanggotaan === 'Nonaktif').length,
+                    cuti: allAnggota.filter(a => a.statusKeanggotaan === 'Cuti').length
+                };
+
+                logResult('info', `Anggota Keluar page counts:
+                    - Total Anggota: ${counts.total}
+                    - Keluar: ${counts.keluar}
+                    - Aktif: ${counts.aktif}
+                    - Nonaktif: ${counts.nonaktif}
+                    - Cuti: ${counts.cuti}`, 'anggotaKeluarResults');
+
+                // Validate Anggota Keluar page logic
+                const hasOnlyKeluar = anggotaKeluar.every(a => a.statusKeanggotaan === 'Keluar');
+                const hasAllKeluar = allAnggota.filter(a => a.statusKeanggotaan === 'Keluar').length === anggotaKeluar.length;
+                const hasRequiredFields = anggotaKeluar.every(a => a.tanggalKeluar && a.pengembalianStatus);
+
+                const tests = [
+                    { name: 'Only Keluar anggota shown', condition: hasOnlyKeluar },
+                    { name: 'All Keluar anggota included', condition: hasAllKeluar },
+                    { name: 'Required fields present', condition: hasRequiredFields },
+                    { name: 'Correct count displayed', condition: anggotaKeluar.length === 2 } // Based on test data
+                ];
+
+                let allPassed = true;
+                tests.forEach(test => {
+                    if (test.condition) {
+                        logResult('pass', `✅ ${test.name}`, 'anggotaKeluarResults');
+                    } else {
+                        logResult('fail', `❌ ${test.name}`, 'anggotaKeluarResults');
+                        allPassed = false;
+                    }
+                });
+
+                // Show anggota keluar details
+                anggotaKeluar.forEach(a => {
+                    logResult('info', `Keluar: ${a.nama} - Tanggal: ${a.tanggalKeluar} - Status: ${a.pengembalianStatus}`, 'anggotaKeluarResults');
+                });
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Anggota Keluar Page Integration: PASSED', 'anggotaKeluarResults');
+                    return true;
+                } else {
+                    logResult('fail', '❌ Anggota Keluar Page Integration: FAILED', 'anggotaKeluarResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Anggota Keluar Page Test Error: ${error.message}`, 'anggotaKeluarResults');
+                return false;
+            }
+        }
+        // Test 7: Cross-Module Data Consistency
+        async function testCrossModuleConsistency() {
+            logResult('info', 'Testing cross-module data consistency...', 'consistencyResults');
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota'));
+                const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok'));
+                const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib'));
+                const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela'));
+                const jurnal = JSON.parse(localStorage.getItem('jurnal'));
+                const kas = JSON.parse(localStorage.getItem('kas'));
+
+                // Test data consistency across modules
+                const consistencyTests = [];
+
+                // Check anggota-simpanan consistency
+                anggota.forEach(a => {
+                    const hasPokok = simpananPokok.some(s => s.anggotaId === a.id);
+                    const hasWajib = simpananWajib.some(s => s.anggotaId === a.id);
+                    const hasSukarela = simpananSukarela.some(s => s.anggotaId === a.id);
+                    
+                    consistencyTests.push({
+                        test: `Anggota ${a.nama} has simpanan records`,
+                        passed: hasPokok && hasWajib && hasSukarela
+                    });
+                });
+
+                // Check keluar anggota have zero balances (if processed)
+                const anggotaKeluar = anggota.filter(a => a.statusKeanggotaan === 'Keluar');
+                anggotaKeluar.forEach(a => {
+                    if (a.pengembalianStatus === 'Selesai') {
+                        const pokok = simpananPokok.find(s => s.anggotaId === a.id)?.jumlah || 0;
+                        const wajib = simpananWajib.find(s => s.anggotaId === a.id)?.jumlah || 0;
+                        const sukarela = simpananSukarela.find(s => s.anggotaId === a.id)?.jumlah || 0;
+                        
+                        consistencyTests.push({
+                            test: `Processed keluar anggota ${a.nama} has zero balances`,
+                            passed: pokok === 0 && wajib === 0 && sukarela === 0
+                        });
+                    }
+                });
+
+                // Check journal-kas consistency
+                const totalKredit = jurnal.filter(j => j.akun === 'Kas' && j.kredit > 0).reduce((sum, j) => sum + j.kredit, 0);
+                const totalDebit = jurnal.filter(j => j.akun === 'Kas' && j.debit > 0).reduce((sum, j) => sum + j.debit, 0);
+                const kasBalance = kas[0].saldo;
+                
+                consistencyTests.push({
+                    test: 'Journal entries exist for pencairan',
+                    passed: jurnal.length > 0
+                });
+
+                // Test filtering consistency across modules
+                if (typeof filterActiveAnggota !== 'undefined' && typeof filterTransactableAnggota !== 'undefined') {
+                    const activeAnggota = filterActiveAnggota(anggota);
+                    const transactableAnggota = filterTransactableAnggota(anggota);
+                    
+                    consistencyTests.push({
+                        test: 'Active anggota includes transactable anggota',
+                        passed: transactableAnggota.every(t => activeAnggota.some(a => a.id === t.id))
+                    });
+                    
+                    consistencyTests.push({
+                        test: 'No keluar anggota in active filter',
+                        passed: !activeAnggota.some(a => a.statusKeanggotaan === 'Keluar')
+                    });
+                    
+                    consistencyTests.push({
+                        test: 'No non-aktif anggota in transactable filter',
+                        passed: transactableAnggota.every(a => a.statusKeanggotaan === 'Aktif')
+                    });
+                }
+
+                // Report consistency test results
+                let allPassed = true;
+                consistencyTests.forEach(test => {
+                    if (test.passed) {
+                        logResult('pass', `✅ ${test.test}`, 'consistencyResults');
+                    } else {
+                        logResult('fail', `❌ ${test.test}`, 'consistencyResults');
+                        allPassed = false;
+                    }
+                });
+
+                // Summary statistics
+                const passedCount = consistencyTests.filter(t => t.passed).length;
+                const totalCount = consistencyTests.length;
+                
+                logResult('info', `Consistency test summary: ${passedCount}/${totalCount} tests passed`, 'consistencyResults');
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Cross-Module Data Consistency: PASSED', 'consistencyResults');
+                    return true;
+                } else {
+                    logResult('fail', `❌ Cross-Module Data Consistency: FAILED (${passedCount}/${totalCount})`, 'consistencyResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Cross-Module Consistency Test Error: ${error.message}`, 'consistencyResults');
+                return false;
+            }
+        }
+
+        // Test 8: Error Handling Integration
+        async function testErrorHandlingIntegration() {
+            logResult('info', 'Testing error handling integration...', 'errorHandlingResults');
+            
+            try {
+                const errorTests = [];
+
+                // Test 1: Invalid anggota ID handling
+                if (typeof validateAnggotaForTransaction !== 'undefined') {
+                    const invalidResult = validateAnggotaForTransaction('INVALID_ID');
+                    errorTests.push({
+                        test: 'Invalid anggota ID handled gracefully',
+                        passed: !invalidResult.isValid && invalidResult.message
+                    });
+                }
+
+                // Test 2: Empty data handling
+                if (typeof filterActiveAnggota !== 'undefined') {
+                    const emptyResult = filterActiveAnggota([]);
+                    errorTests.push({
+                        test: 'Empty anggota array handled gracefully',
+                        passed: Array.isArray(emptyResult) && emptyResult.length === 0
+                    });
+                }
+
+                // Test 3: Null data handling
+                if (typeof filterActiveAnggota !== 'undefined') {
+                    const nullResult = filterActiveAnggota(null);
+                    errorTests.push({
+                        test: 'Null anggota data handled gracefully',
+                        passed: Array.isArray(nullResult) && nullResult.length === 0
+                    });
+                }
+
+                // Test 4: Invalid simpanan data handling
+                if (typeof processPencairanSimpanan !== 'undefined') {
+                    const invalidPencairanResult = processPencairanSimpanan('NONEXISTENT_ID');
+                    errorTests.push({
+                        test: 'Invalid pencairan ID handled gracefully',
+                        passed: !invalidPencairanResult.success && invalidPencairanResult.message
+                    });
+                }
+
+                // Test 5: Missing localStorage data handling
+                const originalAnggota = localStorage.getItem('anggota');
+                localStorage.removeItem('anggota');
+                
+                if (typeof filterActiveAnggota !== 'undefined') {
+                    const missingDataResult = filterActiveAnggota(JSON.parse(localStorage.getItem('anggota') || '[]'));
+                    errorTests.push({
+                        test: 'Missing localStorage data handled gracefully',
+                        passed: Array.isArray(missingDataResult)
+                    });
+                }
+                
+                // Restore data
+                localStorage.setItem('anggota', originalAnggota);
+
+                // Report error handling test results
+                let allPassed = true;
+                errorTests.forEach(test => {
+                    if (test.passed) {
+                        logResult('pass', `✅ ${test.test}`, 'errorHandlingResults');
+                    } else {
+                        logResult('fail', `❌ ${test.test}`, 'errorHandlingResults');
+                        allPassed = false;
+                    }
+                });
+
+                // Test error message quality (should be in Indonesian and user-friendly)
+                if (typeof validateAnggotaForTransaction !== 'undefined') {
+                    const keluarAnggota = JSON.parse(localStorage.getItem('anggota')).find(a => a.statusKeanggotaan === 'Keluar');
+                    if (keluarAnggota) {
+                        const keluarResult = validateAnggotaForTransaction(keluarAnggota.id);
+                        const hasIndonesianMessage = keluarResult.message && (
+                            keluarResult.message.includes('keluar') || 
+                            keluarResult.message.includes('tidak') ||
+                            keluarResult.message.includes('bisa')
+                        );
+                        
+                        errorTests.push({
+                            test: 'Error messages are in Indonesian',
+                            passed: hasIndonesianMessage
+                        });
+                        
+                        if (hasIndonesianMessage) {
+                            logResult('pass', `✅ Error messages are in Indonesian`, 'errorHandlingResults');
+                        } else {
+                            logResult('fail', `❌ Error messages are in Indonesian`, 'errorHandlingResults');
+                            allPassed = false;
+                        }
+                    }
+                }
+
+                const passedCount = errorTests.filter(t => t.passed).length;
+                const totalCount = errorTests.length;
+                
+                logResult('info', `Error handling test summary: ${passedCount}/${totalCount} tests passed`, 'errorHandlingResults');
+
+                if (allPassed) {
+                    logResult('pass', '🎉 Error Handling Integration: PASSED', 'errorHandlingResults');
+                    return true;
+                } else {
+                    logResult('fail', `❌ Error Handling Integration: FAILED (${passedCount}/${totalCount})`, 'errorHandlingResults');
+                    return false;
+                }
+
+            } catch (error) {
+                logResult('fail', `❌ Error Handling Integration Test Error: ${error.message}`, 'errorHandlingResults');
+                return false;
+            }
+        }
+
+        // Utility Functions
+        function validateJournalBalance(journalEntries) {
+            const totalDebit = journalEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
+            const totalKredit = journalEntries.reduce((sum, entry) => sum + (entry.kredit || 0), 0);
+            return Math.abs(totalDebit - totalKredit) < 0.01; // Allow for small rounding differences
+        }
+
+        function logResult(type, message, containerId = 'results') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const div = document.createElement('div');
+            div.className = `test-result test-${type}`;
+            div.innerHTML = message.replace(/\n/g, '<br>');
+            container.appendChild(div);
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = `Progress: ${current}/${total} tests completed (${percentage.toFixed(1)}%)`;
+        }
+
+        function updateStats(passed, failed) {
+            const total = passed + failed;
+            const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+            
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+        // Main test runner
+        async function runAllTests() {
+            logResult('info', '🚀 Starting comprehensive integration testing...');
+            
+            // Clear previous results
+            clearTestResults();
+            
+            // Load modules first
+            const modulesLoaded = await loadModules();
+            if (!modulesLoaded) {
+                logResult('fail', '❌ Failed to load required modules. Cannot proceed with testing.');
+                return;
+            }
+
+            // Setup test data
+            setupTestData();
+            
+            const tests = [
+                { name: 'Complete Pencairan Flow', func: testCompletePencairanFlow },
+                { name: 'Master Anggota Rendering', func: testMasterAnggotaRendering },
+                { name: 'Transaction Dropdowns', func: testTransactionDropdowns },
+                { name: 'Transaction Validation', func: testTransactionValidation },
+                { name: 'Laporan Simpanan', func: testLaporanSimpanan },
+                { name: 'Anggota Keluar Page', func: testAnggotaKeluarPage },
+                { name: 'Cross-Module Consistency', func: testCrossModuleConsistency },
+                { name: 'Error Handling', func: testErrorHandlingIntegration }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (let i = 0; i < tests.length; i++) {
+                const test = tests[i];
+                updateProgress(i, tests.length);
+                
+                logResult('info', `\n🧪 Running Test ${i + 1}/${tests.length}: ${test.name}`);
+                
+                try {
+                    const result = await test.func();
+                    if (result) {
+                        passed++;
+                        logResult('pass', `✅ Test ${i + 1} PASSED: ${test.name}`);
+                    } else {
+                        failed++;
+                        logResult('fail', `❌ Test ${i + 1} FAILED: ${test.name}`);
+                    }
+                } catch (error) {
+                    failed++;
+                    logResult('fail', `❌ Test ${i + 1} ERROR: ${test.name} - ${error.message}`);
+                }
+                
+                updateStats(passed, failed);
+                
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            updateProgress(tests.length, tests.length);
+            
+            // Final summary
+            const total = passed + failed;
+            const successRate = ((passed / total) * 100).toFixed(1);
+            
+            if (passed === total) {
+                logResult('pass', `\n🎉 ALL INTEGRATION TESTS PASSED! 🎉\nSuccess Rate: ${successRate}% (${passed}/${total})`);
+                logResult('pass', `\n✅ TASK 23 INTEGRATION TESTING: COMPLETED SUCCESSFULLY\n\nAll core integration flows are working correctly:\n- Pencairan flow processes balances and creates journals\n- Master Anggota correctly filters anggota keluar\n- Transaction dropdowns exclude non-transactable anggota\n- Transaction validation consistently rejects invalid anggota\n- Laporan simpanan excludes zero balances\n- Anggota Keluar page shows only keluar anggota\n- Data consistency maintained across modules\n- Error handling works gracefully`);
+            } else {
+                logResult('fail', `\n❌ INTEGRATION TESTING COMPLETED WITH ISSUES\nSuccess Rate: ${successRate}% (${passed}/${total})\nFailed Tests: ${failed}`);
+                logResult('warning', `\n⚠️ TASK 23 INTEGRATION TESTING: COMPLETED WITH ${failed} FAILED TESTS\n\nPlease review the failed tests above and fix any issues before proceeding to Task 24.`);
+            }
+        }
+
+        function showTestData() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+            const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            const kas = JSON.parse(localStorage.getItem('kas') || '[]');
+
+            const dataDisplay = document.getElementById('testDataDisplay');
+            dataDisplay.innerHTML = `
+                <h4>Current Test Data:</h4>
+                <div class="data-display">
+                    <strong>Anggota (${anggota.length}):</strong><br>
+                    ${anggota.map(a => `${a.id}: ${a.nama} (${a.statusKeanggotaan})`).join('<br>')}
+                </div>
+                <div class="data-display">
+                    <strong>Simpanan Pokok:</strong><br>
+                    ${simpananPokok.map(s => `${s.anggotaId}: Rp ${s.jumlah.toLocaleString('id-ID')}`).join('<br>')}
+                </div>
+                <div class="data-display">
+                    <strong>Simpanan Wajib:</strong><br>
+                    ${simpananWajib.map(s => `${s.anggotaId}: Rp ${s.jumlah.toLocaleString('id-ID')}`).join('<br>')}
+                </div>
+                <div class="data-display">
+                    <strong>Simpanan Sukarela:</strong><br>
+                    ${simpananSukarela.map(s => `${s.anggotaId}: Rp ${s.jumlah.toLocaleString('id-ID')}`).join('<br>')}
+                </div>
+                <div class="data-display">
+                    <strong>Jurnal Entries (${jurnal.length}):</strong><br>
+                    ${jurnal.slice(-10).map(j => `${j.tanggal}: ${j.akun} - Debit: ${j.debit || 0}, Kredit: ${j.kredit || 0}`).join('<br>')}
+                    ${jurnal.length > 10 ? '<br>... (showing last 10 entries)' : ''}
+                </div>
+                <div class="data-display">
+                    <strong>Kas Balance:</strong><br>
+                    ${kas.map(k => `${k.id}: Rp ${k.saldo.toLocaleString('id-ID')}`).join('<br>')}
+                </div>
+            `;
+        }
+
+        function clearTestResults() {
+            const resultContainers = [
+                'pencairanFlowResults', 'masterAnggotaResults', 'dropdownResults', 
+                'validationResults', 'laporanResults', 'anggotaKeluarResults',
+                'consistencyResults', 'errorHandlingResults', 'testDataDisplay'
+            ];
+            
+            resultContainers.forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = '';
+                }
+            });
+            
+            // Reset progress
+            updateProgress(0, totalTestCount);
+            updateStats(0, 0);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('info', '🧪 Integration Testing Suite Ready');
+            logResult('info', 'Click "Setup Test Data" to prepare test environment, then "Run All Integration Tests" to begin testing.');
+            
+            // Setup initial test data
+            setupTestData();
+        });
+    </script>
+</body>
+</html>

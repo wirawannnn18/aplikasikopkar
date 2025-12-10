@@ -51,7 +51,7 @@ function renderPOS() {
                         <div class="mb-3">
                             <select class="form-select" id="anggotaSelect" onchange="updateCreditInfo()">
                                 <option value="">Umum (Cash)</option>
-                                ${anggota.map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                ${filterTransactableAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                             </select>
                         </div>
                         <!-- Credit Info Section -->

@@ -179,53 +179,214 @@ function isValidDate(year, month, day) {
 // ===== End Date Helper Functions =====
 
 // ===== Anggota Filtering Functions =====
+//
+// This section contains core filtering functions for the Anggota Keluar feature.
+// These functions implement the business logic for hiding exited members while
+// preserving data integrity for audit and historical purposes.
+//
+// KEY PRINCIPLES:
+// 1. Data Preservation - Never delete anggota data from localStorage
+// 2. View Filtering - Apply filtering at display/render time only
+// 3. Transaction Safety - Validate anggota eligibility before transactions
+// 4. Error Resilience - Handle all edge cases gracefully with safe fallbacks
+// 5. User Experience - Provide clear, actionable error messages in Indonesian
+//
+// FILTERING HIERARCHY:
+// - filterActiveAnggota() - For Master Anggota display (includes Nonaktif/Cuti)
+// - filterTransactableAnggota() - For transaction dropdowns (Aktif only)
+// - validateAnggotaForTransaction() - For individual transaction validation
+//
 
 /**
- * Filter anggota to exclude those with statusKeanggotaan === 'Keluar'
+ * Filter anggota to exclude those who have left the koperasi
+ * 
  * This function is used to hide exited members from Master Anggota displays
  * while preserving their data in localStorage for audit and historical purposes.
  * 
- * @param {Array} anggotaList - Array of anggota objects
- * @returns {Array} Filtered array excluding anggota with statusKeanggotaan === 'Keluar'
+ * FILTERING LOGIC:
+ * - Excludes anggota with statusKeanggotaan === 'Keluar' (old system)
+ * - Excludes anggota with tanggalKeluar set (new system)
+ * - Excludes anggota with pengembalianStatus set (exit process)
+ * - INCLUDES anggota with status 'Nonaktif' or 'Cuti' (they appear in Master Anggota)
+ * 
+ * ERROR HANDLING:
+ * - Validates input using validateArray() helper
+ * - Logs errors with comprehensive context
+ * - Shows user-friendly error messages
+ * - Returns safe fallback (empty array) on errors
+ * - Handles individual entry validation errors
+ * 
+ * VALIDATION RULES:
+ * - Input must be an array
+ * - Individual entries must be objects with required fields
+ * - Missing or invalid entries are excluded with logging
+ * 
+ * @param {Array<Object>} anggotaList - Array of anggota objects with properties:
+ *   @param {string} anggotaList[].id - Required: Unique anggota identifier
+ *   @param {string} anggotaList[].statusKeanggotaan - Membership status ('Aktif'|'Keluar')
+ *   @param {string} [anggotaList[].tanggalKeluar] - Exit date (ISO format)
+ *   @param {string} [anggotaList[].pengembalianStatus] - Return process status
+ *   @param {string} [anggotaList[].status] - Activity status ('Aktif'|'Nonaktif'|'Cuti')
+ * 
+ * @returns {Array<Object>} Filtered array excluding anggota who have left the koperasi
+ *   Returns empty array if input is invalid or on errors
+ * 
+ * @throws {Error} Logs errors but does not throw - returns safe fallback instead
  * 
  * @example
+ * // Basic usage - filter Master Anggota display
  * const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
  * const activeAnggota = filterActiveAnggota(allAnggota);
- * // activeAnggota now contains only members with statusKeanggotaan !== 'Keluar'
+ * // Result: Members who haven't left (includes Nonaktif and Cuti for Master Anggota)
+ * 
+ * @example
+ * // Error handling - invalid input
+ * const result = filterActiveAnggota(null);
+ * // Result: [] (empty array), error logged and user notified
+ * 
+ * @example
+ * // Mixed data handling
+ * const mixedData = [
+ *   { id: '1', statusKeanggotaan: 'Aktif', status: 'Aktif' },      // ✅ Included
+ *   { id: '2', statusKeanggotaan: 'Aktif', status: 'Nonaktif' },  // ✅ Included (shown in Master)
+ *   { id: '3', statusKeanggotaan: 'Keluar' },                     // ❌ Excluded (left)
+ *   { id: '4', tanggalKeluar: '2024-01-15' },                     // ❌ Excluded (new exit system)
+ *   null,                                                         // ❌ Excluded (invalid entry)
+ * ];
+ * const filtered = filterActiveAnggota(mixedData);
+ * // Result: [{ id: '1', ... }, { id: '2', ... }]
+ * 
+ * @since 1.0.0 - Initial implementation
+ * @since 1.1.0 - Added comprehensive error handling and validation
+ * 
+ * @see {@link filterTransactableAnggota} For transaction-eligible members only
+ * @see {@link validateAnggotaForTransaction} For individual member validation
  */
 function filterActiveAnggota(anggotaList) {
-    // Handle invalid input
-    if (!Array.isArray(anggotaList)) {
-        console.warn('filterActiveAnggota: Expected array, got', typeof anggotaList);
+    try {
+        // Enhanced input validation with comprehensive error handling
+        // VALIDATION RULES:
+        // 1. Input must be an array type (not null, undefined, string, object, etc.)
+        // 2. Use validateArray() helper if available for consistent validation
+        // 3. Provide safe fallback (empty array) for invalid inputs
+        // 4. Log validation failures for debugging and monitoring
+        const validation = typeof validateArray === 'function' 
+            ? validateArray(anggotaList, 'anggotaList')
+            : { valid: Array.isArray(anggotaList), array: anggotaList, fallback: [] };
+            
+        if (!validation.valid) {
+            // ERROR HANDLING PATTERN:
+            // 1. Log detailed error information for debugging (technical details)
+            // 2. Show user-friendly error message (Indonesian, actionable)
+            // 3. Return safe fallback to prevent crashes (empty array)
+            // 4. Never throw exceptions - always graceful degradation
+            
+            if (typeof logError === 'function') {
+                logError('filterActiveAnggota', 'Invalid input type', { 
+                    inputType: typeof anggotaList,
+                    inputValue: anggotaList,
+                    expectedType: 'Array'
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('invalid_format', 'filterActiveAnggota', { 
+                    function: 'filterActiveAnggota',
+                    input: typeof anggotaList 
+                });
+            }
+            
+            return validation.fallback || [];
+        }
+        
+        const arrayToProcess = validation.array || anggotaList;
+        
+        // Handle empty array gracefully
+        if (arrayToProcess.length === 0) {
+            return [];
+        }
+        
+        // Filter out only anggota who have PERMANENTLY LEFT the koperasi
+        // This preserves Nonaktif and Cuti members in Master Anggota display
+        const filtered = arrayToProcess.filter(a => {
+            try {
+                // Handle null or undefined entries with detailed logging
+                if (!a || typeof a !== 'object') {
+                    if (typeof logError === 'function') {
+                        logError('filterActiveAnggota', 'Invalid anggota entry found', { 
+                            entry: a,
+                            entryType: typeof a,
+                            isNull: a === null,
+                            isUndefined: a === undefined
+                        });
+                    }
+                    return false;
+                }
+                
+                // Validate required fields
+                if (!a.id) {
+                    if (typeof logError === 'function') {
+                        logError('filterActiveAnggota', 'Anggota missing required ID field', { anggota: a });
+                    }
+                    return false;
+                }
+                
+                // FILTERING LOGIC FOR MASTER ANGGOTA DISPLAY:
+                // The goal is to hide only members who have PERMANENTLY LEFT the koperasi
+                // while preserving inactive and leave members for administrative purposes
+                
+                // Check OLD system: statusKeanggotaan === 'Keluar'
+                // This is the legacy field used to mark exited members
+                if (a.statusKeanggotaan === 'Keluar') {
+                    return false; // Exclude - permanently left (old system)
+                }
+                
+                // Check NEW system: has tanggalKeluar (exit date set)
+                // This indicates the member has gone through the exit process
+                if (a.tanggalKeluar) {
+                    return false; // Exclude - permanently left (new system)
+                }
+                
+                // Check NEW system: has pengembalianStatus (went through exit process)
+                // This indicates pencairan process is in progress or completed
+                if (a.pengembalianStatus) {
+                    return false; // Exclude - in exit process or completed
+                }
+                
+                // Include all others (Aktif, Nonaktif, Cuti)
+                // IMPORTANT: Nonaktif and Cuti members are shown in Master Anggota
+                // but will be filtered out from transaction dropdowns by filterTransactableAnggota()
+                return true;
+            } catch (filterError) {
+                if (typeof logError === 'function') {
+                    logError('filterActiveAnggota', 'Error processing individual anggota', { 
+                        anggota: a,
+                        error: filterError.message
+                    });
+                }
+                return false; // Exclude problematic entries
+            }
+        });
+        
+        return filtered;
+    } catch (error) {
+        if (typeof logError === 'function') {
+            logError('filterActiveAnggota', error, { 
+                inputLength: anggotaList ? anggotaList.length : 'unknown',
+                inputType: typeof anggotaList,
+                stackTrace: error.stack
+            });
+        }
+        
+        if (typeof showUserError === 'function') {
+            showUserError('system_error', 'filterActiveAnggota');
+        }
+        
+        console.error('Critical error in filterActiveAnggota:', error);
+        
+        // Return empty array as safe fallback
         return [];
     }
-    
-    // Filter out anggota keluar using BOTH old and new system
-    // OLD SYSTEM: statusKeanggotaan === 'Keluar'
-    // NEW SYSTEM: status === 'Nonaktif' OR tanggalKeluar exists
-    return anggotaList.filter(a => {
-        // Check OLD system: statusKeanggotaan
-        if (a.statusKeanggotaan === 'Keluar') {
-            return false; // Exclude
-        }
-        
-        // Check NEW system: status = 'Nonaktif'
-        if (a.status === 'Nonaktif') {
-            return false; // Exclude
-        }
-        
-        // Check NEW system: has tanggalKeluar
-        if (a.tanggalKeluar) {
-            return false; // Exclude
-        }
-        
-        // Check NEW system: has pengembalianStatus (means they went through exit process)
-        if (a.pengembalianStatus) {
-            return false; // Exclude
-        }
-        
-        return true; // Include (active member)
-    });
 }
 
 /**
@@ -241,6 +402,389 @@ function filterActiveAnggota(anggotaList) {
 function getActiveAnggotaCount() {
     const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
     return filterActiveAnggota(anggota).length;
+}
+
+/**
+ * Filter anggota to include only those who can participate in transactions
+ * This function filters anggota to include only those with:
+ * - status === 'Aktif' (active status)
+ * - statusKeanggotaan !== 'Keluar' (not exited)
+ * 
+ * Use this function for transaction dropdowns and searches to ensure
+ * only eligible members can perform transactions.
+ * 
+ * @param {Array} anggotaList - Array of anggota objects
+ * @returns {Array} Filtered array of anggota who can transact
+ * 
+ * @example
+ * const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+ * const transactableAnggota = filterTransactableAnggota(allAnggota);
+ * // transactableAnggota now contains only members with status === 'Aktif' AND statusKeanggotaan !== 'Keluar'
+ */
+function filterTransactableAnggota(anggotaList) {
+    try {
+        // Enhanced input validation with comprehensive error handling
+        const validation = typeof validateArray === 'function' 
+            ? validateArray(anggotaList, 'anggotaList')
+            : { valid: Array.isArray(anggotaList), array: anggotaList, fallback: [] };
+            
+        if (!validation.valid) {
+            if (typeof logError === 'function') {
+                logError('filterTransactableAnggota', 'Invalid input type', { 
+                    inputType: typeof anggotaList,
+                    inputValue: anggotaList,
+                    expectedType: 'Array'
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('invalid_format', 'filterTransactableAnggota', { 
+                    function: 'filterTransactableAnggota',
+                    input: typeof anggotaList 
+                });
+            }
+            
+            return validation.fallback || [];
+        }
+        
+        const arrayToProcess = validation.array || anggotaList;
+        
+        // Handle empty array gracefully
+        if (arrayToProcess.length === 0) {
+            return [];
+        }
+        
+        // Filter to include only active members who haven't left
+        const filtered = arrayToProcess.filter(a => {
+            try {
+                // Handle null or undefined entries with detailed logging
+                if (!a || typeof a !== 'object') {
+                    if (typeof logError === 'function') {
+                        logError('filterTransactableAnggota', 'Invalid anggota entry found', { 
+                            entry: a,
+                            entryType: typeof a,
+                            isNull: a === null,
+                            isUndefined: a === undefined
+                        });
+                    }
+                    return false;
+                }
+                
+                // Validate required fields for transaction eligibility
+                if (!a.id) {
+                    if (typeof logError === 'function') {
+                        logError('filterTransactableAnggota', 'Anggota missing required ID field', { anggota: a });
+                    }
+                    return false;
+                }
+                
+                if (!a.status) {
+                    if (typeof logError === 'function') {
+                        logError('filterTransactableAnggota', 'Anggota missing status field', { 
+                            anggotaId: a.id,
+                            anggota: a 
+                        });
+                    }
+                    return false;
+                }
+                
+                // Must have Aktif status
+                if (a.status !== 'Aktif') {
+                    return false; // Exclude non-aktif and cuti
+                }
+                
+                // Must not have Keluar statusKeanggotaan
+                if (a.statusKeanggotaan === 'Keluar') {
+                    return false; // Exclude keluar
+                }
+                
+                // Check NEW system: has tanggalKeluar
+                if (a.tanggalKeluar) {
+                    return false; // Exclude
+                }
+                
+                // Check NEW system: has pengembalianStatus (means they went through exit process)
+                if (a.pengembalianStatus) {
+                    return false; // Exclude
+                }
+                
+                return true; // Include (active and eligible for transactions)
+            } catch (filterError) {
+                if (typeof logError === 'function') {
+                    logError('filterTransactableAnggota', 'Error processing individual anggota', { 
+                        anggota: a,
+                        error: filterError.message
+                    });
+                }
+                return false; // Exclude problematic entries
+            }
+        });
+        
+        return filtered;
+    } catch (error) {
+        if (typeof logError === 'function') {
+            logError('filterTransactableAnggota', error, { 
+                inputLength: anggotaList ? anggotaList.length : 'unknown',
+                inputType: typeof anggotaList,
+                stackTrace: error.stack
+            });
+        }
+        
+        if (typeof showUserError === 'function') {
+            showUserError('system_error', 'filterTransactableAnggota');
+        }
+        
+        console.error('Critical error in filterTransactableAnggota:', error);
+        
+        // Return empty array as safe fallback
+        return [];
+    }
+}
+
+/**
+ * Validate if anggota can participate in transactions
+ * This function validates that anggota meets all requirements for performing transactions:
+ * - Must exist in the system
+ * - Must have status === 'Aktif' (not Nonaktif or Cuti)
+ * - Must not have statusKeanggotaan === 'Keluar'
+ * - Must not have tanggalKeluar (new exit system)
+ * - Must not have pengembalianStatus (exit process in progress)
+ * 
+ * @param {string} anggotaId - ID of the anggota to validate
+ * @returns {Object} Validation result with structure:
+ *   - valid: boolean indicating if anggota can transact
+ *   - error: string error message if validation fails
+ *   - anggota: object anggota data if validation succeeds
+ * 
+ * @example
+ * const validation = validateAnggotaForTransaction('A001');
+ * if (validation.valid) {
+ *     // Proceed with transaction
+ *     console.log('Transaction allowed for:', validation.anggota.nama);
+ * } else {
+ *     // Show error message
+ *     alert(validation.error);
+ * }
+ */
+function validateAnggotaForTransaction(anggotaId) {
+    try {
+        // Enhanced input validation with comprehensive error handling
+        if (typeof validateAnggotaId === 'function') {
+            const inputValidation = validateAnggotaId(anggotaId);
+            if (!inputValidation.valid) {
+                if (typeof logError === 'function') {
+                    logError('validateAnggotaForTransaction', inputValidation.error, { 
+                        anggotaId,
+                        validationMessage: inputValidation.message
+                    });
+                }
+                
+                if (typeof showUserError === 'function') {
+                    showUserError(inputValidation.error, 'validateAnggotaForTransaction');
+                }
+                
+                return {
+                    valid: false,
+                    error: inputValidation.message || getUserFriendlyMessage('required_field_empty')
+                };
+            }
+        } else {
+            // Fallback validation with enhanced checks
+            if (!anggotaId) {
+                const errorMsg = 'ID anggota tidak boleh kosong';
+                if (typeof logError === 'function') {
+                    logError('validateAnggotaForTransaction', 'Empty anggotaId', { anggotaId });
+                }
+                return { valid: false, error: errorMsg };
+            }
+            
+            if (typeof anggotaId !== 'string') {
+                const errorMsg = 'ID anggota harus berupa string';
+                if (typeof logError === 'function') {
+                    logError('validateAnggotaForTransaction', 'Invalid anggotaId type', { 
+                        anggotaId,
+                        type: typeof anggotaId 
+                    });
+                }
+                return { valid: false, error: errorMsg };
+            }
+            
+            if (anggotaId.trim().length === 0) {
+                const errorMsg = 'ID anggota tidak boleh kosong';
+                if (typeof logError === 'function') {
+                    logError('validateAnggotaForTransaction', 'Empty anggotaId after trim', { anggotaId });
+                }
+                return { valid: false, error: errorMsg };
+            }
+        }
+
+        // Get anggota data with comprehensive error handling
+        let anggotaList;
+        try {
+            if (typeof safeGetLocalStorage === 'function') {
+                anggotaList = safeGetLocalStorage('anggota', []);
+            } else {
+                const rawData = localStorage.getItem('anggota');
+                if (rawData === null) {
+                    if (typeof logError === 'function') {
+                        logError('validateAnggotaForTransaction', 'No anggota data in localStorage', { anggotaId });
+                    }
+                    return {
+                        valid: false,
+                        error: getUserFriendlyMessage('data_not_found', 'Data anggota tidak ditemukan')
+                    };
+                }
+                anggotaList = JSON.parse(rawData);
+            }
+        } catch (parseError) {
+            if (typeof logError === 'function') {
+                logError('validateAnggotaForTransaction', 'Failed to parse anggota data', { 
+                    anggotaId,
+                    parseError: parseError.message
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('data_corrupted', 'validateAnggotaForTransaction');
+            }
+            
+            return {
+                valid: false,
+                error: getUserFriendlyMessage('data_corrupted')
+            };
+        }
+        
+        // Validate anggota list structure
+        if (!Array.isArray(anggotaList)) {
+            if (typeof logError === 'function') {
+                logError('validateAnggotaForTransaction', 'Invalid anggota data structure', { 
+                    anggotaId,
+                    dataType: typeof anggotaList,
+                    isArray: Array.isArray(anggotaList)
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('data_corrupted', 'validateAnggotaForTransaction');
+            }
+            
+            return {
+                valid: false,
+                error: getUserFriendlyMessage('data_corrupted')
+            };
+        }
+        
+        // Find anggota with enhanced error handling
+        let anggota;
+        try {
+            anggota = anggotaList.find(a => a && a.id === anggotaId);
+        } catch (findError) {
+            if (typeof logError === 'function') {
+                logError('validateAnggotaForTransaction', 'Error finding anggota', { 
+                    anggotaId,
+                    findError: findError.message,
+                    anggotaListLength: anggotaList.length
+                });
+            }
+            return {
+                valid: false,
+                error: getUserFriendlyMessage('system_error')
+            };
+        }
+        
+        // Check if anggota exists
+        if (!anggota) {
+            if (typeof logError === 'function') {
+                logError('validateAnggotaForTransaction', 'Anggota not found', { 
+                    anggotaId,
+                    totalAnggota: anggotaList.length,
+                    availableIds: anggotaList.slice(0, 5).map(a => a?.id).filter(Boolean)
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('anggota_not_found', 'validateAnggotaForTransaction');
+            }
+            
+            return {
+                valid: false,
+                error: getUserFriendlyMessage('anggota_not_found')
+            };
+        }
+        
+        // Validate anggota object structure
+        if (!anggota.nama) {
+            if (typeof logError === 'function') {
+                logError('validateAnggotaForTransaction', 'Invalid anggota structure', { 
+                    anggotaId,
+                    anggota: anggota 
+                });
+            }
+            return {
+                valid: false,
+                error: 'Data anggota tidak lengkap'
+            };
+        }
+        
+        // Check if anggota has left the koperasi (old system)
+        if (anggota.statusKeanggotaan === 'Keluar') {
+            return {
+                valid: false,
+                error: `Anggota ${anggota.nama} sudah keluar dari koperasi dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Check if anggota is non-aktif
+        if (anggota.status === 'Nonaktif') {
+            return {
+                valid: false,
+                error: `Anggota ${anggota.nama} berstatus non-aktif dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Check if anggota is on leave (cuti)
+        if (anggota.status === 'Cuti') {
+            return {
+                valid: false,
+                error: `Anggota ${anggota.nama} sedang cuti dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Check if anggota has tanggalKeluar (new exit system)
+        if (anggota.tanggalKeluar) {
+            const formattedDate = typeof formatDateToDisplay === 'function' 
+                ? formatDateToDisplay(anggota.tanggalKeluar) 
+                : anggota.tanggalKeluar;
+            return {
+                valid: false,
+                error: `Anggota ${anggota.nama} sudah keluar dari koperasi pada ${formattedDate} dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Check if anggota has pengembalianStatus (exit process in progress)
+        if (anggota.pengembalianStatus) {
+            return {
+                valid: false,
+                error: `Anggota ${anggota.nama} sedang dalam proses keluar (status: ${anggota.pengembalianStatus}) dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Validation passed - anggota can perform transactions
+        return {
+            valid: true,
+            anggota: anggota
+        };
+        
+    } catch (error) {
+        if (typeof logError === 'function') {
+            logError('validateAnggotaForTransaction', error, { anggotaId });
+        }
+        console.error('Error validating anggota for transaction:', error);
+        return {
+            valid: false,
+            error: 'Terjadi kesalahan saat validasi anggota'
+        };
+    }
 }
 
 // ===== End Anggota Filtering Functions =====

@@ -624,8 +624,89 @@ function laporanKasBesar() {
     `;
 }
 
+/**
+ * Download laporan as CSV file
+ * Task 18: Export laporan excluding zero balances
+ * Requirements: 9.5
+ * @param {string} reportName - Name of the report to export
+ */
 function downloadCSV(reportName) {
-    showAlert('Fitur download CSV dalam pengembangan', 'info');
+    if (reportName === 'laporan_simpanan') {
+        exportLaporanSimpananCSV();
+    } else {
+        showAlert('Fitur download CSV untuk laporan ini dalam pengembangan', 'info');
+    }
+}
+
+/**
+ * Export Laporan Simpanan to CSV
+ * Task 18: Excludes anggota with zero balances
+ * Requirements: 9.5
+ */
+function exportLaporanSimpananCSV() {
+    try {
+        // Get anggota with simpanan for laporan (already filters zero balances)
+        const anggotaList = getAnggotaWithSimpananForLaporan();
+        const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+        
+        if (anggotaList.length === 0) {
+            showAlert('Tidak ada data simpanan untuk diexport!', 'warning');
+            return;
+        }
+        
+        // Create CSV header
+        let csv = 'NIK,Nama Anggota,Simpanan Pokok,Simpanan Wajib,Simpanan Sukarela,Total Simpanan\n';
+        
+        // Add data rows (only non-zero balances)
+        let totalPokok = 0;
+        let totalWajib = 0;
+        let totalSukarela = 0;
+        let totalAll = 0;
+        
+        anggotaList.forEach(a => {
+            const pokok = a.simpananPokok;
+            const wajib = a.simpananWajib;
+            // Filter simpanan sukarela with jumlah > 0
+            const sukarela = simpananSukarela
+                .filter(s => s.anggotaId === a.id && s.jumlah > 0)
+                .reduce((sum, s) => sum + s.jumlah, 0);
+            const total = pokok + wajib + sukarela;
+            
+            // Add to totals
+            totalPokok += pokok;
+            totalWajib += wajib;
+            totalSukarela += sukarela;
+            totalAll += total;
+            
+            // Add row to CSV
+            csv += `${a.nik},"${a.nama}",${pokok},${wajib},${sukarela},${total}\n`;
+        });
+        
+        // Add total row
+        csv += `TOTAL,,${totalPokok},${totalWajib},${totalSukarela},${totalAll}\n`;
+        
+        // Add note about exclusions
+        csv += `\nCatatan: Laporan ini otomatis mengecualikan anggota yang sudah keluar dan telah diproses pengembaliannya (saldo zero).\n`;
+        
+        // Download CSV file
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const today = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `laporan_simpanan_${today}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`Laporan simpanan berhasil diexport! (${anggotaList.length} anggota)`, 'success');
+    } catch (error) {
+        console.error('Error exporting laporan simpanan:', error);
+        showAlert('Gagal mengexport laporan simpanan: ' + error.message, 'error');
+    }
 }
 
 

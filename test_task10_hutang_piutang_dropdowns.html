@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 10 - Hutang Piutang Dropdowns</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-cash-coin"></i> Test Task 10 - Hutang Piutang Dropdowns</h1>
+        <p class="lead">Testing filterTransactableAnggota() integration in pembayaran hutang piutang search</p>
+
+        <div class="alert alert-info">
+            <strong>Test Objective:</strong> Verify that hutang piutang search uses filterTransactableAnggota() 
+            to exclude Nonaktif, Cuti, and Keluar anggota from search results.
+        </div>
+
+        <button class="btn btn-primary mb-3" onclick="runAllTests()">
+            <i class="bi bi-play-fill"></i> Run All Tests
+        </button>
+        <button class="btn btn-secondary mb-3" onclick="clearResults()">
+            <i class="bi bi-x-circle"></i> Clear Results
+        </button>
+
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/koperasi.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function addResult(testName, passed, message, details = '') {
+            testResults.push({ testName, passed, message, details });
+            displayResults();
+        }
+
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            const passCount = testResults.filter(r => r.passed).length;
+            const failCount = testResults.filter(r => !r.passed).length;
+
+            let html = `
+                <div class="alert ${failCount === 0 ? 'alert-success' : 'alert-warning'}">
+                    <strong>Test Summary:</strong> ${passCount} passed, ${failCount} failed out of ${testResults.length} tests
+                </div>
+            `;
+
+            testResults.forEach((result, index) => {
+                html += `
+                    <div class="test-section">
+                        <h5>Test ${index + 1}: ${result.testName}</h5>
+                        <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                            <strong>${result.passed ? '✓ PASS' : '✗ FAIL'}:</strong> ${result.message}
+                        </div>
+                        ${result.details ? `<div class="test-info mt-2"><small>${result.details}</small></div>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function setupTestData() {
+            // Create test anggota with various statuses
+            const testAnggota = [
+                // Transactable (should appear)
+                { id: 'A001', nik: '1001', nama: 'Aktif Normal', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+                { id: 'A002', nik: '1002', nama: 'Aktif Member', status: 'Aktif', statusKeanggotaan: 'Anggota' },
+                
+                // Non-transactable (should NOT appear)
+                { id: 'A003', nik: '1003', nama: 'Nonaktif User', status: 'Nonaktif', statusKeanggotaan: 'Aktif' },
+                { id: 'A004', nik: '1004', nama: 'Cuti User', status: 'Cuti', statusKeanggotaan: 'Aktif' },
+                { id: 'A005', nik: '1005', nama: 'Keluar User', status: 'Aktif', statusKeanggotaan: 'Keluar' },
+                { id: 'A006', nik: '1006', nama: 'Nonaktif Keluar', status: 'Nonaktif', statusKeanggotaan: 'Keluar' },
+                
+                // More transactable
+                { id: 'A007', nik: '1007', nama: 'John Aktif', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+                { id: 'A008', nik: '1008', nama: 'Jane Aktif', status: 'Aktif', statusKeanggotaan: 'Anggota' }
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            return testAnggota;
+        }
+
+        // Test 1: searchAnggota excludes Nonaktif
+        function test1_ExcludesNonaktif() {
+            setupTestData();
+            const results = searchAnggota('Nonaktif');
+            
+            const hasNonaktif = results.some(a => a.status === 'Nonaktif');
+            
+            if (!hasNonaktif && results.length === 0) {
+                addResult(
+                    'Exclude Nonaktif from search',
+                    true,
+                    'searchAnggota correctly excludes Nonaktif anggota',
+                    `Searched for "Nonaktif", found ${results.length} results (expected 0)`
+                );
+            } else {
+                addResult(
+                    'Exclude Nonaktif from search',
+                    false,
+                    'searchAnggota returned Nonaktif anggota',
+                    `Found ${results.length} results, hasNonaktif: ${hasNonaktif}`
+                );
+            }
+        }
+
+        // Test 2: searchAnggota excludes Cuti
+        function test2_ExcludesCuti() {
+            setupTestData();
+            const results = searchAnggota('Cuti');
+            
+            const hasCuti = results.some(a => a.status === 'Cuti');
+            
+            if (!hasCuti && results.length === 0) {
+                addResult(
+                    'Exclude Cuti from search',
+                    true,
+                    'searchAnggota correctly excludes Cuti anggota',
+                    `Searched for "Cuti", found ${results.length} results (expected 0)`
+                );
+            } else {
+                addResult(
+                    'Exclude Cuti from search',
+                    false,
+                    'searchAnggota returned Cuti anggota',
+                    `Found ${results.length} results, hasCuti: ${hasCuti}`
+                );
+            }
+        }
+
+        // Test 3: searchAnggota excludes Keluar
+        function test3_ExcludesKeluar() {
+            setupTestData();
+            const results = searchAnggota('Keluar');
+            
+            const hasKeluar = results.some(a => a.statusKeanggotaan === 'Keluar');
+            
+            if (!hasKeluar && results.length === 0) {
+                addResult(
+                    'Exclude Keluar from search',
+                    true,
+                    'searchAnggota correctly excludes Keluar anggota',
+                    `Searched for "Keluar", found ${results.length} results (expected 0)`
+                );
+            } else {
+                addResult(
+                    'Exclude Keluar from search',
+                    false,
+                    'searchAnggota returned Keluar anggota',
+                    `Found ${results.length} results, hasKeluar: ${hasKeluar}`
+                );
+            }
+        }
+
+        // Test 4: searchAnggota returns only Aktif
+        function test4_ReturnsOnlyAktif() {
+            setupTestData();
+            const results = searchAnggota('Aktif');
+            
+            const allAktif = results.every(a => a.status === 'Aktif');
+            const noneKeluar = results.every(a => a.statusKeanggotaan !== 'Keluar');
+            
+            if (allAktif && noneKeluar && results.length > 0) {
+                addResult(
+                    'Return only Aktif anggota',
+                    true,
+                    'searchAnggota returns only Aktif status and not Keluar',
+                    `Found ${results.length} results, all have status=Aktif and statusKeanggotaan≠Keluar`
+                );
+            } else {
+                addResult(
+                    'Return only Aktif anggota',
+                    false,
+                    'searchAnggota returned non-Aktif or Keluar anggota',
+                    `Found ${results.length} results, allAktif: ${allAktif}, noneKeluar: ${noneKeluar}`
+                );
+            }
+        }
+
+        // Test 5: Search by NIK works with filtering
+        function test5_SearchByNIK() {
+            setupTestData();
+            const results = searchAnggota('1001');
+            
+            const found = results.find(a => a.nik === '1001');
+            const allTransactable = results.every(a => 
+                a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar'
+            );
+            
+            if (found && allTransactable) {
+                addResult(
+                    'Search by NIK with filtering',
+                    true,
+                    'NIK search works and returns only transactable anggota',
+                    `Found anggota with NIK 1001: ${found.nama}`
+                );
+            } else {
+                addResult(
+                    'Search by NIK with filtering',
+                    false,
+                    'NIK search failed or returned non-transactable anggota',
+                    `Found: ${!!found}, allTransactable: ${allTransactable}`
+                );
+            }
+        }
+
+        // Test 6: Search by name works with filtering
+        function test6_SearchByName() {
+            setupTestData();
+            const results = searchAnggota('John');
+            
+            const found = results.find(a => a.nama.includes('John'));
+            const allTransactable = results.every(a => 
+                a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar'
+            );
+            
+            if (found && allTransactable) {
+                addResult(
+                    'Search by name with filtering',
+                    true,
+                    'Name search works and returns only transactable anggota',
+                    `Found anggota: ${found.nama} (${found.nik})`
+                );
+            } else {
+                addResult(
+                    'Search by name with filtering',
+                    false,
+                    'Name search failed or returned non-transactable anggota',
+                    `Found: ${!!found}, allTransactable: ${allTransactable}`
+                );
+            }
+        }
+
+        // Test 7: Empty search returns empty
+        function test7_EmptySearch() {
+            setupTestData();
+            const results = searchAnggota('');
+            
+            // Empty search should return empty or all transactable
+            const allTransactable = results.every(a => 
+                a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar'
+            );
+            
+            if (allTransactable) {
+                addResult(
+                    'Empty search handling',
+                    true,
+                    'Empty search returns only transactable anggota',
+                    `Returned ${results.length} results, all transactable`
+                );
+            } else {
+                addResult(
+                    'Empty search handling',
+                    false,
+                    'Empty search returned non-transactable anggota',
+                    `Returned ${results.length} results`
+                );
+            }
+        }
+
+        // Test 8: Search with no matches
+        function test8_NoMatches() {
+            setupTestData();
+            const results = searchAnggota('ZZZZZ');
+            
+            if (results.length === 0) {
+                addResult(
+                    'Search with no matches',
+                    true,
+                    'Search with no matches returns empty array',
+                    'Searched for "ZZZZZ", correctly returned 0 results'
+                );
+            } else {
+                addResult(
+                    'Search with no matches',
+                    false,
+                    'Search with no matches returned unexpected results',
+                    `Expected 0 results, got ${results.length}`
+                );
+            }
+        }
+
+        // Test 9: Verify uses filterTransactableAnggota
+        function test9_UsesFilterTransactable() {
+            setupTestData();
+            
+            // Get results from both functions
+            const searchResults = searchAnggota('');
+            const filterResults = filterTransactableAnggota();
+            
+            // Search results should be subset of filter results
+            const allInFilter = searchResults.every(sr => 
+                filterResults.some(fr => fr.id === sr.id)
+            );
+            
+            if (allInFilter) {
+                addResult(
+                    'Uses filterTransactableAnggota',
+                    true,
+                    'searchAnggota results are subset of filterTransactableAnggota',
+                    `Search: ${searchResults.length} results, Filter: ${filterResults.length} results`
+                );
+            } else {
+                addResult(
+                    'Uses filterTransactableAnggota',
+                    false,
+                    'searchAnggota returns anggota not in filterTransactableAnggota',
+                    `This indicates searchAnggota is not using filterTransactableAnggota`
+                );
+            }
+        }
+
+        // Test 10: Limit to 10 results
+        function test10_LimitResults() {
+            // Create 15 transactable anggota
+            const manyAnggota = [];
+            for (let i = 1; i <= 15; i++) {
+                manyAnggota.push({
+                    id: `A${i.toString().padStart(3, '0')}`,
+                    nik: `100${i}`,
+                    nama: `Test User ${i}`,
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                });
+            }
+            localStorage.setItem('anggota', JSON.stringify(manyAnggota));
+            
+            const results = searchAnggota('Test');
+            
+            if (results.length <= 10) {
+                addResult(
+                    'Limit results to 10',
+                    true,
+                    'searchAnggota correctly limits results to max 10',
+                    `15 matching anggota exist, returned ${results.length} results`
+                );
+            } else {
+                addResult(
+                    'Limit results to 10',
+                    false,
+                    'searchAnggota returned more than 10 results',
+                    `Expected max 10, got ${results.length}`
+                );
+            }
+        }
+
+        function runAllTests() {
+            clearResults();
+            
+            console.log('Starting Task 10 tests...');
+            
+            test1_ExcludesNonaktif();
+            test2_ExcludesCuti();
+            test3_ExcludesKeluar();
+            test4_ReturnsOnlyAktif();
+            test5_SearchByNIK();
+            test6_SearchByName();
+            test7_EmptySearch();
+            test8_NoMatches();
+            test9_UsesFilterTransactable();
+            test10_LimitResults();
+            
+            console.log('All tests completed!');
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, ready to run tests');
+        });
+    </script>
+</body>
+</html>

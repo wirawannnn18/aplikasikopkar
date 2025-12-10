@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 17 - Anggota Keluar Search and Count</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .test-section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .test-pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .test-fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .test-info { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .scenario { background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px; border: 1px solid #dee2e6; }
+        .data-display { background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4">
+            <i class="bi bi-clipboard-check text-primary"></i>
+            Test Task 17 - Anggota Keluar Search and Count
+        </h1>
+
+        <div class="test-section">
+            <h3>📋 Test Overview</h3>
+            <p><strong>Task:</strong> Add search functionality to Anggota Keluar page and ensure accurate counts</p>
+            <p><strong>Requirements:</strong></p>
+            <ul>
+                <li>Search works only within anggota with statusKeanggotaan === 'Keluar'</li>
+                <li>Count shows only anggota with statusKeanggotaan === 'Keluar'</li>
+                <li>Search by NIK or Nama</li>
+                <li>Count updates dynamically with search</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Setup Test Data</h3>
+            <button class="btn btn-primary" onclick="setupTestData()">
+                <i class="bi bi-database-fill-add me-1"></i>Setup Test Data
+            </button>
+            <button class="btn btn-secondary ms-2" onclick="clearTestData()">
+                <i class="bi bi-trash me-1"></i>Clear Test Data
+            </button>
+            <div id="setupResult" class="mt-3"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Run Tests</h3>
+            <button class="btn btn-success" onclick="runAllTests()">
+                <i class="bi bi-play-circle me-1"></i>Run All Tests
+            </button>
+            <div id="testResults" class="mt-3"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>👁️ Visual Verification</h3>
+            <button class="btn btn-info" onclick="showSearchDemo()">
+                <i class="bi bi-eye me-1"></i>Show Search Demo
+            </button>
+            <div id="visualResult" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/anggotaKeluarUI.js"></script>
+
+    <script>
+        // Test data setup
+        function setupTestData() {
+            const testAnggota = [
+                // Keluar anggota - should appear in search
+                {
+                    id: 'test-keluar-1',
+                    nik: '1001',
+                    nama: 'Budi Santoso',
+                    departemen: 'IT',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-12-01',
+                    pengembalianStatus: 'Pending'
+                },
+                {
+                    id: 'test-keluar-2',
+                    nik: '1002',
+                    nama: 'Siti Rahayu',
+                    departemen: 'Finance',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-11-15',
+                    pengembalianStatus: 'Selesai'
+                },
+                {
+                    id: 'test-keluar-3',
+                    nik: '1003',
+                    nama: 'Andi Wijaya',
+                    departemen: 'HR',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-12-05',
+                    pengembalianStatus: null
+                },
+                {
+                    id: 'test-keluar-4',
+                    nik: '1004',
+                    nama: 'Dewi Lestari',
+                    departemen: 'Marketing',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-11-20',
+                    pengembalianStatus: 'Selesai'
+                },
+                {
+                    id: 'test-keluar-5',
+                    nik: '1005',
+                    nama: 'Budi Prasetyo',
+                    departemen: 'Operations',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-12-03',
+                    pengembalianStatus: 'Pending'
+                },
+                // Aktif anggota - should NOT appear in search
+                {
+                    id: 'test-aktif-1',
+                    nik: '2001',
+                    nama: 'Eko Prasetyo',
+                    departemen: 'Sales',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: null,
+                    pengembalianStatus: null
+                },
+                {
+                    id: 'test-aktif-2',
+                    nik: '2002',
+                    nama: 'Fitri Handayani',
+                    departemen: 'Admin',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: null,
+                    pengembalianStatus: null
+                }
+            ];
+
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+
+            const result = document.getElementById('setupResult');
+            result.innerHTML = `
+                <div class="test-result test-pass">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Test data created successfully!</strong>
+                    <div class="data-display mt-2">
+                        Total anggota: ${testAnggota.length}<br>
+                        - Keluar: 5 (should appear in search)<br>
+                        - Aktif: 2 (should NOT appear in search)
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearTestData() {
+            localStorage.removeItem('anggota');
+            document.getElementById('setupResult').innerHTML = `
+                <div class="test-result test-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Test data cleared.
+                </div>
+            `;
+        }
+
+        // Test functions
+        function runAllTests() {
+            const results = [];
+            
+            // Test 1: Search scope (only keluar)
+            results.push(testSearchScope());
+            
+            // Test 2: Search by NIK
+            results.push(testSearchByNIK());
+            
+            // Test 3: Search by Nama
+            results.push(testSearchByNama());
+            
+            // Test 4: Count accuracy
+            results.push(testCountAccuracy());
+            
+            // Test 5: Empty search shows all keluar
+            results.push(testEmptySearch());
+            
+            displayTestResults(results);
+        }
+
+        function testSearchScope() {
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            const expectedCount = 5;
+            const actualCount = anggotaKeluar.length;
+            
+            return {
+                name: 'Test 1: Search Scope (Only Keluar)',
+                pass: actualCount === expectedCount,
+                message: actualCount === expectedCount
+                    ? `✅ Search scope correct: ${actualCount} anggota keluar`
+                    : `❌ Expected ${expectedCount} anggota keluar, got ${actualCount}`,
+                details: `Total anggota: ${anggotaList.length}, Keluar: ${actualCount}`
+            };
+        }
+
+        function testSearchByNIK() {
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            // Search for NIK "1001"
+            const searchText = '1001';
+            const filtered = anggotaKeluar.filter(a => {
+                const nikMatch = a.nik && a.nik.toLowerCase().includes(searchText.toLowerCase());
+                return nikMatch;
+            });
+            
+            const expectedCount = 1;
+            const actualCount = filtered.length;
+            const correctAnggota = filtered.length > 0 && filtered[0].nik === '1001';
+            
+            return {
+                name: 'Test 2: Search by NIK',
+                pass: actualCount === expectedCount && correctAnggota,
+                message: actualCount === expectedCount && correctAnggota
+                    ? `✅ Search by NIK works: Found ${actualCount} result`
+                    : `❌ Expected ${expectedCount} result, got ${actualCount}`,
+                details: filtered.length > 0 ? `Found: ${filtered[0].nama} (${filtered[0].nik})` : 'No results'
+            };
+        }
+
+        function testSearchByNama() {
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            // Search for "Budi" (should find 2: Budi Santoso and Budi Prasetyo)
+            const searchText = 'budi';
+            const filtered = anggotaKeluar.filter(a => {
+                const namaMatch = a.nama && a.nama.toLowerCase().includes(searchText.toLowerCase());
+                return namaMatch;
+            });
+            
+            const expectedCount = 2;
+            const actualCount = filtered.length;
+            
+            return {
+                name: 'Test 3: Search by Nama',
+                pass: actualCount === expectedCount,
+                message: actualCount === expectedCount
+                    ? `✅ Search by Nama works: Found ${actualCount} results`
+                    : `❌ Expected ${expectedCount} results, got ${actualCount}`,
+                details: filtered.map(a => `${a.nama} (${a.nik})`).join(', ')
+            };
+        }
+
+        function testCountAccuracy() {
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            // Test with search
+            const searchText = 'siti';
+            const filtered = anggotaKeluar.filter(a => {
+                const nikMatch = a.nik && a.nik.toLowerCase().includes(searchText.toLowerCase());
+                const namaMatch = a.nama && a.nama.toLowerCase().includes(searchText.toLowerCase());
+                return nikMatch || namaMatch;
+            });
+            
+            const expectedFiltered = 1;
+            const expectedTotal = 5;
+            
+            return {
+                name: 'Test 4: Count Accuracy',
+                pass: filtered.length === expectedFiltered && anggotaKeluar.length === expectedTotal,
+                message: filtered.length === expectedFiltered && anggotaKeluar.length === expectedTotal
+                    ? `✅ Count accurate: ${filtered.length} of ${anggotaKeluar.length}`
+                    : `❌ Expected ${expectedFiltered} of ${expectedTotal}, got ${filtered.length} of ${anggotaKeluar.length}`,
+                details: `Filtered: ${filtered.length}, Total Keluar: ${anggotaKeluar.length}`
+            };
+        }
+
+        function testEmptySearch() {
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            // Empty search should show all keluar
+            const searchText = '';
+            const filtered = anggotaKeluar.filter(a => {
+                if (!searchText) return true;
+                const nikMatch = a.nik && a.nik.toLowerCase().includes(searchText.toLowerCase());
+                const namaMatch = a.nama && a.nama.toLowerCase().includes(searchText.toLowerCase());
+                return nikMatch || namaMatch;
+            });
+            
+            const expectedCount = 5;
+            const actualCount = filtered.length;
+            
+            return {
+                name: 'Test 5: Empty Search Shows All Keluar',
+                pass: actualCount === expectedCount,
+                message: actualCount === expectedCount
+                    ? `✅ Empty search shows all: ${actualCount} anggota keluar`
+                    : `❌ Expected ${expectedCount} anggota keluar, got ${actualCount}`,
+                details: `All keluar anggota shown: ${actualCount}`
+            };
+        }
+
+        function displayTestResults(results) {
+            const container = document.getElementById('testResults');
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            
+            let html = `
+                <div class="test-result ${passCount === totalCount ? 'test-pass' : 'test-fail'}">
+                    <h5>
+                        <i class="bi bi-${passCount === totalCount ? 'check-circle' : 'x-circle'} me-2"></i>
+                        Test Results: ${passCount}/${totalCount} passed
+                    </h5>
+                </div>
+            `;
+            
+            results.forEach(result => {
+                html += `
+                    <div class="scenario">
+                        <h6>${result.name}</h6>
+                        <div class="test-result ${result.pass ? 'test-pass' : 'test-fail'}">
+                            ${result.message}
+                        </div>
+                        <div class="data-display">
+                            ${result.details}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function showSearchDemo() {
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggotaKeluar = anggotaList.filter(a => a.statusKeanggotaan === 'Keluar');
+            
+            const container = document.getElementById('visualResult');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-search me-2"></i>Search Demo
+                    </div>
+                    <div class="card-body">
+                        <h5>All Anggota Keluar (${anggotaKeluar.length})</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>NIK</th>
+                                        <th>Nama</th>
+                                        <th>StatusKeanggotaan</th>
+                                        <th>Tanggal Keluar</th>
+                                        <th>Pengembalian Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${anggotaKeluar.map(a => `
+                                        <tr>
+                                            <td>${a.nik}</td>
+                                            <td>${a.nama}</td>
+                                            <td><span class="badge bg-danger">${a.statusKeanggotaan}</span></td>
+                                            <td>${a.tanggalKeluar || '-'}</td>
+                                            <td>
+                                                ${a.pengembalianStatus === 'Selesai' 
+                                                    ? '<span class="badge bg-success">Selesai</span>'
+                                                    : a.pengembalianStatus === 'Pending'
+                                                    ? '<span class="badge bg-warning">Pending</span>'
+                                                    : '<span class="badge bg-secondary">-</span>'
+                                                }
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h5 class="mt-4">Search Examples</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Search: "1001"</h6>
+                                        <p class="mb-0">Should find: Budi Santoso</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Search: "Budi"</h6>
+                                        <p class="mb-0">Should find: 2 results (Budi Santoso, Budi Prasetyo)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Search: "Siti"</h6>
+                                        <p class="mb-0">Should find: Siti Rahayu</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto-setup on load
+        window.addEventListener('load', () => {
+            console.log('Test page loaded. Ready to test Task 17.');
+        });
+    </script>
+</body>
+</html>

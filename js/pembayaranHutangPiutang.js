@@ -635,6 +635,13 @@ function prosesPembayaran() {
         const jumlah = parseFloat(document.getElementById('jumlahPembayaran').value);
         const keterangan = document.getElementById('keteranganPembayaran').value;
         
+        // Validate anggota status first
+        const anggotaValidation = validateAnggotaForHutangPiutang(anggotaId);
+        if (!anggotaValidation.valid) {
+            showAlert(anggotaValidation.error, 'error');
+            return;
+        }
+        
         const data = {
             anggotaId,
             anggotaNama,
@@ -644,7 +651,7 @@ function prosesPembayaran() {
             keterangan
         };
         
-        // Validate
+        // Validate business logic
         const validation = validatePembayaran(data);
         if (!validation.valid) {
             showAlert(validation.message, 'warning');
@@ -855,13 +862,11 @@ function searchAnggota(query) {
         const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
         const searchLower = query.toLowerCase();
         
-        // Filter anggota that are active (not keluar)
-        const results = anggotaList.filter(anggota => {
-            // Skip anggota keluar
-            if (anggota.status === 'Nonaktif' || anggota.statusKeanggotaan === 'Keluar') {
-                return false;
-            }
-            
+        // Filter to only transactable anggota (Aktif status AND not Keluar)
+        const transactableAnggota = filterTransactableAnggota();
+        
+        // Search within transactable anggota
+        const results = transactableAnggota.filter(anggota => {
             const nikMatch = (anggota.nik || '').toLowerCase().includes(searchLower);
             const namaMatch = (anggota.nama || '').toLowerCase().includes(searchLower);
             

@@ -74,7 +74,7 @@ function renderSimpananPokok() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaPokok" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${filterActiveAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterTransactableAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -217,41 +217,171 @@ function showSimpananPokokModal() {
 }
 
 function saveSimpananPokok() {
-    const simpanan = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
-    
-    const anggotaId = document.getElementById('anggotaPokok').value;
-    
-    // NEW: Use transaction validator module
-    const validation = validateAnggotaForSimpanan(anggotaId);
-    if (!validation.valid) {
-        showAlert(validation.error, 'error');
-        return;
+    try {
+        // Get form data with validation
+        const anggotaId = document.getElementById('anggotaPokok').value;
+        const jumlahInput = document.getElementById('jumlahPokok').value;
+        const tanggalInput = document.getElementById('tanggalPokok').value;
+        
+        // Enhanced input validation
+        if (!anggotaId) {
+            if (typeof showUserError === 'function') {
+                showUserError('required_field_empty', 'saveSimpananPokok');
+            } else {
+                showAlert('Pilih anggota terlebih dahulu', 'error');
+            }
+            return;
+        }
+        
+        // Validate amount
+        if (typeof validateAmount === 'function') {
+            const amountValidation = validateAmount(jumlahInput);
+            if (!amountValidation.valid) {
+                if (typeof showUserError === 'function') {
+                    showUserError(amountValidation.error, 'saveSimpananPokok');
+                } else {
+                    showAlert(amountValidation.message, 'error');
+                }
+                return;
+            }
+        }
+        
+        const jumlah = parseFloat(jumlahInput);
+        if (isNaN(jumlah) || jumlah <= 0) {
+            showAlert('Jumlah harus berupa angka yang valid dan lebih dari 0', 'error');
+            return;
+        }
+        
+        // Validate date
+        if (!tanggalInput) {
+            showAlert('Tanggal harus diisi', 'error');
+            return;
+        }
+        
+        // Get simpanan data safely
+        let simpanan;
+        if (typeof safeGetLocalStorage === 'function') {
+            simpanan = safeGetLocalStorage('simpananPokok', []);
+        } else {
+            simpanan = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+        }
+        
+        if (!Array.isArray(simpanan)) {
+            if (typeof logError === 'function') {
+                logError('saveSimpananPokok', 'Invalid simpanan data structure', { 
+                    dataType: typeof simpanan 
+                });
+            }
+            showAlert('Data simpanan rusak. Silakan refresh halaman.', 'error');
+            return;
+        }
+        
+        // Use transaction validator module
+        let validation;
+        if (typeof validateAnggotaForSimpanan === 'function') {
+            validation = validateAnggotaForSimpanan(anggotaId);
+        } else if (typeof validateAnggotaForTransaction === 'function') {
+            validation = validateAnggotaForTransaction(anggotaId);
+        } else {
+            // Fallback validation
+            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const anggota = anggotaList.find(a => a.id === anggotaId);
+            if (!anggota) {
+                showAlert('Anggota tidak ditemukan', 'error');
+                return;
+            }
+            validation = { valid: true, anggota: anggota };
+        }
+        
+        if (!validation.valid) {
+            showAlert(validation.error, 'error');
+            return;
+        }
+        
+        // Create transaction data
+        const data = {
+            id: generateId(),
+            anggotaId: anggotaId,
+            jumlah: jumlah,
+            tanggal: tanggalInput,
+            // Initialize pengembalian tracking fields
+            statusPengembalian: 'Aktif',
+            saldoSebelumPengembalian: null,
+            pengembalianId: null,
+            tanggalPengembalian: null,
+            createdAt: new Date().toISOString()
+        };
+        
+        // Add to simpanan array
+        simpanan.push(data);
+        
+        // Save data safely
+        let saveSuccess;
+        if (typeof safeSetLocalStorage === 'function') {
+            saveSuccess = safeSetLocalStorage('simpananPokok', simpanan);
+        } else {
+            try {
+                localStorage.setItem('simpananPokok', JSON.stringify(simpanan));
+                saveSuccess = true;
+            } catch (error) {
+                if (typeof logError === 'function') {
+                    logError('saveSimpananPokok', error, { dataLength: simpanan.length });
+                }
+                saveSuccess = false;
+            }
+        }
+        
+        if (!saveSuccess) {
+            showAlert('Gagal menyimpan data simpanan. Silakan coba lagi.', 'error');
+            return;
+        }
+        
+        // Update jurnal with error handling
+        try {
+            if (typeof addJurnal === 'function') {
+                addJurnal('Simpanan Pokok', [
+                    { akun: '1-1000', debit: data.jumlah, kredit: 0 },
+                    { akun: '2-1100', debit: 0, kredit: data.jumlah }
+                ]);
+            }
+        } catch (jurnalError) {
+            if (typeof logError === 'function') {
+                logError('saveSimpananPokok', jurnalError, { 
+                    anggotaId: anggotaId,
+                    jumlah: jumlah 
+                });
+            }
+            console.warn('Failed to create journal entry:', jurnalError);
+            // Don't fail the transaction if journal fails
+        }
+        
+        // Close modal and show success
+        try {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('simpananPokokModal'));
+            if (modal) {
+                modal.hide();
+            }
+        } catch (modalError) {
+            console.warn('Failed to close modal:', modalError);
+        }
+        
+        showAlert('Simpanan pokok berhasil disimpan');
+        
+        // Refresh display
+        if (typeof renderSimpanan === 'function') {
+            renderSimpanan();
+        }
+        
+    } catch (error) {
+        if (typeof logError === 'function') {
+            logError('saveSimpananPokok', error, {
+                anggotaId: document.getElementById('anggotaPokok')?.value,
+                jumlah: document.getElementById('jumlahPokok')?.value
+            });
+        }
+        console.error('Error saving simpanan pokok:', error);
+        showAlert('Terjadi kesalahan saat menyimpan simpanan pokok. Silakan coba lagi.', 'error');
     }
-    
-    const data = {
-        id: generateId(),
-        anggotaId: anggotaId,
-        jumlah: parseFloat(document.getElementById('jumlahPokok').value),
-        tanggal: document.getElementById('tanggalPokok').value,
-        // Initialize pengembalian tracking fields
-        statusPengembalian: 'Aktif',
-        saldoSebelumPengembalian: null,
-        pengembalianId: null,
-        tanggalPengembalian: null
-    };
-    
-    simpanan.push(data);
-    localStorage.setItem('simpananPokok', JSON.stringify(simpanan));
-    
-    // Update jurnal
-    addJurnal('Simpanan Pokok', [
-        { akun: '1-1000', debit: data.jumlah, kredit: 0 },
-        { akun: '2-1100', debit: 0, kredit: data.jumlah }
-    ]);
-    
-    bootstrap.Modal.getInstance(document.getElementById('simpananPokokModal')).hide();
-    showAlert('Simpanan pokok berhasil disimpan');
-    renderSimpanan();
 }
 
 function deleteSimpananPokok(id) {
@@ -624,7 +754,7 @@ function renderSimpananWajib() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaWajib" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${filterActiveAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterTransactableAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -1122,7 +1252,7 @@ function renderSimpananSukarela() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaSukarela" required>
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${filterActiveAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterTransactableAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -1161,7 +1291,7 @@ function renderSimpananSukarela() {
                                 <label class="form-label">Pilih Anggota</label>
                                 <select class="form-select" id="anggotaTarik" required onchange="checkSaldoSukarela()">
                                     <option value="">-- Pilih Anggota --</option>
-                                    ${anggota.map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
+                                    ${filterTransactableAnggota(anggota).map(a => `<option value="${a.id}">${a.nama} - ${a.nik}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="alert alert-info" id="saldoInfo" style="display:none;">
@@ -1304,3 +1434,872 @@ function deleteSimpananSukarela(id) {
         renderSimpanan();
     }
 }
+
+
+// ===== Simpanan Balance Zeroing Functions =====
+//
+// These functions implement the balance zeroing logic for anggota keluar after pencairan.
+// They are critical for maintaining accurate accounting records and ensuring that
+// exited members have zero balances in all simpanan types.
+//
+// BUSINESS LOGIC:
+// 1. Simpanan Pokok - Direct balance zeroing (jumlah = 0)
+// 2. Simpanan Wajib - Direct balance zeroing (jumlah = 0)  
+// 3. Simpanan Sukarela - Create withdrawal transaction to zero balance
+//
+// ACCOUNTING IMPACT:
+// - Each zeroing operation should be preceded by journal entry creation
+// - Journal entries follow double-entry bookkeeping (Debit Simpanan, Credit Kas)
+// - Kas balance is reduced by the total pencairan amount
+//
+// ERROR HANDLING:
+// - Comprehensive input validation for all parameters
+// - Safe localStorage access with corruption recovery
+// - Detailed error logging with context for debugging
+// - User-friendly error messages for all failure scenarios
+//
+// INTEGRATION:
+// - Called by processPencairanSimpanan() during anggota keluar process
+// - Integrated with createPencairanJournal() for accounting accuracy
+// - Used by wizard anggota keluar for automated pencairan
+//
+
+/**
+ * Zero out simpanan pokok balance for anggota keluar
+ * This function sets the simpanan pokok balance to zero after pencairan
+ * 
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Result object with success status and details
+ * 
+ * @example
+ * const result = zeroSimpananPokok('anggota-123');
+ * if (result.success) {
+ *     console.log(`Zeroed ${result.amount} from simpanan pokok`);
+ * }
+ */
+function zeroSimpananPokok(anggotaId) {
+    try {
+        // Enhanced input validation with comprehensive error handling
+        // VALIDATION REQUIREMENTS FOR ANGGOTA ID:
+        // 1. Must be a non-empty string
+        // 2. Must not contain only whitespace characters
+        // 3. Must be a valid identifier format
+        // 4. Use validateAnggotaId() helper if available for consistency
+        if (typeof validateAnggotaId === 'function') {
+            const validation = validateAnggotaId(anggotaId);
+            if (!validation.valid) {
+                if (typeof logError === 'function') {
+                    logError('zeroSimpananPokok', validation.error, { anggotaId });
+                }
+                return {
+                    success: false,
+                    amount: 0,
+                    error: validation.message || 'ID anggota tidak valid'
+                };
+            }
+        } else {
+            // Fallback validation
+            if (!anggotaId || typeof anggotaId !== 'string' || anggotaId.trim().length === 0) {
+                if (typeof logError === 'function') {
+                    logError('zeroSimpananPokok', 'Invalid anggotaId', { anggotaId });
+                }
+                return {
+                    success: false,
+                    amount: 0,
+                    error: 'ID anggota tidak boleh kosong'
+                };
+            }
+        }
+
+        // Get simpanan data with safe access
+        let simpananPokok;
+        try {
+            if (typeof safeGetLocalStorage === 'function') {
+                simpananPokok = safeGetLocalStorage('simpananPokok', []);
+            } else {
+                simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+            }
+        } catch (parseError) {
+            if (typeof logError === 'function') {
+                logError('zeroSimpananPokok', 'Failed to parse simpanan data', { 
+                    anggotaId,
+                    parseError: parseError.message
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('data_corrupted', 'zeroSimpananPokok');
+            }
+            
+            return {
+                success: false,
+                amount: 0,
+                error: getUserFriendlyMessage('data_corrupted', 'Data simpanan rusak')
+            };
+        }
+        
+        // Validate data structure
+        if (!Array.isArray(simpananPokok)) {
+            if (typeof logError === 'function') {
+                logError('zeroSimpananPokok', 'Invalid simpanan data structure', { 
+                    anggotaId,
+                    dataType: typeof simpananPokok
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('data_corrupted', 'zeroSimpananPokok');
+            }
+            
+            return {
+                success: false,
+                amount: 0,
+                error: getUserFriendlyMessage('data_corrupted', 'Data simpanan tidak valid')
+            };
+        }
+        
+        let totalZeroed = 0;
+        let processedCount = 0;
+        
+        // Find simpanan for this anggota and zero it out
+        const updated = simpananPokok.map(s => {
+            try {
+                // Validate individual simpanan entry
+                if (!s || typeof s !== 'object') {
+                    if (typeof logError === 'function') {
+                        logError('zeroSimpananPokok', 'Invalid simpanan entry', { 
+                            anggotaId,
+                            entry: s
+                        });
+                    }
+                    return s; // Keep invalid entries as-is
+                }
+                
+                if (s.anggotaId === anggotaId && s.jumlah > 0) {
+                    totalZeroed += s.jumlah;
+                    processedCount++;
+                    return { ...s, jumlah: 0 };
+                }
+                return s;
+            } catch (mapError) {
+                if (typeof logError === 'function') {
+                    logError('zeroSimpananPokok', 'Error processing simpanan entry', { 
+                        anggotaId,
+                        entry: s,
+                        mapError: mapError.message
+                    });
+                }
+                return s; // Keep problematic entries as-is
+            }
+        });
+        
+        // Save updated data with error handling
+        try {
+            if (typeof safeSetLocalStorage === 'function') {
+                const saveSuccess = safeSetLocalStorage('simpananPokok', updated);
+                if (!saveSuccess) {
+                    throw new Error('Failed to save to localStorage');
+                }
+            } else {
+                localStorage.setItem('simpananPokok', JSON.stringify(updated));
+            }
+        } catch (saveError) {
+            if (typeof logError === 'function') {
+                logError('zeroSimpananPokok', 'Failed to save updated data', { 
+                    anggotaId,
+                    totalZeroed,
+                    saveError: saveError.message
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('system_error', 'zeroSimpananPokok');
+            }
+            
+            return {
+                success: false,
+                amount: 0,
+                error: 'Gagal menyimpan perubahan data'
+            };
+        }
+        
+        // Log successful operation
+        if (typeof logError === 'function' && totalZeroed > 0) {
+            logError('zeroSimpananPokok', 'Simpanan successfully zeroed', { 
+                anggotaId,
+                totalZeroed,
+                processedCount,
+                level: 'info'
+            });
+        }
+        
+        return {
+            success: true,
+            amount: totalZeroed,
+            processedCount: processedCount,
+            message: `Simpanan pokok berhasil di-zero-kan: ${formatRupiah(totalZeroed)}`
+        };
+    } catch (error) {
+        if (typeof logError === 'function') {
+            logError('zeroSimpananPokok', error, { 
+                anggotaId,
+                stackTrace: error.stack
+            });
+        }
+        
+        if (typeof showUserError === 'function') {
+            showUserError('system_error', 'zeroSimpananPokok');
+        }
+        
+        console.error('Critical error in zeroSimpananPokok:', error);
+        
+        return {
+            success: false,
+            amount: 0,
+            error: getUserFriendlyMessage('system_error', 'Terjadi kesalahan sistem')
+        };
+    }
+}
+
+/**
+ * Zero out simpanan wajib balance for anggota keluar
+ * This function sets the simpanan wajib balance to zero after pencairan
+ * 
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Result object with success status and details
+ * 
+ * @example
+ * const result = zeroSimpananWajib('anggota-123');
+ * if (result.success) {
+ *     console.log(`Zeroed ${result.amount} from simpanan wajib`);
+ * }
+ */
+function zeroSimpananWajib(anggotaId) {
+    try {
+        const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+        let totalZeroed = 0;
+        
+        // Find simpanan for this anggota and zero it out
+        const updated = simpananWajib.map(s => {
+            if (s.anggotaId === anggotaId && s.jumlah > 0) {
+                totalZeroed += s.jumlah;
+                return { ...s, jumlah: 0 };
+            }
+            return s;
+        });
+        
+        localStorage.setItem('simpananWajib', JSON.stringify(updated));
+        
+        return {
+            success: true,
+            amount: totalZeroed,
+            message: `Simpanan wajib berhasil di-zero-kan: ${formatRupiah(totalZeroed)}`
+        };
+    } catch (error) {
+        console.error('Error zeroing simpanan wajib:', error);
+        return {
+            success: false,
+            amount: 0,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Zero out simpanan sukarela balance for anggota keluar
+ * This function sets the simpanan sukarela balance to zero after pencairan
+ * 
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Result object with success status and details
+ * 
+ * @example
+ * const result = zeroSimpananSukarela('anggota-123');
+ * if (result.success) {
+ *     console.log(`Zeroed ${result.amount} from simpanan sukarela`);
+ * }
+ */
+function zeroSimpananSukarela(anggotaId) {
+    try {
+        const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+        let totalZeroed = 0;
+        
+        // Calculate current balance (setor - tarik)
+        const anggotaSimpanan = simpananSukarela.filter(s => s.anggotaId === anggotaId);
+        const currentBalance = anggotaSimpanan.reduce((sum, s) => {
+            return sum + (s.tipe === 'tarik' ? -s.jumlah : s.jumlah);
+        }, 0);
+        
+        if (currentBalance > 0) {
+            // Add a withdrawal transaction to zero out the balance
+            const zeroingTransaction = {
+                id: generateId(),
+                anggotaId: anggotaId,
+                jumlah: currentBalance,
+                tipe: 'tarik',
+                tanggal: new Date().toISOString(),
+                keterangan: 'Pencairan simpanan sukarela - Anggota keluar',
+                createdAt: new Date().toISOString()
+            };
+            
+            simpananSukarela.push(zeroingTransaction);
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+            
+            totalZeroed = currentBalance;
+        }
+        
+        return {
+            success: true,
+            amount: totalZeroed,
+            message: `Simpanan sukarela berhasil di-zero-kan: ${formatRupiah(totalZeroed)}`
+        };
+    } catch (error) {
+        console.error('Error zeroing simpanan sukarela:', error);
+        return {
+            success: false,
+            amount: 0,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get total simpanan balance for an anggota across all types
+ * 
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Object with balances for each simpanan type
+ * 
+ * @example
+ * const balances = getTotalSimpananBalance('anggota-123');
+ * console.log(`Total: ${balances.total}`);
+ */
+function getTotalSimpananBalance(anggotaId) {
+    try {
+        const simpananPokok = JSON.parse(localStorage.getItem('simpananPokok') || '[]');
+        const simpananWajib = JSON.parse(localStorage.getItem('simpananWajib') || '[]');
+        const simpananSukarela = JSON.parse(localStorage.getItem('simpananSukarela') || '[]');
+        
+        const pokokBalance = simpananPokok
+            .filter(s => s.anggotaId === anggotaId)
+            .reduce((sum, s) => sum + s.jumlah, 0);
+        
+        const wajibBalance = simpananWajib
+            .filter(s => s.anggotaId === anggotaId)
+            .reduce((sum, s) => sum + s.jumlah, 0);
+        
+        const sukarelaBalance = simpananSukarela
+            .filter(s => s.anggotaId === anggotaId)
+            .reduce((sum, s) => sum + (s.tipe === 'tarik' ? -s.jumlah : s.jumlah), 0);
+        
+        return {
+            pokok: pokokBalance,
+            wajib: wajibBalance,
+            sukarela: sukarelaBalance,
+            total: pokokBalance + wajibBalance + sukarelaBalance
+        };
+    } catch (error) {
+        console.error('Error getting total simpanan balance:', error);
+        return {
+            pokok: 0,
+            wajib: 0,
+            sukarela: 0,
+            total: 0,
+            error: error.message
+        };
+    }
+}
+
+// ===== End Simpanan Balance Zeroing Functions =====
+
+// ===== Pencairan Journal Functions =====
+
+/**
+ * Create accounting journal entry for pencairan simpanan
+ * Creates two journal entries:
+ * 1. Debit: Simpanan account (reduces liability)
+ * 2. Credit: Kas account (reduces asset)
+ * 
+ * @param {string} anggotaId - ID of the anggota
+ * @param {string} jenisSimpanan - Type of simpanan ('Simpanan Pokok', 'Simpanan Wajib', 'Simpanan Sukarela')
+ * @param {number} jumlah - Amount to return
+ * @returns {object} Result object with success status and details
+ * 
+ * @example
+ * const result = createPencairanJournal('anggota-123', 'Simpanan Pokok', 1000000);
+ * if (result.success) {
+ *     console.log('Journal entries created');
+ * }
+ */
+function createPencairanJournal(anggotaId, jenisSimpanan, jumlah) {
+    try {
+        // Enhanced input validation
+        if (typeof validateAnggotaId === 'function') {
+            const validation = validateAnggotaId(anggotaId);
+            if (!validation.valid) {
+                if (typeof logError === 'function') {
+                    logError('createPencairanJournal', validation.error, { anggotaId, jenisSimpanan, jumlah });
+                }
+                return {
+                    success: false,
+                    error: validation.message || 'ID anggota tidak valid'
+                };
+            }
+        } else {
+            // Fallback validation
+            if (!anggotaId || typeof anggotaId !== 'string' || anggotaId.trim().length === 0) {
+                if (typeof logError === 'function') {
+                    logError('createPencairanJournal', 'Invalid anggotaId', { anggotaId, jenisSimpanan, jumlah });
+                }
+                return {
+                    success: false,
+                    error: 'ID anggota tidak boleh kosong'
+                };
+            }
+        }
+
+        // Validate amount
+        if (typeof validateAmount === 'function') {
+            const amountValidation = validateAmount(jumlah);
+            if (!amountValidation.valid) {
+                if (typeof logError === 'function') {
+                    logError('createPencairanJournal', amountValidation.error, { anggotaId, jenisSimpanan, jumlah });
+                }
+                return {
+                    success: false,
+                    error: amountValidation.message || 'Jumlah tidak valid'
+                };
+            }
+        } else {
+            // Fallback amount validation
+            const numJumlah = parseFloat(jumlah);
+            if (isNaN(numJumlah) || numJumlah <= 0) {
+                if (typeof logError === 'function') {
+                    logError('createPencairanJournal', 'Invalid amount', { anggotaId, jenisSimpanan, jumlah });
+                }
+                return {
+                    success: false,
+                    error: 'Jumlah harus berupa angka yang valid dan lebih dari 0'
+                };
+            }
+        }
+
+        // Validate jenis simpanan
+        const validJenisSimpanan = ['Simpanan Pokok', 'Simpanan Wajib', 'Simpanan Sukarela'];
+        if (!jenisSimpanan || !validJenisSimpanan.includes(jenisSimpanan)) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Invalid jenis simpanan', { 
+                    anggotaId, 
+                    jenisSimpanan, 
+                    jumlah,
+                    validTypes: validJenisSimpanan
+                });
+            }
+            return {
+                success: false,
+                error: 'Jenis simpanan tidak valid'
+            };
+        }
+
+        // Get anggota data with safe access
+        let anggotaList;
+        try {
+            if (typeof safeGetLocalStorage === 'function') {
+                anggotaList = safeGetLocalStorage('anggota', []);
+            } else {
+                anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+            }
+        } catch (parseError) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Failed to parse anggota data', { 
+                    anggotaId,
+                    jenisSimpanan,
+                    jumlah,
+                    parseError: parseError.message
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('data_corrupted', 'createPencairanJournal');
+            }
+            
+            return {
+                success: false,
+                error: getUserFriendlyMessage('data_corrupted', 'Data anggota rusak')
+            };
+        }
+
+        const anggota = anggotaList.find(a => a && a.id === anggotaId);
+        
+        if (!anggota) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Anggota not found', { 
+                    anggotaId,
+                    jenisSimpanan,
+                    jumlah,
+                    totalAnggota: anggotaList.length
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('anggota_not_found', 'createPencairanJournal');
+            }
+            
+            return {
+                success: false,
+                error: getUserFriendlyMessage('anggota_not_found')
+            };
+        }
+        
+        // Validate anggota has required fields
+        if (!anggota.nama) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Anggota missing nama field', { 
+                    anggotaId,
+                    anggota
+                });
+            }
+            return {
+                success: false,
+                error: 'Data anggota tidak lengkap (nama tidak ada)'
+            };
+        }
+        
+        // Map jenis simpanan to COA with validation
+        const coaMap = {
+            'Simpanan Pokok': 'Simpanan Pokok',
+            'Simpanan Wajib': 'Simpanan Wajib',
+            'Simpanan Sukarela': 'Simpanan Sukarela'
+        };
+        
+        const coaSimpanan = coaMap[jenisSimpanan];
+        if (!coaSimpanan) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'COA mapping failed', { 
+                    anggotaId,
+                    jenisSimpanan,
+                    availableCOAs: Object.keys(coaMap)
+                });
+            }
+            return {
+                success: false,
+                error: 'Jenis simpanan tidak valid untuk jurnal'
+            };
+        }
+        
+        // Get journal data with safe access
+        let jurnal;
+        try {
+            if (typeof safeGetLocalStorage === 'function') {
+                jurnal = safeGetLocalStorage('jurnal', []);
+            } else {
+                jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            }
+        } catch (parseError) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Failed to parse jurnal data', { 
+                    anggotaId,
+                    parseError: parseError.message
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('data_corrupted', 'createPencairanJournal');
+            }
+            
+            return {
+                success: false,
+                error: getUserFriendlyMessage('data_corrupted', 'Data jurnal rusak')
+            };
+        }
+        
+        if (!Array.isArray(jurnal)) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Invalid jurnal data structure', { 
+                    anggotaId,
+                    dataType: typeof jurnal
+                });
+            }
+            jurnal = []; // Initialize as empty array
+        }
+        
+        const tanggal = new Date().toISOString();
+        const referensi = `PENCAIRAN-${anggotaId}-${Date.now()}`;
+        const keterangan = `Pencairan ${jenisSimpanan} - ${anggota.nama}`;
+        
+        // Create journal entries with enhanced error handling
+        const newEntries = [];
+        
+        try {
+            // Entry 1: Debit Simpanan (mengurangi kewajiban)
+            const debitEntry = {
+                id: typeof generateId === 'function' ? generateId() : `JRN-${Date.now()}-1`,
+                tanggal: tanggal,
+                keterangan: keterangan,
+                coa: coaSimpanan,
+                debit: parseFloat(jumlah),
+                kredit: 0,
+                referensi: referensi,
+                createdAt: tanggal
+            };
+            
+            // Entry 2: Kredit Kas (mengurangi aset)
+            const kreditEntry = {
+                id: typeof generateId === 'function' ? generateId() : `JRN-${Date.now()}-2`,
+                tanggal: tanggal,
+                keterangan: keterangan,
+                coa: 'Kas',
+                debit: 0,
+                kredit: parseFloat(jumlah),
+                referensi: referensi,
+                createdAt: tanggal
+            };
+            
+            newEntries.push(debitEntry, kreditEntry);
+            jurnal.push(...newEntries);
+            
+        } catch (entryError) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Error creating journal entries', { 
+                    anggotaId,
+                    entryError: entryError.message
+                });
+            }
+            return {
+                success: false,
+                error: 'Gagal membuat entri jurnal'
+            };
+        }
+        
+        // Save updated journal with error handling
+        try {
+            if (typeof safeSetLocalStorage === 'function') {
+                const saveSuccess = safeSetLocalStorage('jurnal', jurnal);
+                if (!saveSuccess) {
+                    throw new Error('Failed to save to localStorage');
+                }
+            } else {
+                localStorage.setItem('jurnal', JSON.stringify(jurnal));
+            }
+        } catch (saveError) {
+            if (typeof logError === 'function') {
+                logError('createPencairanJournal', 'Failed to save journal entries', { 
+                    anggotaId,
+                    saveError: saveError.message,
+                    entriesCount: newEntries.length
+                });
+            }
+            
+            if (typeof showUserError === 'function') {
+                showUserError('system_error', 'createPencairanJournal');
+            }
+            
+            return {
+                success: false,
+                error: 'Gagal menyimpan entri jurnal'
+            };
+        }
+        
+        // Log successful operation
+        if (typeof logError === 'function') {
+            logError('createPencairanJournal', 'Journal entries created successfully', { 
+                anggotaId,
+                jenisSimpanan,
+                jumlah,
+                referensi,
+                entriesCreated: newEntries.length,
+                level: 'info'
+            });
+        }
+        
+        return {
+            success: true,
+            message: `Journal entries created for ${jenisSimpanan}: ${formatRupiah(jumlah)}`,
+            referensi: referensi,
+            entries: newEntries.length,
+            debitEntry: newEntries[0],
+            kreditEntry: newEntries[1]
+        };
+    } catch (error) {
+        if (typeof logError === 'function') {
+            logError('createPencairanJournal', error, { 
+                anggotaId,
+                jenisSimpanan,
+                jumlah,
+                stackTrace: error.stack
+            });
+        }
+        
+        if (typeof showUserError === 'function') {
+            showUserError('system_error', 'createPencairanJournal');
+        }
+        
+        console.error('Critical error in createPencairanJournal:', error);
+        
+        return {
+            success: false,
+            error: getUserFriendlyMessage('system_error', 'Terjadi kesalahan sistem saat membuat jurnal')
+        };
+    }
+}
+
+/**
+ * Process complete pencairan simpanan for anggota keluar
+ * This is the main function that orchestrates the entire pencairan process:
+ * 1. Get current balances for all simpanan types
+ * 2. Create journal entries for non-zero balances
+ * 3. Zero out all simpanan balances
+ * 4. Update anggota pengembalianStatus to 'Selesai'
+ * 
+ * @param {string} anggotaId - ID of the anggota keluar
+ * @returns {object} Result object with success status and details
+ * 
+ * @example
+ * const result = processPencairanSimpanan('anggota-123');
+ * if (result.success) {
+ *     console.log(`Total pencairan: ${result.totalAmount}`);
+ * }
+ */
+function processPencairanSimpanan(anggotaId) {
+    try {
+        // Validate anggota exists
+        const anggota = JSON.parse(localStorage.getItem('anggota') || '[]')
+            .find(a => a.id === anggotaId);
+        
+        if (!anggota) {
+            return {
+                success: false,
+                error: 'Anggota tidak ditemukan'
+            };
+        }
+        
+        // Check if already processed
+        if (anggota.pengembalianStatus === 'Selesai') {
+            return {
+                success: false,
+                error: 'Pencairan sudah diproses sebelumnya'
+            };
+        }
+        
+        // Get current balances
+        const balances = getTotalSimpananBalance(anggotaId);
+        
+        if (balances.error) {
+            return {
+                success: false,
+                error: `Error getting balances: ${balances.error}`
+            };
+        }
+        
+        let totalAmount = 0;
+        const results = {
+            pokok: null,
+            wajib: null,
+            sukarela: null
+        };
+        
+        // Process Simpanan Pokok
+        if (balances.pokok > 0) {
+            const journalResult = createPencairanJournal(anggotaId, 'Simpanan Pokok', balances.pokok);
+            if (!journalResult.success) {
+                return {
+                    success: false,
+                    error: `Error creating journal for Simpanan Pokok: ${journalResult.error}`
+                };
+            }
+            
+            const zeroResult = zeroSimpananPokok(anggotaId);
+            if (!zeroResult.success) {
+                return {
+                    success: false,
+                    error: `Error zeroing Simpanan Pokok: ${zeroResult.error}`
+                };
+            }
+            
+            totalAmount += balances.pokok;
+            results.pokok = {
+                amount: balances.pokok,
+                journal: journalResult.referensi
+            };
+        }
+        
+        // Process Simpanan Wajib
+        if (balances.wajib > 0) {
+            const journalResult = createPencairanJournal(anggotaId, 'Simpanan Wajib', balances.wajib);
+            if (!journalResult.success) {
+                return {
+                    success: false,
+                    error: `Error creating journal for Simpanan Wajib: ${journalResult.error}`
+                };
+            }
+            
+            const zeroResult = zeroSimpananWajib(anggotaId);
+            if (!zeroResult.success) {
+                return {
+                    success: false,
+                    error: `Error zeroing Simpanan Wajib: ${zeroResult.error}`
+                };
+            }
+            
+            totalAmount += balances.wajib;
+            results.wajib = {
+                amount: balances.wajib,
+                journal: journalResult.referensi
+            };
+        }
+        
+        // Process Simpanan Sukarela
+        if (balances.sukarela > 0) {
+            const journalResult = createPencairanJournal(anggotaId, 'Simpanan Sukarela', balances.sukarela);
+            if (!journalResult.success) {
+                return {
+                    success: false,
+                    error: `Error creating journal for Simpanan Sukarela: ${journalResult.error}`
+                };
+            }
+            
+            const zeroResult = zeroSimpananSukarela(anggotaId);
+            if (!zeroResult.success) {
+                return {
+                    success: false,
+                    error: `Error zeroing Simpanan Sukarela: ${zeroResult.error}`
+                };
+            }
+            
+            totalAmount += balances.sukarela;
+            results.sukarela = {
+                amount: balances.sukarela,
+                journal: journalResult.referensi
+            };
+        }
+        
+        // Update anggota pengembalianStatus
+        const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+        const updated = allAnggota.map(a => {
+            if (a.id === anggotaId) {
+                return { 
+                    ...a, 
+                    pengembalianStatus: 'Selesai',
+                    tanggalPencairan: new Date().toISOString()
+                };
+            }
+            return a;
+        });
+        localStorage.setItem('anggota', JSON.stringify(updated));
+        
+        return {
+            success: true,
+            message: `Pencairan simpanan berhasil diproses untuk ${anggota.nama}`,
+            totalAmount: totalAmount,
+            details: results,
+            anggotaId: anggotaId,
+            anggotaNama: anggota.nama
+        };
+    } catch (error) {
+        console.error('Error processing pencairan simpanan:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// ===== End Pencairan Journal Functions =====

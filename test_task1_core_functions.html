@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 1: Core Filtering and Validation Functions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .test-pass { color: #28a745; }
+        .test-fail { color: #dc3545; }
+        .test-section { margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">
+            <i class="bi bi-check-circle me-2"></i>
+            Test Task 1: Core Filtering and Validation Functions
+        </h1>
+        
+        <div class="alert alert-info">
+            <strong>Testing:</strong>
+            <ul class="mb-0">
+                <li>filterActiveAnggota() - Filter anggota keluar dari tampilan</li>
+                <li>filterTransactableAnggota() - Filter anggota yang bisa transaksi</li>
+                <li>validateAnggotaForTransaction() - Validasi sebelum transaksi</li>
+            </ul>
+        </div>
+
+        <div id="testResults"></div>
+
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="runTests()">
+                <i class="bi bi-play-circle me-2"></i>Run Tests
+            </button>
+            <button class="btn btn-secondary" onclick="clearData()">
+                <i class="bi bi-trash me-2"></i>Clear Test Data
+            </button>
+        </div>
+    </div>
+
+    <script src="js/koperasi.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script>
+        function clearData() {
+            localStorage.removeItem('anggota');
+            document.getElementById('testResults').innerHTML = '<div class="alert alert-success">Test data cleared!</div>';
+        }
+
+        function runTests() {
+            const results = [];
+            
+            // Setup test data
+            const testAnggota = [
+                {
+                    id: '1',
+                    nik: '001',
+                    nama: 'Anggota Aktif',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: null,
+                    pengembalianStatus: null
+                },
+                {
+                    id: '2',
+                    nik: '002',
+                    nama: 'Anggota Keluar',
+                    status: 'Nonaktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-01',
+                    pengembalianStatus: 'Selesai'
+                },
+                {
+                    id: '3',
+                    nik: '003',
+                    nama: 'Anggota Nonaktif',
+                    status: 'Nonaktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: null,
+                    pengembalianStatus: null
+                },
+                {
+                    id: '4',
+                    nik: '004',
+                    nama: 'Anggota Cuti',
+                    status: 'Cuti',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: null,
+                    pengembalianStatus: null
+                },
+                {
+                    id: '5',
+                    nik: '005',
+                    nama: 'Anggota Aktif 2',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    tanggalKeluar: null,
+                    pengembalianStatus: null
+                }
+            ];
+            
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            
+            // Test 1: filterActiveAnggota
+            results.push('<div class="test-section"><h3>Test 1: filterActiveAnggota()</h3>');
+            
+            const activeAnggota = filterActiveAnggota(testAnggota);
+            const test1_1 = activeAnggota.length === 3; // Should exclude: Keluar, Nonaktif
+            results.push(`<p class="${test1_1 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test1_1 ? 'check' : 'x'}-circle me-2"></i>
+                Should return 3 active anggota (excluding Keluar and Nonaktif): ${test1_1 ? 'PASS' : 'FAIL'} (got ${activeAnggota.length})
+            </p>`);
+            
+            const test1_2 = !activeAnggota.find(a => a.statusKeanggotaan === 'Keluar');
+            results.push(`<p class="${test1_2 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test1_2 ? 'check' : 'x'}-circle me-2"></i>
+                Should exclude anggota with statusKeanggotaan === 'Keluar': ${test1_2 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            const test1_3 = !activeAnggota.find(a => a.status === 'Nonaktif');
+            results.push(`<p class="${test1_3 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test1_3 ? 'check' : 'x'}-circle me-2"></i>
+                Should exclude anggota with status === 'Nonaktif': ${test1_3 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            const test1_4 = activeAnggota.find(a => a.status === 'Cuti') !== undefined;
+            results.push(`<p class="${test1_4 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test1_4 ? 'check' : 'x'}-circle me-2"></i>
+                Should include anggota with status === 'Cuti': ${test1_4 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            results.push('</div>');
+            
+            // Test 2: filterTransactableAnggota
+            results.push('<div class="test-section"><h3>Test 2: filterTransactableAnggota()</h3>');
+            
+            const transactableAnggota = filterTransactableAnggota(testAnggota);
+            const test2_1 = transactableAnggota.length === 2; // Should only include: Aktif with statusKeanggotaan !== Keluar
+            results.push(`<p class="${test2_1 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test2_1 ? 'check' : 'x'}-circle me-2"></i>
+                Should return 2 transactable anggota (only Aktif and not Keluar): ${test2_1 ? 'PASS' : 'FAIL'} (got ${transactableAnggota.length})
+            </p>`);
+            
+            const test2_2 = transactableAnggota.every(a => a.status === 'Aktif');
+            results.push(`<p class="${test2_2 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test2_2 ? 'check' : 'x'}-circle me-2"></i>
+                All transactable anggota should have status === 'Aktif': ${test2_2 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            const test2_3 = transactableAnggota.every(a => a.statusKeanggotaan !== 'Keluar');
+            results.push(`<p class="${test2_3 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test2_3 ? 'check' : 'x'}-circle me-2"></i>
+                All transactable anggota should have statusKeanggotaan !== 'Keluar': ${test2_3 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            const test2_4 = !transactableAnggota.find(a => a.status === 'Cuti');
+            results.push(`<p class="${test2_4 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test2_4 ? 'check' : 'x'}-circle me-2"></i>
+                Should exclude anggota with status === 'Cuti': ${test2_4 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            results.push('</div>');
+            
+            // Test 3: validateAnggotaForTransaction
+            results.push('<div class="test-section"><h3>Test 3: validateAnggotaForTransaction()</h3>');
+            
+            // Test 3.1: Valid anggota (Aktif)
+            const validation1 = validateAnggotaForTransaction('1');
+            const test3_1 = validation1.valid === true;
+            results.push(`<p class="${test3_1 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test3_1 ? 'check' : 'x'}-circle me-2"></i>
+                Should validate Anggota Aktif: ${test3_1 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            // Test 3.2: Invalid anggota (Keluar)
+            const validation2 = validateAnggotaForTransaction('2');
+            const test3_2 = validation2.valid === false && validation2.error.includes('keluar');
+            results.push(`<p class="${test3_2 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test3_2 ? 'check' : 'x'}-circle me-2"></i>
+                Should reject Anggota Keluar with error: ${test3_2 ? 'PASS' : 'FAIL'}
+                ${validation2.error ? `<br><small class="text-muted">Error: ${validation2.error}</small>` : ''}
+            </p>`);
+            
+            // Test 3.3: Invalid anggota (Nonaktif)
+            const validation3 = validateAnggotaForTransaction('3');
+            const test3_3 = validation3.valid === false && validation3.error.includes('non-aktif');
+            results.push(`<p class="${test3_3 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test3_3 ? 'check' : 'x'}-circle me-2"></i>
+                Should reject Anggota Nonaktif with error: ${test3_3 ? 'PASS' : 'FAIL'}
+                ${validation3.error ? `<br><small class="text-muted">Error: ${validation3.error}</small>` : ''}
+            </p>`);
+            
+            // Test 3.4: Invalid anggota (Cuti - should be valid since only Nonaktif and Keluar are blocked)
+            const validation4 = validateAnggotaForTransaction('4');
+            const test3_4 = validation4.valid === true;
+            results.push(`<p class="${test3_4 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test3_4 ? 'check' : 'x'}-circle me-2"></i>
+                Should validate Anggota Cuti (Cuti is allowed): ${test3_4 ? 'PASS' : 'FAIL'}
+            </p>`);
+            
+            // Test 3.5: Invalid anggota (Not found)
+            const validation5 = validateAnggotaForTransaction('999');
+            const test3_5 = validation5.valid === false && validation5.error.includes('tidak ditemukan');
+            results.push(`<p class="${test3_5 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test3_5 ? 'check' : 'x'}-circle me-2"></i>
+                Should reject non-existent anggota: ${test3_5 ? 'PASS' : 'FAIL'}
+                ${validation5.error ? `<br><small class="text-muted">Error: ${validation5.error}</small>` : ''}
+            </p>`);
+            
+            // Test 3.6: Empty anggotaId
+            const validation6 = validateAnggotaForTransaction('');
+            const test3_6 = validation6.valid === false;
+            results.push(`<p class="${test3_6 ? 'test-pass' : 'test-fail'}">
+                <i class="bi bi-${test3_6 ? 'check' : 'x'}-circle me-2"></i>
+                Should reject empty anggotaId: ${test3_6 ? 'PASS' : 'FAIL'}
+                ${validation6.error ? `<br><small class="text-muted">Error: ${validation6.error}</small>` : ''}
+            </p>`);
+            
+            results.push('</div>');
+            
+            // Summary
+            const allTests = [
+                test1_1, test1_2, test1_3, test1_4,
+                test2_1, test2_2, test2_3, test2_4,
+                test3_1, test3_2, test3_3, test3_4, test3_5, test3_6
+            ];
+            const passedTests = allTests.filter(t => t).length;
+            const totalTests = allTests.length;
+            
+            results.push(`<div class="alert ${passedTests === totalTests ? 'alert-success' : 'alert-warning'}">
+                <h4>Summary</h4>
+                <p class="mb-0">
+                    <strong>${passedTests}/${totalTests}</strong> tests passed
+                    ${passedTests === totalTests ? ' <i class="bi bi-check-circle-fill"></i>' : ''}
+                </p>
+            </div>`);
+            
+            document.getElementById('testResults').innerHTML = results.join('');
+        }
+    </script>
+</body>
+</html>

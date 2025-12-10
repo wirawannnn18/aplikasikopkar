@@ -44,6 +44,30 @@ function validateAnggotaForTransaction(anggotaId) {
             };
         }
         
+        // Check if anggota is non-aktif
+        if (member.status === 'Nonaktif') {
+            return {
+                valid: false,
+                error: `Anggota ${member.nama} berstatus non-aktif dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Check if anggota has tanggalKeluar (new system)
+        if (member.tanggalKeluar) {
+            return {
+                valid: false,
+                error: `Anggota ${member.nama} sudah keluar dari koperasi dan tidak dapat melakukan transaksi`
+            };
+        }
+        
+        // Check if anggota has pengembalianStatus (went through exit process)
+        if (member.pengembalianStatus) {
+            return {
+                valid: false,
+                error: `Anggota ${member.nama} sedang dalam proses keluar dan tidak dapat melakukan transaksi`
+            };
+        }
+        
         // Validation passed
         return {
             valid: true,
@@ -122,6 +146,22 @@ function validateAnggotaForPinjaman(anggotaId) {
     return validation;
 }
 
+/**
+ * Validate anggota for hutang piutang transaction
+ * @param {string} anggotaId - ID of the anggota
+ * @returns {object} Validation result
+ */
+function validateAnggotaForHutangPiutang(anggotaId) {
+    const validation = validateAnggotaForTransaction(anggotaId);
+    if (!validation.valid) {
+        return {
+            ...validation,
+            error: `Pembayaran hutang/piutang ditolak: ${validation.error}`
+        };
+    }
+    return validation;
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -129,6 +169,7 @@ if (typeof module !== 'undefined' && module.exports) {
         validateAnggotaForPOS,
         validateAnggotaForKasbon,
         validateAnggotaForSimpanan,
-        validateAnggotaForPinjaman
+        validateAnggotaForPinjaman,
+        validateAnggotaForHutangPiutang
     };
 }

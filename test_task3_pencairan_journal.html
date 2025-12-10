@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 3: Pencairan Journal Functions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .test-case.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .summary {
+            background: #2196F3;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary h2 {
+            margin: 0 0 10px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .clear-btn {
+            background: #f44336;
+        }
+        .clear-btn:hover {
+            background: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <div class="summary">
+        <h2>Test Task 3: Pencairan Journal Functions</h2>
+        <p>Testing createPencairanJournal() and processPencairanSimpanan() functions</p>
+        <p><strong>Total Tests:</strong> <span id="totalTests">0</span></p>
+        <p><strong>Passed:</strong> <span id="passedTests">0</span></p>
+        <p><strong>Failed:</strong> <span id="failedTests">0</span></p>
+    </div>
+
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearStorage()" class="clear-btn">Clear Storage</button>
+
+    <div id="testResults"></div>
+
+    <script src="js/koperasi.js"></script>
+    <script src="js/simpanan.js"></script>
+    <script>
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function clearStorage() {
+            localStorage.clear();
+            alert('Storage cleared!');
+            location.reload();
+        }
+
+        function setupTestData() {
+            // Clear existing data
+            localStorage.removeItem('anggota');
+            localStorage.removeItem('simpananPokok');
+            localStorage.removeItem('simpananWajib');
+            localStorage.removeItem('simpananSukarela');
+            localStorage.removeItem('jurnal');
+
+            // Create test anggota
+            const anggota = [
+                {
+                    id: 'test-anggota-1',
+                    nik: '1234567890',
+                    nama: 'Test Anggota 1',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: new Date().toISOString(),
+                    pengembalianStatus: 'Pending'
+                },
+                {
+                    id: 'test-anggota-2',
+                    nik: '0987654321',
+                    nama: 'Test Anggota 2',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: new Date().toISOString(),
+                    pengembalianStatus: 'Pending'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+
+            // Create test simpanan pokok
+            const simpananPokok = [
+                { id: '1', anggotaId: 'test-anggota-1', jumlah: 1000000 },
+                { id: '2', anggotaId: 'test-anggota-2', jumlah: 2000000 }
+            ];
+            localStorage.setItem('simpananPokok', JSON.stringify(simpananPokok));
+
+            // Create test simpanan wajib
+            const simpananWajib = [
+                { id: '1', anggotaId: 'test-anggota-1', jumlah: 500000 },
+                { id: '2', anggotaId: 'test-anggota-1', jumlah: 300000 },
+                { id: '3', anggotaId: 'test-anggota-2', jumlah: 800000 }
+            ];
+            localStorage.setItem('simpananWajib', JSON.stringify(simpananWajib));
+
+            // Create test simpanan sukarela
+            const simpananSukarela = [
+                { id: '1', anggotaId: 'test-anggota-1', jumlah: 2000000, tipe: 'setor' },
+                { id: '2', anggotaId: 'test-anggota-1', jumlah: 500000, tipe: 'tarik' },
+                { id: '3', anggotaId: 'test-anggota-2', jumlah: 3000000, tipe: 'setor' }
+            ];
+            localStorage.setItem('simpananSukarela', JSON.stringify(simpananSukarela));
+
+            // Initialize empty jurnal
+            localStorage.setItem('jurnal', JSON.stringify([]));
+        }
+
+        function runTest(testName, testFn) {
+            totalTests++;
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'test-title';
+            titleDiv.textContent = `Test ${totalTests}: ${testName}`;
+            testDiv.appendChild(titleDiv);
+
+            try {
+                const result = testFn();
+                if (result.pass) {
+                    testDiv.classList.add('pass');
+                    passedTests++;
+                } else {
+                    testDiv.classList.add('fail');
+                    failedTests++;
+                }
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-result';
+                resultDiv.innerHTML = result.message;
+                testDiv.appendChild(resultDiv);
+            } catch (error) {
+                testDiv.classList.add('fail');
+                failedTests++;
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'test-result';
+                errorDiv.innerHTML = `❌ Error: ${error.message}`;
+                testDiv.appendChild(errorDiv);
+            }
+
+            return testDiv;
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = passedTests;
+            document.getElementById('failedTests').textContent = failedTests;
+        }
+
+        function runAllTests() {
+            // Reset counters
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '';
+
+            // Setup test data
+            setupTestData();
+
+            // Test 1: createPencairanJournal - Basic functionality
+            const section1 = document.createElement('div');
+            section1.className = 'test-section';
+            section1.innerHTML = '<h3>Test 1: createPencairanJournal() - Basic Functionality</h3>';
+            
+            section1.appendChild(runTest('Should create journal entries', () => {
+                const result = createPencairanJournal('test-anggota-1', 'Simpanan Pokok', 1000000);
+                return {
+                    pass: result.success === true,
+                    message: result.success ? 
+                        `✅ Success: ${result.message}` : 
+                        `❌ Failed: ${result.error}`
+                };
+            }));
+
+            section1.appendChild(runTest('Should create exactly 2 journal entries', () => {
+                const jurnalBefore = JSON.parse(localStorage.getItem('jurnal') || '[]').length;
+                createPencairanJournal('test-anggota-1', 'Simpanan Wajib', 500000);
+                const jurnalAfter = JSON.parse(localStorage.getItem('jurnal') || '[]').length;
+                const entriesCreated = jurnalAfter - jurnalBefore;
+                return {
+                    pass: entriesCreated === 2,
+                    message: entriesCreated === 2 ? 
+                        `✅ Created 2 entries (before: ${jurnalBefore}, after: ${jurnalAfter})` : 
+                        `❌ Expected 2 entries, got ${entriesCreated}`
+                };
+            }));
+
+            section1.appendChild(runTest('Should have correct debit entry', () => {
+                const jurnalBefore = JSON.parse(localStorage.getItem('jurnal') || '[]').length;
+                createPencairanJournal('test-anggota-1', 'Simpanan Sukarela', 750000);
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const newEntries = jurnal.slice(jurnalBefore);
+                const debitEntry = newEntries.find(j => j.debit === 750000);
+                return {
+                    pass: debitEntry && debitEntry.coa === 'Simpanan Sukarela' && debitEntry.kredit === 0,
+                    message: debitEntry ? 
+                        `✅ Debit entry correct: COA=${debitEntry.coa}, Debit=${debitEntry.debit}` : 
+                        `❌ Debit entry not found or incorrect`
+                };
+            }));
+
+            section1.appendChild(runTest('Should have correct credit entry', () => {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const kreditEntry = jurnal.find(j => j.kredit === 750000 && j.coa === 'Kas');
+                return {
+                    pass: kreditEntry && kreditEntry.debit === 0,
+                    message: kreditEntry ? 
+                        `✅ Credit entry correct: COA=${kreditEntry.coa}, Credit=${kreditEntry.kredit}` : 
+                        `❌ Credit entry not found or incorrect`
+                };
+            }));
+
+            resultsDiv.appendChild(section1);
+
+            // Test 2: createPencairanJournal - Validation
+            const section2 = document.createElement('div');
+            section2.className = 'test-section';
+            section2.innerHTML = '<h3>Test 2: createPencairanJournal() - Validation</h3>';
+
+            section2.appendChild(runTest('Should reject zero amount', () => {
+                const result = createPencairanJournal('test-anggota-1', 'Simpanan Pokok', 0);
+                return {
+                    pass: result.success === false,
+                    message: result.success === false ? 
+                        `✅ Correctly rejected: ${result.error}` : 
+                        `❌ Should reject zero amount`
+                };
+            }));
+
+            section2.appendChild(runTest('Should reject negative amount', () => {
+                const result = createPencairanJournal('test-anggota-1', 'Simpanan Pokok', -1000);
+                return {
+                    pass: result.success === false,
+                    message: result.success === false ? 
+                        `✅ Correctly rejected: ${result.error}` : 
+                        `❌ Should reject negative amount`
+                };
+            }));
+
+            section2.appendChild(runTest('Should reject invalid anggota', () => {
+                const result = createPencairanJournal('invalid-id', 'Simpanan Pokok', 1000000);
+                return {
+                    pass: result.success === false,
+                    message: result.success === false ? 
+                        `✅ Correctly rejected: ${result.error}` : 
+                        `❌ Should reject invalid anggota`
+                };
+            }));
+
+            section2.appendChild(runTest('Should reject invalid jenis simpanan', () => {
+                const result = createPencairanJournal('test-anggota-1', 'Invalid Type', 1000000);
+                return {
+                    pass: result.success === false,
+                    message: result.success === false ? 
+                        `✅ Correctly rejected: ${result.error}` : 
+                        `❌ Should reject invalid jenis simpanan`
+                };
+            }));
+
+            resultsDiv.appendChild(section2);
+
+            // Test 3: processPencairanSimpanan - Complete flow
+            const section3 = document.createElement('div');
+            section3.className = 'test-section';
+            section3.innerHTML = '<h3>Test 3: processPencairanSimpanan() - Complete Flow</h3>';
+
+            // Reset data for complete flow test
+            setupTestData();
+
+            section3.appendChild(runTest('Should process complete pencairan', () => {
+                const result = processPencairanSimpanan('test-anggota-1');
+                return {
+                    pass: result.success === true,
+                    message: result.success ? 
+                        `✅ Success: ${result.message}<br>Total: ${formatRupiah(result.totalAmount)}` : 
+                        `❌ Failed: ${result.error}`
+                };
+            }));
+
+            section3.appendChild(runTest('Should calculate correct total amount', () => {
+                // Expected: 1000000 (pokok) + 800000 (wajib) + 1500000 (sukarela) = 3300000
+                const result = processPencairanSimpanan('test-anggota-2');
+                const expectedTotal = 2000000 + 800000 + 3000000; // 5800000
+                return {
+                    pass: result.success && result.totalAmount === expectedTotal,
+                    message: result.success ? 
+                        `✅ Total correct: ${formatRupiah(result.totalAmount)} (expected: ${formatRupiah(expectedTotal)})` : 
+                        `❌ Total incorrect or failed: ${result.error}`
+                };
+            }));
+
+            section3.appendChild(runTest('Should zero all balances', () => {
+                const balances = getTotalSimpananBalance('test-anggota-1');
+                return {
+                    pass: balances.total === 0,
+                    message: balances.total === 0 ? 
+                        `✅ All balances zeroed (total: ${balances.total})` : 
+                        `❌ Balances not zeroed (total: ${balances.total})`
+                };
+            }));
+
+            section3.appendChild(runTest('Should create journal entries for all types', () => {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const anggota1Entries = jurnal.filter(j => j.referensi && j.referensi.includes('test-anggota-1'));
+                // Should have 6 entries (2 per simpanan type × 3 types)
+                return {
+                    pass: anggota1Entries.length === 6,
+                    message: anggota1Entries.length === 6 ? 
+                        `✅ Created 6 journal entries (2 per type)` : 
+                        `❌ Expected 6 entries, got ${anggota1Entries.length}`
+                };
+            }));
+
+            section3.appendChild(runTest('Should update pengembalianStatus to Selesai', () => {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]')
+                    .find(a => a.id === 'test-anggota-1');
+                return {
+                    pass: anggota.pengembalianStatus === 'Selesai',
+                    message: anggota.pengembalianStatus === 'Selesai' ? 
+                        `✅ Status updated to Selesai` : 
+                        `❌ Status not updated (current: ${anggota.pengembalianStatus})`
+                };
+            }));
+
+            section3.appendChild(runTest('Should add tanggalPencairan', () => {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]')
+                    .find(a => a.id === 'test-anggota-1');
+                return {
+                    pass: anggota.tanggalPencairan !== undefined,
+                    message: anggota.tanggalPencairan ? 
+                        `✅ tanggalPencairan added: ${new Date(anggota.tanggalPencairan).toLocaleString()}` : 
+                        `❌ tanggalPencairan not added`
+                };
+            }));
+
+            resultsDiv.appendChild(section3);
+
+            // Test 4: processPencairanSimpanan - Edge cases
+            const section4 = document.createElement('div');
+            section4.className = 'test-section';
+            section4.innerHTML = '<h3>Test 4: processPencairanSimpanan() - Edge Cases</h3>';
+
+            section4.appendChild(runTest('Should reject already processed pencairan', () => {
+                const result = processPencairanSimpanan('test-anggota-1');
+                return {
+                    pass: result.success === false && result.error.includes('sudah diproses'),
+                    message: result.success === false ? 
+                        `✅ Correctly rejected: ${result.error}` : 
+                        `❌ Should reject already processed pencairan`
+                };
+            }));
+
+            section4.appendChild(runTest('Should reject invalid anggota', () => {
+                const result = processPencairanSimpanan('invalid-anggota-id');
+                return {
+                    pass: result.success === false,
+                    message: result.success === false ? 
+                        `✅ Correctly rejected: ${result.error}` : 
+                        `❌ Should reject invalid anggota`
+                };
+            }));
+
+            section4.appendChild(runTest('Should handle anggota with zero balances', () => {
+                // Create anggota with zero balances
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                anggota.push({
+                    id: 'test-anggota-zero',
+                    nama: 'Zero Balance',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    pengembalianStatus: 'Pending'
+                });
+                localStorage.setItem('anggota', JSON.stringify(anggota));
+
+                const result = processPencairanSimpanan('test-anggota-zero');
+                return {
+                    pass: result.success === true && result.totalAmount === 0,
+                    message: result.success ? 
+                        `✅ Handled zero balance: ${result.message}` : 
+                        `❌ Failed: ${result.error}`
+                };
+            }));
+
+            resultsDiv.appendChild(section4);
+
+            // Test 5: Journal entry structure
+            const section5 = document.createElement('div');
+            section5.className = 'test-section';
+            section5.innerHTML = '<h3>Test 5: Journal Entry Structure</h3>';
+
+            section5.appendChild(runTest('All journal entries should have required fields', () => {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const requiredFields = ['id', 'tanggal', 'keterangan', 'coa', 'debit', 'kredit', 'referensi', 'createdAt'];
+                const allValid = jurnal.every(j => 
+                    requiredFields.every(field => j.hasOwnProperty(field))
+                );
+                return {
+                    pass: allValid,
+                    message: allValid ? 
+                        `✅ All ${jurnal.length} entries have required fields` : 
+                        `❌ Some entries missing required fields`
+                };
+            }));
+
+            section5.appendChild(runTest('Debit and credit should balance', () => {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const totalDebit = jurnal.reduce((sum, j) => sum + j.debit, 0);
+                const totalKredit = jurnal.reduce((sum, j) => sum + j.kredit, 0);
+                return {
+                    pass: totalDebit === totalKredit,
+                    message: totalDebit === totalKredit ? 
+                        `✅ Balanced: Debit=${formatRupiah(totalDebit)}, Credit=${formatRupiah(totalKredit)}` : 
+                        `❌ Not balanced: Debit=${formatRupiah(totalDebit)}, Credit=${formatRupiah(totalKredit)}`
+                };
+            }));
+
+            section5.appendChild(runTest('Each entry should have either debit or credit (not both)', () => {
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const allValid = jurnal.every(j => 
+                    (j.debit > 0 && j.kredit === 0) || (j.debit === 0 && j.kredit > 0)
+                );
+                return {
+                    pass: allValid,
+                    message: allValid ? 
+                        `✅ All entries have either debit or credit` : 
+                        `❌ Some entries have both or neither`
+                };
+            }));
+
+            resultsDiv.appendChild(section5);
+
+            updateSummary();
+        }
+
+        // Run tests on page load
+        window.onload = () => {
+            runAllTests();
+        };
+    </script>
+</body>
+</html>

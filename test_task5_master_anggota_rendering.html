@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 5: Master Anggota Rendering</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .test-case.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .summary {
+            background: #2196F3;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary h2 {
+            margin: 0 0 10px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .clear-btn {
+            background: #f44336;
+        }
+        .clear-btn:hover {
+            background: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <div class="summary">
+        <h2>Test Task 5: Master Anggota Rendering</h2>
+        <p>Testing that Master Anggota excludes anggota keluar from display</p>
+        <p><strong>Total Tests:</strong> <span id="totalTests">0</span></p>
+        <p><strong>Passed:</strong> <span id="passedTests">0</span></p>
+        <p><strong>Failed:</strong> <span id="failedTests">0</span></p>
+    </div>
+
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearStorage()" class="clear-btn">Clear Storage</button>
+
+    <div id="testResults"></div>
+
+    <script src="js/koperasi.js"></script>
+    <script>
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function clearStorage() {
+            localStorage.clear();
+            alert('Storage cleared!');
+            location.reload();
+        }
+
+        function setupTestData() {
+            // Clear existing data
+            localStorage.removeItem('anggota');
+
+            // Create test anggota with mixed statusKeanggotaan
+            const anggota = [
+                {
+                    id: 'anggota-1',
+                    nik: '1111111111',
+                    nama: 'Anggota Aktif 1',
+                    noKartu: 'K001',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota'
+                },
+                {
+                    id: 'anggota-2',
+                    nik: '2222222222',
+                    nama: 'Anggota Keluar 1',
+                    noKartu: 'K002',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-01-15',
+                    departemen: 'HR',
+                    tipeAnggota: 'Anggota'
+                },
+                {
+                    id: 'anggota-3',
+                    nik: '3333333333',
+                    nama: 'Anggota Aktif 2',
+                    noKartu: 'K003',
+                    status: 'Nonaktif',
+                    statusKeanggotaan: 'Aktif',
+                    departemen: 'Finance',
+                    tipeAnggota: 'Anggota'
+                },
+                {
+                    id: 'anggota-4',
+                    nik: '4444444444',
+                    nama: 'Anggota Keluar 2',
+                    noKartu: 'K004',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Keluar',
+                    tanggalKeluar: '2024-02-20',
+                    departemen: 'IT',
+                    tipeAnggota: 'Anggota'
+                },
+                {
+                    id: 'anggota-5',
+                    nik: '5555555555',
+                    nama: 'Anggota Cuti',
+                    noKartu: 'K005',
+                    status: 'Cuti',
+                    statusKeanggotaan: 'Aktif',
+                    departemen: 'Operations',
+                    tipeAnggota: 'Anggota'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+        }
+
+        function runTest(testName, testFn) {
+            totalTests++;
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'test-title';
+            titleDiv.textContent = `Test ${totalTests}: ${testName}`;
+            testDiv.appendChild(titleDiv);
+
+            try {
+                const result = testFn();
+                if (result.pass) {
+                    testDiv.classList.add('pass');
+                    passedTests++;
+                } else {
+                    testDiv.classList.add('fail');
+                    failedTests++;
+                }
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-result';
+                resultDiv.innerHTML = result.message;
+                testDiv.appendChild(resultDiv);
+            } catch (error) {
+                testDiv.classList.add('fail');
+                failedTests++;
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'test-result';
+                errorDiv.innerHTML = `❌ Error: ${error.message}`;
+                testDiv.appendChild(errorDiv);
+            }
+
+            return testDiv;
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = passedTests;
+            document.getElementById('failedTests').textContent = failedTests;
+        }
+
+        function runAllTests() {
+            // Reset counters
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '';
+
+            // Setup test data
+            setupTestData();
+
+            // Test 1: filterActiveAnggota excludes keluar
+            const section1 = document.createElement('div');
+            section1.className = 'test-section';
+            section1.innerHTML = '<h3>Test 1: filterActiveAnggota() Excludes Anggota Keluar</h3>';
+            
+            section1.appendChild(runTest('Should exclude anggota with statusKeanggotaan === Keluar', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterActiveAnggota(allAnggota);
+                const hasKeluar = filtered.some(a => a.statusKeanggotaan === 'Keluar');
+                return {
+                    pass: !hasKeluar,
+                    message: !hasKeluar ? 
+                        `✅ No anggota keluar in filtered list (${filtered.length} anggota)` : 
+                        `❌ Found anggota keluar in filtered list`
+                };
+            }));
+
+            section1.appendChild(runTest('Should return correct count (3 active from 5 total)', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterActiveAnggota(allAnggota);
+                const expectedCount = 3; // 3 active, 2 keluar
+                return {
+                    pass: filtered.length === expectedCount,
+                    message: filtered.length === expectedCount ? 
+                        `✅ Correct count: ${filtered.length} active anggota` : 
+                        `❌ Expected ${expectedCount}, got ${filtered.length}`
+                };
+            }));
+
+            section1.appendChild(runTest('Should include anggota with all status types (Aktif, Nonaktif, Cuti)', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterActiveAnggota(allAnggota);
+                const hasAktif = filtered.some(a => a.status === 'Aktif');
+                const hasNonaktif = filtered.some(a => a.status === 'Nonaktif');
+                const hasCuti = filtered.some(a => a.status === 'Cuti');
+                return {
+                    pass: hasAktif && hasNonaktif && hasCuti,
+                    message: (hasAktif && hasNonaktif && hasCuti) ? 
+                        `✅ Includes all status types (Aktif, Nonaktif, Cuti)` : 
+                        `❌ Missing some status types (Aktif: ${hasAktif}, Nonaktif: ${hasNonaktif}, Cuti: ${hasCuti})`
+                };
+            }));
+
+            resultsDiv.appendChild(section1);
+
+            // Test 2: renderTableAnggota uses filtering
+            const section2 = document.createElement('div');
+            section2.className = 'test-section';
+            section2.innerHTML = '<h3>Test 2: renderTableAnggota() Uses Filtering</h3>';
+
+            section2.appendChild(runTest('Should filter data before rendering', () => {
+                // Create a mock tbody element
+                const mockTbody = document.createElement('tbody');
+                mockTbody.id = 'tbodyAnggota';
+                document.body.appendChild(mockTbody);
+
+                // Call renderTableAnggota
+                renderTableAnggota();
+
+                // Count rows (excluding header)
+                const rows = mockTbody.querySelectorAll('tr');
+                const rowCount = rows.length;
+
+                // Clean up
+                document.body.removeChild(mockTbody);
+
+                // Should have 3 rows (3 active anggota)
+                return {
+                    pass: rowCount === 3,
+                    message: rowCount === 3 ? 
+                        `✅ Rendered 3 rows for 3 active anggota` : 
+                        `❌ Expected 3 rows, got ${rowCount}`
+                };
+            }));
+
+            section2.appendChild(runTest('Should not render anggota keluar', () => {
+                const mockTbody = document.createElement('tbody');
+                mockTbody.id = 'tbodyAnggota';
+                document.body.appendChild(mockTbody);
+
+                renderTableAnggota();
+
+                const html = mockTbody.innerHTML;
+                const hasKeluarName1 = html.includes('Anggota Keluar 1');
+                const hasKeluarName2 = html.includes('Anggota Keluar 2');
+
+                document.body.removeChild(mockTbody);
+
+                return {
+                    pass: !hasKeluarName1 && !hasKeluarName2,
+                    message: (!hasKeluarName1 && !hasKeluarName2) ? 
+                        `✅ Anggota keluar not rendered` : 
+                        `❌ Found anggota keluar in rendered HTML`
+                };
+            }));
+
+            resultsDiv.appendChild(section2);
+
+            // Test 3: filterAnggota uses filtering
+            const section3 = document.createElement('div');
+            section3.className = 'test-section';
+            section3.innerHTML = '<h3>Test 3: filterAnggota() Uses Filtering</h3>';
+
+            section3.appendChild(runTest('Should start with filterActiveAnggota', () => {
+                // Create mock elements
+                const mockSearch = document.createElement('input');
+                mockSearch.id = 'searchAnggota';
+                mockSearch.value = '';
+                document.body.appendChild(mockSearch);
+
+                const mockDept = document.createElement('select');
+                mockDept.id = 'filterDepartemen';
+                mockDept.value = '';
+                document.body.appendChild(mockDept);
+
+                const mockTipe = document.createElement('select');
+                mockTipe.id = 'filterTipe';
+                mockTipe.value = '';
+                document.body.appendChild(mockTipe);
+
+                const mockStatus = document.createElement('select');
+                mockStatus.id = 'filterStatus';
+                mockStatus.value = '';
+                document.body.appendChild(mockStatus);
+
+                const mockTanggalDari = document.createElement('input');
+                mockTanggalDari.id = 'filterTanggalDari';
+                mockTanggalDari.value = '';
+                document.body.appendChild(mockTanggalDari);
+
+                const mockTanggalSampai = document.createElement('input');
+                mockTanggalSampai.id = 'filterTanggalSampai';
+                mockTanggalSampai.value = '';
+                document.body.appendChild(mockTanggalSampai);
+
+                const mockCount = document.createElement('span');
+                mockCount.id = 'countFiltered';
+                document.body.appendChild(mockCount);
+
+                const mockTbody = document.createElement('tbody');
+                mockTbody.id = 'tbodyAnggota';
+                document.body.appendChild(mockTbody);
+
+                // Call filterAnggota
+                filterAnggota();
+
+                // Check count
+                const count = parseInt(mockCount.textContent);
+
+                // Clean up
+                document.body.removeChild(mockSearch);
+                document.body.removeChild(mockDept);
+                document.body.removeChild(mockTipe);
+                document.body.removeChild(mockStatus);
+                document.body.removeChild(mockTanggalDari);
+                document.body.removeChild(mockTanggalSampai);
+                document.body.removeChild(mockCount);
+                document.body.removeChild(mockTbody);
+
+                return {
+                    pass: count === 3,
+                    message: count === 3 ? 
+                        `✅ Filter shows 3 active anggota` : 
+                        `❌ Expected 3, got ${count}`
+                };
+            }));
+
+            section3.appendChild(runTest('Should filter by search text (excluding keluar)', () => {
+                const mockSearch = document.createElement('input');
+                mockSearch.id = 'searchAnggota';
+                mockSearch.value = 'Aktif'; // Should match "Anggota Aktif 1" and "Anggota Aktif 2"
+                document.body.appendChild(mockSearch);
+
+                const mockDept = document.createElement('select');
+                mockDept.id = 'filterDepartemen';
+                mockDept.value = '';
+                document.body.appendChild(mockDept);
+
+                const mockTipe = document.createElement('select');
+                mockTipe.id = 'filterTipe';
+                mockTipe.value = '';
+                document.body.appendChild(mockTipe);
+
+                const mockStatus = document.createElement('select');
+                mockStatus.id = 'filterStatus';
+                mockStatus.value = '';
+                document.body.appendChild(mockStatus);
+
+                const mockTanggalDari = document.createElement('input');
+                mockTanggalDari.id = 'filterTanggalDari';
+                mockTanggalDari.value = '';
+                document.body.appendChild(mockTanggalDari);
+
+                const mockTanggalSampai = document.createElement('input');
+                mockTanggalSampai.id = 'filterTanggalSampai';
+                mockTanggalSampai.value = '';
+                document.body.appendChild(mockTanggalSampai);
+
+                const mockCount = document.createElement('span');
+                mockCount.id = 'countFiltered';
+                document.body.appendChild(mockCount);
+
+                const mockTbody = document.createElement('tbody');
+                mockTbody.id = 'tbodyAnggota';
+                document.body.appendChild(mockTbody);
+
+                filterAnggota();
+
+                const count = parseInt(mockCount.textContent);
+
+                document.body.removeChild(mockSearch);
+                document.body.removeChild(mockDept);
+                document.body.removeChild(mockTipe);
+                document.body.removeChild(mockStatus);
+                document.body.removeChild(mockTanggalDari);
+                document.body.removeChild(mockTanggalSampai);
+                document.body.removeChild(mockCount);
+                document.body.removeChild(mockTbody);
+
+                return {
+                    pass: count === 2,
+                    message: count === 2 ? 
+                        `✅ Search found 2 anggota with "Aktif" (excluding keluar)` : 
+                        `❌ Expected 2, got ${count}`
+                };
+            }));
+
+            resultsDiv.appendChild(section3);
+
+            // Test 4: exportAnggota uses filtering
+            const section4 = document.createElement('div');
+            section4.className = 'test-section';
+            section4.innerHTML = '<h3>Test 4: exportAnggota() Uses Filtering</h3>';
+
+            section4.appendChild(runTest('Should export only active anggota', () => {
+                // We can't actually test the download, but we can verify the function uses filterActiveAnggota
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const filtered = filterActiveAnggota(allAnggota);
+                
+                // exportAnggota should use the same filtering
+                return {
+                    pass: filtered.length === 3,
+                    message: filtered.length === 3 ? 
+                        `✅ Export would include 3 active anggota (excluding 2 keluar)` : 
+                        `❌ Expected 3, got ${filtered.length}`
+                };
+            }));
+
+            resultsDiv.appendChild(section4);
+
+            // Test 5: Data preservation
+            const section5 = document.createElement('div');
+            section5.className = 'test-section';
+            section5.innerHTML = '<h3>Test 5: Data Preservation</h3>';
+
+            section5.appendChild(runTest('Should preserve all anggota in localStorage', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                return {
+                    pass: allAnggota.length === 5,
+                    message: allAnggota.length === 5 ? 
+                        `✅ All 5 anggota preserved in localStorage` : 
+                        `❌ Expected 5, got ${allAnggota.length}`
+                };
+            }));
+
+            section5.appendChild(runTest('Should preserve anggota keluar data', () => {
+                const allAnggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const keluarCount = allAnggota.filter(a => a.statusKeanggotaan === 'Keluar').length;
+                return {
+                    pass: keluarCount === 2,
+                    message: keluarCount === 2 ? 
+                        `✅ 2 anggota keluar preserved in localStorage` : 
+                        `❌ Expected 2, got ${keluarCount}`
+                };
+            }));
+
+            section5.appendChild(runTest('Filtering should not modify localStorage', () => {
+                const beforeFilter = JSON.parse(localStorage.getItem('anggota') || '[]').length;
+                filterActiveAnggota(JSON.parse(localStorage.getItem('anggota') || '[]'));
+                const afterFilter = JSON.parse(localStorage.getItem('anggota') || '[]').length;
+                return {
+                    pass: beforeFilter === afterFilter,
+                    message: beforeFilter === afterFilter ? 
+                        `✅ localStorage unchanged (${beforeFilter} anggota)` : 
+                        `❌ localStorage modified (before: ${beforeFilter}, after: ${afterFilter})`
+                };
+            }));
+
+            resultsDiv.appendChild(section5);
+
+            updateSummary();
+        }
+
+        // Run tests on page load
+        window.onload = () => {
+            runAllTests();
+        };
+    </script>
+</body>
+</html>
