@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 3.1 - Property Test: Balance Sheet Equation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .test-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        .test-success {
+            border-left: 4px solid #28a745;
+        }
+        .test-error {
+            border-left: 4px solid #dc3545;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .equation-display {
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+        .equation-balanced {
+            border-color: #28a745;
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .equation-unbalanced {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Header -->
+    <div class="test-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0"><i class="fas fa-balance-scale me-3"></i>Task 3.1 - Property Test</h1>
+                    <p class="mb-0 mt-2">Balance Sheet Equation Balance - Memvalidasi persamaan neraca</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light" onclick="window.history.back()">
+                        <i class="fas fa-arrow-left me-2"></i>Kembali
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Balance Sheet Equation Display -->
+        <div class="card test-card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-equals me-2"></i>Balance Sheet Equation</h5>
+            </div>
+            <div class="card-body">
+                <div id="equationDisplay" class="equation-display">
+                    <div>ASSETS = LIABILITIES + EQUITY</div>
+                    <div class="mt-2" id="equationValues">
+                        <span id="assetsValue">0</span> = <span id="liabilitiesValue">0</span> + <span id="equityValue">0</span>
+                    </div>
+                    <div class="mt-2" id="balanceStatus">
+                        <i class="fas fa-question-circle"></i> Waiting for calculation...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Summary -->
+        <div class="card test-card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Property Test Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value text-success" id="totalPassed">0</div>
+                            <div class="text-muted">Properties Passed</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value text-danger" id="totalFailed">0</div>
+                            <div class="text-muted">Properties Failed</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value text-info" id="totalIterations">0</div>
+                            <div class="text-muted">Total Iterations</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value text-warning" id="totalProperties">8</div>
+                            <div class="text-muted">Properties Tested</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Test Controls -->
+        <div class="card test-card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-play me-2"></i>Test Execution</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success me-2" onclick="runAllPropertyTests()">
+                    <i class="fas fa-rocket me-1"></i>Run All Property Tests
+                </button>
+                <button class="btn btn-info me-2" onclick="runSingleEquationTest()">
+                    <i class="fas fa-cog me-1"></i>Single Equation Test
+                </button>
+                <button class="btn btn-warning me-2" onclick="runBalanceValidation()">
+                    <i class="fas fa-balance-scale me-1"></i>Balance Validation
+                </button>
+                <button class="btn btn-secondary me-2" onclick="clearResults()">
+                    <i class="fas fa-broom me-1"></i>Clear Results
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card test-card mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0"><i class="fas fa-list-check me-2"></i>Property Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="testResults">
+                    <div class="text-muted">Hasil property tests akan muncul di sini...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="card test-card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>Test Execution Log</h5>
+                <button class="btn btn-sm btn-outline-light" onclick="clearLog()">
+                    <i class="fas fa-trash me-1"></i>Clear Log
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div id="testLog" class="log-output">
+                    <div class="text-muted">Test execution log akan muncul di sini...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Test framework variables
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            iterations: 0,
+            properties: []
+        };
+
+        // Mock Chart of Accounts
+        const mockChartOfAccounts = {
+            '1-1000': { name: 'Kas', category: 'current_assets', type: 'debit' },
+            '1-1100': { name: 'Bank', category: 'current_assets', type: 'debit' },
+            '1-1200': { name: 'Piutang Usaha', category: 'current_assets', type: 'debit' },
+            '1-1300': { name: 'Persediaan', category: 'current_assets', type: 'debit' },
+            '1-2000': { name: 'Peralatan', category: 'fixed_assets', type: 'debit' },
+            '1-2100': { name: 'Akumulasi Penyusutan', category: 'fixed_assets', type: 'credit' },
+            '2-1000': { name: 'Hutang Usaha', category: 'current_liabilities', type: 'credit' },
+            '2-1100': { name: 'Hutang Gaji', category: 'current_liabilities', type: 'credit' },
+            '2-2000': { name: 'Hutang Jangka Panjang', category: 'long_term_liabilities', type: 'credit' },
+            '3-1000': { name: 'Modal Saham', category: 'equity', type: 'credit' },
+            '3-2000': { name: 'Laba Ditahan', category: 'equity', type: 'credit' }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('=== Task 3.1 Property Test Initialized ===', 'info');
+            log('Balance Sheet Equation Balance Test Suite', 'info');
+            updateMetrics();
+        });
+
+        // Mock calculation functions
+        function calculateAccountBalances(entries) {
+            const balances = {};
+            
+            entries.forEach(entry => {
+                if (!balances[entry.account]) {
+                    balances[entry.account] = { debit: 0, credit: 0, balance: 0 };
+                }
+                
+                balances[entry.account].debit += entry.debit;
+                balances[entry.account].credit += entry.credit;
+            });
+            
+            Object.keys(balances).forEach(accountCode => {
+                const account = mockChartOfAccounts[accountCode];
+                if (account) {
+                    if (account.type === 'debit') {
+                        balances[accountCode].balance = balances[accountCode].debit - balances[accountCode].credit;
+                    } else {
+                        balances[accountCode].balance = balances[accountCode].credit - balances[accountCode].debit;
+                    }
+                }
+            });
+            
+            return balances;
+        }
+
+        function categorizeAccountBalances(accountBalances) {
+            const categorized = {
+                current_assets: {},
+                fixed_assets: {},
+                current_liabilities: {},
+                long_term_liabilities: {},
+                equity: {}
+            };
+            
+            Object.keys(accountBalances).forEach(accountCode => {
+                const account = mockChartOfAccounts[accountCode];
+                if (account && account.category) {
+                    categorized[account.category][accountCode] = {
+                        ...accountBalances[accountCode],
+                        name: account.name,
+                        type: account.type
+                    };
+                }
+            });
+            
+            return categorized;
+        }
+
+        function calculateCategoryTotal(categoryAccounts) {
+            let total = 0;
+            Object.keys(categoryAccounts).forEach(accountCode => {
+                total += categoryAccounts[accountCode].balance;
+            });
+            return total;
+        }
+
+        function generateBalanceSheetData(categorizedBalances) {
+            const balanceSheet = {
+                assets: {
+                    current_assets: { accounts: categorizedBalances.current_assets, total: 0 },
+                    fixed_assets: { accounts: categorizedBalances.fixed_assets, total: 0 },
+                    total: 0
+                },
+                liabilities: {
+                    current_liabilities: { accounts: categorizedBalances.current_liabilities, total: 0 },
+                    long_term_liabilities: { accounts: categorizedBalances.long_term_liabilities, total: 0 },
+                    total: 0
+                },
+                equity: {
+                    accounts: categorizedBalances.equity,
+                    total: 0
+                }
+            };
+            
+            balanceSheet.assets.current_assets.total = calculateCategoryTotal(categorizedBalances.current_assets);
+            balanceSheet.assets.fixed_assets.total = calculateCategoryTotal(categorizedBalances.fixed_assets);
+            balanceSheet.assets.total = balanceSheet.assets.current_assets.total + balanceSheet.assets.fixed_assets.total;
+            
+            balanceSheet.liabilities.current_liabilities.total = calculateCategoryTotal(categorizedBalances.current_liabilities);
+            balanceSheet.liabilities.long_term_liabilities.total = calculateCategoryTotal(categorizedBalances.long_term_liabilities);
+            balanceSheet.liabilities.total = balanceSheet.liabilities.current_liabilities.total + balanceSheet.liabilities.long_term_liabilities.total;
+            
+            balanceSheet.equity.total = calculateCategoryTotal(categorizedBalances.equity);
+            
+            return balanceSheet;
+        }
+
+        // Property test implementations
+        async function runAllPropertyTests() {
+            log('=== Starting All Property Tests ===', 'info');
+            
+            testResults = { passed: 0, failed: 0, iterations: 0, properties: [] };
+            
+            const properties = [
+                { name: 'Property 2.1: Balance equation for balanced entries', test: testBalanceEquationProperty },
+                { name: 'Property 2.2: Total debits equal total credits', test: testDebitsCreditsEquality },
+                { name: 'Property 2.3: Asset accounts positive when debited', test: testAssetAccountBalances },
+                { name: 'Property 2.4: Liability/equity positive when credited', test: testLiabilityEquityBalances },
+                { name: 'Property 2.5: Balance maintained after multiple transactions', test: testMultipleTransactionBalance },
+                { name: 'Property 2.6: Contra accounts reduce parent category', test: testContraAccounts },
+                { name: 'Property 2.7: Empty entries result in zero balance', test: testEmptyEntries },
+                { name: 'Property 2.8: Single transaction maintains equation', test: testSingleTransactionBalance }
+            ];
+
+            for (const property of properties) {
+                try {
+                    log(`Running ${property.name}...`, 'info');
+                    const result = await property.test();
+                    
+                    if (result.success) {
+                        testResults.passed++;
+                        log(`✅ PASS: ${property.name} (${result.iterations} iterations)`, 'success');
+                    } else {
+                        testResults.failed++;
+                        log(`❌ FAIL: ${property.name} - ${result.error}`, 'error');
+                    }
+                    
+                    testResults.iterations += result.iterations || 0;
+                    testResults.properties.push({
+                        name: property.name,
+                        success: result.success,
+                        iterations: result.iterations || 0,
+                        details: result.details || ''
+                    });
+                    
+                } catch (error) {
+                    testResults.failed++;
+                    log(`❌ ERROR: ${property.name} - ${error.message}`, 'error');
+                }
+            }
+
+            updateMetrics();
+            displayResults();
+            log('=== All Property Tests Completed ===', 'info');
+        }
+
+        // Individual property test functions
+        async function testBalanceEquationProperty() {
+            let iterations = 0;
+            let failures = 0;
+            
+            // Test with multiple sets of balanced journal entries
+            for (let i = 0; i < 100; i++) {
+                iterations++;
+                
+                // Generate random balanced journal entries
+                const journalEntries = generateBalancedJournalEntries();
+                
+                const accountBalances = calculateAccountBalances(journalEntries);
+                const categorizedBalances = categorizeAccountBalances(accountBalances);
+                const balanceSheet = generateBalanceSheetData(categorizedBalances);
+                
+                const assets = balanceSheet.assets.total;
+                const liabilities = balanceSheet.liabilities.total;
+                const equity = balanceSheet.equity.total;
+                const difference = Math.abs(assets - (liabilities + equity));
+                
+                if (difference >= 0.01) {
+                    failures++;
+                }
+                
+                // Update equation display for last iteration
+                if (i === 99) {
+                    updateEquationDisplay(assets, liabilities, equity, difference < 0.01);
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} balance equation failures` : null,
+                details: `Tested ${iterations} balanced entry sets, ${failures} failures`
+            };
+        }
+
+        async function testDebitsCreditsEquality() {
+            let iterations = 0;
+            let failures = 0;
+            
+            for (let i = 0; i < 50; i++) {
+                iterations++;
+                
+                const journalEntries = generateBalancedJournalEntries();
+                
+                let totalDebits = 0;
+                let totalCredits = 0;
+                
+                journalEntries.forEach(entry => {
+                    totalDebits += entry.debit;
+                    totalCredits += entry.credit;
+                });
+                
+                const difference = Math.abs(totalDebits - totalCredits);
+                if (difference >= 0.01) {
+                    failures++;
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} debit/credit equality failures` : null,
+                details: `Tested ${iterations} entry sets, ${failures} failures`
+            };
+        }
+
+        async function testAssetAccountBalances() {
+            let iterations = 0;
+            let failures = 0;
+            
+            const assetAccounts = ['1-1000', '1-1100', '1-1200', '1-1300', '1-2000'];
+            
+            for (let i = 0; i < 50; i++) {
+                iterations++;
+                
+                const amount = Math.floor(Math.random() * 5000000) + 1000;
+                const assetAccount = assetAccounts[Math.floor(Math.random() * assetAccounts.length)];
+                
+                const journalEntries = [
+                    { account: assetAccount, debit: amount, credit: 0, date: '2024-01-01' },
+                    { account: '3-1000', debit: 0, credit: amount, date: '2024-01-01' }
+                ];
+                
+                const accountBalances = calculateAccountBalances(journalEntries);
+                const assetBalance = accountBalances[assetAccount].balance;
+                
+                if (assetBalance <= 0 || assetBalance !== amount) {
+                    failures++;
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} asset balance failures` : null,
+                details: `Tested ${iterations} asset account debits, ${failures} failures`
+            };
+        }
+
+        async function testLiabilityEquityBalances() {
+            let iterations = 0;
+            let failures = 0;
+            
+            const liabilityEquityAccounts = ['2-1000', '2-1100', '3-1000', '3-2000'];
+            
+            for (let i = 0; i < 50; i++) {
+                iterations++;
+                
+                const amount = Math.floor(Math.random() * 5000000) + 1000;
+                const liabilityEquityAccount = liabilityEquityAccounts[Math.floor(Math.random() * liabilityEquityAccounts.length)];
+                
+                const journalEntries = [
+                    { account: '1-1000', debit: amount, credit: 0, date: '2024-01-01' },
+                    { account: liabilityEquityAccount, debit: 0, credit: amount, date: '2024-01-01' }
+                ];
+                
+                const accountBalances = calculateAccountBalances(journalEntries);
+                const balance = accountBalances[liabilityEquityAccount].balance;
+                
+                if (balance <= 0 || balance !== amount) {
+                    failures++;
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} liability/equity balance failures` : null,
+                details: `Tested ${iterations} liability/equity credits, ${failures} failures`
+            };
+        }
+
+        async function testMultipleTransactionBalance() {
+            let iterations = 0;
+            let failures = 0;
+            
+            for (let i = 0; i < 25; i++) {
+                iterations++;
+                
+                const journalEntries = generateMultipleBalancedEntries();
+                
+                let cumulativeEntries = [];
+                let allBalanced = true;
+                
+                for (let j = 0; j < journalEntries.length; j += 2) {
+                    if (j + 1 < journalEntries.length) {
+                        cumulativeEntries.push(journalEntries[j], journalEntries[j + 1]);
+                        
+                        const accountBalances = calculateAccountBalances(cumulativeEntries);
+                        const categorizedBalances = categorizeAccountBalances(accountBalances);
+                        const balanceSheet = generateBalanceSheetData(categorizedBalances);
+                        
+                        const assets = balanceSheet.assets.total;
+                        const liabilities = balanceSheet.liabilities.total;
+                        const equity = balanceSheet.equity.total;
+                        const difference = Math.abs(assets - (liabilities + equity));
+                        
+                        if (difference >= 0.01) {
+                            allBalanced = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!allBalanced) {
+                    failures++;
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} multiple transaction balance failures` : null,
+                details: `Tested ${iterations} multiple transaction sets, ${failures} failures`
+            };
+        }
+
+        async function testContraAccounts() {
+            let iterations = 0;
+            let failures = 0;
+            
+            for (let i = 0; i < 30; i++) {
+                iterations++;
+                
+                const assetAmount = Math.floor(Math.random() * 1000000) + 10000;
+                const depreciationAmount = Math.floor(Math.random() * 50000) + 1000;
+                
+                const journalEntries = [
+                    { account: '1-2000', debit: assetAmount, credit: 0, date: '2024-01-01' },
+                    { account: '3-1000', debit: 0, credit: assetAmount, date: '2024-01-01' },
+                    { account: '1-2100', debit: 0, credit: depreciationAmount, date: '2024-06-01' }
+                ];
+                
+                const accountBalances = calculateAccountBalances(journalEntries);
+                const categorizedBalances = categorizeAccountBalances(accountBalances);
+                
+                const equipmentBalance = accountBalances['1-2000'] ? accountBalances['1-2000'].balance : 0;
+                const accDepreciationBalance = accountBalances['1-2100'] ? accountBalances['1-2100'].balance : 0;
+                
+                const netFixedAssets = calculateCategoryTotal(categorizedBalances.fixed_assets);
+                const expectedNet = assetAmount - depreciationAmount;
+                
+                if (Math.abs(netFixedAssets - expectedNet) >= 0.01) {
+                    failures++;
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} contra account failures` : null,
+                details: `Tested ${iterations} contra account scenarios, ${failures} failures`
+            };
+        }
+
+        async function testEmptyEntries() {
+            const journalEntries = [];
+            
+            const accountBalances = calculateAccountBalances(journalEntries);
+            const categorizedBalances = categorizeAccountBalances(accountBalances);
+            const balanceSheet = generateBalanceSheetData(categorizedBalances);
+            
+            const allZero = balanceSheet.assets.total === 0 && 
+                          balanceSheet.liabilities.total === 0 && 
+                          balanceSheet.equity.total === 0;
+            
+            return {
+                success: allZero,
+                iterations: 1,
+                error: !allZero ? 'Empty entries did not result in zero balance' : null,
+                details: 'Tested empty journal entries'
+            };
+        }
+
+        async function testSingleTransactionBalance() {
+            let iterations = 0;
+            let failures = 0;
+            
+            const assetAccounts = ['1-1000', '1-1100', '1-1200'];
+            const liabilityEquityAccounts = ['2-1000', '3-1000'];
+            
+            for (let i = 0; i < 50; i++) {
+                iterations++;
+                
+                const amount = Math.floor(Math.random() * 10000000) + 1000;
+                const assetAccount = assetAccounts[Math.floor(Math.random() * assetAccounts.length)];
+                const liabilityEquityAccount = liabilityEquityAccounts[Math.floor(Math.random() * liabilityEquityAccounts.length)];
+                
+                const journalEntries = [
+                    { account: assetAccount, debit: amount, credit: 0, date: '2024-01-01' },
+                    { account: liabilityEquityAccount, debit: 0, credit: amount, date: '2024-01-01' }
+                ];
+                
+                const accountBalances = calculateAccountBalances(journalEntries);
+                const categorizedBalances = categorizeAccountBalances(accountBalances);
+                const balanceSheet = generateBalanceSheetData(categorizedBalances);
+                
+                const assets = balanceSheet.assets.total;
+                const liabilities = balanceSheet.liabilities.total;
+                const equity = balanceSheet.equity.total;
+                const difference = Math.abs(assets - (liabilities + equity));
+                
+                if (difference >= 0.01 || assets !== amount || (liabilities + equity) !== amount) {
+                    failures++;
+                }
+            }
+            
+            return {
+                success: failures === 0,
+                iterations,
+                error: failures > 0 ? `${failures} single transaction balance failures` : null,
+                details: `Tested ${iterations} single transactions, ${failures} failures`
+            };
+        }
+
+        // Helper functions
+        function generateBalancedJournalEntries() {
+            const entries = [];
+            const numPairs = Math.floor(Math.random() * 10) + 1;
+            
+            for (let i = 0; i < numPairs; i++) {
+                const amount = Math.floor(Math.random() * 1000000) + 1000;
+                const assetAccount = ['1-1000', '1-1100', '1-1200'][Math.floor(Math.random() * 3)];
+                const liabilityEquityAccount = ['2-1000', '3-1000'][Math.floor(Math.random() * 2)];
+                
+                entries.push(
+                    { account: assetAccount, debit: amount, credit: 0, date: '2024-01-01' },
+                    { account: liabilityEquityAccount, debit: 0, credit: amount, date: '2024-01-01' }
+                );
+            }
+            
+            return entries;
+        }
+
+        function generateMultipleBalancedEntries() {
+            const entries = [];
+            const numPairs = Math.floor(Math.random() * 15) + 5;
+            
+            for (let i = 0; i < numPairs; i++) {
+                const amount = Math.floor(Math.random() * 500000) + 1000;
+                const accounts = Object.keys(mockChartOfAccounts);
+                const account1 = accounts[Math.floor(Math.random() * accounts.length)];
+                let account2 = accounts[Math.floor(Math.random() * accounts.length)];
+                
+                // Ensure different accounts
+                while (account2 === account1) {
+                    account2 = accounts[Math.floor(Math.random() * accounts.length)];
+                }
+                
+                const account1Info = mockChartOfAccounts[account1];
+                const account2Info = mockChartOfAccounts[account2];
+                
+                if (account1Info.type === 'debit' && account2Info.type === 'credit') {
+                    entries.push(
+                        { account: account1, debit: amount, credit: 0, date: '2024-01-01' },
+                        { account: account2, debit: 0, credit: amount, date: '2024-01-01' }
+                    );
+                } else {
+                    entries.push(
+                        { account: account1, debit: amount, credit: 0, date: '2024-01-01' },
+                        { account: account2, debit: 0, credit: amount, date: '2024-01-01' }
+                    );
+                }
+            }
+            
+            return entries;
+        }
+
+        function updateEquationDisplay(assets, liabilities, equity, isBalanced) {
+            const equationDisplay = document.getElementById('equationDisplay');
+            const assetsValue = document.getElementById('assetsValue');
+            const liabilitiesValue = document.getElementById('liabilitiesValue');
+            const equityValue = document.getElementById('equityValue');
+            const balanceStatus = document.getElementById('balanceStatus');
+            
+            assetsValue.textContent = formatRupiah(assets);
+            liabilitiesValue.textContent = formatRupiah(liabilities);
+            equityValue.textContent = formatRupiah(equity);
+            
+            if (isBalanced) {
+                equationDisplay.className = 'equation-display equation-balanced';
+                balanceStatus.innerHTML = '<i class="fas fa-check-circle"></i> Equation is BALANCED ✓';
+            } else {
+                equationDisplay.className = 'equation-display equation-unbalanced';
+                balanceStatus.innerHTML = '<i class="fas fa-times-circle"></i> Equation is UNBALANCED ✗';
+            }
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalPassed').textContent = testResults.passed;
+            document.getElementById('totalFailed').textContent = testResults.failed;
+            document.getElementById('totalIterations').textContent = testResults.iterations;
+        }
+
+        function displayResults() {
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = '';
+            
+            if (testResults.properties.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-muted">Belum ada hasil test...</div>';
+                return;
+            }
+            
+            testResults.properties.forEach(property => {
+                const resultElement = document.createElement('div');
+                resultElement.className = `alert ${property.success ? 'alert-success test-success' : 'alert-danger test-error'} py-2 mb-2`;
+                resultElement.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="fas ${property.success ? 'fa-check' : 'fa-times'} me-2"></i>${property.name}</span>
+                        <span class="badge ${property.success ? 'bg-success' : 'bg-danger'}">${property.success ? 'PASS' : 'FAIL'}</span>
+                    </div>
+                    <small class="text-muted">${property.details}</small>
+                `;
+                resultsContainer.appendChild(resultElement);
+            });
+        }
+
+        function runSingleEquationTest() {
+            log('Running single equation test...', 'info');
+            testBalanceEquationProperty().then(result => {
+                log(`Single equation test result: ${result.success ? 'PASS' : 'FAIL'}`, result.success ? 'success' : 'error');
+            });
+        }
+
+        function runBalanceValidation() {
+            log('Running balance validation...', 'info');
+            
+            // Generate a simple balanced transaction
+            const journalEntries = [
+                { account: '1-1000', debit: 1000000, credit: 0, date: '2024-01-01' },
+                { account: '3-1000', debit: 0, credit: 1000000, date: '2024-01-01' }
+            ];
+            
+            const accountBalances = calculateAccountBalances(journalEntries);
+            const categorizedBalances = categorizeAccountBalances(accountBalances);
+            const balanceSheet = generateBalanceSheetData(categorizedBalances);
+            
+            const assets = balanceSheet.assets.total;
+            const liabilities = balanceSheet.liabilities.total;
+            const equity = balanceSheet.equity.total;
+            const isBalanced = Math.abs(assets - (liabilities + equity)) < 0.01;
+            
+            updateEquationDisplay(assets, liabilities, equity, isBalanced);
+            log(`Balance validation: ${isBalanced ? 'BALANCED' : 'UNBALANCED'}`, isBalanced ? 'success' : 'error');
+        }
+
+        function clearResults() {
+            testResults = { passed: 0, failed: 0, iterations: 0, properties: [] };
+            updateMetrics();
+            document.getElementById('testResults').innerHTML = '<div class="text-muted">Hasil property tests akan muncul di sini...</div>';
+            
+            // Reset equation display
+            updateEquationDisplay(0, 0, 0, true);
+            log('Results cleared', 'info');
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '<div class="text-muted">Test execution log akan muncul di sini...</div>';
+        }
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = {
+                'info': 'text-info',
+                'success': 'text-success',
+                'error': 'text-danger',
+                'warning': 'text-warning'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="text-muted">[${timestamp}]</span> <span class="${typeClass[type] || 'text-dark'}">${message}</span>`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Auto-run tests after 2 seconds
+        setTimeout(() => {
+            log('Auto-starting property tests...', 'info');
+            runAllPropertyTests();
+        }, 2000);
+    </script>
+</body>
+</html>

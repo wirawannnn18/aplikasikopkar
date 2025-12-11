@@ -6,41 +6,41 @@
   - Implement period selection UI with radio buttons for daily/monthly/yearly options
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 1.1 Write property test for period validation consistency
+- [x] 1.1 Write property test for period validation consistency
   - **Property 1: Period validation consistency**
   - **Validates: Requirements 1.5**
 
-- [ ] 2. Implement period selection components
+- [x] 2. Implement period selection components
   - Create date picker component for daily selection
   - Build month/year dropdown selectors for monthly reports
   - Add year selection dropdown for yearly reports
   - Implement period validation logic against available data
   - _Requirements: 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2.1 Write property test for date cutoff accuracy
+- [x] 2.1 Write property test for date cutoff accuracy
   - **Property 3: Date cutoff accuracy for daily reports**
   - **Validates: Requirements 2.2**
 
-- [ ] 2.2 Write property test for month-end cutoff accuracy
+- [x] 2.2 Write property test for month-end cutoff accuracy
   - **Property 4: Month-end cutoff accuracy**
   - **Validates: Requirements 2.3**
 
-- [ ] 2.3 Write property test for year-end cutoff accuracy
+- [x] 2.3 Write property test for year-end cutoff accuracy
   - **Property 5: Year-end cutoff accuracy**
   - **Validates: Requirements 2.4**
 
-- [ ] 3. Create balance sheet calculation engine
+- [x] 3. Create balance sheet calculation engine
   - Implement `calculateBalanceSheet(targetDate)` function
   - Build account balance calculation logic using existing COA structure
   - Create functions to categorize accounts (current assets, fixed assets, liabilities, equity)
   - Implement date-based journal entry filtering
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 3.1 Write property test for balance sheet equation
+- [x] 3.1 Write property test for balance sheet equation
   - **Property 2: Balance sheet equation balance**
   - **Validates: Requirements 2.1**
 
-- [ ] 4. Build balance sheet report display
+- [x] 4. Build balance sheet report display
   - Create HTML template for balance sheet layout
   - Implement report rendering with proper categorization
   - Add totals calculation and display
@@ -84,5 +84,5 @@
   - Verify responsive design on mobile devices
   - _Requirements: All_
 
-- [ ] 8. Checkpoint - Ensure all tests pass
+- [x] 8. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

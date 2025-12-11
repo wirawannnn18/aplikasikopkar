@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Master Barang - Koperasi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .test-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        .test-success {
+            border-left: 4px solid #28a745;
+        }
+        .test-error {
+            border-left: 4px solid #dc3545;
+        }
+        .test-warning {
+            border-left: 4px solid #ffc107;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Header -->
+    <div class="test-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0"><i class="fas fa-vial me-3"></i>Test Upload Master Barang</h1>
+                    <p class="mb-0 mt-2">Validasi dan testing fungsi upload massal data barang</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light" onclick="window.location.href='upload_master_barang.html'">
+                        <i class="fas fa-arrow-left me-2"></i>Ke Menu Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Test Controls -->
+        <div class="card test-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-play me-2"></i>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Tests</h6>
+                        <button class="btn btn-success btn-sm me-2 mb-2" onclick="testCSVParsing()">
+                            <i class="fas fa-file-csv me-1"></i>Test CSV Parsing
+                        </button>
+                        <button class="btn btn-info btn-sm me-2 mb-2" onclick="testDataValidation()">
+                            <i class="fas fa-check-circle me-1"></i>Test Data Validation
+                        </button>
+                        <button class="btn btn-warning btn-sm me-2 mb-2" onclick="testCategoryManagement()">
+                            <i class="fas fa-tags me-1"></i>Test Category Management
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Advanced Tests</h6>
+                        <button class="btn btn-primary btn-sm me-2 mb-2" onclick="testImportProcess()">
+                            <i class="fas fa-database me-1"></i>Test Import Process
+                        </button>
+                        <button class="btn btn-secondary btn-sm me-2 mb-2" onclick="testErrorHandling()">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Test Error Handling
+                        </button>
+                        <button class="btn btn-danger btn-sm me-2 mb-2" onclick="runAllTests()">
+                            <i class="fas fa-rocket me-1"></i>Run All Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button class="btn btn-outline-danger btn-sm" onclick="clearTestData()">
+                            <i class="fas fa-trash me-1"></i>Clear Test Data
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="clearLog()">
+                            <i class="fas fa-broom me-1"></i>Clear Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card test-card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success" id="passedTests">0</h4>
+                            <small class="text-muted">Passed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-danger" id="failedTests">0</h4>
+                            <small class="text-muted">Failed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning" id="warningTests">0</h4>
+                            <small class="text-muted">Warnings</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-info" id="totalTests">0</h4>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="card test-card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>Test Log</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="testLog" class="log-output">
+                    <div class="text-muted">Test log akan muncul di sini...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Data Preview -->
+        <div class="card test-card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Sample Data Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Valid CSV Sample</h6>
+                        <pre id="validCSVSample" class="bg-light p-2 rounded"></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Invalid CSV Sample</h6>
+                        <pre id="invalidCSVSample" class="bg-light p-2 rounded"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/uploadMasterBarang.js"></script>
+    <script>
+        // Test framework variables
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            warnings: 0,
+            total: 0
+        };
+
+        let uploadManager;
+
+        // Initialize test environment
+        document.addEventListener('DOMContentLoaded', function() {
+            log('=== Test Environment Initialized ===', 'info');
+            uploadManager = new UploadMasterBarangManager();
+            updateTestResults();
+            showSampleData();
+        });
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = {
+                'info': 'text-info',
+                'success': 'text-success',
+                'error': 'text-danger',
+                'warning': 'text-warning'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="text-muted">[${timestamp}]</span> <span class="${typeClass[type] || 'text-dark'}">${message}</span>`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // Test assertion function
+        function assert(condition, message) {
+            testResults.total++;
+            
+            if (condition) {
+                testResults.passed++;
+                log(`✅ PASS: ${message}`, 'success');
+            } else {
+                testResults.failed++;
+                log(`❌ FAIL: ${message}`, 'error');
+            }
+            
+            updateTestResults();
+        }
+
+        // Warning function
+        function warn(message) {
+            testResults.warnings++;
+            log(`⚠️ WARNING: ${message}`, 'warning');
+            updateTestResults();
+        }
+
+        // Update test results display
+        function updateTestResults() {
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            document.getElementById('warningTests').textContent = testResults.warnings;
+            document.getElementById('totalTests').textContent = testResults.total;
+        }
+
+        // Show sample data
+        function showSampleData() {
+            const validCSV = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
+BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni`;
+
+            const invalidCSV = `kode,nama,kategori,satuan,harga_beli,stok
+BRG001,Beras Premium 5kg,makanan,kg,abc,50
+,Minyak Goreng 1L,makanan,botol,15000,-10`;
+
+            document.getElementById('validCSVSample').textContent = validCSV;
+            document.getElementById('invalidCSVSample').textContent = invalidCSV;
+        }
+
+        // Test 1: CSV Parsing
+        function testCSVParsing() {
+            log('=== Testing CSV Parsing ===', 'info');
+            
+            try {
+                // Test valid CSV
+                const validCSV = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
+BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni`;
+
+                uploadManager.parseCSV(validCSV);
+                assert(uploadManager.uploadedData.length === 2, 'Valid CSV parsed correctly');
+                assert(uploadManager.uploadedData[0].kode === 'BRG001', 'First item kode parsed correctly');
+                assert(uploadManager.uploadedData[0].harga_beli === 65000, 'Numeric field parsed correctly');
+
+                // Test CSV with quotes
+                const quotedCSV = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,"Beras Premium, 5kg",makanan,kg,65000,50,"PT Beras Sejahtera"`;
+
+                uploadManager.parseCSV(quotedCSV);
+                assert(uploadManager.uploadedData[0].nama === 'Beras Premium, 5kg', 'Quoted CSV parsed correctly');
+
+                // Test empty lines
+                const csvWithEmptyLines = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
+
+BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni`;
+
+                uploadManager.parseCSV(csvWithEmptyLines);
+                assert(uploadManager.uploadedData.length === 2, 'Empty lines handled correctly');
+
+                log('CSV parsing tests completed', 'success');
+            } catch (error) {
+                log(`CSV parsing test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 2: Data Validation
+        function testDataValidation() {
+            log('=== Testing Data Validation ===', 'info');
+            
+            try {
+                // Test valid data
+                uploadManager.uploadedData = [
+                    {
+                        kode: 'BRG001',
+                        nama: 'Test Item',
+                        kategori: 'makanan',
+                        satuan: 'kg',
+                        harga_beli: 10000,
+                        stok: 50,
+                        supplier: 'Test Supplier'
+                    }
+                ];
+
+                uploadManager.validateData();
+                assert(uploadManager.validationErrors.length === 0, 'Valid data passes validation');
+
+                // Test invalid data
+                uploadManager.uploadedData = [
+                    {
+                        kode: '',
+                        nama: 'Test Item',
+                        kategori: 'makanan',
+                        satuan: 'kg',
+                        harga_beli: -1000,
+                        stok: -10,
+                        supplier: 'Test Supplier'
+                    }
+                ];
+
+                uploadManager.validateData();
+                assert(uploadManager.validationErrors.length > 0, 'Invalid data fails validation');
+
+                // Test duplicate codes
+                uploadManager.uploadedData = [
+                    {
+                        kode: 'BRG001',
+                        nama: 'Test Item 1',
+                        kategori: 'makanan',
+                        satuan: 'kg',
+                        harga_beli: 10000,
+                        stok: 50,
+                        supplier: 'Test Supplier'
+                    },
+                    {
+                        kode: 'BRG001',
+                        nama: 'Test Item 2',
+                        kategori: 'makanan',
+                        satuan: 'kg',
+                        harga_beli: 15000,
+                        stok: 30,
+                        supplier: 'Test Supplier'
+                    }
+                ];
+
+                uploadManager.validateData();
+                const hasDuplicateError = uploadManager.validationErrors.some(e => 
+                    e.errors.some(err => err.includes('duplikat'))
+                );
+                assert(hasDuplicateError, 'Duplicate codes detected');
+
+                log('Data validation tests completed', 'success');
+            } catch (error) {
+                log(`Data validation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 3: Category Management
+        function testCategoryManagement() {
+            log('=== Testing Category Management ===', 'info');
+            
+            try {
+                const initialCategoryCount = uploadManager.categories.length;
+                
+                // Test adding new category
+                uploadManager.addCategoryIfNotExists('test-category');
+                assert(uploadManager.categories.includes('test-category'), 'New category added');
+                assert(uploadManager.categories.length === initialCategoryCount + 1, 'Category count increased');
+
+                // Test adding existing category
+                uploadManager.addCategoryIfNotExists('test-category');
+                assert(uploadManager.categories.length === initialCategoryCount + 1, 'Duplicate category not added');
+
+                const initialUnitCount = uploadManager.units.length;
+                
+                // Test adding new unit
+                uploadManager.addUnitIfNotExists('test-unit');
+                assert(uploadManager.units.includes('test-unit'), 'New unit added');
+                assert(uploadManager.units.length === initialUnitCount + 1, 'Unit count increased');
+
+                log('Category management tests completed', 'success');
+            } catch (error) {
+                log(`Category management test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 4: Import Process
+        function testImportProcess() {
+            log('=== Testing Import Process ===', 'info');
+            
+            try {
+                // Prepare test data
+                uploadManager.uploadedData = [
+                    {
+                        kode: 'TEST001',
+                        nama: 'Test Item 1',
+                        kategori: 'test-category',
+                        satuan: 'pcs',
+                        harga_beli: 10000,
+                        stok: 50,
+                        supplier: 'Test Supplier'
+                    },
+                    {
+                        kode: 'TEST002',
+                        nama: 'Test Item 2',
+                        kategori: 'test-category',
+                        satuan: 'kg',
+                        harga_beli: 15000,
+                        stok: 30,
+                        supplier: 'Test Supplier'
+                    }
+                ];
+
+                // Test data preparation
+                const existingItems = uploadManager.getExistingItems();
+                assert(Array.isArray(existingItems), 'Existing items retrieved as array');
+
+                // Test stats
+                const stats = uploadManager.getUploadStats();
+                assert(stats.totalUploaded === 2, 'Upload stats correct');
+                assert(typeof stats.currentStep === 'number', 'Current step is number');
+
+                log('Import process tests completed', 'success');
+            } catch (error) {
+                log(`Import process test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 5: Error Handling
+        function testErrorHandling() {
+            log('=== Testing Error Handling ===', 'info');
+            
+            try {
+                // Test invalid CSV format
+                try {
+                    uploadManager.parseCSV('invalid,csv\nwith,wrong,headers');
+                    assert(false, 'Should throw error for invalid headers');
+                } catch (error) {
+                    assert(error.message.includes('Header yang hilang'), 'Invalid headers error thrown');
+                }
+
+                // Test empty CSV
+                try {
+                    uploadManager.parseCSV('');
+                    assert(false, 'Should throw error for empty CSV');
+                } catch (error) {
+                    assert(error.message.includes('minimal 2 baris'), 'Empty CSV error thrown');
+                }
+
+                // Test file validation
+                const invalidFile = new File([''], 'test.txt', { type: 'text/plain' });
+                try {
+                    uploadManager.validateFile(invalidFile);
+                    assert(false, 'Should throw error for invalid file type');
+                } catch (error) {
+                    assert(error.message.includes('Format file tidak didukung'), 'Invalid file type error thrown');
+                }
+
+                // Test large file
+                const largeFile = new File(['x'.repeat(6 * 1024 * 1024)], 'test.csv', { type: 'text/csv' });
+                try {
+                    uploadManager.validateFile(largeFile);
+                    assert(false, 'Should throw error for large file');
+                } catch (error) {
+                    assert(error.message.includes('terlalu besar'), 'Large file error thrown');
+                }
+
+                log('Error handling tests completed', 'success');
+            } catch (error) {
+                log(`Error handling test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Run all tests
+        function runAllTests() {
+            log('=== Running All Tests ===', 'info');
+            
+            // Reset test results
+            testResults = { passed: 0, failed: 0, warnings: 0, total: 0 };
+            updateTestResults();
+            
+            // Run tests in sequence
+            testCSVParsing();
+            testDataValidation();
+            testCategoryManagement();
+            testImportProcess();
+            testErrorHandling();
+            
+            // Performance test
+            performanceTest();
+            
+            // Summary
+            const successRate = ((testResults.passed / testResults.total) * 100).toFixed(1);
+            log(`=== Test Summary ===`, 'info');
+            log(`Total Tests: ${testResults.total}`, 'info');
+            log(`Passed: ${testResults.passed}`, 'success');
+            log(`Failed: ${testResults.failed}`, 'error');
+            log(`Warnings: ${testResults.warnings}`, 'warning');
+            log(`Success Rate: ${successRate}%`, successRate > 90 ? 'success' : 'warning');
+        }
+
+        // Performance test
+        function performanceTest() {
+            log('=== Performance Test ===', 'info');
+            
+            try {
+                // Test large dataset parsing
+                const startTime = performance.now();
+                
+                let largeCSV = 'kode,nama,kategori,satuan,harga_beli,stok,supplier\n';
+                for (let i = 1; i <= 1000; i++) {
+                    largeCSV += `BRG${i.toString().padStart(3, '0')},Test Item ${i},makanan,pcs,${10000 + i},${50 + i},Test Supplier\n`;
+                }
+                
+                uploadManager.parseCSV(largeCSV);
+                const endTime = performance.now();
+                
+                const duration = endTime - startTime;
+                assert(duration < 5000, `Large dataset parsed in ${duration.toFixed(2)}ms (< 5000ms)`);
+                assert(uploadManager.uploadedData.length === 1000, 'All 1000 items parsed correctly');
+                
+                // Test validation performance
+                const validationStart = performance.now();
+                uploadManager.validateData();
+                const validationEnd = performance.now();
+                
+                const validationDuration = validationEnd - validationStart;
+                assert(validationDuration < 3000, `Validation completed in ${validationDuration.toFixed(2)}ms (< 3000ms)`);
+                
+                log('Performance test completed', 'success');
+            } catch (error) {
+                log(`Performance test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear test data
+        function clearTestData() {
+            log('Clearing test data...', 'warning');
+            
+            try {
+                // Clear upload manager data
+                uploadManager.uploadedData = [];
+                uploadManager.validationErrors = [];
+                uploadManager.resetUpload();
+                
+                // Remove test categories and units
+                uploadManager.categories = uploadManager.categories.filter(c => !c.includes('test'));
+                uploadManager.units = uploadManager.units.filter(u => !u.includes('test'));
+                
+                // Clear test items from localStorage
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const filteredBarang = masterBarang.filter(item => !item.kode.startsWith('TEST'));
+                localStorage.setItem('masterBarang', JSON.stringify(filteredBarang));
+                
+                log('Test data cleared successfully', 'success');
+            } catch (error) {
+                log(`Failed to clear test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear log
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '<div class="text-muted">Test log cleared...</div>';
+            testResults = { passed: 0, failed: 0, warnings: 0, total: 0 };
+            updateTestResults();
+        }
+
+        // Auto-run basic tests on load
+        setTimeout(() => {
+            log('Auto-running basic tests...', 'info');
+            testCSVParsing();
+            testDataValidation();
+        }, 1000);
+    </script>
+</body>
+</html>
