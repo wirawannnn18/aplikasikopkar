@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Harga Jual Barang - Koperasi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .test-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        .test-success {
+            border-left: 4px solid #28a745;
+        }
+        .test-error {
+            border-left: 4px solid #dc3545;
+        }
+        .test-warning {
+            border-left: 4px solid #ffc107;
+        }
+        .test-info {
+            border-left: 4px solid #17a2b8;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .btn-test {
+            margin: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Header -->
+    <div class="test-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0"><i class="fas fa-vial me-3"></i>Test Harga Jual Barang</h1>
+                    <p class="mb-0 mt-2">Validasi dan testing fungsi manajemen harga jual barang</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light" onclick="window.location.href='harga_jual_barang.html'">
+                        <i class="fas fa-arrow-left me-2"></i>Ke Menu Utama
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Test Controls -->
+        <div class="card test-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-play me-2"></i>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Tests</h6>
+                        <button class="btn btn-success btn-sm btn-test" onclick="testInitialization()">
+                            <i class="fas fa-power-off me-1"></i>Test Initialization
+                        </button>
+                        <button class="btn btn-info btn-sm btn-test" onclick="testDataLoading()">
+                            <i class="fas fa-database me-1"></i>Test Data Loading
+                        </button>
+                        <button class="btn btn-warning btn-sm btn-test" onclick="testValidation()">
+                            <i class="fas fa-check-circle me-1"></i>Test Validation
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Advanced Tests</h6>
+                        <button class="btn btn-primary btn-sm btn-test" onclick="testBulkOperations()">
+                            <i class="fas fa-layer-group me-1"></i>Test Bulk Operations
+                        </button>
+                        <button class="btn btn-secondary btn-sm btn-test" onclick="testExportImport()">
+                            <i class="fas fa-exchange-alt me-1"></i>Test Export/Import
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-test" onclick="runAllTests()">
+                            <i class="fas fa-rocket me-1"></i>Run All Tests
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button class="btn btn-outline-danger btn-sm" onclick="clearTestData()">
+                            <i class="fas fa-trash me-1"></i>Clear Test Data
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="generateTestData()">
+                            <i class="fas fa-plus me-1"></i>Generate Test Data
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="clearLog()">
+                            <i class="fas fa-broom me-1"></i>Clear Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card test-card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success" id="passedTests">0</h4>
+                            <small class="text-muted">Passed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-danger" id="failedTests">0</h4>
+                            <small class="text-muted">Failed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning" id="warningTests">0</h4>
+                            <small class="text-muted">Warnings</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-info" id="totalTests">0</h4>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="card test-card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>Test Log</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="testLog" class="log-output">
+                    <div class="text-muted">Test log akan muncul di sini...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Data Preview -->
+        <div class="card test-card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Test Data Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Master Barang</h6>
+                        <div id="masterBarangPreview" class="log-output" style="max-height: 200px;">
+                            <!-- Data preview akan diisi oleh JavaScript -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Harga Jual Data</h6>
+                        <div id="hargaJualPreview" class="log-output" style="max-height: 200px;">
+                            <!-- Data preview akan diisi oleh JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/hargaJualBarang.js"></script>
+    <script>
+        // Test framework variables
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            warnings: 0,
+            total: 0
+        };
+
+        let hargaJualManager;
+
+        // Initialize test environment
+        document.addEventListener('DOMContentLoaded', function() {
+            log('=== Test Environment Initialized ===', 'info');
+            updateTestResults();
+            updateDataPreview();
+        });
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = {
+                'info': 'text-info',
+                'success': 'text-success',
+                'error': 'text-danger',
+                'warning': 'text-warning'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="text-muted">[${timestamp}]</span> <span class="${typeClass[type] || 'text-dark'}">${message}</span>`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // Test assertion function
+        function assert(condition, message, type = 'test') {
+            testResults.total++;
+            
+            if (condition) {
+                testResults.passed++;
+                log(`✅ PASS: ${message}`, 'success');
+            } else {
+                testResults.failed++;
+                log(`❌ FAIL: ${message}`, 'error');
+            }
+            
+            updateTestResults();
+        }
+
+        // Warning function
+        function warn(message) {
+            testResults.warnings++;
+            log(`⚠️ WARNING: ${message}`, 'warning');
+            updateTestResults();
+        }
+
+        // Update test results display
+        function updateTestResults() {
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            document.getElementById('warningTests').textContent = testResults.warnings;
+            document.getElementById('totalTests').textContent = testResults.total;
+        }
+
+        // Update data preview
+        function updateDataPreview() {
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const hargaJual = JSON.parse(localStorage.getItem('hargaJualBarang') || '[]');
+                
+                document.getElementById('masterBarangPreview').innerHTML = 
+                    `<pre>${JSON.stringify(masterBarang.slice(0, 3), null, 2)}</pre>`;
+                document.getElementById('hargaJualPreview').innerHTML = 
+                    `<pre>${JSON.stringify(hargaJual.slice(0, 5), null, 2)}</pre>`;
+            } catch (error) {
+                log(`Error updating preview: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 1: Initialization
+        function testInitialization() {
+            log('=== Testing Initialization ===', 'info');
+            
+            try {
+                hargaJualManager = new HargaJualManager();
+                assert(hargaJualManager !== null, 'HargaJualManager instance created');
+                assert(typeof hargaJualManager.loadData === 'function', 'loadData method exists');
+                assert(typeof hargaJualManager.updateHargaJual === 'function', 'updateHargaJual method exists');
+                assert(Array.isArray(hargaJualManager.masterBarang), 'masterBarang is array');
+                assert(Array.isArray(hargaJualManager.hargaJualData), 'hargaJualData is array');
+                
+                log('Initialization test completed', 'success');
+            } catch (error) {
+                log(`Initialization test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 2: Data Loading
+        function testDataLoading() {
+            log('=== Testing Data Loading ===', 'info');
+            
+            try {
+                if (!hargaJualManager) {
+                    hargaJualManager = new HargaJualManager();
+                }
+                
+                // Test master barang loading
+                assert(hargaJualManager.masterBarang.length > 0, 'Master barang data loaded');
+                
+                // Test data structure
+                const firstItem = hargaJualManager.masterBarang[0];
+                assert(firstItem.hasOwnProperty('kode'), 'Master barang has kode field');
+                assert(firstItem.hasOwnProperty('nama'), 'Master barang has nama field');
+                assert(firstItem.hasOwnProperty('hargaBeli'), 'Master barang has hargaBeli field');
+                assert(typeof firstItem.hargaBeli === 'number', 'hargaBeli is number');
+                
+                // Test harga jual data structure
+                if (hargaJualManager.hargaJualData.length > 0) {
+                    const firstHarga = hargaJualManager.hargaJualData[0];
+                    assert(firstHarga.hasOwnProperty('kodeBarang'), 'Harga jual has kodeBarang field');
+                    assert(firstHarga.hasOwnProperty('hargaJual'), 'Harga jual has hargaJual field');
+                }
+                
+                log('Data loading test completed', 'success');
+            } catch (error) {
+                log(`Data loading test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 3: Validation
+        function testValidation() {
+            log('=== Testing Validation ===', 'info');
+            
+            try {
+                if (!hargaJualManager) {
+                    hargaJualManager = new HargaJualManager();
+                }
+                
+                const testBarang = hargaJualManager.masterBarang[0];
+                if (!testBarang) {
+                    warn('No test data available for validation test');
+                    return;
+                }
+                
+                // Test valid price
+                const validResult = hargaJualManager.validateHargaJual(testBarang.kode, testBarang.hargaBeli + 1000);
+                assert(validResult.valid === true, 'Valid price validation passes');
+                
+                // Test invalid price (below cost)
+                const invalidResult = hargaJualManager.validateHargaJual(testBarang.kode, testBarang.hargaBeli - 1000);
+                assert(invalidResult.valid === false, 'Invalid price (below cost) validation fails');
+                
+                // Test negative price
+                const negativeResult = hargaJualManager.validateHargaJual(testBarang.kode, -1000);
+                assert(negativeResult.valid === false, 'Negative price validation fails');
+                
+                // Test non-numeric price
+                const nanResult = hargaJualManager.validateHargaJual(testBarang.kode, 'abc');
+                assert(nanResult.valid === false, 'Non-numeric price validation fails');
+                
+                // Test margin calculation
+                const margin = hargaJualManager.calculateMargin(testBarang.hargaBeli + 1000, testBarang.hargaBeli);
+                assert(parseFloat(margin) > 0, 'Margin calculation works correctly');
+                
+                log('Validation test completed', 'success');
+            } catch (error) {
+                log(`Validation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 4: Bulk Operations
+        function testBulkOperations() {
+            log('=== Testing Bulk Operations ===', 'info');
+            
+            try {
+                if (!hargaJualManager) {
+                    hargaJualManager = new HargaJualManager();
+                }
+                
+                // Test bulk update by margin
+                const initialCount = hargaJualManager.hargaJualData.length;
+                const updated = hargaJualManager.bulkUpdateByMargin('makanan', 20);
+                assert(updated > 0, `Bulk update processed ${updated} items`);
+                
+                // Test statistics
+                const stats = hargaJualManager.getStatistik();
+                assert(typeof stats.totalBarang === 'number', 'Statistics totalBarang is number');
+                assert(typeof stats.sudahAda === 'number', 'Statistics sudahAda is number');
+                assert(typeof stats.rataMargin === 'string', 'Statistics rataMargin is string');
+                
+                // Test filtering
+                const filtered = hargaJualManager.filterBarang('', 'makanan', '');
+                assert(Array.isArray(filtered), 'Filter returns array');
+                
+                // Test export data
+                const exportData = hargaJualManager.exportData();
+                assert(Array.isArray(exportData), 'Export data returns array');
+                assert(exportData.length === hargaJualManager.masterBarang.length, 'Export data length matches master barang');
+                
+                log('Bulk operations test completed', 'success');
+            } catch (error) {
+                log(`Bulk operations test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 5: Export/Import
+        function testExportImport() {
+            log('=== Testing Export/Import ===', 'info');
+            
+            try {
+                if (!hargaJualManager) {
+                    hargaJualManager = new HargaJualManager();
+                }
+                
+                // Test export data structure
+                const exportData = hargaJualManager.exportData();
+                assert(exportData.length > 0, 'Export data is not empty');
+                
+                const firstExport = exportData[0];
+                const requiredFields = ['Kode Barang', 'Nama Barang', 'Kategori', 'Harga Beli', 'Harga Jual'];
+                requiredFields.forEach(field => {
+                    assert(firstExport.hasOwnProperty(field), `Export data has ${field} field`);
+                });
+                
+                // Test save/load functionality
+                const originalData = JSON.stringify(hargaJualManager.hargaJualData);
+                
+                // Simulate save
+                localStorage.setItem('hargaJualBarang_backup', originalData);
+                
+                // Simulate load
+                const loadedData = localStorage.getItem('hargaJualBarang_backup');
+                assert(loadedData === originalData, 'Save/load data integrity maintained');
+                
+                // Cleanup
+                localStorage.removeItem('hargaJualBarang_backup');
+                
+                log('Export/Import test completed', 'success');
+            } catch (error) {
+                log(`Export/Import test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Run all tests
+        function runAllTests() {
+            log('=== Running All Tests ===', 'info');
+            
+            // Reset test results
+            testResults = { passed: 0, failed: 0, warnings: 0, total: 0 };
+            updateTestResults();
+            
+            // Run tests in sequence
+            testInitialization();
+            testDataLoading();
+            testValidation();
+            testBulkOperations();
+            testExportImport();
+            
+            // Performance test
+            performanceTest();
+            
+            // Summary
+            const successRate = ((testResults.passed / testResults.total) * 100).toFixed(1);
+            log(`=== Test Summary ===`, 'info');
+            log(`Total Tests: ${testResults.total}`, 'info');
+            log(`Passed: ${testResults.passed}`, 'success');
+            log(`Failed: ${testResults.failed}`, 'error');
+            log(`Warnings: ${testResults.warnings}`, 'warning');
+            log(`Success Rate: ${successRate}%`, successRate > 90 ? 'success' : 'warning');
+            
+            updateDataPreview();
+        }
+
+        // Performance test
+        function performanceTest() {
+            log('=== Performance Test ===', 'info');
+            
+            try {
+                if (!hargaJualManager) {
+                    hargaJualManager = new HargaJualManager();
+                }
+                
+                // Test bulk update performance
+                const startTime = performance.now();
+                hargaJualManager.bulkUpdateByMargin('', 25); // Update all items
+                const endTime = performance.now();
+                
+                const duration = endTime - startTime;
+                assert(duration < 1000, `Bulk update completed in ${duration.toFixed(2)}ms (< 1000ms)`);
+                
+                // Test filter performance
+                const filterStart = performance.now();
+                hargaJualManager.filterBarang('test', '', '');
+                const filterEnd = performance.now();
+                
+                const filterDuration = filterEnd - filterStart;
+                assert(filterDuration < 100, `Filter completed in ${filterDuration.toFixed(2)}ms (< 100ms)`);
+                
+                log('Performance test completed', 'success');
+            } catch (error) {
+                log(`Performance test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Generate test data
+        function generateTestData() {
+            log('Generating test data...', 'info');
+            
+            try {
+                // Generate additional test items
+                const additionalItems = [
+                    {
+                        kode: 'TEST001',
+                        nama: 'Test Item 1',
+                        kategori: 'test',
+                        hargaBeli: 10000,
+                        satuan: 'pcs',
+                        stok: 100
+                    },
+                    {
+                        kode: 'TEST002',
+                        nama: 'Test Item 2',
+                        kategori: 'test',
+                        hargaBeli: 25000,
+                        satuan: 'pcs',
+                        stok: 50
+                    }
+                ];
+                
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                additionalItems.forEach(item => {
+                    if (!masterBarang.find(b => b.kode === item.kode)) {
+                        masterBarang.push(item);
+                    }
+                });
+                
+                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+                
+                // Generate test harga jual
+                const hargaJual = JSON.parse(localStorage.getItem('hargaJualBarang') || '[]');
+                additionalItems.forEach(item => {
+                    if (!hargaJual.find(h => h.kodeBarang === item.kode)) {
+                        hargaJual.push({
+                            kodeBarang: item.kode,
+                            hargaJual: item.hargaBeli * 1.2, // 20% margin
+                            tanggalBuat: new Date().toISOString(),
+                            tanggalUpdate: new Date().toISOString()
+                        });
+                    }
+                });
+                
+                localStorage.setItem('hargaJualBarang', JSON.stringify(hargaJual));
+                
+                log('Test data generated successfully', 'success');
+                updateDataPreview();
+            } catch (error) {
+                log(`Failed to generate test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear test data
+        function clearTestData() {
+            log('Clearing test data...', 'warning');
+            
+            try {
+                // Remove test items
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const filteredMaster = masterBarang.filter(item => !item.kode.startsWith('TEST'));
+                localStorage.setItem('masterBarang', JSON.stringify(filteredMaster));
+                
+                const hargaJual = JSON.parse(localStorage.getItem('hargaJualBarang') || '[]');
+                const filteredHarga = hargaJual.filter(item => !item.kodeBarang.startsWith('TEST'));
+                localStorage.setItem('hargaJualBarang', JSON.stringify(filteredHarga));
+                
+                log('Test data cleared successfully', 'success');
+                updateDataPreview();
+            } catch (error) {
+                log(`Failed to clear test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear log
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '<div class="text-muted">Test log cleared...</div>';
+            testResults = { passed: 0, failed: 0, warnings: 0, total: 0 };
+            updateTestResults();
+        }
+
+        // Auto-run basic tests on load
+        setTimeout(() => {
+            log('Auto-running basic tests...', 'info');
+            testInitialization();
+            testDataLoading();
+        }, 1000);
+    </script>
+</body>
+</html>
