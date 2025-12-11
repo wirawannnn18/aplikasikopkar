@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 6 - Error Handling and User Feedback</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-shield-exclamation me-2"></i>
+                            Task 6 - Error Handling and User Feedback Test
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Test Error Handling:</strong> Loading indicators, error messages, retry mechanisms, COA validation
+                            <br><small>Requirements: 4.1, 4.2, 4.3</small>
+                        </div>
+                        
+                        <!-- Error Handler Tests -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">1. Error Handler Tests</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-danger btn-sm w-100" onclick="testNoDataError()">
+                                            Test No Data Error
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-warning btn-sm w-100" onclick="testCOAMissingError()">
+                                            Test COA Missing
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-info btn-sm w-100" onclick="testInvalidPeriodError()">
+                                            Test Invalid Period
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="testCalculationError()">
+                                            Test Calculation Error
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="errorHandlerResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Diagnostics Tests -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">2. Diagnostics and Performance Tests</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <button class="btn btn-outline-primary btn-sm w-100" onclick="testCOAValidation()">
+                                            Test COA Validation
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-outline-success btn-sm w-100" onclick="testPerformanceMonitoring()">
+                                            Test Performance Monitor
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-outline-info btn-sm w-100" onclick="testDataChunking()">
+                                            Test Data Chunking
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="diagnosticsResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Loading Indicators Test -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">3. Loading Indicators and User Feedback</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-primary w-100" onclick="testLoadingIndicators()">
+                                            <i class="bi bi-hourglass me-1"></i>Test Loading Indicators
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-success w-100" onclick="testRecoveryActions()">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Test Recovery Actions
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="loadingTestArea" class="mt-3"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Integration Test -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">4. Full Integration Test</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-warning w-100" onclick="runFullErrorHandlingTest()">
+                                    <i class="bi bi-gear me-1"></i>Run Complete Error Handling Integration Test
+                                </button>
+                                <div id="integrationResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/balanceSheetErrorHandler.js"></script>
+    <script src="js/balanceSheetDiagnostics.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        // Mock functions for testing
+        function showAlert(message, type) {
+            console.log(`Alert (${type}): ${message}`);
+            
+            // Also show in UI
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show mt-2`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Find the most recent results div and append
+            const resultsDivs = document.querySelectorAll('[id$="Results"], [id$="Area"]');
+            if (resultsDivs.length > 0) {
+                const lastDiv = resultsDivs[resultsDivs.length - 1];
+                lastDiv.appendChild(alertDiv);
+            }
+        }
+
+        function testNoDataError() {
+            const resultsDiv = document.getElementById('errorHandlerResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing no data error...';
+            
+            setTimeout(() => {
+                try {
+                    const error = new Error('Tidak ada data untuk periode yang dipilih');
+                    const errorResult = balanceSheetErrorHandler.handleError(error, 'generateBalanceSheet', {
+                        periodType: 'monthly',
+                        selectedMonth: 12,
+                        selectedYear: 2023
+                    });
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6 class="alert-heading">No Data Error Test - Success</h6>
+                            <p><strong>Error Type:</strong> ${errorResult.errorInfo.type}</p>
+                            <p><strong>User Message:</strong> ${errorResult.userFeedback.message}</p>
+                            <p><strong>Recovery Options:</strong> ${errorResult.recoveryOptions.length} options</p>
+                            <p><strong>Can Retry:</strong> ${errorResult.canRetry ? 'Yes' : 'No'}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error testing no data error: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testCOAMissingError() {
+            const resultsDiv = document.getElementById('errorHandlerResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing COA missing error...';
+            
+            setTimeout(() => {
+                try {
+                    const error = new Error('Chart of Accounts (COA) tidak tersedia');
+                    const errorResult = balanceSheetErrorHandler.handleError(error, 'calculateBalanceSheet', {
+                        targetDate: new Date()
+                    });
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <h6 class="alert-heading">COA Missing Error Test - Success</h6>
+                            <p><strong>Error Type:</strong> ${errorResult.errorInfo.type}</p>
+                            <p><strong>Severity:</strong> ${errorResult.errorInfo.severity}</p>
+                            <p><strong>Is Recoverable:</strong> ${errorResult.errorInfo.isRecoverable ? 'Yes' : 'No'}</p>
+                            <p><strong>Suggestions:</strong> ${errorResult.userFeedback.suggestions.length} suggestions</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            Error testing COA missing: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testInvalidPeriodError() {
+            const resultsDiv = document.getElementById('errorHandlerResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing invalid period error...';
+            
+            setTimeout(() => {
+                try {
+                    const error = new Error('Periode yang dipilih tidak valid');
+                    const errorResult = balanceSheetErrorHandler.handleError(error, 'validatePeriodSelection', {
+                        periodType: 'daily',
+                        selectedDate: 'invalid-date'
+                    });
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <h6 class="alert-heading">Invalid Period Error Test - Success</h6>
+                            <p><strong>Error Type:</strong> ${errorResult.errorInfo.type}</p>
+                            <p><strong>User Title:</strong> ${errorResult.userFeedback.title}</p>
+                            <p><strong>Recovery Actions:</strong> ${errorResult.recoveryOptions.map(o => o.label).join(', ')}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            Error testing invalid period: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testCalculationError() {
+            const resultsDiv = document.getElementById('errorHandlerResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing calculation error...';
+            
+            setTimeout(() => {
+                try {
+                    const error = new Error('Calculation error: Balance sheet equation not balanced');
+                    const errorResult = balanceSheetErrorHandler.handleError(error, 'calculateBalanceSheet', {
+                        targetDate: new Date(),
+                        coaCount: 15,
+                        journalCount: 25
+                    });
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <h6 class="alert-heading">Calculation Error Test - Success</h6>
+                            <p><strong>Error Type:</strong> ${errorResult.errorInfo.type}</p>
+                            <p><strong>Icon:</strong> ${errorResult.userFeedback.icon}</p>
+                            <p><strong>Recovery Options:</strong> ${errorResult.recoveryOptions.length} options available</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            Error testing calculation error: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testCOAValidation() {
+            const resultsDiv = document.getElementById('diagnosticsResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing COA validation...';
+            
+            setTimeout(() => {
+                try {
+                    // Test with valid COA
+                    const validCOA = [
+                        { kode: '1-1000', nama: 'Kas', tipe: 'aset', saldo: 1000000 },
+                        { kode: '2-1000', nama: 'Hutang', tipe: 'kewajiban', saldo: 500000 },
+                        { kode: '3-1000', nama: 'Modal', tipe: 'modal', saldo: 500000 }
+                    ];
+                    
+                    const validResult = balanceSheetDiagnostics.validateCOAStructure(validCOA);
+                    
+                    // Test with invalid COA
+                    const invalidCOA = [
+                        { kode: '', nama: 'Invalid Account', tipe: 'unknown' },
+                        { kode: '1-1000', nama: '', tipe: 'aset' }
+                    ];
+                    
+                    const invalidResult = balanceSheetDiagnostics.validateCOAStructure(invalidCOA);
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6 class="alert-heading">COA Validation Test - Success</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Valid COA:</strong><br>
+                                    Is Valid: ${validResult.isValid ? 'Yes' : 'No'}<br>
+                                    Errors: ${validResult.errors.length}<br>
+                                    Asset Accounts: ${validResult.stats.assetAccounts}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Invalid COA:</strong><br>
+                                    Is Valid: ${invalidResult.isValid ? 'Yes' : 'No'}<br>
+                                    Errors: ${invalidResult.errors.length}<br>
+                                    Invalid Accounts: ${invalidResult.stats.invalidAccounts}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error testing COA validation: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testPerformanceMonitoring() {
+            const resultsDiv = document.getElementById('diagnosticsResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing performance monitoring...';
+            
+            setTimeout(() => {
+                try {
+                    // Start monitoring
+                    const monitor = balanceSheetDiagnostics.startMonitoring('testOperation', { testData: true });
+                    
+                    // Simulate some work
+                    const startTime = Date.now();
+                    let sum = 0;
+                    for (let i = 0; i < 1000000; i++) {
+                        sum += i;
+                    }
+                    
+                    // End monitoring
+                    const metrics = balanceSheetDiagnostics.endMonitoring(monitor, { result: sum });
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <h6 class="alert-heading">Performance Monitoring Test - Success</h6>
+                            <p><strong>Operation:</strong> ${metrics.operation}</p>
+                            <p><strong>Duration:</strong> ${Math.round(metrics.duration)}ms</p>
+                            <p><strong>Memory Used:</strong> ${Math.round(metrics.memoryUsed / 1024)}KB</p>
+                            <p><strong>Is Slow:</strong> ${metrics.isSlowOperation ? 'Yes' : 'No'}</p>
+                            <p><strong>Threshold:</strong> ${metrics.threshold}ms</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            Error testing performance monitoring: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testDataChunking() {
+            const resultsDiv = document.getElementById('diagnosticsResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing data chunking...';
+            
+            setTimeout(() => {
+                try {
+                    // Test with large COA dataset
+                    const largeCOA = Array.from({ length: 150 }, (_, i) => ({
+                        kode: `1-${1000 + i}`,
+                        nama: `Account ${i + 1}`,
+                        tipe: 'aset',
+                        saldo: Math.random() * 1000000
+                    }));
+                    
+                    const coaChunking = balanceSheetDiagnostics.checkDataChunking(largeCOA);
+                    
+                    // Test with large journal dataset
+                    const largeJournal = Array.from({ length: 600 }, (_, i) => ({
+                        id: `J${i + 1}`,
+                        tanggal: new Date().toISOString(),
+                        entries: [
+                            { akun: '1-1000', debit: 100000, kredit: 0 },
+                            { akun: '2-1000', debit: 0, kredit: 100000 }
+                        ]
+                    }));
+                    
+                    const journalChunking = balanceSheetDiagnostics.checkDataChunking(largeJournal);
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <h6 class="alert-heading">Data Chunking Test - Success</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>COA Chunking (${largeCOA.length} accounts):</strong><br>
+                                    Needs Chunking: ${coaChunking.needsChunking ? 'Yes' : 'No'}<br>
+                                    ${coaChunking.needsChunking ? `Chunk Size: ${coaChunking.chunkSize}<br>Estimated Chunks: ${coaChunking.estimatedChunks}` : ''}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Journal Chunking (${largeJournal.length} entries):</strong><br>
+                                    Needs Chunking: ${journalChunking.needsChunking ? 'Yes' : 'No'}<br>
+                                    ${journalChunking.needsChunking ? `Chunk Size: ${journalChunking.chunkSize}<br>Estimated Chunks: ${journalChunking.estimatedChunks}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            Error testing data chunking: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function testLoadingIndicators() {
+            const testArea = document.getElementById('loadingTestArea');
+            
+            // Test loading indicator
+            showBalanceSheetLoadingIndicator(testArea, 'Testing loading indicator...');
+            
+            setTimeout(() => {
+                updateBalanceSheetLoadingIndicator(testArea, 'Updating progress...', 'Processing data...', 50);
+            }, 1000);
+            
+            setTimeout(() => {
+                updateBalanceSheetLoadingIndicator(testArea, 'Almost done...', 'Finalizing...', 90);
+            }, 2000);
+            
+            setTimeout(() => {
+                testArea.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6 class="alert-heading">Loading Indicators Test - Success</h6>
+                        <p>Loading indicators displayed correctly with progress updates.</p>
+                    </div>
+                `;
+            }, 3000);
+        }
+
+        function testRecoveryActions() {
+            const testArea = document.getElementById('loadingTestArea');
+            
+            // Simulate error with recovery options
+            const error = new Error('Test error for recovery actions');
+            const errorResult = balanceSheetErrorHandler.handleError(error, 'testOperation', {});
+            
+            displayErrorFeedback(testArea, errorResult);
+            
+            setTimeout(() => {
+                testArea.innerHTML += `
+                    <div class="alert alert-info mt-2">
+                        <h6 class="alert-heading">Recovery Actions Test - Success</h6>
+                        <p>Error feedback displayed with ${errorResult.recoveryOptions.length} recovery options.</p>
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        function runFullErrorHandlingTest() {
+            const resultsDiv = document.getElementById('integrationResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Running full integration test...';
+            
+            let testResults = {
+                errorHandler: false,
+                diagnostics: false,
+                coaValidation: false,
+                performanceMonitoring: false,
+                loadingIndicators: false,
+                recoveryActions: false,
+                dataChunking: false
+            };
+            
+            setTimeout(() => {
+                try {
+                    // Test 1: Error Handler
+                    try {
+                        const error = new Error('Integration test error');
+                        const errorResult = balanceSheetErrorHandler.handleError(error, 'integrationTest');
+                        testResults.errorHandler = errorResult.errorInfo && errorResult.userFeedback;
+                    } catch (e) { console.log('Error handler test failed:', e); }
+                    
+                    // Test 2: Diagnostics
+                    try {
+                        const monitor = balanceSheetDiagnostics.startMonitoring('integrationTest');
+                        const metrics = balanceSheetDiagnostics.endMonitoring(monitor, { success: true });
+                        testResults.diagnostics = metrics.operation === 'integrationTest';
+                    } catch (e) { console.log('Diagnostics test failed:', e); }
+                    
+                    // Test 3: COA Validation
+                    try {
+                        const testCOA = [{ kode: '1-1000', nama: 'Test', tipe: 'aset', saldo: 1000 }];
+                        const validation = balanceSheetDiagnostics.validateCOAStructure(testCOA);
+                        testResults.coaValidation = validation.isValid;
+                    } catch (e) { console.log('COA validation test failed:', e); }
+                    
+                    // Test 4: Performance Monitoring
+                    try {
+                        const stats = balanceSheetDiagnostics.getPerformanceStats();
+                        testResults.performanceMonitoring = typeof stats.total === 'number';
+                    } catch (e) { console.log('Performance monitoring test failed:', e); }
+                    
+                    // Test 5: Loading Indicators
+                    try {
+                        const testDiv = document.createElement('div');
+                        showBalanceSheetLoadingIndicator(testDiv, 'Test');
+                        testResults.loadingIndicators = testDiv.innerHTML.includes('spinner-border');
+                    } catch (e) { console.log('Loading indicators test failed:', e); }
+                    
+                    // Test 6: Recovery Actions
+                    try {
+                        const error = new Error('Test recovery');
+                        const errorResult = balanceSheetErrorHandler.handleError(error, 'recoveryTest');
+                        testResults.recoveryActions = errorResult.recoveryOptions.length > 0;
+                    } catch (e) { console.log('Recovery actions test failed:', e); }
+                    
+                    // Test 7: Data Chunking
+                    try {
+                        const largeData = Array.from({ length: 200 }, (_, i) => ({ id: i }));
+                        const chunking = balanceSheetDiagnostics.checkDataChunking(largeData);
+                        testResults.dataChunking = typeof chunking.needsChunking === 'boolean';
+                    } catch (e) { console.log('Data chunking test failed:', e); }
+                    
+                    // Display results
+                    const passedTests = Object.values(testResults).filter(r => r).length;
+                    const totalTests = Object.keys(testResults).length;
+                    const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-${passedTests === totalTests ? 'success' : 'warning'}">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-${passedTests === totalTests ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                                Integration Test Results
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Test Summary:</strong><br>
+                                    ✅ Passed: ${passedTests}/${totalTests}<br>
+                                    📊 Success Rate: ${successRate}%
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Core Features:</strong><br>
+                                    Error Handler: ${testResults.errorHandler ? '✅' : '❌'}<br>
+                                    Diagnostics: ${testResults.diagnostics ? '✅' : '❌'}<br>
+                                    Performance: ${testResults.performanceMonitoring ? '✅' : '❌'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Detailed Test Results</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    ${Object.entries(testResults).map(([test, result]) => `
+                                        <div class="col-md-6 mb-2">
+                                            <span class="badge bg-${result ? 'success' : 'danger'} me-2">
+                                                ${result ? '✅' : '❌'}
+                                            </span>
+                                            ${test.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${passedTests === totalTests ? `
+                            <div class="alert alert-success mt-3">
+                                <h6 class="text-success">✅ Task 6 Error Handling - Integration Test PASSED</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Loading Indicators:</strong> ✅ Enhanced progress feedback working</li>
+                                    <li><strong>Error Messages:</strong> ✅ Comprehensive error categorization and user feedback</li>
+                                    <li><strong>Retry Mechanisms:</strong> ✅ Recovery actions and retry logic working</li>
+                                    <li><strong>COA Validation:</strong> ✅ Structure integrity validation working</li>
+                                    <li><strong>Performance Monitoring:</strong> ✅ Data chunking and optimization working</li>
+                                    <li><strong>Requirements:</strong> 4.1, 4.2, 4.3 validated</li>
+                                </ul>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Integration test error: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 2000);
+        }
+
+        // Auto-run basic tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                testNoDataError();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

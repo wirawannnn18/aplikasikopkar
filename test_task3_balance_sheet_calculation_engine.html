@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 3 - Balance Sheet Calculation Engine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>
+            <i class="bi bi-calculator me-2" style="color: #28a745;"></i>
+            Test Task 3 - Balance Sheet Calculation Engine
+        </h2>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Testing:</strong> Balance sheet calculation engine with COA and journal entry processing
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Setup Test Data</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary me-2" onclick="setupTestData()">
+                    <i class="bi bi-database me-1"></i>Setup Test COA & Journal
+                </button>
+                <button class="btn btn-secondary me-2" onclick="clearTestData()">
+                    <i class="bi bi-trash me-1"></i>Clear Data
+                </button>
+                <button class="btn btn-info" onclick="viewTestData()">
+                    <i class="bi bi-eye me-1"></i>View Test Data
+                </button>
+                <div id="dataStatus" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Test Balance Sheet Calculation</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Test Date:</label>
+                        <input type="date" class="form-control" id="testDate" value="2023-12-31">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success" onclick="testBalanceSheetCalculation()">
+                            <i class="bi bi-play-circle me-1"></i>Test Calculation
+                        </button>
+                    </div>
+                </div>
+                <div id="calculationResults" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Test Balance Sheet Functions</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-outline-primary me-2" onclick="testAccountBalanceCalculation()">
+                    <i class="bi bi-calculator me-1"></i>Test Account Balances
+                </button>
+                <button class="btn btn-outline-success me-2" onclick="testAccountCategorization()">
+                    <i class="bi bi-tags me-1"></i>Test Categorization
+                </button>
+                <button class="btn btn-outline-info me-2" onclick="testBalanceSheetEquation()">
+                    <i class="bi bi-check-square me-1"></i>Test Equation
+                </button>
+                <div id="functionTestResults" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Integration Test with Balance Sheet Report</h5>
+            </div>
+            <div class="card-body">
+                <p>Test the complete balance sheet generation flow:</p>
+                <button class="btn btn-primary" onclick="testFullBalanceSheetGeneration()">
+                    <i class="bi bi-file-earmark-bar-graph me-1"></i>Test Full Balance Sheet Generation
+                </button>
+                <div id="integrationTestResults" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/reports.js"></script>
+    <script>
+        function setupTestData() {
+            const statusDiv = document.getElementById('dataStatus');
+            statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Setting up test data...';
+            
+            setTimeout(() => {
+                try {
+                    // Setup comprehensive COA for balance sheet testing
+                    const testCOA = [
+                        // Current Assets
+                        { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 5000000 },
+                        { kode: '1-1100', nama: 'Bank BCA', tipe: 'Aset', saldo: 10000000 },
+                        { kode: '1-1200', nama: 'Piutang Anggota', tipe: 'Aset', saldo: 2000000 },
+                        
+                        // Fixed Assets
+                        { kode: '1-1300', nama: 'Persediaan Barang', tipe: 'Aset', saldo: 8000000 },
+                        { kode: '1-2000', nama: 'Peralatan Kantor', tipe: 'Aset', saldo: 3000000 },
+                        { kode: '1-2100', nama: 'Kendaraan', tipe: 'Aset', saldo: 15000000 },
+                        
+                        // Current Liabilities
+                        { kode: '2-1000', nama: 'Hutang Supplier', tipe: 'Kewajiban', saldo: 1500000 },
+                        { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 5000000 },
+                        { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'Kewajiban', saldo: 8000000 },
+                        { kode: '2-1300', nama: 'Simpanan Sukarela', tipe: 'Kewajiban', saldo: 3000000 },
+                        
+                        // Long-term Liabilities
+                        { kode: '2-2000', nama: 'Hutang Bank Jangka Panjang', tipe: 'Kewajiban', saldo: 5000000 },
+                        
+                        // Equity
+                        { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'Modal', saldo: 20000000 },
+                        { kode: '3-2000', nama: 'Laba Ditahan', tipe: 'Modal', saldo: 500000 }
+                    ];
+                    
+                    // Setup test journal entries
+                    const testJournal = [
+                        {
+                            id: 'J001',
+                            tanggal: '2023-01-15',
+                            keterangan: 'Penerimaan simpanan pokok anggota baru',
+                            entries: [
+                                { akun: '1-1000', debit: 1000000, kredit: 0 },
+                                { akun: '2-1100', debit: 0, kredit: 1000000 }
+                            ]
+                        },
+                        {
+                            id: 'J002',
+                            tanggal: '2023-06-30',
+                            keterangan: 'Pembelian peralatan kantor',
+                            entries: [
+                                { akun: '1-2000', debit: 2000000, kredit: 0 },
+                                { akun: '1-1100', debit: 0, kredit: 2000000 }
+                            ]
+                        },
+                        {
+                            id: 'J003',
+                            tanggal: '2023-12-31',
+                            keterangan: 'Pembagian SHU ke laba ditahan',
+                            entries: [
+                                { akun: '3-2000', debit: 0, kredit: 2000000 },
+                                { akun: '1-1000', debit: 2000000, kredit: 0 }
+                            ]
+                        },
+                        {
+                            id: 'J004',
+                            tanggal: '2024-01-05',
+                            keterangan: 'Transaksi tahun berikutnya (tidak boleh masuk laporan 2023)',
+                            entries: [
+                                { akun: '1-1000', debit: 500000, kredit: 0 },
+                                { akun: '2-1000', debit: 0, kredit: 500000 }
+                            ]
+                        }
+                    ];
+                    
+                    // Save to localStorage
+                    localStorage.setItem('coa', JSON.stringify(testCOA));
+                    localStorage.setItem('jurnal', JSON.stringify(testJournal));
+                    
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Test data berhasil disetup!</strong>
+                            <br>COA: ${testCOA.length} akun
+                            <br>Jurnal: ${testJournal.length} entri
+                        </div>
+                    `;
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('coa');
+            localStorage.removeItem('jurnal');
+            
+            document.getElementById('dataStatus').innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Test data cleared from localStorage
+                </div>
+            `;
+        }
+        
+        function viewTestData() {
+            const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            
+            document.getElementById('dataStatus').innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Current Data:</strong>
+                    <br>COA: ${coa.length} accounts
+                    <br>Journal: ${jurnal.length} entries
+                    <br><small>Use browser console to inspect full data</small>
+                </div>
+            `;
+            
+            console.log('COA Data:', coa);
+            console.log('Journal Data:', jurnal);
+        }
+        
+        function testBalanceSheetCalculation() {
+            const resultsDiv = document.getElementById('calculationResults');
+            const testDate = new Date(document.getElementById('testDate').value);
+            
+            resultsDiv.innerHTML = '<div class="spinner-border text-primary" role="status"></div> Calculating balance sheet...';
+            
+            setTimeout(() => {
+                try {
+                    const balanceSheetData = calculateBalanceSheet(testDate);
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="bi bi-check-circle me-2"></i>Balance Sheet Calculation Results</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Assets:</strong>
+                                    <ul class="mb-2">
+                                        <li>Current Assets: ${formatRupiah(balanceSheetData.assets.totalCurrentAssets)}</li>
+                                        <li>Fixed Assets: ${formatRupiah(balanceSheetData.assets.totalFixedAssets)}</li>
+                                        <li><strong>Total Assets: ${formatRupiah(balanceSheetData.assets.totalAssets)}</strong></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Liabilities & Equity:</strong>
+                                    <ul class="mb-2">
+                                        <li>Total Liabilities: ${formatRupiah(balanceSheetData.liabilities.totalLiabilities)}</li>
+                                        <li>Total Equity: ${formatRupiah(balanceSheetData.equity.totalEquityAndRetainedEarnings)}</li>
+                                        <li><strong>Total L&E: ${formatRupiah(balanceSheetData.totals.totalLiabilitiesAndEquity)}</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <strong>Balance Sheet Equation:</strong> 
+                                ${balanceSheetData.totals.balanceSheetBalanced ? 
+                                    '<span class="text-success">✅ BALANCED</span>' : 
+                                    '<span class="text-danger">❌ NOT BALANCED</span>'
+                                }
+                                ${!balanceSheetData.totals.balanceSheetBalanced ? 
+                                    `<br><small>Difference: ${formatRupiah(Math.abs(balanceSheetData.totals.balanceDifference))}</small>` : 
+                                    ''
+                                }
+                            </div>
+                        </div>
+                    `;
+                    
+                    console.log('Balance Sheet Data:', balanceSheetData);
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Calculation Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+        
+        function testAccountBalanceCalculation() {
+            const resultsDiv = document.getElementById('functionTestResults');
+            
+            try {
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const testDate = new Date('2023-12-31');
+                
+                // Filter journal entries
+                const relevantEntries = jurnal.filter(j => {
+                    const entryDate = new Date(j.tanggal);
+                    return entryDate <= testDate;
+                });
+                
+                // Calculate balances
+                const accountBalances = calculateAccountBalances(coa, relevantEntries);
+                
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-calculator me-2"></i>Account Balance Calculation Test</h6>
+                        <p><strong>✅ Test Passed:</strong> Calculated balances for ${accountBalances.length} accounts</p>
+                        <p><strong>Journal Entries Processed:</strong> ${relevantEntries.length} entries</p>
+                        <small>Check console for detailed account balances</small>
+                    </div>
+                `;
+                
+                console.log('Account Balances:', accountBalances);
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>❌ Test Failed:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testAccountCategorization() {
+            const resultsDiv = document.getElementById('functionTestResults');
+            
+            try {
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const testDate = new Date('2023-12-31');
+                
+                const relevantEntries = jurnal.filter(j => new Date(j.tanggal) <= testDate);
+                const accountBalances = calculateAccountBalances(coa, relevantEntries);
+                const categorized = categorizeAccountsForBalanceSheet(accountBalances);
+                
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-tags me-2"></i>Account Categorization Test</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="mb-0">
+                                    <li>Current Assets: ${categorized.currentAssets.length}</li>
+                                    <li>Fixed Assets: ${categorized.fixedAssets.length}</li>
+                                    <li>Current Liabilities: ${categorized.currentLiabilities.length}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="mb-0">
+                                    <li>Long-term Liabilities: ${categorized.longTermLiabilities.length}</li>
+                                    <li>Equity: ${categorized.equity.length}</li>
+                                    <li>Retained Earnings: ${categorized.retainedEarnings.length}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-0"><strong>✅ Test Passed:</strong> Accounts categorized successfully</p>
+                    </div>
+                `;
+                
+                console.log('Categorized Accounts:', categorized);
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>❌ Test Failed:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testBalanceSheetEquation() {
+            const resultsDiv = document.getElementById('functionTestResults');
+            
+            try {
+                const testDate = new Date('2023-12-31');
+                const balanceSheetData = calculateBalanceSheet(testDate);
+                
+                const assets = balanceSheetData.totals.totalAssets;
+                const liabilitiesAndEquity = balanceSheetData.totals.totalLiabilitiesAndEquity;
+                const balanced = balanceSheetData.totals.balanceSheetBalanced;
+                const difference = balanceSheetData.totals.balanceDifference;
+                
+                resultsDiv.innerHTML = `
+                    <div class="alert ${balanced ? 'alert-success' : 'alert-warning'}">
+                        <h6><i class="bi bi-check-square me-2"></i>Balance Sheet Equation Test</h6>
+                        <p><strong>Assets:</strong> ${formatRupiah(assets)}</p>
+                        <p><strong>Liabilities + Equity:</strong> ${formatRupiah(liabilitiesAndEquity)}</p>
+                        <p><strong>Difference:</strong> ${formatRupiah(Math.abs(difference))}</p>
+                        <p class="mb-0">
+                            <strong>${balanced ? '✅ Test Passed' : '⚠️ Test Warning'}:</strong> 
+                            Balance sheet equation ${balanced ? 'is balanced' : 'has difference'}
+                        </p>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>❌ Test Failed:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testFullBalanceSheetGeneration() {
+            const resultsDiv = document.getElementById('integrationTestResults');
+            
+            resultsDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Integration Test:</strong> Testing full balance sheet generation flow...
+                    <br><br>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="openBalanceSheetReport()">
+                            <i class="bi bi-file-earmark-bar-graph me-1"></i>
+                            Open Balance Sheet Report (New Tab)
+                        </button>
+                    </div>
+                    <br>
+                    <small class="text-muted">
+                        This will open the main balance sheet report interface where you can test:
+                        <ul class="mt-2 mb-0">
+                            <li>Period selection (daily, monthly, yearly)</li>
+                            <li>Data validation and availability checking</li>
+                            <li>Balance sheet calculation with real data</li>
+                            <li>Professional report formatting</li>
+                        </ul>
+                    </small>
+                </div>
+            `;
+        }
+        
+        function openBalanceSheetReport() {
+            // Open the main application and navigate to balance sheet
+            const newWindow = window.open('index.html', '_blank');
+            
+            // Show instructions
+            document.getElementById('integrationTestResults').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Integration Test Started:</strong>
+                    <br><br>
+                    <strong>Instructions:</strong>
+                    <ol>
+                        <li>In the new tab, navigate to "Laporan" menu</li>
+                        <li>Click "Neraca (Balance Sheet)" button</li>
+                        <li>Select a period (daily, monthly, or yearly)</li>
+                        <li>Click "Generate Laporan Neraca"</li>
+                        <li>Verify the calculated balance sheet appears</li>
+                    </ol>
+                    <br>
+                    <strong>Expected Results:</strong>
+                    <ul>
+                        <li>✅ Period validation works correctly</li>
+                        <li>✅ Balance sheet calculation completes</li>
+                        <li>✅ Assets = Liabilities + Equity equation is balanced</li>
+                        <li>✅ Professional formatting is displayed</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Initialize test environment
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Task 3 Balance Sheet Calculation Engine Test Environment Ready');
+            
+            // Check if test data exists
+            const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+            
+            if (coa.length === 0) {
+                document.getElementById('dataStatus').innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        No test data found. Click "Setup Test COA & Journal" to create test data.
+                    </div>
+                `;
+            } else {
+                document.getElementById('dataStatus').innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Existing data found: ${coa.length} COA accounts, ${jurnal.length} journal entries
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 1 Balance Sheet Infrastructure Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Task 1: Balance Sheet Infrastructure Verification</h2>
+        <p class="text-muted">Testing balance sheet report infrastructure setup</p>
+        
+        <div id="testResults"></div>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+            <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <!-- Test Area -->
+        <div id="mainContent" style="display: none;"></div>
+        <div id="laporanContent" style="display: none;"></div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        let testResults = [];
+        
+        function addTestResult(testName, passed, details) {
+            const result = {
+                name: testName,
+                passed: passed,
+                details: details,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            testResults.push(result);
+            displayResults();
+        }
+        
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = testResults.map(result => `
+                <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                    <strong>${result.passed ? '✓' : '✗'} ${result.name}</strong>
+                    <div><small>${result.details}</small></div>
+                    <div><small class="text-muted">${result.timestamp}</small></div>
+                </div>
+            `).join('');
+        }
+        
+        function clearResults() {
+            testResults = [];
+            displayResults();
+        }
+        
+        function runAllTests() {
+            clearResults();
+            
+            // Test 1: Check if renderLaporan function exists
+            addTestResult(
+                'renderLaporan Function Exists',
+                typeof renderLaporan === 'function',
+                typeof renderLaporan === 'function' ? 'Function is available' : 'Function not found'
+            );
+            
+            // Test 2: Check if laporanNeraca function exists
+            addTestResult(
+                'laporanNeraca Function Exists',
+                typeof laporanNeraca === 'function',
+                typeof laporanNeraca === 'function' ? 'Function is available' : 'Function not found'
+            );
+            
+            // Test 3: Test renderLaporan creates balance sheet button
+            if (typeof renderLaporan === 'function') {
+                renderLaporan();
+                const mainContent = document.getElementById('mainContent');
+                const hasNeracaButton = mainContent.innerHTML.includes('laporanNeraca()');
+                const hasNeracaText = mainContent.innerHTML.includes('Neraca') || mainContent.innerHTML.includes('Balance Sheet');
+                
+                addTestResult(
+                    'Balance Sheet Button Integration',
+                    hasNeracaButton && hasNeracaText,
+                    hasNeracaButton && hasNeracaText ? 
+                        'Balance sheet button properly integrated in reports menu' : 
+                        'Balance sheet button missing or incorrectly integrated'
+                );
+            }
+            
+            // Test 4: Test laporanNeraca function execution
+            if (typeof laporanNeraca === 'function') {
+                try {
+                    laporanNeraca();
+                    const laporanContent = document.getElementById('laporanContent');
+                    const hasContent = laporanContent.innerHTML.length > 0;
+                    const hasTitle = laporanContent.innerHTML.includes('Laporan Neraca') || 
+                                   laporanContent.innerHTML.includes('Balance Sheet');
+                    const hasPeriodSelection = laporanContent.innerHTML.includes('Pilih Periode') ||
+                                             laporanContent.innerHTML.includes('Period');
+                    
+                    addTestResult(
+                        'Balance Sheet Function Execution',
+                        hasContent && hasTitle && hasPeriodSelection,
+                        `Content: ${hasContent}, Title: ${hasTitle}, Period Selection: ${hasPeriodSelection}`
+                    );
+                } catch (error) {
+                    addTestResult(
+                        'Balance Sheet Function Execution',
+                        false,
+                        `Error executing laporanNeraca(): ${error.message}`
+                    );
+                }
+            }
+            
+            // Test 5: Check period selection UI components
+            if (typeof laporanNeraca === 'function') {
+                try {
+                    laporanNeraca();
+                    const laporanContent = document.getElementById('laporanContent');
+                    
+                    const hasDailyOption = laporanContent.innerHTML.includes('Harian') || 
+                                         laporanContent.innerHTML.includes('daily');
+                    const hasMonthlyOption = laporanContent.innerHTML.includes('Bulanan') || 
+                                           laporanContent.innerHTML.includes('monthly');
+                    const hasYearlyOption = laporanContent.innerHTML.includes('Tahunan') || 
+                                          laporanContent.innerHTML.includes('yearly');
+                    
+                    addTestResult(
+                        'Period Selection Options',
+                        hasDailyOption && hasMonthlyOption && hasYearlyOption,
+                        `Daily: ${hasDailyOption}, Monthly: ${hasMonthlyOption}, Yearly: ${hasYearlyOption}`
+                    );
+                } catch (error) {
+                    addTestResult(
+                        'Period Selection Options',
+                        false,
+                        `Error checking period options: ${error.message}`
+                    );
+                }
+            }
+            
+            // Test 6: Check for generate button
+            if (typeof laporanNeraca === 'function') {
+                try {
+                    laporanNeraca();
+                    const laporanContent = document.getElementById('laporanContent');
+                    
+                    const hasGenerateButton = laporanContent.innerHTML.includes('generateBalanceSheet') ||
+                                            laporanContent.innerHTML.includes('Generate Laporan');
+                    
+                    addTestResult(
+                        'Generate Button Present',
+                        hasGenerateButton,
+                        hasGenerateButton ? 'Generate button found' : 'Generate button missing'
+                    );
+                } catch (error) {
+                    addTestResult(
+                        'Generate Button Present',
+                        false,
+                        `Error checking generate button: ${error.message}`
+                    );
+                }
+            }
+            
+            // Test 7: Check if generateBalanceSheet function exists
+            addTestResult(
+                'generateBalanceSheet Function Exists',
+                typeof generateBalanceSheet === 'function',
+                typeof generateBalanceSheet === 'function' ? 'Function is available' : 'Function not found'
+            );
+            
+            // Test 8: Check helper functions
+            const helperFunctions = [
+                'generateYearOptions',
+                'setupPeriodSelectionListeners'
+            ];
+            
+            helperFunctions.forEach(funcName => {
+                addTestResult(
+                    `${funcName} Function Exists`,
+                    typeof window[funcName] === 'function',
+                    typeof window[funcName] === 'function' ? 'Function is available' : 'Function not found'
+                );
+            });
+            
+            // Summary
+            const passedTests = testResults.filter(r => r.passed).length;
+            const totalTests = testResults.length;
+            
+            addTestResult(
+                'SUMMARY',
+                passedTests === totalTests,
+                `${passedTests}/${totalTests} tests passed. ${passedTests === totalTests ? 'All infrastructure components ready!' : 'Some components need attention.'}`
+            );
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

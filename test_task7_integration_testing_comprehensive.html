@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 7 - Integration Testing and Validation - Comprehensive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section { margin-bottom: 2rem; }
+        .test-result { margin-bottom: 0.5rem; }
+        .mobile-test { max-width: 375px; margin: 0 auto; }
+        .tablet-test { max-width: 768px; margin: 0 auto; }
+        .desktop-test { max-width: 1200px; margin: 0 auto; }
+        .performance-metric { 
+            display: inline-block; 
+            padding: 0.25rem 0.5rem; 
+            margin: 0.25rem; 
+            background: #f8f9fa; 
+            border-radius: 0.25rem; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-gear-wide-connected me-2"></i>
+                            Task 7 - Integration Testing and Validation (Comprehensive)
+                        </h4>
+                        <small>Testing integration with existing reports module, COA compatibility, cross-browser functionality, and responsive design</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="list-group" id="testSections">
+                                    <button class="list-group-item list-group-item-action active" onclick="showSection('overview')">
+                                        <i class="bi bi-speedometer2 me-2"></i>Test Overview
+                                    </button>
+                                    <button class="list-group-item list-group-item-action" onclick="showSection('reports-integration')">
+                                        <i class="bi bi-file-earmark-bar-graph me-2"></i>Reports Integration
+                                    </button>
+                                    <button class="list-group-item list-group-item-action" onclick="showSection('coa-compatibility')">
+                                        <i class="bi bi-diagram-3 me-2"></i>COA Compatibility
+                                    </button>
+                                    <button class="list-group-item list-group-item-action" onclick="showSection('cross-browser')">
+                                        <i class="bi bi-browser-chrome me-2"></i>Cross-Browser
+                                    </button>
+                                    <button class="list-group-item list-group-item-action" onclick="showSection('responsive-design')">
+                                        <i class="bi bi-phone me-2"></i>Responsive Design
+                                    </button>
+                                    <button class="list-group-item list-group-item-action" onclick="showSection('requirements-validation')">
+                                        <i class="bi bi-check-circle me-2"></i>Requirements
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div id="testContent">
+                                    <!-- Content will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        // Global test state
+        let testResults = {
+            reportsIntegration: [],
+            coaCompatibility: [],
+            crossBrowser: [],
+            responsiveDesign: [],
+            requirementsValidation: []
+        };
+
+        // Mock functions for testing
+        function showAlert(message, type) {
+            console.log(`Alert (${type}): ${message}`);
+        }
+
+        function formatRupiah(amount) {
+            if (typeof amount !== 'number' || isNaN(amount)) return 'Rp 0';
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Test data setup
+        function setupIntegrationTestData() {
+            localStorage.clear();
+            
+            const testCOA = [
+                // Assets
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 15000000 },
+                { kode: '1-1100', nama: 'Bank BCA', tipe: 'Aset', saldo: 25000000 },
+                { kode: '1-1200', nama: 'Piutang Anggota', tipe: 'Aset', saldo: 8000000 },
+                { kode: '1-1300', nama: 'Persediaan Barang', tipe: 'Aset', saldo: 12000000 },
+                { kode: '1-2000', nama: 'Peralatan Kantor', tipe: 'Aset', saldo: 5000000 },
+                { kode: '1-2100', nama: 'Kendaraan', tipe: 'Aset', saldo: 15000000 },
+                
+                // Liabilities
+                { kode: '2-1000', nama: 'Hutang Supplier', tipe: 'Kewajiban', saldo: 7000000 },
+                { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 20000000 },
+                { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'Kewajiban', saldo: 15000000 },
+                { kode: '2-1300', nama: 'Simpanan Sukarela', tipe: 'Kewajiban', saldo: 10000000 },
+                { kode: '2-2000', nama: 'Hutang Bank', tipe: 'Kewajiban', saldo: 12000000 },
+                
+                // Equity
+                { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'Modal', saldo: 18000000 },
+                { kode: '3-2000', nama: 'Laba Ditahan', tipe: 'Modal', saldo: 8000000 }
+            ];
+
+            const testJournal = [
+                {
+                    id: 'J001',
+                    tanggal: '2023-01-15',
+                    keterangan: 'Penerimaan Modal Awal',
+                    entries: [
+                        { akun: '1-1000', debit: 10000000, kredit: 0 },
+                        { akun: '3-1000', debit: 0, kredit: 10000000 }
+                    ]
+                },
+                {
+                    id: 'J002',
+                    tanggal: '2023-06-30',
+                    keterangan: 'Pembelian Peralatan',
+                    entries: [
+                        { akun: '1-2000', debit: 3000000, kredit: 0 },
+                        { akun: '1-1000', debit: 0, kredit: 3000000 }
+                    ]
+                },
+                {
+                    id: 'J003',
+                    tanggal: '2023-12-31',
+                    keterangan: 'Penyesuaian Akhir Tahun',
+                    entries: [
+                        { akun: '3-2000', debit: 2000000, kredit: 0 },
+                        { akun: '1-1100', debit: 0, kredit: 2000000 }
+                    ]
+                }
+            ];
+
+            const koperasiData = {
+                nama: 'Koperasi Integration Test',
+                alamat: 'Jl. Integration Test No. 123',
+                modalAwal: 50000000
+            };
+
+            localStorage.setItem('coa', JSON.stringify(testCOA));
+            localStorage.setItem('jurnal', JSON.stringify(testJournal));
+            localStorage.setItem('koperasi', JSON.stringify(koperasiData));
+            
+            return { coa: testCOA, jurnal: testJournal, koperasi: koperasiData };
+        }
+        // Section management
+        function showSection(sectionName) {
+            // Update active button
+            document.querySelectorAll('#testSections .list-group-item').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            const content = document.getElementById('testContent');
+            
+            switch(sectionName) {
+                case 'overview':
+                    showOverviewSection(content);
+                    break;
+                case 'reports-integration':
+                    showReportsIntegrationSection(content);
+                    break;
+                case 'coa-compatibility':
+                    showCOACompatibilitySection(content);
+                    break;
+                case 'cross-browser':
+                    showCrossBrowserSection(content);
+                    break;
+                case 'responsive-design':
+                    showResponsiveDesignSection(content);
+                    break;
+                case 'requirements-validation':
+                    showRequirementsValidationSection(content);
+                    break;
+            }
+        }
+
+        function showOverviewSection(container) {
+            container.innerHTML = `
+                <div class="test-section">
+                    <h5><i class="bi bi-speedometer2 me-2"></i>Integration Test Overview</h5>
+                    <div class="alert alert-info">
+                        <strong>Task 7 Requirements:</strong> Test integration with existing reports module, validate compatibility with current COA structure, test cross-browser functionality for date components, and verify responsive design on mobile devices.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Test Categories</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Reports Module Integration</li>
+                                        <li><i class="bi bi-diagram-3 text-success me-2"></i>COA Structure Compatibility</li>
+                                        <li><i class="bi bi-browser-chrome text-warning me-2"></i>Cross-Browser Functionality</li>
+                                        <li><i class="bi bi-phone text-info me-2"></i>Responsive Design Testing</li>
+                                        <li><i class="bi bi-check-circle text-danger me-2"></i>Requirements Validation</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Test Status</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="overallTestStatus">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Initializing...</span>
+                                            </div>
+                                            <p class="mt-2">Click "Run All Tests" to begin comprehensive testing</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-primary btn-lg" onclick="runAllIntegrationTests()">
+                            <i class="bi bi-play-circle me-2"></i>Run All Integration Tests
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="runQuickValidation()">
+                            <i class="bi bi-lightning me-2"></i>Quick Validation
+                        </button>
+                        <button class="btn btn-info ms-2" onclick="setupIntegrationTestData()">
+                            <i class="bi bi-database me-2"></i>Setup Test Data
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showReportsIntegrationSection(container) {
+            container.innerHTML = `
+                <div class="test-section">
+                    <h5><i class="bi bi-file-earmark-bar-graph me-2"></i>Reports Module Integration Tests</h5>
+                    <div class="alert alert-info">
+                        <strong>Testing:</strong> Integration with existing reports module, menu integration, function compatibility, and workflow integration.
+                    </div>
+                    
+                    <div id="reportsIntegrationResults">
+                        <div class="text-center">
+                            <p class="text-muted">Click "Run Reports Integration Tests" to begin testing</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="runReportsIntegrationTests()">
+                            <i class="bi bi-play-circle me-1"></i>Run Reports Integration Tests
+                        </button>
+                        <button class="btn btn-secondary ms-2" onclick="testMenuIntegration()">
+                            <i class="bi bi-list me-1"></i>Test Menu Integration
+                        </button>
+                        <button class="btn btn-info ms-2" onclick="testFunctionCompatibility()">
+                            <i class="bi bi-gear me-1"></i>Test Function Compatibility
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="testWorkflowIntegration()">
+                            <i class="bi bi-arrow-right-circle me-1"></i>Test Workflow Integration
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        function showCOACompatibilitySection(container) {
+            container.innerHTML = `
+                <div class="test-section">
+                    <h5><i class="bi bi-diagram-3 me-2"></i>COA Compatibility Tests</h5>
+                    <div class="alert alert-info">
+                        <strong>Testing:</strong> Compatibility with existing COA structure, account categorization, balance calculations, and data integrity.
+                    </div>
+                    
+                    <div id="coaCompatibilityResults">
+                        <div class="text-center">
+                            <p class="text-muted">Click "Run COA Compatibility Tests" to begin testing</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-success" onclick="runCOACompatibilityTests()">
+                            <i class="bi bi-play-circle me-1"></i>Run COA Compatibility Tests
+                        </button>
+                        <button class="btn btn-secondary ms-2" onclick="testAccountCategorization()">
+                            <i class="bi bi-tags me-1"></i>Test Account Categorization
+                        </button>
+                        <button class="btn btn-info ms-2" onclick="testBalanceCalculations()">
+                            <i class="bi bi-calculator me-1"></i>Test Balance Calculations
+                        </button>
+                        <button class="btn btn-warning ms-2" onclick="testDataIntegrity()">
+                            <i class="bi bi-shield-check me-1"></i>Test Data Integrity
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showCrossBrowserSection(container) {
+            container.innerHTML = `
+                <div class="test-section">
+                    <h5><i class="bi bi-browser-chrome me-2"></i>Cross-Browser Functionality Tests</h5>
+                    <div class="alert alert-info">
+                        <strong>Testing:</strong> Date picker compatibility, export functions, JavaScript compatibility, and browser-specific features.
+                    </div>
+                    
+                    <div id="crossBrowserResults">
+                        <div class="text-center">
+                            <p class="text-muted">Click "Run Cross-Browser Tests" to begin testing</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-warning" onclick="runCrossBrowserTests()">
+                            <i class="bi bi-play-circle me-1"></i>Run Cross-Browser Tests
+                        </button>
+                        <button class="btn btn-secondary ms-2" onclick="testDatePickerCompatibility()">
+                            <i class="bi bi-calendar me-1"></i>Test Date Pickers
+                        </button>
+                        <button class="btn btn-info ms-2" onclick="testExportCompatibility()">
+                            <i class="bi bi-download me-1"></i>Test Export Functions
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="testJavaScriptCompatibility()">
+                            <i class="bi bi-code-slash me-1"></i>Test JavaScript Features
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showResponsiveDesignSection(container) {
+            container.innerHTML = `
+                <div class="test-section">
+                    <h5><i class="bi bi-phone me-2"></i>Responsive Design Tests</h5>
+                    <div class="alert alert-info">
+                        <strong>Testing:</strong> Mobile responsiveness, tablet compatibility, layout adaptation, and touch interface functionality.
+                    </div>
+                    
+                    <div id="responsiveDesignResults">
+                        <div class="text-center">
+                            <p class="text-muted">Click "Run Responsive Design Tests" to begin testing</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-info" onclick="runResponsiveDesignTests()">
+                            <i class="bi bi-play-circle me-1"></i>Run Responsive Design Tests
+                        </button>
+                        <button class="btn btn-secondary ms-2" onclick="testMobileLayout()">
+                            <i class="bi bi-phone me-1"></i>Test Mobile Layout
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="testTabletLayout()">
+                            <i class="bi bi-tablet me-1"></i>Test Tablet Layout
+                        </button>
+                        <button class="btn btn-warning ms-2" onclick="testTouchInterface()">
+                            <i class="bi bi-hand-index me-1"></i>Test Touch Interface
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showRequirementsValidationSection(container) {
+            container.innerHTML = `
+                <div class="test-section">
+                    <h5><i class="bi bi-check-circle me-2"></i>Requirements Validation Tests</h5>
+                    <div class="alert alert-info">
+                        <strong>Testing:</strong> Validation of all requirements (1.1-4.5), acceptance criteria compliance, and feature completeness.
+                    </div>
+                    
+                    <div id="requirementsValidationResults">
+                        <div class="text-center">
+                            <p class="text-muted">Click "Run Requirements Validation" to begin testing</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-danger" onclick="runRequirementsValidation()">
+                            <i class="bi bi-play-circle me-1"></i>Run Requirements Validation
+                        </button>
+                        <button class="btn btn-secondary ms-2" onclick="validateRequirement1()">
+                            <i class="bi bi-1-circle me-1"></i>Validate Requirement 1
+                        </button>
+                        <button class="btn btn-info ms-2" onclick="validateRequirement2()">
+                            <i class="bi bi-2-circle me-1"></i>Validate Requirement 2
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="validateRequirement3()">
+                            <i class="bi bi-3-circle me-1"></i>Validate Requirement 3
+                        </button>
+                        <button class="btn btn-warning ms-2" onclick="validateRequirement4()">
+                            <i class="bi bi-4-circle me-1"></i>Validate Requirement 4
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        // Main test functions
+        function runAllIntegrationTests() {
+            const statusDiv = document.getElementById('overallTestStatus');
+            
+            statusDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Running comprehensive integration tests...</span>
+                    </div>
+                    <p class="mt-2">Running comprehensive integration tests...</p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" id="overallProgress"></div>
+                    </div>
+                </div>
+            `;
+
+            let currentTest = 0;
+            const totalTests = 5;
+            const allResults = [];
+
+            const updateOverallProgress = (test, message) => {
+                currentTest = test;
+                const percentage = (currentTest / totalTests) * 100;
+                const progressBar = document.getElementById('overallProgress');
+                if (progressBar) {
+                    progressBar.style.width = `${percentage}%`;
+                }
+                
+                const messageElement = statusDiv.querySelector('p');
+                if (messageElement) {
+                    messageElement.textContent = message;
+                }
+            };
+
+            const runTestSequence = async () => {
+                try {
+                    // Setup test data
+                    setupIntegrationTestData();
+                    
+                    // Test 1: Reports Integration
+                    updateOverallProgress(1, 'Testing reports module integration...');
+                    await new Promise(resolve => {
+                        setTimeout(() => {
+                            const results = performReportsIntegrationTests();
+                            allResults.push({ category: 'Reports Integration', results });
+                            resolve();
+                        }, 1000);
+                    });
+
+                    // Test 2: COA Compatibility
+                    updateOverallProgress(2, 'Testing COA compatibility...');
+                    await new Promise(resolve => {
+                        setTimeout(() => {
+                            const results = performCOACompatibilityTests();
+                            allResults.push({ category: 'COA Compatibility', results });
+                            resolve();
+                        }, 1000);
+                    });
+
+                    // Test 3: Cross-Browser
+                    updateOverallProgress(3, 'Testing cross-browser functionality...');
+                    await new Promise(resolve => {
+                        setTimeout(() => {
+                            const results = performCrossBrowserTests();
+                            allResults.push({ category: 'Cross-Browser', results });
+                            resolve();
+                        }, 1000);
+                    });
+
+                    // Test 4: Responsive Design
+                    updateOverallProgress(4, 'Testing responsive design...');
+                    await new Promise(resolve => {
+                        setTimeout(() => {
+                            const results = performResponsiveDesignTests();
+                            allResults.push({ category: 'Responsive Design', results });
+                            resolve();
+                        }, 1000);
+                    });
+
+                    // Test 5: Requirements Validation
+                    updateOverallProgress(5, 'Validating requirements...');
+                    await new Promise(resolve => {
+                        setTimeout(() => {
+                            const results = performRequirementsValidation();
+                            allResults.push({ category: 'Requirements Validation', results });
+                            resolve();
+                        }, 1000);
+                    });
+
+                    // Display final results
+                    displayOverallResults(allResults);
+
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>Integration Test Error</h6>
+                            <p>Error during comprehensive testing: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            };
+
+            runTestSequence();
+        }
+
+        function displayOverallResults(allResults) {
+            const statusDiv = document.getElementById('overallTestStatus');
+            
+            let totalTests = 0;
+            let passedTests = 0;
+            
+            allResults.forEach(category => {
+                category.results.forEach(result => {
+                    totalTests++;
+                    if (result.passed) passedTests++;
+                });
+            });
+            
+            const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+            const overallStatus = passedTests === totalTests ? 'success' : 
+                                passedTests >= totalTests * 0.8 ? 'warning' : 'danger';
+            
+            statusDiv.innerHTML = `
+                <div class="alert alert-${overallStatus}">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-${overallStatus === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                        Task 7 Integration Test Results
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Overall Results:</strong><br>
+                            ✅ Passed: ${passedTests}<br>
+                            ❌ Failed: ${totalTests - passedTests}<br>
+                            📊 Success Rate: ${successRate}%
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Integration Status:</strong><br>
+                            ${overallStatus === 'success' ? 
+                                '🟢 Fully Integrated' : 
+                                overallStatus === 'warning' ? 
+                                '🟡 Mostly Integrated' : 
+                                '🔴 Integration Issues'
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion" id="resultsAccordion">
+                    ${allResults.map((category, index) => {
+                        const categoryPassed = category.results.filter(r => r.passed).length;
+                        const categoryTotal = category.results.length;
+                        const categoryRate = ((categoryPassed / categoryTotal) * 100).toFixed(1);
+                        
+                        return `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading${index}">
+                                    <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                                        ${category.category} 
+                                        <span class="badge bg-${categoryPassed === categoryTotal ? 'success' : 'warning'} ms-2">
+                                            ${categoryPassed}/${categoryTotal} (${categoryRate}%)
+                                        </span>
+                                    </button>
+                                </h2>
+                                <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" 
+                                     data-bs-parent="#resultsAccordion">
+                                    <div class="accordion-body">
+                                        <div class="list-group">
+                                            ${category.results.map(result => `
+                                                <div class="list-group-item">
+                                                    <div class="d-flex w-100 justify-content-between">
+                                                        <h6 class="mb-1">${result.test}</h6>
+                                                        <span class="badge bg-${result.passed ? 'success' : 'danger'}">
+                                                            ${result.passed ? '✅ Pass' : '❌ Fail'}
+                                                        </span>
+                                                    </div>
+                                                    <small class="text-muted">${result.details}</small>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        // Individual test implementations
+        function performReportsIntegrationTests() {
+            const results = [];
+            
+            try {
+                // Test 1: Balance sheet function exists
+                const hasLaporanNeraca = typeof laporanNeraca === 'function';
+                results.push({
+                    test: 'Balance Sheet Function Available',
+                    passed: hasLaporanNeraca,
+                    details: hasLaporanNeraca ? 'laporanNeraca() function found' : 'laporanNeraca() function not found'
+                });
+
+                // Test 2: Reports menu integration
+                const tempDiv = document.createElement('div');
+                tempDiv.id = 'mainContent';
+                document.body.appendChild(tempDiv);
+                
+                let menuIntegrated = false;
+                if (typeof renderLaporan === 'function') {
+                    renderLaporan();
+                    const menuHTML = tempDiv.innerHTML;
+                    menuIntegrated = menuHTML.includes('laporanNeraca()') && menuHTML.includes('Neraca');
+                }
+                
+                results.push({
+                    test: 'Reports Menu Integration',
+                    passed: menuIntegrated,
+                    details: menuIntegrated ? 'Balance sheet integrated in reports menu' : 'Menu integration failed'
+                });
+                
+                document.body.removeChild(tempDiv);
+
+                // Test 3: Period selection functionality
+                const hasPeriodValidation = typeof validatePeriodSelection === 'function';
+                results.push({
+                    test: 'Period Selection Functions',
+                    passed: hasPeriodValidation,
+                    details: hasPeriodValidation ? 'Period validation available' : 'Period validation missing'
+                });
+
+                // Test 4: Balance sheet calculation
+                const hasCalculation = typeof calculateBalanceSheet === 'function';
+                results.push({
+                    test: 'Balance Sheet Calculation',
+                    passed: hasCalculation,
+                    details: hasCalculation ? 'Calculation function available' : 'Calculation function missing'
+                });
+
+                // Test 5: Export functionality
+                const hasExportFunctions = typeof generatePDFContent === 'function' || 
+                                         typeof generateExcelData === 'function';
+                results.push({
+                    test: 'Export Functions Integration',
+                    passed: hasExportFunctions,
+                    details: hasExportFunctions ? 'Export functions integrated' : 'Export functions missing'
+                });
+
+            } catch (error) {
+                results.push({
+                    test: 'Reports Integration Error',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+            
+            return results;
+        }
+
+        function performCOACompatibilityTests() {
+            const results = [];
+            
+            try {
+                // Test 1: COA structure validation
+                const coa = JSON.parse(localStorage.getItem('coa') || '[]');
+                const hasValidCOA = coa.length > 0 && coa.every(account => 
+                    account.kode && account.nama && account.tipe
+                );
+                
+                results.push({
+                    test: 'COA Structure Validation',
+                    passed: hasValidCOA,
+                    details: hasValidCOA ? `Valid COA with ${coa.length} accounts` : 'Invalid COA structure'
+                });
+
+                // Test 2: Account categorization
+                const assetAccounts = coa.filter(acc => acc.tipe === 'Aset');
+                const liabilityAccounts = coa.filter(acc => acc.tipe === 'Kewajiban');
+                const equityAccounts = coa.filter(acc => acc.tipe === 'Modal');
+                
+                const hasAllCategories = assetAccounts.length > 0 && 
+                                       liabilityAccounts.length > 0 && 
+                                       equityAccounts.length > 0;
+                
+                results.push({
+                    test: 'Account Categorization',
+                    passed: hasAllCategories,
+                    details: hasAllCategories ? 
+                        `Assets: ${assetAccounts.length}, Liabilities: ${liabilityAccounts.length}, Equity: ${equityAccounts.length}` :
+                        'Missing account categories'
+                });
+
+                // Test 3: Balance calculations
+                if (typeof calculateBalanceSheet === 'function') {
+                    const testDate = new Date('2023-12-31');
+                    const balanceSheet = calculateBalanceSheet(testDate);
+                    const hasValidCalculation = balanceSheet && 
+                                              balanceSheet.assets && 
+                                              balanceSheet.liabilities && 
+                                              balanceSheet.equity;
+                    
+                    results.push({
+                        test: 'Balance Sheet Calculation',
+                        passed: hasValidCalculation,
+                        details: hasValidCalculation ? 'Balance sheet calculation successful' : 'Calculation failed'
+                    });
+                } else {
+                    results.push({
+                        test: 'Balance Sheet Calculation',
+                        passed: false,
+                        details: 'calculateBalanceSheet function not available'
+                    });
+                }
+
+                // Test 4: Balance equation validation
+                if (typeof calculateBalanceSheet === 'function') {
+                    const testDate = new Date('2023-12-31');
+                    const balanceSheet = calculateBalanceSheet(testDate);
+                    
+                    if (balanceSheet && balanceSheet.totals) {
+                        const isBalanced = Math.abs(balanceSheet.totals.totalAssets - 
+                                                  balanceSheet.totals.totalLiabilitiesAndEquity) < 1;
+                        
+                        results.push({
+                            test: 'Balance Sheet Equation',
+                            passed: isBalanced,
+                            details: isBalanced ? 
+                                'Assets = Liabilities + Equity' : 
+                                `Imbalance: ${Math.abs(balanceSheet.totals.totalAssets - balanceSheet.totals.totalLiabilitiesAndEquity)}`
+                        });
+                    }
+                }
+
+            } catch (error) {
+                results.push({
+                    test: 'COA Compatibility Error',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+            
+            return results;
+        }
+        function performCrossBrowserTests() {
+            const results = [];
+            
+            try {
+                // Test 1: Date input support
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                const supportsDateInput = dateInput.type === 'date';
+                
+                results.push({
+                    test: 'Date Input Support',
+                    passed: supportsDateInput,
+                    details: supportsDateInput ? 'Native date input supported' : 'Date input fallback needed'
+                });
+
+                // Test 2: Local storage support
+                const supportsLocalStorage = typeof Storage !== 'undefined';
+                
+                results.push({
+                    test: 'Local Storage Support',
+                    passed: supportsLocalStorage,
+                    details: supportsLocalStorage ? 'Local storage available' : 'Local storage not supported'
+                });
+
+                // Test 3: JavaScript ES6 features
+                const supportsES6 = typeof Promise !== 'undefined' && 
+                                   typeof Array.prototype.includes !== 'undefined';
+                
+                results.push({
+                    test: 'ES6 JavaScript Features',
+                    passed: supportsES6,
+                    details: supportsES6 ? 'ES6 features supported' : 'ES6 features not supported'
+                });
+
+                // Test 4: CSS Grid support
+                const supportsGrid = CSS.supports('display', 'grid');
+                
+                results.push({
+                    test: 'CSS Grid Support',
+                    passed: supportsGrid,
+                    details: supportsGrid ? 'CSS Grid supported' : 'CSS Grid not supported'
+                });
+
+                // Test 5: Blob and URL support for exports
+                const supportsBlobURL = typeof Blob !== 'undefined' && 
+                                       typeof URL !== 'undefined' && 
+                                       typeof URL.createObjectURL !== 'undefined';
+                
+                results.push({
+                    test: 'Export Functionality Support',
+                    passed: supportsBlobURL,
+                    details: supportsBlobURL ? 'Blob/URL APIs supported for exports' : 'Export APIs not supported'
+                });
+
+            } catch (error) {
+                results.push({
+                    test: 'Cross-Browser Test Error',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+            
+            return results;
+        }
+
+        function performResponsiveDesignTests() {
+            const results = [];
+            
+            try {
+                // Test 1: Viewport meta tag
+                const viewportMeta = document.querySelector('meta[name="viewport"]');
+                const hasViewport = viewportMeta !== null;
+                
+                results.push({
+                    test: 'Viewport Meta Tag',
+                    passed: hasViewport,
+                    details: hasViewport ? 'Viewport meta tag present' : 'Viewport meta tag missing'
+                });
+
+                // Test 2: Bootstrap responsive classes
+                const hasBootstrap = typeof bootstrap !== 'undefined' || 
+                                    document.querySelector('link[href*="bootstrap"]') !== null;
+                
+                results.push({
+                    test: 'Bootstrap Framework',
+                    passed: hasBootstrap,
+                    details: hasBootstrap ? 'Bootstrap framework loaded' : 'Bootstrap framework not found'
+                });
+
+                // Test 3: Media query support
+                const supportsMediaQueries = window.matchMedia && 
+                                            window.matchMedia('(min-width: 768px)').matches !== undefined;
+                
+                results.push({
+                    test: 'Media Query Support',
+                    passed: supportsMediaQueries,
+                    details: supportsMediaQueries ? 'Media queries supported' : 'Media queries not supported'
+                });
+
+                // Test 4: Touch events support
+                const supportsTouchEvents = 'ontouchstart' in window || 
+                                          navigator.maxTouchPoints > 0;
+                
+                results.push({
+                    test: 'Touch Events Support',
+                    passed: supportsTouchEvents,
+                    details: supportsTouchEvents ? 'Touch events supported' : 'Touch events not supported'
+                });
+
+                // Test 5: Screen size detection
+                const screenWidth = window.innerWidth || document.documentElement.clientWidth;
+                const isMobile = screenWidth < 768;
+                const isTablet = screenWidth >= 768 && screenWidth < 1024;
+                const isDesktop = screenWidth >= 1024;
+                
+                results.push({
+                    test: 'Screen Size Detection',
+                    passed: true,
+                    details: `Screen: ${screenWidth}px (${isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'})`
+                });
+
+            } catch (error) {
+                results.push({
+                    test: 'Responsive Design Test Error',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+            
+            return results;
+        }
+
+        function performRequirementsValidation() {
+            const results = [];
+            
+            try {
+                // Requirement 1: Period selection functionality
+                const hasLaporanNeraca = typeof laporanNeraca === 'function';
+                const hasPeriodValidation = typeof validatePeriodSelection === 'function';
+                
+                results.push({
+                    test: 'Requirement 1: Period Selection',
+                    passed: hasLaporanNeraca && hasPeriodValidation,
+                    details: hasLaporanNeraca && hasPeriodValidation ? 
+                        'Period selection functionality implemented' : 
+                        'Period selection functionality incomplete'
+                });
+
+                // Requirement 2: Balance sheet generation
+                const hasCalculation = typeof calculateBalanceSheet === 'function';
+                
+                results.push({
+                    test: 'Requirement 2: Balance Sheet Generation',
+                    passed: hasCalculation,
+                    details: hasCalculation ? 
+                        'Balance sheet generation implemented' : 
+                        'Balance sheet generation not implemented'
+                });
+
+                // Requirement 3: Export and print functionality
+                const hasExportFunctions = typeof generatePDFContent === 'function' || 
+                                         typeof generateExcelData === 'function';
+                
+                results.push({
+                    test: 'Requirement 3: Export and Print',
+                    passed: hasExportFunctions,
+                    details: hasExportFunctions ? 
+                        'Export and print functionality implemented' : 
+                        'Export and print functionality not implemented'
+                });
+
+                // Requirement 4: Error handling and performance
+                const hasErrorHandling = typeof balanceSheetErrorHandler !== 'undefined' ||
+                                        typeof handleBalanceSheetError === 'function';
+                
+                results.push({
+                    test: 'Requirement 4: Error Handling',
+                    passed: hasErrorHandling,
+                    details: hasErrorHandling ? 
+                        'Error handling implemented' : 
+                        'Error handling not implemented'
+                });
+
+                // Overall integration validation
+                const allRequirementsPassed = results.every(r => r.passed);
+                
+                results.push({
+                    test: 'Overall Requirements Compliance',
+                    passed: allRequirementsPassed,
+                    details: allRequirementsPassed ? 
+                        'All requirements validated successfully' : 
+                        'Some requirements not fully implemented'
+                });
+
+            } catch (error) {
+                results.push({
+                    test: 'Requirements Validation Error',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+            
+            return results;
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('overview');
+        });
+    </script>
+</body>
+</html>

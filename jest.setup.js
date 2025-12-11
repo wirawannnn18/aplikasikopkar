@@ -1,3 +1,8 @@
+// Setup TextEncoder/TextDecoder for jsdom
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 // Setup localStorage mock for tests
 const localStorageMock = (() => {
   let store = {};

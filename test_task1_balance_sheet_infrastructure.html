@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 1 - Balance Sheet Infrastructure</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Task 1 - Balance Sheet Infrastructure</h2>
+        <p class="text-muted">Testing the setup of balance sheet report infrastructure with period selection UI</p>
+        
+        <!-- Test Results -->
+        <div id="testResults" class="mb-4"></div>
+        
+        <!-- Main Content Area (simulating the app's main content) -->
+        <div id="mainContent"></div>
+        
+        <!-- Test Controls -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary me-2" onclick="testReportsMenu()">Test Reports Menu</button>
+                <button class="btn btn-success me-2" onclick="testBalanceSheetFunction()">Test Balance Sheet Function</button>
+                <button class="btn btn-info me-2" onclick="testPeriodSelection()">Test Period Selection</button>
+                <button class="btn btn-warning" onclick="runAllTests()">Run All Tests</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        // Test utilities
+        function addTestResult(testName, passed, details = '') {
+            const resultsDiv = document.getElementById('testResults');
+            const alertClass = passed ? 'alert-success' : 'alert-danger';
+            const icon = passed ? 'bi-check-circle' : 'bi-x-circle';
+            
+            resultsDiv.innerHTML += `
+                <div class="alert ${alertClass}">
+                    <i class="bi ${icon} me-2"></i>
+                    <strong>${testName}:</strong> ${passed ? 'PASSED' : 'FAILED'}
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+        
+        // Test 1: Reports Menu Integration
+        function testReportsMenu() {
+            clearTestResults();
+            
+            try {
+                // Render the reports menu
+                renderLaporan();
+                
+                // Check if balance sheet button exists
+                const balanceSheetButton = document.querySelector('button[onclick="laporanNeraca()"]');
+                const buttonExists = balanceSheetButton !== null;
+                
+                addTestResult(
+                    'Balance Sheet Button in Reports Menu',
+                    buttonExists,
+                    buttonExists ? 'Balance sheet button found in reports menu' : 'Balance sheet button not found'
+                );
+                
+                // Check button text
+                if (buttonExists) {
+                    const buttonText = balanceSheetButton.textContent.trim();
+                    const correctText = buttonText.includes('Neraca') && buttonText.includes('Balance Sheet');
+                    
+                    addTestResult(
+                        'Button Text Correctness',
+                        correctText,
+                        `Button text: "${buttonText}"`
+                    );
+                }
+                
+                // Check if laporanContent div exists
+                const contentDiv = document.getElementById('laporanContent');
+                addTestResult(
+                    'Report Content Area',
+                    contentDiv !== null,
+                    contentDiv ? 'laporanContent div found' : 'laporanContent div missing'
+                );
+                
+            } catch (error) {
+                addTestResult('Reports Menu Integration', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 2: Balance Sheet Function
+        function testBalanceSheetFunction() {
+            clearTestResults();
+            
+            try {
+                // First render reports menu
+                renderLaporan();
+                
+                // Test if laporanNeraca function exists
+                const functionExists = typeof laporanNeraca === 'function';
+                addTestResult(
+                    'laporanNeraca Function Exists',
+                    functionExists,
+                    functionExists ? 'Function is defined' : 'Function not found'
+                );
+                
+                if (functionExists) {
+                    // Call the function
+                    laporanNeraca();
+                    
+                    // Check if content was rendered
+                    const content = document.getElementById('laporanContent');
+                    const hasContent = content && content.innerHTML.trim().length > 0;
+                    
+                    addTestResult(
+                        'Balance Sheet Content Rendering',
+                        hasContent,
+                        hasContent ? 'Content rendered successfully' : 'No content rendered'
+                    );
+                    
+                    // Check for period selection elements
+                    const periodRadios = document.querySelectorAll('input[name="periodType"]');
+                    addTestResult(
+                        'Period Selection Radios',
+                        periodRadios.length === 3,
+                        `Found ${periodRadios.length} period type options (expected 3)`
+                    );
+                    
+                    // Check for date selectors
+                    const dailySelector = document.getElementById('dailySelector');
+                    const monthlySelector = document.getElementById('monthlySelector');
+                    const yearlySelector = document.getElementById('yearlySelector');
+                    
+                    addTestResult(
+                        'Date Selector Components',
+                        dailySelector && monthlySelector && yearlySelector,
+                        'All three date selector components found'
+                    );
+                    
+                    // Check for generate button
+                    const generateButton = document.querySelector('button[onclick="generateBalanceSheet()"]');
+                    addTestResult(
+                        'Generate Button',
+                        generateButton !== null,
+                        generateButton ? 'Generate button found' : 'Generate button missing'
+                    );
+                }
+                
+            } catch (error) {
+                addTestResult('Balance Sheet Function', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 3: Period Selection Functionality
+        function testPeriodSelection() {
+            clearTestResults();
+            
+            try {
+                // Render balance sheet
+                renderLaporan();
+                laporanNeraca();
+                
+                // Test period type switching
+                const dailyRadio = document.getElementById('dailyPeriod');
+                const monthlyRadio = document.getElementById('monthlyPeriod');
+                const yearlyRadio = document.getElementById('yearlyPeriod');
+                
+                addTestResult(
+                    'Period Radio Buttons',
+                    dailyRadio && monthlyRadio && yearlyRadio,
+                    'All period radio buttons found'
+                );
+                
+                // Test default selection (should be daily)
+                addTestResult(
+                    'Default Period Selection',
+                    dailyRadio.checked,
+                    dailyRadio.checked ? 'Daily period selected by default' : 'Daily period not selected by default'
+                );
+                
+                // Test period switching
+                if (monthlyRadio) {
+                    monthlyRadio.click();
+                    
+                    const dailySelector = document.getElementById('dailySelector');
+                    const monthlySelector = document.getElementById('monthlySelector');
+                    
+                    const dailyHidden = dailySelector.classList.contains('d-none');
+                    const monthlyVisible = !monthlySelector.classList.contains('d-none');
+                    
+                    addTestResult(
+                        'Period Switching Functionality',
+                        dailyHidden && monthlyVisible,
+                        `Daily hidden: ${dailyHidden}, Monthly visible: ${monthlyVisible}`
+                    );
+                }
+                
+                // Test year options generation
+                const yearSelect = document.getElementById('selectedYear');
+                if (yearSelect) {
+                    const optionCount = yearSelect.options.length;
+                    const currentYear = new Date().getFullYear();
+                    const hasCurrentYear = Array.from(yearSelect.options).some(opt => opt.value == currentYear);
+                    
+                    addTestResult(
+                        'Year Options Generation',
+                        optionCount >= 5 && hasCurrentYear,
+                        `Generated ${optionCount} year options, current year included: ${hasCurrentYear}`
+                    );
+                }
+                
+            } catch (error) {
+                addTestResult('Period Selection Functionality', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 4: Generate Balance Sheet (Placeholder)
+        function testGenerateFunction() {
+            return new Promise((resolve) => {
+                try {
+                    // Render balance sheet
+                    renderLaporan();
+                    laporanNeraca();
+                    
+                    // Test generate function exists
+                    const functionExists = typeof generateBalanceSheet === 'function';
+                    addTestResult(
+                        'generateBalanceSheet Function',
+                        functionExists,
+                        functionExists ? 'Function exists' : 'Function not found'
+                    );
+                    
+                    if (functionExists) {
+                        // Call generate function
+                        generateBalanceSheet();
+                        
+                        // Check for loading indicator
+                        const reportContent = document.getElementById('neracaReportContent');
+                        const hasLoadingIndicator = reportContent.innerHTML.includes('spinner-border');
+                        
+                        addTestResult(
+                            'Loading Indicator',
+                            hasLoadingIndicator,
+                            hasLoadingIndicator ? 'Loading indicator displayed' : 'No loading indicator'
+                        );
+                        
+                        // Wait for placeholder to load
+                        setTimeout(() => {
+                            const hasPlaceholder = reportContent.innerHTML.includes('Task 1 Complete');
+                            addTestResult(
+                                'Placeholder Report Generation',
+                                hasPlaceholder,
+                                hasPlaceholder ? 'Placeholder report generated' : 'Placeholder report not generated'
+                            );
+                            resolve();
+                        }, 1200);
+                    } else {
+                        resolve();
+                    }
+                    
+                } catch (error) {
+                    addTestResult('Generate Function Test', false, `Error: ${error.message}`);
+                    resolve();
+                }
+            });
+        }
+        
+        // Run all tests
+        async function runAllTests() {
+            clearTestResults();
+            
+            addTestResult('Starting Task 1 Tests', true, 'Testing balance sheet infrastructure setup...');
+            
+            testReportsMenu();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testBalanceSheetFunction();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testPeriodSelection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testGenerateFunction();
+            
+            addTestResult('Task 1 Testing Complete', true, 'All infrastructure tests completed');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize default data for testing
+            if (typeof initializeDefaultData === 'function') {
+                initializeDefaultData();
+            }
+            
+            addTestResult('Test Environment', true, 'Task 1 test environment loaded successfully');
+        });
+    </script>
+</body>
+</html>

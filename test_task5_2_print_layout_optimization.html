@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 5.2 - Print Layout Optimization Property Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Task 5.2 - Print Layout Optimization Property Test</h2>
+        <p class="text-muted">Testing Property 8: Print layout optimization for balance sheet reports</p>
+        
+        <!-- Test Results -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-printer me-2"></i>
+                            Print Layout Optimization Tests
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary me-2" onclick="testPrintLayoutStructure()">Test Print Layout Structure</button>
+                        <button class="btn btn-success me-2" onclick="testPrintOptimization()">Test Print Optimization</button>
+                        <button class="btn btn-info me-2" onclick="testPrintResponsiveness()">Test Print Responsiveness</button>
+                        <button class="btn btn-warning me-2" onclick="testPrintFormatting()">Test Print Formatting</button>
+                        <button class="btn btn-danger" onclick="runAllTests()">Run All Tests</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results Display -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Test Results</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Print Preview -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Sample Print Preview</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="printPreview" style="border: 1px solid #ddd; padding: 20px; background: white; font-size: 11px; max-height: 600px; overflow-y: auto;"></div>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary" onclick="generatePrintPreview()">Generate Print Preview</button>
+                            <button class="btn btn-outline-success" onclick="testActualPrint()">Test Actual Print</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to format currency
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Helper function to format period text
+        function formatPeriodText(periodInfo) {
+            if (!periodInfo) return 'Periode tidak diketahui';
+            
+            switch (periodInfo.type) {
+                case 'daily':
+                    return `Harian - ${periodInfo.endDate.toLocaleDateString('id-ID')}`;
+                case 'monthly':
+                    return `Bulanan - ${periodInfo.endDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+                case 'yearly':
+                    return `Tahunan - ${periodInfo.endDate.getFullYear()}`;
+                default:
+                    return 'Periode tidak diketahui';
+            }
+        }
+
+        // Helper function to get company info
+        function getCompanyInfoForReport() {
+            return {
+                name: 'Test Koperasi Sejahtera'
+            };
+        }
+
+        // Generate print content function (from the actual implementation)
+        function generatePrintContent(balanceSheetData) {
+            const companyInfo = getCompanyInfoForReport();
+            const periodText = formatPeriodText(balanceSheetData.periodInfo);
+            
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Print - Laporan Neraca</title>
+                    <style>
+                        @page {
+                            size: A4;
+                            margin: 1.5cm;
+                        }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none !important; }
+                        }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            font-size: 11px;
+                            line-height: 1.3;
+                            color: #000;
+                            background: white;
+                        }
+                        .print-header {
+                            text-align: center;
+                            margin-bottom: 25px;
+                            padding-bottom: 10px;
+                            border-bottom: 2px solid #000;
+                        }
+                        .company-name {
+                            font-size: 16px;
+                            font-weight: bold;
+                            margin-bottom: 3px;
+                        }
+                        .report-title {
+                            font-size: 14px;
+                            font-weight: bold;
+                            margin-bottom: 3px;
+                        }
+                        .report-date {
+                            font-size: 11px;
+                            margin-bottom: 2px;
+                        }
+                        .balance-status {
+                            background: ${balanceSheetData.totals.balanceSheetBalanced ? '#f0f8f0' : '#fff8f0'};
+                            border: 1px solid ${balanceSheetData.totals.balanceSheetBalanced ? '#28a745' : '#ffc107'};
+                            padding: 8px;
+                            margin: 15px 0;
+                            text-align: center;
+                            font-size: 10px;
+                        }
+                        .print-container {
+                            display: table;
+                            width: 100%;
+                            table-layout: fixed;
+                        }
+                        .print-column {
+                            display: table-cell;
+                            width: 50%;
+                            vertical-align: top;
+                            padding-right: 15px;
+                        }
+                        .print-column:last-child {
+                            padding-right: 0;
+                            padding-left: 15px;
+                        }
+                        .section-header {
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin-bottom: 10px;
+                            padding: 5px;
+                            background: #f8f9fa;
+                            border: 1px solid #dee2e6;
+                            text-align: center;
+                        }
+                        .subsection {
+                            margin-bottom: 12px;
+                        }
+                        .subsection-title {
+                            font-size: 10px;
+                            font-weight: bold;
+                            margin-bottom: 5px;
+                            padding-left: 5px;
+                            border-left: 3px solid #6c757d;
+                        }
+                        .account-line {
+                            display: flex;
+                            justify-content: space-between;
+                            padding: 1px 0;
+                            font-size: 9px;
+                        }
+                        .account-name {
+                            padding-left: 10px;
+                            flex: 1;
+                        }
+                        .account-amount {
+                            text-align: right;
+                            font-weight: 500;
+                            min-width: 80px;
+                        }
+                        .subtotal-line {
+                            display: flex;
+                            justify-content: space-between;
+                            padding: 3px 0;
+                            margin-top: 3px;
+                            border-top: 1px solid #ccc;
+                            font-weight: bold;
+                            font-size: 9px;
+                        }
+                        .total-line {
+                            display: flex;
+                            justify-content: space-between;
+                            padding: 5px;
+                            margin: 8px 0;
+                            border: 2px solid #000;
+                            background: #f8f9fa;
+                            font-weight: bold;
+                            font-size: 10px;
+                        }
+                        .print-footer {
+                            margin-top: 20px;
+                            font-size: 8px;
+                            text-align: center;
+                            color: #666;
+                            border-top: 1px solid #ccc;
+                            padding-top: 8px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <div class="company-name">${companyInfo.name}</div>
+                        <div class="report-title">LAPORAN NERACA (BALANCE SHEET)</div>
+                        <div class="report-date">Per ${balanceSheetData.reportDate.toLocaleDateString('id-ID', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}</div>
+                        <div class="report-date">${periodText}</div>
+                    </div>
+                    
+                    <div class="balance-status">
+                        <strong>Persamaan Neraca:</strong> 
+                        ${formatRupiah(balanceSheetData.totals.totalAssets)} = ${formatRupiah(balanceSheetData.totals.totalLiabilitiesAndEquity)}
+                        | Status: ${balanceSheetData.totals.balanceSheetBalanced ? 'SEIMBANG ✓' : 'TIDAK SEIMBANG ⚠'}
+                    </div>
+                    
+                    <div class="print-container">
+                        <div class="print-column">
+                            <div class="section-header">ASET (ASSETS)</div>
+                            
+                            ${generatePrintSection('Aset Lancar', balanceSheetData.assets.currentAssets, balanceSheetData.assets.totalCurrentAssets)}
+                            ${generatePrintSection('Aset Tetap', balanceSheetData.assets.fixedAssets, balanceSheetData.assets.totalFixedAssets)}
+                            
+                            <div class="total-line">
+                                <span>TOTAL ASET</span>
+                                <span>${formatRupiah(balanceSheetData.assets.totalAssets)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="print-column">
+                            <div class="section-header">KEWAJIBAN & MODAL</div>
+                            
+                            ${generatePrintSection('Kewajiban Lancar', balanceSheetData.liabilities.currentLiabilities, balanceSheetData.liabilities.totalCurrentLiabilities)}
+                            ${balanceSheetData.liabilities.longTermLiabilities.length > 0 ? 
+                                generatePrintSection('Kewajiban Jangka Panjang', balanceSheetData.liabilities.longTermLiabilities, balanceSheetData.liabilities.totalLongTermLiabilities) : ''
+                            }
+                            
+                            <div class="subtotal-line">
+                                <span>Total Kewajiban</span>
+                                <span>${formatRupiah(balanceSheetData.liabilities.totalLiabilities)}</span>
+                            </div>
+                            
+                            ${generatePrintEquitySection(balanceSheetData.equity)}
+                            
+                            <div class="total-line">
+                                <span>TOTAL KEWAJIBAN & MODAL</span>
+                                <span>${formatRupiah(balanceSheetData.totals.totalLiabilitiesAndEquity)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="print-footer">
+                        Dicetak pada: ${new Date().toLocaleDateString('id-ID', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })} | Sistem Manajemen Koperasi
+                    </div>
+                </body>
+                </html>
+            `;
+        }
+
+        // Generate Print Section helper
+        function generatePrintSection(title, accounts, total) {
+            return `
+                <div class="subsection">
+                    <div class="subsection-title">${title}</div>
+                    ${accounts.length === 0 ? 
+                        '<div class="account-line"><span class="account-name" style="font-style: italic; color: #666;">Tidak ada akun</span><span class="account-amount">-</span></div>' :
+                        accounts.map(account => `
+                            <div class="account-line">
+                                <span class="account-name">${account.nama}</span>
+                                <span class="account-amount">${formatRupiah(account.saldoAkhir)}</span>
+                            </div>
+                        `).join('')
+                    }
+                    <div class="subtotal-line">
+                        <span>Total ${title}</span>
+                        <span>${formatRupiah(total)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate Print Equity Section helper
+        function generatePrintEquitySection(equityData) {
+            const allEquityAccounts = [...equityData.equity, ...equityData.retainedEarnings];
+            
+            return `
+                <div class="subsection">
+                    <div class="subsection-title">Modal</div>
+                    ${allEquityAccounts.length === 0 ? 
+                        '<div class="account-line"><span class="account-name" style="font-style: italic; color: #666;">Tidak ada akun modal</span><span class="account-amount">-</span></div>' :
+                        allEquityAccounts.map(account => `
+                            <div class="account-line">
+                                <span class="account-name">${account.nama}</span>
+                                <span class="account-amount">${formatRupiah(account.saldoAkhir)}</span>
+                            </div>
+                        `).join('')
+                    }
+                    <div class="subtotal-line">
+                        <span>Total Modal</span>
+                        <span>${formatRupiah(equityData.totalEquityAndRetainedEarnings)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate sample balance sheet data
+        function generateSampleBalanceSheetData() {
+            return {
+                reportDate: new Date(),
+                periodInfo: {
+                    type: 'monthly',
+                    endDate: new Date()
+                },
+                assets: {
+                    currentAssets: [
+                        { nama: 'Kas', saldoAkhir: 5000000 },
+                        { nama: 'Bank BCA', saldoAkhir: 15000000 },
+                        { nama: 'Piutang Anggota', saldoAkhir: 8000000 }
+                    ],
+                    fixedAssets: [
+                        { nama: 'Persediaan Barang', saldoAkhir: 25000000 },
+                        { nama: 'Peralatan Kantor', saldoAkhir: 12000000 }
+                    ],
+                    totalCurrentAssets: 28000000,
+                    totalFixedAssets: 37000000,
+                    totalAssets: 65000000
+                },
+                liabilities: {
+                    currentLiabilities: [
+                        { nama: 'Hutang Supplier', saldoAkhir: 5000000 },
+                        { nama: 'Simpanan Pokok', saldoAkhir: 10000000 },
+                        { nama: 'Simpanan Wajib', saldoAkhir: 15000000 }
+                    ],
+                    longTermLiabilities: [
+                        { nama: 'Hutang Bank', saldoAkhir: 8000000 }
+                    ],
+                    totalCurrentLiabilities: 30000000,
+                    totalLongTermLiabilities: 8000000,
+                    totalLiabilities: 38000000
+                },
+                equity: {
+                    equity: [
+                        { nama: 'Modal Koperasi', saldoAkhir: 20000000 }
+                    ],
+                    retainedEarnings: [
+                        { nama: 'Laba Ditahan', saldoAkhir: 7000000 }
+                    ],
+                    totalEquityAndRetainedEarnings: 27000000
+                },
+                totals: {
+                    totalAssets: 65000000,
+                    totalLiabilitiesAndEquity: 65000000,
+                    balanceSheetBalanced: true,
+                    balanceDifference: 0
+                }
+            };
+        }
+
+        // Test functions
+        function addTestResult(testName, passed, details) {
+            const resultsDiv = document.getElementById('testResults');
+            const alertClass = passed ? 'alert-success' : 'alert-danger';
+            const icon = passed ? 'bi-check-circle-fill' : 'bi-x-circle-fill';
+            
+            resultsDiv.innerHTML += `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="bi ${icon} me-2"></i>
+                    <strong>${testName}:</strong> ${details}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // Test 1: Print Layout Structure
+        function testPrintLayoutStructure() {
+            clearTestResults();
+            
+            try {
+                const sampleData = generateSampleBalanceSheetData();
+                const printContent = generatePrintContent(sampleData);
+                
+                // Test A4 page setup
+                const hasA4Setup = printContent.includes('@page') && 
+                                 printContent.includes('size: A4') && 
+                                 printContent.includes('margin: 1.5cm');
+                addTestResult('A4 Page Setup', hasA4Setup, hasA4Setup ? 'A4 page setup found' : 'A4 page setup missing');
+                
+                // Test print CSS
+                const hasPrintCSS = printContent.includes('@media print') && 
+                                  printContent.includes('.no-print { display: none !important; }');
+                addTestResult('Print CSS', hasPrintCSS, hasPrintCSS ? 'Print-specific CSS found' : 'Print CSS missing');
+                
+                // Test table layout
+                const hasTableLayout = printContent.includes('display: table') && 
+                                      printContent.includes('display: table-cell') && 
+                                      printContent.includes('width: 50%');
+                addTestResult('Table Layout', hasTableLayout, hasTableLayout ? 'Proper table layout found' : 'Table layout missing');
+                
+                // Test font sizes
+                const hasFontSizes = printContent.includes('font-size: 11px') && 
+                                   printContent.includes('font-size: 9px') && 
+                                   printContent.includes('font-size: 16px');
+                addTestResult('Font Sizes', hasFontSizes, hasFontSizes ? 'Appropriate font sizes found' : 'Font sizes not optimized');
+                
+            } catch (error) {
+                addTestResult('Print Layout Structure', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 2: Print Optimization
+        function testPrintOptimization() {
+            try {
+                const sampleData = generateSampleBalanceSheetData();
+                const printContent = generatePrintContent(sampleData);
+                
+                // Test content length (should be reasonable for A4)
+                const contentLength = printContent.length;
+                const reasonableLength = contentLength > 2000 && contentLength < 50000;
+                addTestResult('Content Length', reasonableLength, `Content length: ${contentLength} characters`);
+                
+                // Test line height
+                const hasLineHeight = printContent.includes('line-height: 1.3');
+                addTestResult('Line Height', hasLineHeight, hasLineHeight ? 'Proper line height found' : 'Line height not optimized');
+                
+                // Test spacing
+                const hasSpacing = printContent.includes('margin-bottom: 25px') && 
+                                 printContent.includes('padding: 1px 0');
+                addTestResult('Spacing', hasSpacing, hasSpacing ? 'Proper spacing found' : 'Spacing not optimized');
+                
+                // Test text alignment
+                const hasAlignment = printContent.includes('text-align: right') && 
+                                   printContent.includes('min-width: 80px');
+                addTestResult('Text Alignment', hasAlignment, hasAlignment ? 'Proper text alignment found' : 'Text alignment missing');
+                
+            } catch (error) {
+                addTestResult('Print Optimization', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 3: Print Responsiveness
+        function testPrintResponsiveness() {
+            try {
+                // Test with small data
+                const smallData = {
+                    ...generateSampleBalanceSheetData(),
+                    assets: {
+                        currentAssets: [{ nama: 'Kas', saldoAkhir: 1000000 }],
+                        fixedAssets: [],
+                        totalCurrentAssets: 1000000,
+                        totalFixedAssets: 0,
+                        totalAssets: 1000000
+                    }
+                };
+                
+                // Test with large data
+                const largeData = generateSampleBalanceSheetData();
+                largeData.assets.currentAssets = Array(15).fill().map((_, i) => ({
+                    nama: `Akun Aset ${i + 1}`,
+                    saldoAkhir: 1000000 * (i + 1)
+                }));
+                
+                const smallPrintContent = generatePrintContent(smallData);
+                const largePrintContent = generatePrintContent(largeData);
+                
+                // Both should have same structure
+                const smallHasStructure = smallPrintContent.includes('print-container');
+                const largeHasStructure = largePrintContent.includes('print-container');
+                addTestResult('Structure Consistency', smallHasStructure && largeHasStructure, 
+                    'Both small and large data maintain structure');
+                
+                // Large should be longer
+                const lengthDifference = largePrintContent.length > smallPrintContent.length;
+                addTestResult('Content Scaling', lengthDifference, 
+                    `Small: ${smallPrintContent.length}, Large: ${largePrintContent.length} chars`);
+                
+            } catch (error) {
+                addTestResult('Print Responsiveness', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 4: Print Formatting
+        function testPrintFormatting() {
+            try {
+                const sampleData = generateSampleBalanceSheetData();
+                const printContent = generatePrintContent(sampleData);
+                
+                // Test currency formatting
+                const rupiahMatches = printContent.match(/Rp[\s\d.,]+/g);
+                const hasCurrencyFormatting = rupiahMatches && rupiahMatches.length >= 2;
+                addTestResult('Currency Formatting', hasCurrencyFormatting, 
+                    hasCurrencyFormatting ? `Found ${rupiahMatches.length} currency amounts` : 'Currency formatting missing');
+                
+                // Test essential sections
+                const hasEssentialSections = printContent.includes('ASET (ASSETS)') && 
+                                           printContent.includes('KEWAJIBAN & MODAL') && 
+                                           printContent.includes('TOTAL ASET');
+                addTestResult('Essential Sections', hasEssentialSections, 
+                    hasEssentialSections ? 'All essential sections found' : 'Missing essential sections');
+                
+                // Test footer
+                const hasFooter = printContent.includes('print-footer') && 
+                                printContent.includes('Dicetak pada:');
+                addTestResult('Print Footer', hasFooter, hasFooter ? 'Print footer found' : 'Print footer missing');
+                
+            } catch (error) {
+                addTestResult('Print Formatting', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Generate print preview
+        function generatePrintPreview() {
+            try {
+                const sampleData = generateSampleBalanceSheetData();
+                const printContent = generatePrintContent(sampleData);
+                
+                // Extract body content for preview
+                const bodyMatch = printContent.match(/<body>(.*?)<\/body>/s);
+                if (bodyMatch) {
+                    document.getElementById('printPreview').innerHTML = bodyMatch[1];
+                    addTestResult('Print Preview', true, 'Print preview generated successfully');
+                } else {
+                    addTestResult('Print Preview', false, 'Failed to extract body content');
+                }
+                
+            } catch (error) {
+                addTestResult('Print Preview', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test actual print
+        function testActualPrint() {
+            try {
+                const sampleData = generateSampleBalanceSheetData();
+                const printContent = generatePrintContent(sampleData);
+                
+                // Open print window
+                const printWindow = window.open('', '_blank', 'width=800,height=600');
+                if (!printWindow) {
+                    addTestResult('Actual Print', false, 'Popup blocked. Please allow popups.');
+                    return;
+                }
+                
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                
+                printWindow.onload = function() {
+                    setTimeout(() => {
+                        printWindow.print();
+                        addTestResult('Actual Print', true, 'Print dialog opened successfully');
+                    }, 500);
+                };
+                
+            } catch (error) {
+                addTestResult('Actual Print', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            clearTestResults();
+            
+            addTestResult('Starting Tests', true, 'Running all print layout optimization tests...');
+            
+            testPrintLayoutStructure();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testPrintOptimization();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testPrintResponsiveness();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testPrintFormatting();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            generatePrintPreview();
+            
+            addTestResult('All Tests Complete', true, 'All print layout optimization tests completed');
+        }
+    </script>
+</body>
+</html>

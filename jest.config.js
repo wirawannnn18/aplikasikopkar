@@ -7,5 +7,12 @@ export default {
     'js/**/*.js',
     '!js/**/*.test.js'
   ],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  globals: {
+    TextEncoder: TextEncoder,
+    TextDecoder: TextDecoder
+  },
+  testEnvironmentOptions: {
+    url: 'http://localhost'
+  }
 };

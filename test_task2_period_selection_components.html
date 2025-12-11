@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 2 - Period Selection Components</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Task 2 - Period Selection Components</h2>
+        <p class="text-muted">Testing enhanced period selection with validation and data availability checking</p>
+        
+        <!-- Test Results -->
+        <div id="testResults" class="mb-4"></div>
+        
+        <!-- Main Content Area -->
+        <div id="mainContent"></div>
+        
+        <!-- Test Controls -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Test Controls</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary me-2" onclick="testPeriodValidation()">Test Period Validation</button>
+                <button class="btn btn-success me-2" onclick="testDataAvailabilityCheck()">Test Data Availability</button>
+                <button class="btn btn-info me-2" onclick="testEnhancedGeneration()">Test Enhanced Generation</button>
+                <button class="btn btn-secondary me-2" onclick="testErrorHandling()">Test Error Handling</button>
+                <button class="btn btn-warning" onclick="runAllTask2Tests()">Run All Task 2 Tests</button>
+            </div>
+        </div>
+        
+        <!-- Test Data Setup -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>Test Data Setup</h6>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-sm btn-outline-primary me-2" onclick="setupMinimalData()">Setup Minimal Data</button>
+                <button class="btn btn-sm btn-outline-success me-2" onclick="setupFullData()">Setup Full Data</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearAllData()">Clear All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        // Test utilities
+        function addTestResult(testName, passed, details = '') {
+            const resultsDiv = document.getElementById('testResults');
+            const alertClass = passed ? 'alert-success' : 'alert-danger';
+            const icon = passed ? 'bi-check-circle' : 'bi-x-circle';
+            
+            resultsDiv.innerHTML += `
+                <div class="alert ${alertClass}">
+                    <i class="bi ${icon} me-2"></i>
+                    <strong>${testName}:</strong> ${passed ? 'PASSED' : 'FAILED'}
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+        
+        // Test data setup functions
+        function setupMinimalData() {
+            const defaultCOA = [
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 },
+                { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 500000 },
+                { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'Modal', saldo: 500000 }
+            ];
+            localStorage.setItem('coa', JSON.stringify(defaultCOA));
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            addTestResult('Setup Minimal Data', true, 'COA with 3 accounts, no journal entries');
+        }
+        
+        function setupFullData() {
+            const defaultCOA = [
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 },
+                { kode: '1-1100', nama: 'Bank', tipe: 'Aset', saldo: 2000000 },
+                { kode: '1-1200', nama: 'Piutang Anggota', tipe: 'Aset', saldo: 500000 },
+                { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 1500000 },
+                { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'Kewajiban', saldo: 1000000 },
+                { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'Modal', saldo: 1000000 }
+            ];
+            
+            const sampleJournal = [
+                {
+                    id: 'test-1',
+                    tanggal: new Date(2024, 0, 15).toISOString(),
+                    keterangan: 'Simpanan pokok anggota',
+                    entries: [
+                        { akun: '1-1000', debit: 500000, kredit: 0 },
+                        { akun: '2-1100', debit: 0, kredit: 500000 }
+                    ]
+                },
+                {
+                    id: 'test-2',
+                    tanggal: new Date(2024, 1, 20).toISOString(),
+                    keterangan: 'Simpanan wajib bulanan',
+                    entries: [
+                        { akun: '1-1000', debit: 300000, kredit: 0 },
+                        { akun: '2-1200', debit: 0, kredit: 300000 }
+                    ]
+                }
+            ];
+            
+            localStorage.setItem('coa', JSON.stringify(defaultCOA));
+            localStorage.setItem('jurnal', JSON.stringify(sampleJournal));
+            addTestResult('Setup Full Data', true, 'COA with 6 accounts, 2 journal entries');
+        }
+        
+        function clearAllData() {
+            localStorage.clear();
+            addTestResult('Clear All Data', true, 'All localStorage data cleared');
+        }
+        
+        // Test 1: Period Validation Functions
+        function testPeriodValidation() {
+            clearTestResults();
+            
+            try {
+                // Test valid daily period
+                const validDaily = {
+                    type: 'daily',
+                    selectedDate: new Date(2024, 0, 15)
+                };
+                const dailyResult = validatePeriodSelection(validDaily);
+                addTestResult(
+                    'Valid Daily Period Validation',
+                    dailyResult.success,
+                    dailyResult.success ? dailyResult.message : dailyResult.error
+                );
+                
+                // Test valid monthly period
+                const validMonthly = {
+                    type: 'monthly',
+                    selectedMonth: 1,
+                    selectedYear: 2024
+                };
+                const monthlyResult = validatePeriodSelection(validMonthly);
+                addTestResult(
+                    'Valid Monthly Period Validation',
+                    monthlyResult.success,
+                    monthlyResult.success ? monthlyResult.message : monthlyResult.error
+                );
+                
+                // Test valid yearly period
+                const validYearly = {
+                    type: 'yearly',
+                    selectedYear: 2024
+                };
+                const yearlyResult = validatePeriodSelection(validYearly);
+                addTestResult(
+                    'Valid Yearly Period Validation',
+                    yearlyResult.success,
+                    yearlyResult.success ? yearlyResult.message : yearlyResult.error
+                );
+                
+                // Test invalid period (future date)
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 30);
+                const invalidDaily = {
+                    type: 'daily',
+                    selectedDate: futureDate
+                };
+                const invalidResult = validatePeriodSelection(invalidDaily);
+                addTestResult(
+                    'Invalid Future Date Rejection',
+                    !invalidResult.success,
+                    invalidResult.error || 'Should reject future dates'
+                );
+                
+                // Test missing required fields
+                const incompleteMonthly = {
+                    type: 'monthly',
+                    selectedMonth: 1
+                    // Missing selectedYear
+                };
+                const incompleteResult = validatePeriodSelection(incompleteMonthly);
+                addTestResult(
+                    'Incomplete Data Rejection',
+                    !incompleteResult.success,
+                    incompleteResult.error || 'Should reject incomplete data'
+                );
+                
+            } catch (error) {
+                addTestResult('Period Validation Test', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 2: Data Availability Checking
+        function testDataAvailabilityCheck() {
+            clearTestResults();
+            
+            try {
+                // Setup test data
+                setupFullData();
+                
+                // Test with valid date that has data
+                const testDate = new Date(2024, 1, 28); // End of February 2024
+                const availabilityResult = checkPeriodDataAvailability(testDate);
+                
+                addTestResult(
+                    'Data Availability Check - With Data',
+                    availabilityResult.hasData,
+                    availabilityResult.message || availabilityResult.error
+                );
+                
+                addTestResult(
+                    'Journal Entries Detection',
+                    availabilityResult.hasJournalEntries,
+                    `Found ${availabilityResult.journalCount} journal entries`
+                );
+                
+                addTestResult(
+                    'COA Accounts Detection',
+                    availabilityResult.coaCount > 0,
+                    `Found ${availabilityResult.coaCount} COA accounts`
+                );
+                
+                // Test with no data
+                clearAllData();
+                const noDataResult = checkPeriodDataAvailability(testDate);
+                addTestResult(
+                    'Data Availability Check - No Data',
+                    !noDataResult.hasData,
+                    noDataResult.error || 'Should detect no data'
+                );
+                
+                // Test with invalid date
+                const invalidDateResult = checkPeriodDataAvailability(null);
+                addTestResult(
+                    'Invalid Date Handling',
+                    !invalidDateResult.hasData,
+                    invalidDateResult.error || 'Should handle invalid dates'
+                );
+                
+            } catch (error) {
+                addTestResult('Data Availability Test', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 3: Enhanced Generation Process
+        function testEnhancedGeneration() {
+            clearTestResults();
+            
+            try {
+                // Setup UI
+                renderLaporan();
+                laporanNeraca();
+                
+                // Setup test data
+                setupFullData();
+                
+                // Test successful generation
+                addTestResult(
+                    'Enhanced Generation UI Setup',
+                    document.getElementById('neracaReportContent') !== null,
+                    'Report content area exists'
+                );
+                
+                // Test period selection UI enhancements
+                const periodRadios = document.querySelectorAll('input[name="periodType"]');
+                addTestResult(
+                    'Period Selection Radios',
+                    periodRadios.length === 3,
+                    `Found ${periodRadios.length} period type options`
+                );
+                
+                // Test enhanced event listeners
+                const dailySelector = document.getElementById('dailySelector');
+                const monthlySelector = document.getElementById('monthlySelector');
+                const yearlySelector = document.getElementById('yearlySelector');
+                
+                addTestResult(
+                    'Period Selector Components',
+                    dailySelector && monthlySelector && yearlySelector,
+                    'All period selector components exist'
+                );
+                
+                // Test validation functions exist
+                const validationExists = typeof validatePeriodSelection === 'function';
+                const dataCheckExists = typeof checkPeriodDataAvailability === 'function';
+                
+                addTestResult(
+                    'Validation Functions Available',
+                    validationExists && dataCheckExists,
+                    'Period validation and data availability functions exist'
+                );
+                
+                // Test helper functions
+                const resetExists = typeof resetPeriodSelection === 'function';
+                const suggestExists = typeof suggestAlternativePeriods === 'function';
+                
+                addTestResult(
+                    'Helper Functions Available',
+                    resetExists && suggestExists,
+                    'Reset and suggestion helper functions exist'
+                );
+                
+            } catch (error) {
+                addTestResult('Enhanced Generation Test', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 4: Error Handling
+        function testErrorHandling() {
+            clearTestResults();
+            
+            try {
+                // Setup UI
+                renderLaporan();
+                laporanNeraca();
+                
+                // Test with no data
+                clearAllData();
+                
+                // Test reset function
+                if (typeof resetPeriodSelection === 'function') {
+                    resetPeriodSelection();
+                    addTestResult(
+                        'Reset Function Execution',
+                        true,
+                        'Reset function executed without errors'
+                    );
+                }
+                
+                // Test suggestion function with no data
+                if (typeof suggestAlternativePeriods === 'function') {
+                    suggestAlternativePeriods();
+                    addTestResult(
+                        'Suggestion Function with No Data',
+                        true,
+                        'Suggestion function handled no data scenario'
+                    );
+                }
+                
+                // Test validation with invalid input
+                const invalidResult = validatePeriodSelection(null);
+                addTestResult(
+                    'Validation Error Handling',
+                    !invalidResult.success && invalidResult.error,
+                    invalidResult.error || 'Should handle null input gracefully'
+                );
+                
+                // Test data availability with invalid input
+                const invalidDataResult = checkPeriodDataAvailability('invalid');
+                addTestResult(
+                    'Data Check Error Handling',
+                    !invalidDataResult.hasData && invalidDataResult.error,
+                    invalidDataResult.error || 'Should handle invalid input gracefully'
+                );
+                
+            } catch (error) {
+                addTestResult('Error Handling Test', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 5: Integration Test
+        async function testIntegrationFlow() {
+            return new Promise((resolve) => {
+                try {
+                    // Setup complete flow
+                    renderLaporan();
+                    laporanNeraca();
+                    setupFullData();
+                    
+                    // Set to monthly period
+                    const monthlyRadio = document.getElementById('monthlyPeriod');
+                    if (monthlyRadio) {
+                        monthlyRadio.checked = true;
+                        monthlyRadio.dispatchEvent(new Event('change'));
+                    }
+                    
+                    // Set current month
+                    const currentDate = new Date();
+                    const monthSelect = document.getElementById('selectedMonth');
+                    const yearSelect = document.getElementById('selectedMonthYear');
+                    
+                    if (monthSelect) monthSelect.value = currentDate.getMonth() + 1;
+                    if (yearSelect) yearSelect.value = currentDate.getFullYear();
+                    
+                    // Test generation
+                    if (typeof generateBalanceSheet === 'function') {
+                        generateBalanceSheet();
+                        
+                        // Wait for async processing
+                        setTimeout(() => {
+                            const reportContent = document.getElementById('neracaReportContent');
+                            const hasContent = reportContent && reportContent.innerHTML.includes('Task 2 Complete');
+                            
+                            addTestResult(
+                                'Integration Flow Test',
+                                hasContent,
+                                hasContent ? 'Complete flow executed successfully' : 'Flow did not complete as expected'
+                            );
+                            resolve();
+                        }, 2000);
+                    } else {
+                        addTestResult('Integration Flow Test', false, 'generateBalanceSheet function not found');
+                        resolve();
+                    }
+                    
+                } catch (error) {
+                    addTestResult('Integration Flow Test', false, `Error: ${error.message}`);
+                    resolve();
+                }
+            });
+        }
+        
+        // Run all Task 2 tests
+        async function runAllTask2Tests() {
+            clearTestResults();
+            
+            addTestResult('Starting Task 2 Tests', true, 'Testing enhanced period selection components...');
+            
+            testPeriodValidation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testDataAvailabilityCheck();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testEnhancedGeneration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            testErrorHandling();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testIntegrationFlow();
+            
+            addTestResult('Task 2 Testing Complete', true, 'All enhanced period selection tests completed');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize default data for testing
+            if (typeof initializeDefaultData === 'function') {
+                initializeDefaultData();
+            }
+            
+            addTestResult('Test Environment', true, 'Task 2 test environment loaded successfully');
+        });
+    </script>
+</body>
+</html>

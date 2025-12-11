@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 5 - Export Functionality</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-download me-2"></i>
+                            Task 5 - Export Functionality Test
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Test Export Functions:</strong> PDF, Excel, dan Print functionality
+                            <br><small>Requirements: 3.1, 3.2, 3.3, 3.4, 3.5</small>
+                        </div>
+                        
+                        <!-- Test Setup -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">1. Setup Test Data</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-primary" onclick="setupTestData()">
+                                    <i class="bi bi-database me-1"></i>Setup COA & Journal Data
+                                </button>
+                                <button class="btn btn-secondary ms-2" onclick="generateTestBalanceSheet()">
+                                    <i class="bi bi-calculator me-1"></i>Generate Balance Sheet
+                                </button>
+                                <div id="setupStatus" class="mt-2"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Export Tests -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">2. Test Export Functions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <button class="btn btn-danger w-100" onclick="testPDFExport()">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i>Test PDF Export
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-success w-100" onclick="testExcelExport()">
+                                            <i class="bi bi-file-earmark-excel me-1"></i>Test Excel Export
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-secondary w-100" onclick="testPrintFunction()">
+                                            <i class="bi bi-printer me-1"></i>Test Print Function
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="exportResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Function Tests -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">3. Test Helper Functions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-primary btn-sm w-100" onclick="testGetCurrentData()">
+                                            Test Get Current Data
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-success btn-sm w-100" onclick="testPDFContent()">
+                                            Test PDF Content
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-info btn-sm w-100" onclick="testExcelData()">
+                                            Test Excel Data
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="testPrintContent()">
+                                            Test Print Content
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="helperResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Integration Test -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">4. Full Integration Test</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-warning w-100" onclick="runFullIntegrationTest()">
+                                    <i class="bi bi-gear me-1"></i>Run Complete Export Integration Test
+                                </button>
+                                <div id="integrationResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/reports.js"></script>
+    
+    <script>
+        // Mock functions for testing
+        function showAlert(message, type) {
+            console.log(`Alert (${type}): ${message}`);
+            
+            // Also show in UI
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show mt-2`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Find the most recent results div and append
+            const resultsDivs = document.querySelectorAll('[id$="Results"], [id$="Status"]');
+            if (resultsDivs.length > 0) {
+                const lastDiv = resultsDivs[resultsDivs.length - 1];
+                lastDiv.appendChild(alertDiv);
+            }
+        }
+
+        function setupTestData() {
+            const statusDiv = document.getElementById('setupStatus');
+            statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Setting up test data...';
+            
+            setTimeout(() => {
+                try {
+                    // Setup comprehensive test COA
+                    const testCOA = [
+                        // Assets
+                        { kode: '1-1000', nama: 'Kas', tipe: 'aset', saldo: 15000000 },
+                        { kode: '1-1100', nama: 'Bank BCA', tipe: 'aset', saldo: 25000000 },
+                        { kode: '1-1200', nama: 'Piutang Anggota', tipe: 'aset', saldo: 8000000 },
+                        { kode: '1-1300', nama: 'Persediaan Barang', tipe: 'aset', saldo: 12000000 },
+                        { kode: '1-2000', nama: 'Peralatan Kantor', tipe: 'aset', saldo: 5000000 },
+                        
+                        // Liabilities
+                        { kode: '2-1000', nama: 'Hutang Supplier', tipe: 'kewajiban', saldo: 7000000 },
+                        { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'kewajiban', saldo: 20000000 },
+                        { kode: '2-1200', nama: 'Simpanan Wajib', tipe: 'kewajiban', saldo: 15000000 },
+                        { kode: '2-1300', nama: 'Simpanan Sukarela', tipe: 'kewajiban', saldo: 10000000 },
+                        
+                        // Equity
+                        { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'modal', saldo: 8000000 },
+                        { kode: '3-2000', nama: 'Laba Ditahan', tipe: 'modal', saldo: 5000000 }
+                    ];
+
+                    const testJurnal = [
+                        {
+                            id: 'J1',
+                            tanggal: '2023-06-15',
+                            keterangan: 'Penerimaan simpanan pokok',
+                            entries: [
+                                { akun: '1-1000', debit: 2000000, kredit: 0 },
+                                { akun: '2-1100', debit: 0, kredit: 2000000 }
+                            ]
+                        },
+                        {
+                            id: 'J2',
+                            tanggal: '2023-07-20',
+                            keterangan: 'Pembelian persediaan',
+                            entries: [
+                                { akun: '1-1300', debit: 3000000, kredit: 0 },
+                                { akun: '1-1100', debit: 0, kredit: 3000000 }
+                            ]
+                        }
+                    ];
+
+                    const testKoperasi = {
+                        nama: 'Koperasi Sejahtera Bersama',
+                        alamat: 'Jl. Merdeka No. 123, Jakarta',
+                        telepon: '021-12345678',
+                        email: 'info@koperasisejahtera.com'
+                    };
+
+                    // Store test data
+                    localStorage.setItem('coa', JSON.stringify(testCOA));
+                    localStorage.setItem('jurnal', JSON.stringify(testJurnal));
+                    localStorage.setItem('koperasi', JSON.stringify(testKoperasi));
+
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Test data berhasil disetup!</strong>
+                            <br>COA: ${testCOA.length} akun | Jurnal: ${testJurnal.length} entri
+                        </div>
+                    `;
+
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Error setup data: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        function generateTestBalanceSheet() {
+            const statusDiv = document.getElementById('setupStatus');
+            
+            try {
+                // Setup balance sheet UI
+                renderLaporan();
+                laporanNeraca();
+                
+                // Set to monthly period (current month)
+                const monthlyRadio = document.getElementById('monthlyPeriod');
+                if (monthlyRadio) {
+                    monthlyRadio.checked = true;
+                    monthlyRadio.dispatchEvent(new Event('change'));
+                }
+                
+                // Set current month/year
+                const currentDate = new Date();
+                const monthSelect = document.getElementById('selectedMonth');
+                const yearSelect = document.getElementById('selectedMonthYear');
+                
+                if (monthSelect) monthSelect.value = currentDate.getMonth() + 1;
+                if (yearSelect) yearSelect.value = currentDate.getFullYear();
+                
+                // Generate balance sheet
+                setTimeout(() => {
+                    generateBalanceSheet();
+                    
+                    statusDiv.innerHTML += `
+                        <div class="alert alert-info mt-2">
+                            <i class="bi bi-calculator me-2"></i>
+                            Balance sheet generated untuk periode bulanan saat ini
+                        </div>
+                    `;
+                }, 500);
+                
+            } catch (error) {
+                statusDiv.innerHTML += `
+                    <div class="alert alert-danger mt-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Error generating balance sheet: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function testPDFExport() {
+            const resultsDiv = document.getElementById('exportResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing PDF export...';
+            
+            setTimeout(() => {
+                try {
+                    // Test PDF export function
+                    exportBalanceSheetPDF();
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>PDF Export Test:</strong> Function executed successfully
+                            <br><small>Check browser for PDF generation or popup blocker</small>
+                        </div>
+                    `;
+                    
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>PDF Export Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+
+        function testExcelExport() {
+            const resultsDiv = document.getElementById('exportResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing Excel export...';
+            
+            setTimeout(() => {
+                try {
+                    // Test Excel export function
+                    exportBalanceSheetExcel();
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Excel Export Test:</strong> Function executed successfully
+                            <br><small>Check Downloads folder for CSV file</small>
+                        </div>
+                    `;
+                    
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Excel Export Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+
+        function testPrintFunction() {
+            const resultsDiv = document.getElementById('exportResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing print function...';
+            
+            setTimeout(() => {
+                try {
+                    // Test print function
+                    printBalanceSheet();
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-success mt-2">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Print Function Test:</strong> Function executed successfully
+                            <br><small>Check for print dialog or popup blocker</small>
+                        </div>
+                    `;
+                    
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-danger mt-2">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Print Function Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+
+        function testGetCurrentData() {
+            const resultsDiv = document.getElementById('helperResults');
+            
+            try {
+                const currentData = getCurrentBalanceSheetData();
+                
+                if (currentData) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Get Current Data:</strong> Success
+                            <br><small>Period: ${currentData.periodInfo.type} | Assets: ${formatRupiah(currentData.totals.totalAssets)}</small>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Get Current Data:</strong> No data available (expected if no balance sheet generated)
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Get Current Data Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function testPDFContent() {
+            const resultsDiv = document.getElementById('helperResults');
+            
+            try {
+                const currentData = getCurrentBalanceSheetData();
+                
+                if (currentData) {
+                    const pdfContent = generatePDFContent(currentData);
+                    const contentLength = pdfContent.length;
+                    const hasRequiredElements = pdfContent.includes('LAPORAN NERACA') && 
+                                                pdfContent.includes('ASET') && 
+                                                pdfContent.includes('KEWAJIBAN');
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-${hasRequiredElements ? 'success' : 'warning'} mt-2">
+                            <i class="bi bi-${hasRequiredElements ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            <strong>PDF Content Test:</strong> ${hasRequiredElements ? 'Success' : 'Missing elements'}
+                            <br><small>Content length: ${contentLength} chars | Required elements: ${hasRequiredElements ? 'Found' : 'Missing'}</small>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-info mt-2">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>PDF Content Test:</strong> Skipped (no balance sheet data)
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="alert alert-danger mt-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>PDF Content Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function testExcelData() {
+            const resultsDiv = document.getElementById('helperResults');
+            
+            try {
+                const currentData = getCurrentBalanceSheetData();
+                
+                if (currentData) {
+                    const excelData = generateExcelData(currentData);
+                    const hasRequiredData = excelData.content.includes('LAPORAN NERACA') && 
+                                           excelData.content.includes('ASET') && 
+                                           excelData.filename.includes('.csv');
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-${hasRequiredData ? 'success' : 'warning'} mt-2">
+                            <i class="bi bi-${hasRequiredData ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            <strong>Excel Data Test:</strong> ${hasRequiredData ? 'Success' : 'Missing elements'}
+                            <br><small>Filename: ${excelData.filename} | Content: ${excelData.content.length} chars</small>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-info mt-2">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Excel Data Test:</strong> Skipped (no balance sheet data)
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="alert alert-danger mt-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Excel Data Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function testPrintContent() {
+            const resultsDiv = document.getElementById('helperResults');
+            
+            try {
+                const currentData = getCurrentBalanceSheetData();
+                
+                if (currentData) {
+                    const printContent = generatePrintContent(currentData);
+                    const hasPrintStyles = printContent.includes('@media print') && 
+                                          printContent.includes('print-container') && 
+                                          printContent.includes('LAPORAN NERACA');
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-${hasPrintStyles ? 'success' : 'warning'} mt-2">
+                            <i class="bi bi-${hasPrintStyles ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            <strong>Print Content Test:</strong> ${hasPrintStyles ? 'Success' : 'Missing elements'}
+                            <br><small>Content: ${printContent.length} chars | Print styles: ${hasPrintStyles ? 'Found' : 'Missing'}</small>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="alert alert-info mt-2">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Print Content Test:</strong> Skipped (no balance sheet data)
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="alert alert-danger mt-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Print Content Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function runFullIntegrationTest() {
+            const resultsDiv = document.getElementById('integrationResults');
+            resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Running full integration test...';
+            
+            let testResults = {
+                setup: false,
+                balanceSheet: false,
+                getCurrentData: false,
+                pdfContent: false,
+                excelData: false,
+                printContent: false,
+                pdfExport: false,
+                excelExport: false,
+                printFunction: false
+            };
+            
+            setTimeout(() => {
+                try {
+                    // Test 1: Setup data
+                    setupTestData();
+                    testResults.setup = true;
+                    
+                    setTimeout(() => {
+                        try {
+                            // Test 2: Generate balance sheet
+                            generateTestBalanceSheet();
+                            testResults.balanceSheet = true;
+                            
+                            setTimeout(() => {
+                                try {
+                                    // Test 3: Get current data
+                                    const currentData = getCurrentBalanceSheetData();
+                                    testResults.getCurrentData = !!currentData;
+                                    
+                                    if (currentData) {
+                                        // Test 4: PDF content
+                                        const pdfContent = generatePDFContent(currentData);
+                                        testResults.pdfContent = pdfContent.includes('LAPORAN NERACA');
+                                        
+                                        // Test 5: Excel data
+                                        const excelData = generateExcelData(currentData);
+                                        testResults.excelData = excelData.content.includes('LAPORAN NERACA');
+                                        
+                                        // Test 6: Print content
+                                        const printContent = generatePrintContent(currentData);
+                                        testResults.printContent = printContent.includes('@media print');
+                                        
+                                        // Test 7-9: Export functions (just test execution)
+                                        try {
+                                            exportBalanceSheetPDF();
+                                            testResults.pdfExport = true;
+                                        } catch (e) { console.log('PDF export test:', e.message); }
+                                        
+                                        try {
+                                            exportBalanceSheetExcel();
+                                            testResults.excelExport = true;
+                                        } catch (e) { console.log('Excel export test:', e.message); }
+                                        
+                                        try {
+                                            printBalanceSheet();
+                                            testResults.printFunction = true;
+                                        } catch (e) { console.log('Print function test:', e.message); }
+                                    }
+                                    
+                                    // Display results
+                                    const passedTests = Object.values(testResults).filter(r => r).length;
+                                    const totalTests = Object.keys(testResults).length;
+                                    const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+                                    
+                                    resultsDiv.innerHTML = `
+                                        <div class="alert alert-${passedTests === totalTests ? 'success' : 'warning'}">
+                                            <h6 class="alert-heading">
+                                                <i class="bi bi-${passedTests === totalTests ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                                                Integration Test Results
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <strong>Test Summary:</strong><br>
+                                                    ✅ Passed: ${passedTests}/${totalTests}<br>
+                                                    📊 Success Rate: ${successRate}%
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <strong>Export Functions:</strong><br>
+                                                    PDF: ${testResults.pdfExport ? '✅' : '❌'} | 
+                                                    Excel: ${testResults.excelExport ? '✅' : '❌'} | 
+                                                    Print: ${testResults.printFunction ? '✅' : '❌'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">Detailed Test Results</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    ${Object.entries(testResults).map(([test, result]) => `
+                                                        <div class="col-md-6 mb-2">
+                                                            <span class="badge bg-${result ? 'success' : 'danger'} me-2">
+                                                                ${result ? '✅' : '❌'}
+                                                            </span>
+                                                            ${test.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        ${passedTests === totalTests ? `
+                                            <div class="alert alert-success mt-3">
+                                                <h6 class="text-success">✅ Task 5 Export Functionality - Integration Test PASSED</h6>
+                                                <ul class="mb-0">
+                                                    <li><strong>PDF Export:</strong> ✅ Content generation and export function working</li>
+                                                    <li><strong>Excel Export:</strong> ✅ CSV data generation and download working</li>
+                                                    <li><strong>Print Function:</strong> ✅ Print-optimized layout and dialog working</li>
+                                                    <li><strong>Requirements:</strong> 3.1, 3.2, 3.3, 3.4, 3.5 validated</li>
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                    `;
+                                    
+                                } catch (error) {
+                                    resultsDiv.innerHTML = `
+                                        <div class="alert alert-danger">
+                                            <i class="bi bi-exclamation-triangle me-2"></i>
+                                            Integration test error: ${error.message}
+                                        </div>
+                                    `;
+                                }
+                            }, 3000);
+                            
+                        } catch (error) {
+                            resultsDiv.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    Balance sheet generation error: ${error.message}
+                                </div>
+                            `;
+                        }
+                    }, 2000);
+                    
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Setup error: ${error.message}
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        // Auto-run setup on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                setupTestData();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
