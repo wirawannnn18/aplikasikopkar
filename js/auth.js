@@ -1,4 +1,5 @@
 // Authentication Module
+// Last updated: 2024-12-13 - Fixed Upload Master Barang Excel menu
 
 document.getElementById('loginForm')?.addEventListener('submit', function(e) {
     e.preventDefault();

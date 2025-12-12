@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Menu Upload Master Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4><i class="bi bi-bug me-2"></i>Debug Menu Upload Master Barang</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Tujuan:</strong> Mendiagnosis mengapa menu "Upload Master Barang Excel" tidak muncul di sidebar.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>1. Test Login & Role</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Username:</label>
+                            <input type="text" class="form-control" id="testUsername" value="admin">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password:</label>
+                            <input type="password" class="form-control" id="testPassword" value="admin">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role:</label>
+                            <select class="form-select" id="testRole">
+                                <option value="super_admin">Super Admin</option>
+                                <option value="administrator">Administrator</option>
+                                <option value="kasir">Kasir</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="simulateLogin()">Simulate Login</button>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>2. Current User Info</h5>
+                        <div id="currentUserInfo" class="alert alert-secondary">
+                            <em>Belum login</em>
+                        </div>
+                        
+                        <h5>3. Menu Test</h5>
+                        <button class="btn btn-success" onclick="testMenuRendering()">Test Menu Rendering</button>
+                        <button class="btn btn-warning" onclick="checkAuthJS()">Check auth.js</button>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>4. Diagnostic Results</h5>
+                        <div id="diagnosticResults"></div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>5. Menu Preview</h5>
+                        <div id="menuPreview" class="border p-3" style="min-height: 200px; background-color: #f8f9fa;">
+                            <em>Menu akan muncul di sini setelah test...</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let diagnosticLog = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            diagnosticLog.push({
+                time: timestamp,
+                message: message,
+                type: type
+            });
+            updateDiagnosticDisplay();
+        }
+
+        function updateDiagnosticDisplay() {
+            const container = document.getElementById('diagnosticResults');
+            container.innerHTML = diagnosticLog.map(entry => {
+                const badgeClass = {
+                    'info': 'bg-info',
+                    'success': 'bg-success', 
+                    'warning': 'bg-warning',
+                    'error': 'bg-danger'
+                }[entry.type] || 'bg-secondary';
+                
+                return `
+                    <div class="mb-2">
+                        <span class="badge ${badgeClass}">${entry.time}</span>
+                        <span class="ms-2">${entry.message}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function simulateLogin() {
+            const username = document.getElementById('testUsername').value;
+            const password = document.getElementById('testPassword').value;
+            const role = document.getElementById('testRole').value;
+            
+            // Simulate user object
+            currentUser = {
+                id: 1,
+                username: username,
+                password: password,
+                name: 'Test User',
+                role: role,
+                active: true
+            };
+            
+            log(`Login simulasi berhasil: ${username} (${role})`, 'success');
+            updateCurrentUserInfo();
+        }
+
+        function updateCurrentUserInfo() {
+            const container = document.getElementById('currentUserInfo');
+            if (currentUser) {
+                container.innerHTML = `
+                    <strong>Username:</strong> ${currentUser.username}<br>
+                    <strong>Role:</strong> ${currentUser.role}<br>
+                    <strong>Active:</strong> ${currentUser.active ? 'Yes' : 'No'}
+                `;
+                container.className = 'alert alert-success';
+            } else {
+                container.innerHTML = '<em>Belum login</em>';
+                container.className = 'alert alert-secondary';
+            }
+        }
+
+        function checkAuthJS() {
+            log('Checking auth.js functions...', 'info');
+            
+            // Check if renderMenu function exists
+            if (typeof renderMenu === 'function') {
+                log('✅ renderMenu function found', 'success');
+            } else {
+                log('❌ renderMenu function NOT found', 'error');
+            }
+            
+            // Check if renderUploadMasterBarangExcel function exists
+            if (typeof renderUploadMasterBarangExcel === 'function') {
+                log('✅ renderUploadMasterBarangExcel function found', 'success');
+            } else {
+                log('❌ renderUploadMasterBarangExcel function NOT found', 'error');
+            }
+            
+            // Check if navigateTo function exists
+            if (typeof navigateTo === 'function') {
+                log('✅ navigateTo function found', 'success');
+            } else {
+                log('❌ navigateTo function NOT found', 'error');
+            }
+        }
+
+        function testMenuRendering() {
+            if (!currentUser) {
+                log('❌ Tidak bisa test menu - belum login', 'error');
+                return;
+            }
+            
+            log(`Testing menu rendering for role: ${currentUser.role}`, 'info');
+            
+            // Test menu data
+            const menus = {
+                super_admin: [
+                    { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+                    { icon: 'bi-gear-fill', text: 'Pengaturan Sistem', page: 'system-settings' },
+                    { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+                    { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
+                    { icon: 'bi-file-excel', text: 'Upload Master Barang Excel', page: 'upload-master-barang-excel' },
+                    { icon: 'bi-truck', text: 'Supplier', page: 'supplier' },
+                    { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
+                ],
+                administrator: [
+                    { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+                    { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+                    { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
+                    { icon: 'bi-file-excel', text: 'Upload Master Barang Excel', page: 'upload-master-barang-excel' },
+                    { icon: 'bi-truck', text: 'Supplier', page: 'supplier' },
+                    { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
+                ],
+                kasir: [
+                    { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
+                    { icon: 'bi-receipt', text: 'Riwayat Transaksi', page: 'riwayat' },
+                    { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
+                ]
+            };
+            
+            const userMenus = menus[currentUser.role] || [];
+            const uploadMenu = userMenus.find(menu => menu.page === 'upload-master-barang-excel');
+            
+            if (uploadMenu) {
+                log(`✅ Menu "Upload Master Barang Excel" ditemukan untuk role ${currentUser.role}`, 'success');
+                log(`   - Icon: ${uploadMenu.icon}`, 'info');
+                log(`   - Text: ${uploadMenu.text}`, 'info');
+                log(`   - Page: ${uploadMenu.page}`, 'info');
+            } else {
+                log(`❌ Menu "Upload Master Barang Excel" TIDAK ditemukan untuk role ${currentUser.role}`, 'error');
+            }
+            
+            // Render menu preview
+            const menuPreview = document.getElementById('menuPreview');
+            menuPreview.innerHTML = `
+                <h6>Menu untuk role: ${currentUser.role}</h6>
+                <ul class="list-group">
+                    ${userMenus.map(menu => {
+                        const isUploadMenu = menu.page === 'upload-master-barang-excel';
+                        return `
+                            <li class="list-group-item d-flex justify-content-between align-items-center ${isUploadMenu ? 'list-group-item-success' : ''}">
+                                <span>
+                                    <i class="${menu.icon} me-2"></i>${menu.text}
+                                </span>
+                                ${isUploadMenu ? '<span class="badge bg-success">TARGET MENU</span>' : ''}
+                            </li>
+                        `;
+                    }).join('')}
+                </ul>
+                <div class="mt-3">
+                    <strong>Total menu:</strong> ${userMenus.length}<br>
+                    <strong>Upload menu found:</strong> ${uploadMenu ? 'YES' : 'NO'}
+                </div>
+            `;
+            
+            log(`Menu rendering complete. Total: ${userMenus.length} items`, 'success');
+        }
+
+        // Mock navigateTo function
+        function navigateTo(page) {
+            log(`Navigate to: ${page}`, 'info');
+            if (page === 'upload-master-barang-excel') {
+                log('🎉 Upload Master Barang Excel menu clicked!', 'success');
+            }
+        }
+
+        // Auto-run basic checks
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Debug page loaded', 'info');
+            checkAuthJS();
+        });
+    </script>
+    
+    <!-- Load auth.js to test -->
+    <script src="js/auth.js"></script>
+</body>
+</html>

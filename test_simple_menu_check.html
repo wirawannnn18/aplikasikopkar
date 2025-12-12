@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Menu Check</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="alert alert-warning">
+            <h4>🔍 Simple Menu Check</h4>
+            <p>Buka Developer Tools (F12) dan lihat Console untuk hasil test.</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5>Manual Test Steps:</h5>
+                <ol>
+                    <li>Buka aplikasi utama (index.html)</li>
+                    <li>Login sebagai admin/admin</li>
+                    <li>Periksa sidebar - apakah menu "Upload Master Barang Excel" ada?</li>
+                    <li>Jika tidak ada, coba hard refresh (Ctrl+F5)</li>
+                    <li>Jika masih tidak ada, coba clear cache browser</li>
+                </ol>
+                
+                <hr>
+                
+                <h5>Quick Fix Options:</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                Option 1: Hard Refresh
+                            </div>
+                            <div class="card-body">
+                                <p>Tekan <kbd>Ctrl + F5</kbd> atau <kbd>Ctrl + Shift + R</kbd> untuk hard refresh.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                Option 2: Clear Cache
+                            </div>
+                            <div class="card-body">
+                                <p>Buka Developer Tools → Application → Storage → Clear site data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <button class="btn btn-primary" onclick="runQuickTest()">Run Quick Test</button>
+                <div id="testResults" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function runQuickTest() {
+            const results = document.getElementById('testResults');
+            let output = '<div class="alert alert-info"><h6>Test Results:</h6>';
+            
+            // Test 1: Check if we can create the menu structure
+            const testMenus = {
+                super_admin: [
+                    { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+                    { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+                    { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
+                    { icon: 'bi-file-excel', text: 'Upload Master Barang Excel', page: 'upload-master-barang-excel' },
+                    { icon: 'bi-truck', text: 'Supplier', page: 'supplier' }
+                ]
+            };
+            
+            const uploadMenu = testMenus.super_admin.find(m => m.page === 'upload-master-barang-excel');
+            
+            if (uploadMenu) {
+                output += '<p>✅ Menu structure is correct</p>';
+                output += `<p>📋 Menu details: ${uploadMenu.text} (${uploadMenu.page})</p>`;
+            } else {
+                output += '<p>❌ Menu structure has issues</p>';
+            }
+            
+            // Test 2: Check localStorage
+            try {
+                const currentUser = localStorage.getItem('currentUser');
+                if (currentUser) {
+                    const user = JSON.parse(currentUser);
+                    output += `<p>👤 Current user: ${user.username} (${user.role})</p>`;
+                } else {
+                    output += '<p>⚠️ No user logged in</p>';
+                }
+            } catch (e) {
+                output += '<p>❌ Error reading localStorage</p>';
+            }
+            
+            // Test 3: Check if files exist
+            output += '<p>📁 Files to check:</p>';
+            output += '<ul>';
+            output += '<li>js/auth.js - Should contain menu definition</li>';
+            output += '<li>upload_master_barang_excel.html - Should exist</li>';
+            output += '<li>index.html - Should load auth.js</li>';
+            output += '</ul>';
+            
+            output += '</div>';
+            
+            // Add troubleshooting steps
+            output += `
+                <div class="alert alert-success">
+                    <h6>🔧 Troubleshooting Steps:</h6>
+                    <ol>
+                        <li><strong>Clear Browser Cache:</strong> Ctrl+Shift+Delete → Clear all</li>
+                        <li><strong>Hard Refresh:</strong> Ctrl+F5 pada halaman aplikasi</li>
+                        <li><strong>Check Console:</strong> F12 → Console → Look for errors</li>
+                        <li><strong>Verify Login:</strong> Make sure you're logged in as admin or super_admin</li>
+                        <li><strong>Check Network:</strong> F12 → Network → Reload → Check if auth.js loads</li>
+                    </ol>
+                </div>
+            `;
+            
+            results.innerHTML = output;
+            
+            console.log('=== MENU DEBUG INFO ===');
+            console.log('Test menus:', testMenus);
+            console.log('Upload menu found:', uploadMenu);
+            console.log('Current localStorage:', localStorage.getItem('currentUser'));
+            console.log('========================');
+        }
+        
+        // Auto-run test
+        document.addEventListener('DOMContentLoaded', runQuickTest);
+    </script>
+</body>
+</html>
