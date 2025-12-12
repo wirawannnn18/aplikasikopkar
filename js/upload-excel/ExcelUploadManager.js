@@ -41,9 +41,24 @@ class ExcelUploadManager {
      * @private
      */
     initializeComponents() {
-        // Components will be initialized when their classes are available
-        // This is a placeholder for dependency injection
-        console.log('ExcelUploadManager initialized - components will be injected');
+        // Initialize components if classes are available
+        try {
+            if (typeof ValidationEngine !== 'undefined') {
+                this.validator = new ValidationEngine();
+            }
+            if (typeof DataProcessor !== 'undefined') {
+                this.processor = new DataProcessor();
+            }
+            if (typeof CategoryUnitManager !== 'undefined') {
+                this.categoryManager = new CategoryUnitManager();
+            }
+            if (typeof AuditLogger !== 'undefined') {
+                this.auditLogger = new AuditLogger();
+            }
+            console.log('ExcelUploadManager initialized with components');
+        } catch (error) {
+            console.warn('Some components not available:', error.message);
+        }
     }
 
     /**
@@ -248,11 +263,52 @@ class ExcelUploadManager {
     }
 
     /**
-     * Generate preview data for display
+     * Process file content directly (for backward compatibility)
+     * @param {File} file - File to process
+     * @returns {Promise<Object[]>} Processed data array
+     */
+    async processFileContent(file) {
+        if (!this.processor) {
+            throw new Error('DataProcessor not initialized');
+        }
+        
+        try {
+            // Parse file using DataProcessor
+            const rawData = await this.processor.parseFile(file);
+            
+            // Transform data if needed
+            const processedData = rawData.map(row => this.processor.transformData(row));
+            
+            return processedData;
+        } catch (error) {
+            throw new Error(`Failed to process file content: ${error.message}`);
+        }
+    }
+
+    /**
+     * Generate preview data for display (overloaded for backward compatibility)
+     * @param {Object[]|string} data - Data array or session ID
+     * @returns {Promise<Object>} Preview data with validation indicators
+     */
+    async previewData(data) {
+        // Handle both data array and session ID
+        if (typeof data === 'string') {
+            // Original method - data is session ID
+            return this.previewDataBySession(data);
+        } else if (Array.isArray(data)) {
+            // New method - data is array
+            return this.previewDataFromArray(data);
+        } else {
+            throw new Error('Invalid data parameter for previewData');
+        }
+    }
+
+    /**
+     * Generate preview data from session ID
      * @param {string} sessionId - Upload session ID
      * @returns {Promise<Object>} Preview data with validation indicators
      */
-    async previewData(sessionId) {
+    async previewDataBySession(sessionId) {
         const session = this.activeSessions.get(sessionId);
         if (!session) {
             throw new Error('Session not found');
@@ -289,6 +345,67 @@ class ExcelUploadManager {
                 validRows: previewData.filter(r => !r._hasErrors && !r._hasWarnings).length
             }
         };
+    }
+
+    /**
+     * Generate preview data from data array
+     * @param {Object[]} dataArray - Data array to preview
+     * @returns {Promise<Object>} Preview data with validation indicators
+     */
+    async previewDataFromArray(dataArray) {
+        try {
+            // Validate data if validator is available
+            let validationResults = { errors: [], warnings: [] };
+            if (this.validator) {
+                validationResults = await this.validateData(dataArray);
+            }
+            
+            // Add validation indicators to each row
+            const previewData = dataArray.map((row, index) => {
+                const rowNumber = index + 2; // Account for header row
+                const rowErrors = validationResults.errors.filter(e => e.row === rowNumber);
+                const rowWarnings = validationResults.warnings.filter(e => e.row === rowNumber);
+                
+                return {
+                    ...row,
+                    _rowNumber: rowNumber,
+                    _hasErrors: rowErrors.length > 0,
+                    _hasWarnings: rowWarnings.length > 0,
+                    _errors: rowErrors,
+                    _warnings: rowWarnings
+                };
+            });
+            
+            return {
+                data: previewData,
+                summary: {
+                    totalRows: dataArray.length,
+                    errorRows: previewData.filter(r => r._hasErrors).length,
+                    warningRows: previewData.filter(r => r._hasWarnings).length,
+                    validRows: previewData.filter(r => !r._hasErrors && !r._hasWarnings).length
+                },
+                validationResults: validationResults
+            };
+        } catch (error) {
+            // Return data without validation if validation fails
+            return {
+                data: dataArray.map((row, index) => ({
+                    ...row,
+                    _rowNumber: index + 2,
+                    _hasErrors: false,
+                    _hasWarnings: false,
+                    _errors: [],
+                    _warnings: []
+                })),
+                summary: {
+                    totalRows: dataArray.length,
+                    errorRows: 0,
+                    warningRows: 0,
+                    validRows: dataArray.length
+                },
+                validationResults: { errors: [], warnings: [] }
+            };
+        }
     }
 
     /**

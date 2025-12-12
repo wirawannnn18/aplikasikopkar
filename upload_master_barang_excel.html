@@ -581,8 +581,14 @@
             try {
                 // Initialize managers
                 uploadManager = new ExcelUploadManager();
-                uiManager = new UIManager();
-                templateManager = new TemplateManager();
+                
+                // Initialize UI and Template managers if available
+                if (typeof UIManager !== 'undefined') {
+                    uiManager = new UIManager();
+                }
+                if (typeof TemplateManager !== 'undefined') {
+                    templateManager = new TemplateManager();
+                }
                 
                 // Setup event listeners
                 setupEventListeners();
@@ -775,31 +781,35 @@
         // Show data preview
         function showPreview(preview) {
             try {
-                // Set data in UI manager
-                uiManager.setUploadedData(preview.data);
-                
-                // Render using UI manager for enhanced functionality
-                uiManager.renderPreviewTable(preview.data);
-                
-                // Setup selection change handlers
-                setTimeout(() => {
-                    const checkboxes = document.querySelectorAll('#previewTableBody input[type="checkbox"]');
-                    checkboxes.forEach(checkbox => {
-                        checkbox.addEventListener('change', updateSelectionCount);
-                    });
+                if (uiManager && typeof uiManager.setUploadedData === 'function') {
+                    // Set data in UI manager
+                    uiManager.setUploadedData(preview.data);
                     
-                    // Setup select all functionality
-                    const selectAllCheckbox = document.getElementById('selectAll');
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.addEventListener('change', (e) => {
-                            checkboxes.forEach(checkbox => {
-                                checkbox.checked = e.target.checked;
-                            });
-                            updateSelectionCount();
+                    // Render using UI manager for enhanced functionality
+                    uiManager.renderPreviewTable(preview.data);
+                    
+                    // Setup selection change handlers
+                    setTimeout(() => {
+                        const checkboxes = document.querySelectorAll('#previewTableBody input[type="checkbox"]');
+                        checkboxes.forEach(checkbox => {
+                            checkbox.addEventListener('change', updateSelectionCount);
                         });
-                    }
-                }, 100);
-                
+                        
+                        // Setup select all functionality
+                        const selectAllCheckbox = document.getElementById('selectAll');
+                        if (selectAllCheckbox) {
+                            selectAllCheckbox.addEventListener('change', (e) => {
+                                checkboxes.forEach(checkbox => {
+                                    checkbox.checked = e.target.checked;
+                                });
+                                updateSelectionCount();
+                            });
+                        }
+                    }, 100);
+                } else {
+                    // Fallback to simple preview
+                    showSimplePreview(preview);
+                }
             } catch (error) {
                 console.error('Error showing preview:', error);
                 // Fallback to simple preview
@@ -812,20 +822,43 @@
             const tableBody = document.getElementById('previewTableBody');
             tableBody.innerHTML = '';
             
-            preview.data.forEach((row, index) => {
+            const data = preview.data || preview; // Handle both preview object and direct data array
+            
+            if (Array.isArray(data)) {
+                data.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    
+                    // Determine status badge based on validation
+                    let statusBadge = '<span class="badge bg-success">Valid</span>';
+                    if (row._hasErrors) {
+                        statusBadge = '<span class="badge bg-danger">Error</span>';
+                    } else if (row._hasWarnings) {
+                        statusBadge = '<span class="badge bg-warning">Warning</span>';
+                    }
+                    
+                    tr.innerHTML = `
+                        <td>${row.kode || ''}</td>
+                        <td>${row.nama || ''}</td>
+                        <td><span class="badge bg-secondary">${row.kategori || ''}</span></td>
+                        <td><span class="badge bg-info">${row.satuan || ''}</span></td>
+                        <td>${formatCurrency(row.harga_beli || 0)}</td>
+                        <td>${row.stok || 0}</td>
+                        <td>${row.supplier || ''}</td>
+                        <td>${statusBadge}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                // Show error message if data is not an array
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${row.kode}</td>
-                    <td>${row.nama}</td>
-                    <td><span class="badge bg-secondary">${row.kategori}</span></td>
-                    <td><span class="badge bg-info">${row.satuan}</span></td>
-                    <td>${formatCurrency(row.harga_beli)}</td>
-                    <td>${row.stok}</td>
-                    <td>${row.supplier}</td>
-                    <td><span class="badge bg-success">Valid</span></td>
+                    <td colspan="8" class="text-center text-muted">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No data available for preview
+                    </td>
                 `;
                 tableBody.appendChild(tr);
-            });
+            }
         }
 
         // Navigation functions
@@ -956,15 +989,36 @@
         // Download template
         function downloadTemplate() {
             try {
-                templateManager.downloadCSVTemplate('template_master_barang_excel.csv');
+                if (templateManager && typeof templateManager.downloadCSVTemplate === 'function') {
+                    templateManager.downloadCSVTemplate('template_master_barang_excel.csv');
+                } else {
+                    // Fallback to manual template creation
+                    downloadTemplateManual();
+                }
             } catch (error) {
                 console.error('Error downloading template:', error);
-                // Fallback to direct download
-                const link = document.createElement('a');
-                link.href = 'template_master_barang_excel.csv';
-                link.download = 'template_master_barang_excel.csv';
-                link.click();
+                // Fallback to manual template creation
+                downloadTemplateManual();
             }
+        }
+
+        // Manual template download fallback
+        function downloadTemplateManual() {
+            const template = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
+BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni
+BRG003,Pulpen Pilot Hitam,alat-tulis,pcs,3000,100,Toko ATK Lengkap
+BRG004,Air Mineral 600ml,minuman,botol,2500,200,PT Air Bersih`;
+
+            const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'template_master_barang_excel.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // Utility functions
@@ -1010,7 +1064,7 @@
             populateBulkEditOptions();
             
             // Show selection checkboxes if not already visible
-            if (uiManager) {
+            if (uiManager && typeof uiManager.enableRowSelection === 'function') {
                 uiManager.enableRowSelection();
             }
             
