@@ -1,39 +1,584 @@
-// Authentication Module
-// Last updated: 2024-12-13 - Fixed Upload Master Barang Excel menu
+/**
+ * Authentication Module
+ * Handles user authentication, role-based access control, and session management
+ * Last updated: 2024-12-13 - Fixed Upload Master Barang Excel menu
+ * @version 1.0.1
+ */
 
-document.getElementById('loginForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    handleLogin();
+// Global variables
+let currentUser = null;
+let loginAttempts = new Map(); // Track login attempts for rate limiting
+
+// Password security configuration
+const PASSWORD_CONFIG = {
+    minLength: 8,
+    maxLength: 128,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumbers: true,
+    requireSpecialChars: true,
+    specialChars: '!@#$%^&*()_+-=[]{}|;:,.<>?',
+    historyLimit: 5, // Remember last 5 passwords
+    maxHistory: 5, // Alias for backward compatibility
+    saltRounds: 12,
+    strengthLevels: {
+        WEAK: 1,
+        FAIR: 2,
+        GOOD: 3,
+        STRONG: 4,
+        VERY_STRONG: 5
+    }
+};
+
+/**
+ * Initialize authentication module
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleLogin();
+        });
+    }
+    
+    // Load current user from localStorage if exists
+    loadCurrentUser();
 });
 
+/**
+ * Load current user from localStorage
+ */
+function loadCurrentUser() {
+    try {
+        const userData = localStorage.getItem('currentUser');
+        if (userData) {
+            currentUser = JSON.parse(userData);
+        }
+    } catch (error) {
+        console.error('Error loading current user:', error);
+        localStorage.removeItem('currentUser');
+    }
+}
+
+/**
+ * Handle user login with enhanced security and validation
+ */
 function handleLogin() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (user) {
-        // Check if user is active
-        if (user.active === false) {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = 'Akun Anda telah dinonaktifkan. Hubungi administrator!';
-            errorDiv.classList.remove('d-none');
+    try {
+        // Get form elements
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorDiv = document.getElementById('loginError');
+        
+        if (!usernameInput || !passwordInput || !errorDiv) {
+            console.error('Required form elements not found');
             return;
         }
         
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        showMainApp();
-    } else {
-        const errorDiv = document.getElementById('loginError');
-        errorDiv.textContent = 'Username atau password salah!';
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        
+        // Clear previous errors
+        errorDiv.classList.add('d-none');
+        
+        // Input validation
+        if (!username || !password) {
+            showLoginError('Username dan password harus diisi!');
+            return;
+        }
+        
+        // Check rate limiting
+        if (isRateLimited(username)) {
+            showLoginError('Terlalu banyak percobaan login. Coba lagi dalam 5 menit.');
+            return;
+        }
+        
+        // Authenticate user
+        const users = getUsersFromStorage();
+        const user = users.find(u => {
+            if (u.username !== username) return false;
+            
+            // Handle both old plain text passwords and new hashed passwords
+            if (u.password.includes(':')) {
+                // New hashed password format
+                return verifyPassword(password, u.password);
+            } else {
+                // Legacy plain text password - migrate to hashed
+                if (u.password === password) {
+                    // Migrate to hashed password
+                    const hashedPassword = hashPassword(password);
+                    const userIndex = users.findIndex(user => user.id === u.id);
+                    if (userIndex !== -1) {
+                        users[userIndex].password = hashedPassword;
+                        users[userIndex].passwordChangedAt = new Date().toISOString();
+                        users[userIndex].passwordHistory = users[userIndex].passwordHistory || [];
+                        localStorage.setItem('users', JSON.stringify(users));
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+        
+        if (user) {
+            // Check if user is active
+            if (user.active === false) {
+                showLoginError('Akun Anda telah dinonaktifkan. Hubungi administrator!');
+                recordLoginAttempt(username, false);
+                return;
+            }
+            
+            // Successful login
+            currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            clearLoginAttempts(username);
+            
+            // Update last login time
+            updateLastLogin(user.id);
+            
+            showMainApp();
+        } else {
+            showLoginError('Username atau password salah!');
+            recordLoginAttempt(username, false);
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showLoginError('Terjadi kesalahan sistem. Silakan coba lagi.');
+    }
+}
+
+/**
+ * Display login error message
+ * @param {string} message - Error message to display
+ */
+function showLoginError(message) {
+    const errorDiv = document.getElementById('loginError');
+    if (errorDiv) {
+        errorDiv.textContent = message;
         errorDiv.classList.remove('d-none');
     }
 }
 
+/**
+ * Get users from localStorage with error handling
+ * @returns {Array} Array of users
+ */
+function getUsersFromStorage() {
+    try {
+        return JSON.parse(localStorage.getItem('users') || '[]');
+    } catch (error) {
+        console.error('Error parsing users from localStorage:', error);
+        return [];
+    }
+}
+
+/**
+ * Check if user is rate limited
+ * @param {string} username - Username to check
+ * @returns {boolean} True if rate limited
+ */
+function isRateLimited(username) {
+    const attempts = loginAttempts.get(username);
+    if (!attempts) return false;
+    
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    
+    // Clean old attempts
+    const recentAttempts = attempts.filter(time => now - time < fiveMinutes);
+    loginAttempts.set(username, recentAttempts);
+    
+    return recentAttempts.length >= 5;
+}
+
+/**
+ * Record login attempt
+ * @param {string} username - Username
+ * @param {boolean} success - Whether login was successful
+ */
+function recordLoginAttempt(username, success) {
+    if (success) {
+        loginAttempts.delete(username);
+        return;
+    }
+    
+    const attempts = loginAttempts.get(username) || [];
+    attempts.push(Date.now());
+    loginAttempts.set(username, attempts);
+}
+
+/**
+ * Clear login attempts for user
+ * @param {string} username - Username
+ */
+function clearLoginAttempts(username) {
+    loginAttempts.delete(username);
+}
+
+/**
+ * Update user's last login time
+ * @param {number} userId - User ID
+ */
+function updateLastLogin(userId) {
+    try {
+        const users = getUsersFromStorage();
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex !== -1) {
+            users[userIndex].lastLogin = new Date().toISOString();
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+    } catch (error) {
+        console.error('Error updating last login:', error);
+    }
+}
+
+/**
+ * Generate a random salt for password hashing
+ * @returns {string} Random salt
+ */
+function generateSalt() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let salt = '';
+    for (let i = 0; i < 16; i++) {
+        salt += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return salt;
+}
+
+/**
+ * Simple hash function for password hashing
+ * @param {string} text - Text to hash
+ * @returns {string} Hashed text
+ */
+function simpleHash(text) {
+    let hash = 0;
+    if (text.length === 0) return hash.toString();
+    
+    for (let i = 0; i < text.length; i++) {
+        const char = text.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return Math.abs(hash).toString(36);
+}
+
+/**
+ * Hash password with salt
+ * @param {string} password - Plain text password
+ * @returns {string} Hashed password with salt (format: salt:hash)
+ */
+function hashPassword(password) {
+    const salt = generateSalt();
+    const hash = simpleHash(salt + password + salt);
+    return `${salt}:${hash}`;
+}
+
+/**
+ * Verify password against hash
+ * @param {string} password - Plain text password
+ * @param {string} hashedPassword - Hashed password (format: salt:hash)
+ * @returns {boolean} True if password matches
+ */
+function verifyPassword(password, hashedPassword) {
+    try {
+        const [salt, hash] = hashedPassword.split(':');
+        if (!salt || !hash) return false;
+        
+        const computedHash = simpleHash(salt + password + salt);
+        return computedHash === hash;
+    } catch (error) {
+        console.error('Error verifying password:', error);
+        return false;
+    }
+}
+
+/**
+ * Validate password strength
+ * @param {string} password - Password to validate
+ * @returns {Object} Validation result with strength and requirements
+ */
+function validatePasswordStrength(password) {
+    const result = {
+        isValid: false,
+        strength: 'weak',
+        strengthText: 'Lemah',
+        score: 0,
+        requirements: {
+            minLength: password.length >= PASSWORD_CONFIG.minLength,
+            hasUppercase: /[A-Z]/.test(password),
+            hasLowercase: /[a-z]/.test(password),
+            hasNumbers: /\d/.test(password),
+            hasSpecialChars: new RegExp(`[${PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(password)
+        },
+        feedback: []
+    };
+    
+    if (!password) {
+        result.feedback.push('Password is required');
+        return result;
+    }
+    
+    // Length check
+    if (password.length < PASSWORD_CONFIG.minLength) {
+        result.feedback.push(`Password must be at least ${PASSWORD_CONFIG.minLength} characters long`);
+    } else if (password.length >= PASSWORD_CONFIG.minLength) {
+        result.score += 20;
+    }
+    
+    if (PASSWORD_CONFIG.maxLength && password.length > PASSWORD_CONFIG.maxLength) {
+        result.feedback.push(`Password must not exceed ${PASSWORD_CONFIG.maxLength} characters`);
+        return result;
+    }
+    
+    // Uppercase check
+    if (PASSWORD_CONFIG.requireUppercase) {
+        if (/[A-Z]/.test(password)) {
+            result.score += 20;
+        } else {
+            result.feedback.push('Password must contain at least one uppercase letter');
+        }
+    }
+    
+    // Lowercase check
+    if (PASSWORD_CONFIG.requireLowercase) {
+        if (/[a-z]/.test(password)) {
+            result.score += 20;
+        } else {
+            result.feedback.push('Password must contain at least one lowercase letter');
+        }
+    }
+    
+    // Numbers check
+    if (PASSWORD_CONFIG.requireNumbers) {
+        if (/\d/.test(password)) {
+            result.score += 20;
+        } else {
+            result.feedback.push('Password must contain at least one number');
+        }
+    }
+    
+    // Special characters check
+    if (PASSWORD_CONFIG.requireSpecialChars) {
+        const specialCharsRegex = new RegExp(`[${PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
+        if (specialCharsRegex.test(password)) {
+            result.score += 20;
+        } else {
+            result.feedback.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
+        }
+    }
+    
+    // Additional complexity bonuses
+    if (password.length >= 12) {
+        result.score += 5;
+    }
+    if (password.length >= 16) {
+        result.score += 5;
+    }
+    
+    // Check for common patterns (reduce score)
+    if (/(.)\1{2,}/.test(password)) { // Repeated characters
+        result.score -= 10;
+        result.feedback.push('Avoid repeating characters');
+    }
+    
+    if (/123|abc|qwe|password|admin/i.test(password)) { // Common patterns
+        result.score -= 15;
+        result.feedback.push('Avoid common patterns and dictionary words');
+    }
+    
+    // Determine strength level
+    if (result.score >= 90) {
+        result.strength = 'very-strong';
+        result.strengthText = 'Sangat Kuat';
+    } else if (result.score >= 70) {
+        result.strength = 'strong';
+        result.strengthText = 'Kuat';
+    } else if (result.score >= 50) {
+        result.strength = 'medium';
+        result.strengthText = 'Baik';
+    } else if (result.score >= 30) {
+        result.strength = 'weak';
+        result.strengthText = 'Cukup';
+    } else {
+        result.strength = 'very-weak';
+        result.strengthText = 'Lemah';
+    }
+    
+    result.isValid = result.score >= 70 && result.feedback.length === 0;
+    
+    return result;
+}
+
+/**
+ * Check if password was used recently
+ * @param {string} password - New password
+ * @param {Array} passwordHistory - Array of previous hashed passwords
+ * @returns {boolean} True if password was used recently
+ */
+function isPasswordReused(password, passwordHistory = []) {
+    if (!Array.isArray(passwordHistory)) return false;
+    
+    return passwordHistory.some(oldHash => {
+        try {
+            return verifyPassword(password, oldHash);
+        } catch (error) {
+            return false;
+        }
+    });
+}
+
+/**
+ * Add password to history
+ * @param {Array} passwordHistory - Current password history
+ * @param {string} hashedPassword - New hashed password to add
+ * @returns {Array} Updated password history
+ */
+function addToPasswordHistory(passwordHistory = [], hashedPassword) {
+    const history = [...passwordHistory];
+    history.unshift(hashedPassword);
+    
+    // Keep only the last N passwords
+    return history.slice(0, PASSWORD_CONFIG.maxHistory);
+}
+
+// ============================================================================
+// PASSWORD SECURITY IMPROVEMENTS (Task 2.1)
+// ============================================================================
+
+
+
+/**
+ * Check if password was used recently (password history)
+ * @param {number} userId - User ID
+ * @param {string} newPassword - New password to check
+ * @returns {boolean} True if password was used recently
+ */
+function isPasswordInHistory(userId, newPassword) {
+    try {
+        const users = getUsersFromStorage();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user || !user.passwordHistory) {
+            return false;
+        }
+        
+        return user.passwordHistory.some(oldHash => verifyPassword(newPassword, oldHash));
+    } catch (error) {
+        console.error('Error checking password history:', error);
+        return false;
+    }
+}
+
+/**
+ * Add password to user's history
+ * @param {number} userId - User ID
+ * @param {string} hashedPassword - Hashed password to add to history
+ */
+function addPasswordToHistory(userId, hashedPassword) {
+    try {
+        const users = getUsersFromStorage();
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex !== -1) {
+            if (!users[userIndex].passwordHistory) {
+                users[userIndex].passwordHistory = [];
+            }
+            
+            users[userIndex].passwordHistory.unshift(hashedPassword);
+            
+            // Keep only the last N passwords
+            const historyLimit = PASSWORD_CONFIG.historyLimit || PASSWORD_CONFIG.maxHistory;
+            if (users[userIndex].passwordHistory.length > historyLimit) {
+                users[userIndex].passwordHistory = users[userIndex].passwordHistory.slice(0, historyLimit);
+            }
+            
+            users[userIndex].passwordChangedAt = new Date().toISOString();
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+    } catch (error) {
+        console.error('Error adding password to history:', error);
+    }
+}
+
+/**
+ * Change user password with security validation
+ * @param {number} userId - User ID
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Object} Result of password change operation
+ */
+function changePassword(userId, currentPassword, newPassword) {
+    try {
+        const users = getUsersFromStorage();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            return { success: false, message: 'User not found' };
+        }
+        
+        // Verify current password
+        if (!verifyPassword(currentPassword, user.password)) {
+            return { success: false, message: 'Current password is incorrect' };
+        }
+        
+        // Validate new password strength
+        const validation = validatePasswordStrength(newPassword);
+        if (!validation.isValid) {
+            return { 
+                success: false, 
+                message: 'Password does not meet security requirements',
+                feedback: validation.feedback
+            };
+        }
+        
+        // Check password history
+        if (isPasswordInHistory(userId, newPassword)) {
+            const historyLimit = PASSWORD_CONFIG.historyLimit || PASSWORD_CONFIG.maxHistory;
+            return { 
+                success: false, 
+                message: `Password was used recently. Please choose a different password. Last ${historyLimit} passwords cannot be reused.`
+            };
+        }
+        
+        // Hash new password
+        const hashedPassword = hashPassword(newPassword);
+        
+        // Update user password
+        const userIndex = users.findIndex(u => u.id === userId);
+        users[userIndex].password = hashedPassword;
+        
+        // Add old password to history
+        addPasswordToHistory(userId, user.password);
+        
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        return { success: true, message: 'Password changed successfully' };
+        
+    } catch (error) {
+        console.error('Error changing password:', error);
+        return { success: false, message: 'An error occurred while changing password' };
+    }
+}
+
+/**
+ * Render navigation menu based on user role
+ * @throws {Error} If currentUser is not set or menuList element not found
+ */
 function renderMenu() {
+    if (!currentUser) {
+        console.error('Cannot render menu: currentUser is not set');
+        return;
+    }
+    
     const menuList = document.getElementById('menuList');
+    if (!menuList) {
+        console.error('Menu list element not found');
+        return;
+    }
+    
     const role = currentUser.role;
     
     const menus = {
@@ -141,10 +686,26 @@ function renderMenu() {
     `).join('');
 }
 
+/**
+ * Render page content based on page identifier
+ * @param {string} page - Page identifier
+ */
 function renderPage(page) {
     const content = document.getElementById('mainContent');
     
-    switch(page) {
+    if (!content) {
+        console.error('Main content element not found');
+        return;
+    }
+    
+    if (!page) {
+        console.error('Page parameter is required');
+        content.innerHTML = '<div class="alert alert-danger">Error: Halaman tidak valid</div>';
+        return;
+    }
+    
+    try {
+        switch(page) {
         case 'dashboard':
             renderDashboard();
             break;
@@ -261,6 +822,10 @@ function renderPage(page) {
             break;
         default:
             content.innerHTML = '<h2>Halaman tidak ditemukan</h2>';
+    }
+    } catch (error) {
+        console.error('Error rendering page:', error);
+        content.innerHTML = '<div class="alert alert-danger">Terjadi kesalahan saat memuat halaman. Silakan refresh browser.</div>';
     }
 }
 
@@ -409,6 +974,9 @@ function renderManajemenUser() {
                                         <button class="btn btn-sm btn-warning" onclick="editUser(${u.id})" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </button>
+                                        <button class="btn btn-sm btn-info" onclick="showChangePasswordModal(${u.id})" title="Change Password">
+                                            <i class="bi bi-key"></i>
+                                        </button>
                                         ${u.id !== 1 ? `
                                             <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})" title="Hapus">
                                                 <i class="bi bi-trash"></i>
@@ -448,7 +1016,8 @@ function renderManajemenUser() {
                                     <i class="bi bi-lock me-1"></i>Password
                                 </label>
                                 <input type="password" class="form-control" id="userPassword">
-                                <small class="text-muted" id="passwordHint">Minimal 6 karakter</small>
+                                <div id="userPasswordStrength" class="mt-2"></div>
+                                <small class="text-muted" id="passwordHint">Minimum 8 characters with complexity requirements</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">
@@ -531,15 +1100,33 @@ function getRoleName(role) {
     return names[role] || role;
 }
 
+/**
+ * Check if current user is a Super Admin
+ * @returns {boolean} True if current user is Super Admin
+ */
 function isSuperAdmin() {
     return currentUser && currentUser.role === 'super_admin';
 }
 
+/**
+ * Check if current user can manage admin accounts
+ * @returns {boolean} True if user can manage admins
+ */
 function canManageAdmins() {
     return isSuperAdmin();
 }
 
+/**
+ * Filter users based on current user's permissions
+ * @param {Array} users - Array of user objects
+ * @returns {Array} Filtered array of users
+ */
 function filterUsersByPermission(users) {
+    if (!Array.isArray(users)) {
+        console.error('filterUsersByPermission: users parameter must be an array');
+        return [];
+    }
+    
     if (isSuperAdmin()) {
         return users; // Super Admin sees all users
     }
@@ -568,7 +1155,7 @@ function showUserModal() {
     document.getElementById('userId').value = '';
     document.getElementById('userModalTitle').textContent = 'Tambah User';
     document.getElementById('userPassword').required = true;
-    document.getElementById('passwordHint').textContent = 'Minimal 6 karakter';
+    document.getElementById('passwordHint').textContent = 'Minimum 8 characters with complexity requirements';
     
     // Populate role dropdown based on user permissions
     const roleSelect = document.getElementById('userRole');
@@ -577,7 +1164,13 @@ function showUserModal() {
     roleSelect.innerHTML = '<option value="">Pilih Role</option>' + 
         availableRoles.map(role => `<option value="${role.value}">${role.label}</option>`).join('');
     
-    new bootstrap.Modal(document.getElementById('userModal')).show();
+    const modal = new bootstrap.Modal(document.getElementById('userModal'));
+    modal.show();
+    
+    // Initialize password strength indicator after modal is shown
+    setTimeout(() => {
+        initializePasswordStrengthIndicator('userPassword', 'userPasswordStrength');
+    }, 100);
 }
 
 function viewUser(id) {
@@ -638,7 +1231,7 @@ function editUser(id) {
         document.getElementById('userUsername').value = user.username;
         document.getElementById('userPassword').value = '';
         document.getElementById('userPassword').required = false;
-        document.getElementById('passwordHint').textContent = 'Kosongkan jika tidak ingin mengubah password';
+        document.getElementById('passwordHint').textContent = 'Leave blank to keep current password. New passwords must meet security requirements.';
         document.getElementById('userName').value = user.name;
         document.getElementById('userActive').value = user.active !== false ? 'true' : 'false';
         document.getElementById('userModalTitle').textContent = 'Edit User';
@@ -657,20 +1250,186 @@ function editUser(id) {
     }
 }
 
-function saveUser() {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const id = document.getElementById('userId').value;
-    const username = document.getElementById('userUsername').value;
-    const password = document.getElementById('userPassword').value;
-    const name = document.getElementById('userName').value;
-    const role = document.getElementById('userRole').value;
-    const active = document.getElementById('userActive').value === 'true';
+/**
+ * Get user form data with validation
+ * @returns {Object|null} Form data object or null if validation fails
+ */
+function getUserFormData() {
+    const elements = {
+        id: document.getElementById('userId'),
+        username: document.getElementById('userUsername'),
+        password: document.getElementById('userPassword'),
+        name: document.getElementById('userName'),
+        role: document.getElementById('userRole'),
+        active: document.getElementById('userActive')
+    };
     
-    // Validasi
-    if (!username || !name || !role) {
-        showAlert('Semua field harus diisi!', 'warning');
+    // Check if all elements exist
+    for (const [key, element] of Object.entries(elements)) {
+        if (!element) {
+            console.error(`Form element ${key} not found`);
+            showAlert('Error: Form tidak lengkap', 'danger');
+            return null;
+        }
+    }
+    
+    return {
+        id: elements.id.value,
+        username: elements.username.value.trim(),
+        password: elements.password.value,
+        name: elements.name.value.trim(),
+        role: elements.role.value,
+        active: elements.active.value === 'true'
+    };
+}
+
+/**
+ * Show password strength indicator
+ * @param {string} password - Password to analyze
+ * @param {string} containerId - ID of container element
+ */
+function showPasswordStrength(password, containerId = 'passwordStrength') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!password) {
+        container.innerHTML = '';
         return;
     }
+    
+    const validation = validatePasswordStrength(password);
+    
+    // Create strength bar
+    const strengthColors = {
+        1: '#dc3545', // Red - Weak
+        2: '#fd7e14', // Orange - Fair  
+        3: '#ffc107', // Yellow - Good
+        4: '#28a745', // Green - Strong
+        5: '#20c997'  // Teal - Very Strong
+    };
+    
+    const strengthWidth = (validation.strength / 5) * 100;
+    const strengthColor = strengthColors[validation.strength];
+    
+    let html = `
+        <div class="password-strength-container mt-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <small class="text-muted">Kekuatan Password:</small>
+                <small class="fw-bold" style="color: ${strengthColor}">${validation.strengthText}</small>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar" 
+                     style="width: ${strengthWidth}%; background-color: ${strengthColor};"
+                     role="progressbar"></div>
+            </div>
+    `;
+    
+    // Show requirements
+    if (validation.feedback.length > 0) {
+        html += `
+            <div class="password-requirements mt-2">
+                <small class="text-muted d-block mb-1">Persyaratan:</small>
+                <ul class="list-unstyled mb-0" style="font-size: 0.75rem;">
+        `;
+        
+        validation.feedback.forEach(feedback => {
+            html += `<li class="text-danger"><i class="bi bi-x-circle me-1"></i>${feedback}</li>`;
+        });
+        
+        html += `</ul></div>`;
+    } else {
+        html += `<small class="text-success mt-1 d-block"><i class="bi bi-check-circle me-1"></i>Semua persyaratan terpenuhi</small>`;
+    }
+    
+    html += `</div>`;
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Setup password strength indicator for input field
+ * @param {string} inputId - ID of password input field
+ * @param {string} containerId - ID of container for strength indicator
+ */
+function setupPasswordStrengthIndicator(inputId, containerId) {
+    const passwordInput = document.getElementById(inputId);
+    if (!passwordInput) return;
+    
+    // Create container if it doesn't exist
+    let container = document.getElementById(containerId);
+    if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        passwordInput.parentNode.insertBefore(container, passwordInput.nextSibling);
+    }
+    
+    // Add event listener
+    passwordInput.addEventListener('input', function() {
+        showPasswordStrength(this.value, containerId);
+    });
+    
+    // Show initial state
+    showPasswordStrength(passwordInput.value, containerId);
+}
+
+/**
+ * Initialize password strength indicator (alias for setupPasswordStrengthIndicator)
+ * @param {string} inputId - ID of password input field
+ * @param {string} containerId - ID of container for strength indicator
+ */
+function initializePasswordStrengthIndicator(inputId, containerId) {
+    setupPasswordStrengthIndicator(inputId, containerId);
+}
+
+/**
+ * Save user data (create or update)
+ * @returns {void}
+ */
+function saveUser() {
+    try {
+        const users = getUsersFromStorage();
+        
+        // Get form values with validation
+        const formData = getUserFormData();
+        if (!formData) {
+            return; // Error already shown in getUserFormData
+        }
+        
+        const { id, username, password, name, role, active } = formData;
+        
+        // Basic validation
+        if (!username.trim() || !name.trim() || !role) {
+            showAlert('Semua field wajib harus diisi!', 'warning');
+            return;
+        }
+        
+        // Username validation
+        if (username.length < 3) {
+            showAlert('Username minimal 3 karakter!', 'warning');
+            return;
+        }
+        
+        // Password validation for new users or password changes
+        if (password && password.trim()) {
+            const passwordValidation = validatePasswordStrength(password);
+            
+            if (!passwordValidation.isValid) {
+                const feedbackText = passwordValidation.feedback.join(', ');
+                showAlert(`Password tidak memenuhi persyaratan: ${feedbackText}`, 'warning');
+                return;
+            }
+            
+            // Check password reuse for existing users
+            if (id) {
+                const existingUser = users.find(u => u.id == id);
+                if (existingUser && existingUser.passwordHistory) {
+                    if (isPasswordReused(password, existingUser.passwordHistory)) {
+                        showAlert('Password ini sudah pernah digunakan sebelumnya. Silakan gunakan password yang berbeda.', 'warning');
+                        return;
+                    }
+                }
+            }
+        }
     
     // Permission validation: Check if non-Super Admin is trying to manage Super Admin accounts
     if (!isSuperAdmin() && role === 'super_admin') {
@@ -706,35 +1465,53 @@ function saveUser() {
         users[index].active = active;
         
         // Update password only if provided
-        if (password) {
-            if (password.length < 6) {
-                showAlert('Password minimal 6 karakter!', 'warning');
-                return;
+        if (password && password.trim()) {
+            // Add old password to history before updating
+            if (users[index].password) {
+                addPasswordToHistory(users[index].id, users[index].password);
             }
-            users[index].password = password;
+            
+            users[index].password = hashPassword(password);
+            users[index].passwordChangedAt = new Date().toISOString();
         }
     } else {
         // Add new user
-        if (!password || password.length < 6) {
-            showAlert('Password minimal 6 karakter!', 'warning');
+        if (!password) {
+            showAlert('Password is required for new users!', 'warning');
             return;
         }
         
+        // Validate password strength for new users
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.isValid) {
+            showAlert('Password does not meet security requirements: ' + passwordValidation.feedback.join(', '), 'warning');
+            return;
+        }
+        
+        const hashedPassword = hashPassword(password);
         const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+        
         users.push({
             id: newId,
             username: username,
-            password: password,
+            password: hashedPassword,
             name: name,
             role: role,
-            active: active
+            active: active,
+            createdAt: new Date().toISOString(),
+            passwordChangedAt: new Date().toISOString(),
+            passwordHistory: []
         });
     }
     
     localStorage.setItem('users', JSON.stringify(users));
     bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
-    showAlert('User berhasil disimpan', 'success');wAlert('User berhasil disimpan', 'success');
+    showAlert('User berhasil disimpan', 'success');
     renderManajemenUser();
+    } catch (error) {
+        console.error('Error saving user:', error);
+        showAlert('Gagal menyimpan user. Silakan coba lagi.', 'danger');
+    }
 }
 
 function deleteUser(id) {
@@ -1431,29 +2208,264 @@ function renderUploadMasterBarangExcel() {
     `;
 }
 
-// Function to download template
+/**
+ * Download CSV template for master barang upload
+ * @returns {void}
+ */
 function downloadTemplate() {
-    const template = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+    try {
+        const template = `kode,nama,kategori,satuan,harga_beli,stok,supplier
 BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
 BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni
 BRG003,Pulpen Pilot Hitam,alat-tulis,pcs,3000,100,Toko ATK Lengkap
 BRG004,Air Mineral 600ml,minuman,botol,2500,200,PT Air Bersih`;
 
-    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template_master_barang_excel.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showAlert('Template berhasil didownload!', 'success');
+        const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'template_master_barang_excel.csv';
+        
+        // Ensure element is added to DOM for compatibility
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showAlert('Template berhasil didownload!', 'success');
+    } catch (error) {
+        console.error('Error downloading template:', error);
+        showAlert('Gagal mendownload template. Silakan coba lagi.', 'danger');
+    }
 }
 
-// Function to show format guide
+/**
+ * Show format guide modal
+ * @returns {void}
+ */
 function showFormatGuide() {
-    const modal = new bootstrap.Modal(document.getElementById('formatGuideModal'));
+    try {
+        const modalElement = document.getElementById('formatGuideModal');
+        if (!modalElement) {
+            console.error('Format guide modal not found');
+            showAlert('Modal panduan tidak ditemukan', 'danger');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } catch (error) {
+        console.error('Error showing format guide:', error);
+        showAlert('Gagal membuka panduan format', 'danger');
+    }
+}
+
+// ============================================================================
+// PASSWORD UI ENHANCEMENTS (Task 2.1)
+// ============================================================================
+
+
+
+/**
+ * Update password strength UI indicator
+ * @param {HTMLElement} indicatorElement - Strength indicator element
+ * @param {Object} validation - Password validation result
+ */
+function updatePasswordStrengthUI(indicatorElement, validation) {
+    if (!indicatorElement) return;
+    
+    const strengthColors = {
+        'very-weak': '#dc3545',
+        'weak': '#fd7e14',
+        'medium': '#ffc107',
+        'strong': '#20c997',
+        'very-strong': '#198754'
+    };
+    
+    const strengthLabels = {
+        'very-weak': 'Very Weak',
+        'weak': 'Weak',
+        'medium': 'Medium',
+        'strong': 'Strong',
+        'very-strong': 'Very Strong'
+    };
+    
+    const color = strengthColors[validation.strength] || '#6c757d';
+    const label = strengthLabels[validation.strength] || 'Unknown';
+    
+    indicatorElement.innerHTML = `
+        <div class="password-strength-bar mb-2">
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar" 
+                     style="width: ${validation.score}%; background-color: ${color};"
+                     role="progressbar" 
+                     aria-valuenow="${validation.score}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                </div>
+            </div>
+            <small class="text-muted">
+                Strength: <span style="color: ${color}; font-weight: bold;">${label}</span> 
+                (${validation.score}/100)
+            </small>
+        </div>
+        ${validation.feedback.length > 0 ? `
+            <div class="password-feedback">
+                <small class="text-danger">
+                    <ul class="mb-0 ps-3">
+                        ${validation.feedback.map(msg => `<li>${msg}</li>`).join('')}
+                    </ul>
+                </small>
+            </div>
+        ` : ''}
+    `;
+}
+
+/**
+ * Show change password modal
+ * @param {number} userId - User ID (optional, defaults to current user)
+ */
+function showChangePasswordModal(userId = null) {
+    const targetUserId = userId || (currentUser ? currentUser.id : null);
+    
+    if (!targetUserId) {
+        showAlert('User not found', 'danger');
+        return;
+    }
+    
+    const modalHTML = `
+        <div class="modal fade" id="changePasswordModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-key me-2"></i>Change Password
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changePasswordForm">
+                            <input type="hidden" id="changePasswordUserId" value="${targetUserId}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-lock me-1"></i>Current Password
+                                </label>
+                                <input type="password" class="form-control" id="currentPassword" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-shield-lock me-1"></i>New Password
+                                </label>
+                                <input type="password" class="form-control" id="newPassword" required>
+                                <div id="newPasswordStrength" class="mt-2"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-shield-check me-1"></i>Confirm New Password
+                                </label>
+                                <input type="password" class="form-control" id="confirmPassword" required>
+                                <div class="invalid-feedback" id="confirmPasswordFeedback"></div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-info-circle me-2"></i>Password Requirements:</h6>
+                                <ul class="mb-0">
+                                    <li>At least 8 characters long</li>
+                                    <li>Contains uppercase and lowercase letters</li>
+                                    <li>Contains at least one number</li>
+                                    <li>Contains at least one special character</li>
+                                    <li>Cannot be one of your last ${PASSWORD_CONFIG.historyLimit || PASSWORD_CONFIG.maxHistory} passwords</li>
+                                </ul>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="processPasswordChange()">
+                            <i class="bi bi-check-circle me-1"></i>Change Password
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('changePasswordModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Initialize password strength indicator
+    setTimeout(() => {
+        initializePasswordStrengthIndicator('newPassword', 'newPasswordStrength');
+        
+        // Add confirm password validation
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const newPasswordInput = document.getElementById('newPassword');
+        
+        if (confirmPasswordInput && newPasswordInput) {
+            confirmPasswordInput.addEventListener('input', function() {
+                const feedback = document.getElementById('confirmPasswordFeedback');
+                if (this.value && this.value !== newPasswordInput.value) {
+                    this.classList.add('is-invalid');
+                    feedback.textContent = 'Passwords do not match';
+                } else {
+                    this.classList.remove('is-invalid');
+                    feedback.textContent = '';
+                }
+            });
+        }
+    }, 100);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
     modal.show();
+}
+
+/**
+ * Process password change from modal
+ */
+function processPasswordChange() {
+    try {
+        const userId = parseInt(document.getElementById('changePasswordUserId').value);
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        // Validate inputs
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            showAlert('All fields are required', 'warning');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            showAlert('New passwords do not match', 'warning');
+            return;
+        }
+        
+        // Change password
+        const result = changePassword(userId, currentPassword, newPassword);
+        
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
+            showAlert(result.message, 'success');
+        } else {
+            showAlert(result.message, 'danger');
+            if (result.feedback) {
+                console.log('Password feedback:', result.feedback);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error processing password change:', error);
+        showAlert('An error occurred while changing password', 'danger');
+    }
 }
