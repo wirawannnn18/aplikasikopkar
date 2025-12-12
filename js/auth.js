@@ -1432,21 +1432,21 @@ function saveUser() {
         }
         
         // Permission validation: Check if non-Super Admin is trying to manage Super Admin accounts
-    if (!isSuperAdmin() && role === 'super_admin') {
-        showAlert('Anda tidak memiliki izin untuk menetapkan role ini!', 'danger');
-        return;
-    }
+        if (!isSuperAdmin() && role === 'super_admin') {
+            showAlert('Anda tidak memiliki izin untuk menetapkan role ini!', 'danger');
+            return;
+        }
+        
+        // Check duplicate username
+        const existingUser = users.find(u => u.username === username && u.id != id);
+        if (existingUser) {
+            showAlert('Username sudah digunakan!', 'warning');
+            return;
+        }
     
-    // Check duplicate username
-    const existingUser = users.find(u => u.username === username && u.id != id);
-    if (existingUser) {
-        showAlert('Username sudah digunakan!', 'warning');
-        return;
-    }
-    
-    if (id) {
-        // Edit user
-        const index = users.findIndex(u => u.id == id);
+        if (id) {
+            // Edit user
+            const index = users.findIndex(u => u.id == id);
         
         if (index === -1) {
             showAlert('User tidak ditemukan!', 'danger');
@@ -1459,55 +1459,55 @@ function saveUser() {
             return;
         }
         
-        users[index].username = username;
-        users[index].name = name;
-        users[index].role = role;
-        users[index].active = active;
-        
-        // Update password only if provided
-        if (password && password.trim()) {
-            // Add old password to history before updating
-            if (users[index].password) {
-                addPasswordToHistory(users[index].id, users[index].password);
+            users[index].username = username;
+            users[index].name = name;
+            users[index].role = role;
+            users[index].active = active;
+            
+            // Update password only if provided
+            if (password && password.trim()) {
+                // Add old password to history before updating
+                if (users[index].password) {
+                    addPasswordToHistory(users[index].id, users[index].password);
+                }
+                
+                users[index].password = hashPassword(password);
+                users[index].passwordChangedAt = new Date().toISOString();
+            }
+        } else {
+            // Add new user
+            if (!password) {
+                showAlert('Password is required for new users!', 'warning');
+                return;
             }
             
-            users[index].password = hashPassword(password);
-            users[index].passwordChangedAt = new Date().toISOString();
-        }
-    } else {
-        // Add new user
-        if (!password) {
-            showAlert('Password is required for new users!', 'warning');
-            return;
+            // Validate password strength for new users
+            const passwordValidation = validatePasswordStrength(password);
+            if (!passwordValidation.isValid) {
+                showAlert('Password does not meet security requirements: ' + passwordValidation.feedback.join(', '), 'warning');
+                return;
+            }
+            
+            const hashedPassword = hashPassword(password);
+            const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+            
+            users.push({
+                id: newId,
+                username: username,
+                password: hashedPassword,
+                name: name,
+                role: role,
+                active: active,
+                createdAt: new Date().toISOString(),
+                passwordChangedAt: new Date().toISOString(),
+                passwordHistory: []
+            });
         }
         
-        // Validate password strength for new users
-        const passwordValidation = validatePasswordStrength(password);
-        if (!passwordValidation.isValid) {
-            showAlert('Password does not meet security requirements: ' + passwordValidation.feedback.join(', '), 'warning');
-            return;
-        }
-        
-        const hashedPassword = hashPassword(password);
-        const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-        
-        users.push({
-            id: newId,
-            username: username,
-            password: hashedPassword,
-            name: name,
-            role: role,
-            active: active,
-            createdAt: new Date().toISOString(),
-            passwordChangedAt: new Date().toISOString(),
-            passwordHistory: []
-        });
-    }
-    
-    localStorage.setItem('users', JSON.stringify(users));
-    bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
-    showAlert('User berhasil disimpan', 'success');
-    renderManajemenUser();
+        localStorage.setItem('users', JSON.stringify(users));
+        bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+        showAlert('User berhasil disimpan', 'success');
+        renderManajemenUser();
     } catch (error) {
         console.error('Error saving user:', error);
         showAlert('Gagal menyimpan user. Silakan coba lagi.', 'danger');
