@@ -8,7 +8,7 @@
  * - Network-aware performance tuning
  */
 
-export class MobileOptimizer {
+class MobileOptimizer {
     constructor(dashboardController) {
         this.dashboardController = dashboardController;
         this.isInitialized = false;
@@ -904,4 +904,11 @@ export class MobileOptimizer {
     destroy() {
         this.cleanup();
     }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { MobileOptimizer };
+} else {
+    window.MobileOptimizer = MobileOptimizer;
 }

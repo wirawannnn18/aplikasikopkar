@@ -576,5 +576,9 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = UIManager;
 }
 
-// ES module export
-export default UIManager;
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = UIManager;
+} else {
+    window.UIManager = UIManager;
+}

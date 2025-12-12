@@ -436,4 +436,8 @@ class ValidationEngine {
 }
 
 // Export for use in other modules
-export default ValidationEngine;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ValidationEngine;
+} else {
+    window.ValidationEngine = ValidationEngine;
+}

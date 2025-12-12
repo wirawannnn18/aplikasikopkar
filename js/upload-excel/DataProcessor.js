@@ -755,4 +755,8 @@ class DataProcessor {
 }
 
 // Export for use in other modules
-export default DataProcessor;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DataProcessor;
+} else {
+    window.DataProcessor = DataProcessor;
+}

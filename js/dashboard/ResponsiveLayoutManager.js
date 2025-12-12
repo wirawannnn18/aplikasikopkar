@@ -715,4 +715,8 @@ class ResponsiveLayoutManager {
 }
 
 // Export for use in other modules
-export { ResponsiveLayoutManager };
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { ResponsiveLayoutManager };
+} else {
+    window.ResponsiveLayoutManager = ResponsiveLayoutManager;
+}

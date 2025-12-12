@@ -777,4 +777,8 @@ class ExcelUploadManager {
 }
 
 // Export for use in other modules
-export default ExcelUploadManager;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ExcelUploadManager;
+} else {
+    window.ExcelUploadManager = ExcelUploadManager;
+}
