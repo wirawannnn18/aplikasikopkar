@@ -1433,11 +1433,11 @@ function renderUploadMasterBarangExcel() {
 
 // Function to download template
 function downloadTemplate() {
-    const template = \`kode,nama,kategori,satuan,harga_beli,stok,supplier
+    const template = `kode,nama,kategori,satuan,harga_beli,stok,supplier
 BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
 BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni
 BRG003,Pulpen Pilot Hitam,alat-tulis,pcs,3000,100,Toko ATK Lengkap
-BRG004,Air Mineral 600ml,minuman,botol,2500,200,PT Air Bersih\`;
+BRG004,Air Mineral 600ml,minuman,botol,2500,200,PT Air Bersih`;
 
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
