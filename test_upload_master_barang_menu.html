@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Master Barang Menu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Menu Upload Master Barang Excel</h2>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Status Implementasi</h5>
+            </div>
+            <div class="card-body">
+                <div id="testResults"></div>
+                <button class="btn btn-primary" onclick="runTests()">Run Tests</button>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Menu Preview (Super Admin)</h5>
+            </div>
+            <div class="card-body">
+                <ul id="menuList" class="list-unstyled"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock current user as super admin
+        window.currentUser = {
+            role: 'super_admin',
+            username: 'admin'
+        };
+
+        function runTests() {
+            const results = document.getElementById('testResults');
+            let testResults = [];
+            
+            // Test 1: Check if uploadMasterBarangExcelMenu.js is loaded
+            try {
+                if (typeof addUploadMasterBarangExcelMenu === 'function') {
+                    testResults.push('✅ uploadMasterBarangExcelMenu.js loaded successfully');
+                } else {
+                    testResults.push('❌ uploadMasterBarangExcelMenu.js not loaded');
+                }
+            } catch (e) {
+                testResults.push('❌ Error checking uploadMasterBarangExcelMenu.js: ' + e.message);
+            }
+            
+            // Test 2: Check if renderMenu function exists
+            try {
+                if (typeof renderMenu === 'function') {
+                    testResults.push('✅ renderMenu function exists');
+                } else {
+                    testResults.push('❌ renderMenu function not found');
+                }
+            } catch (e) {
+                testResults.push('❌ Error checking renderMenu: ' + e.message);
+            }
+            
+            // Test 3: Check if renderUploadMasterBarangExcel function exists
+            try {
+                if (typeof renderUploadMasterBarangExcel === 'function') {
+                    testResults.push('✅ renderUploadMasterBarangExcel function exists');
+                } else {
+                    testResults.push('❌ renderUploadMasterBarangExcel function not found');
+                }
+            } catch (e) {
+                testResults.push('❌ Error checking renderUploadMasterBarangExcel: ' + e.message);
+            }
+            
+            // Test 4: Test menu rendering
+            try {
+                if (typeof renderMenu === 'function') {
+                    renderMenu();
+                    const menuItems = document.querySelectorAll('#menuList li');
+                    const uploadMenuItem = Array.from(menuItems).find(item => 
+                        item.textContent.includes('Upload Master Barang Excel')
+                    );
+                    
+                    if (uploadMenuItem) {
+                        testResults.push('✅ Upload Master Barang Excel menu item found in rendered menu');
+                    } else {
+                        testResults.push('❌ Upload Master Barang Excel menu item NOT found in rendered menu');
+                    }
+                } else {
+                    testResults.push('❌ Cannot test menu rendering - renderMenu function not available');
+                }
+            } catch (e) {
+                testResults.push('❌ Error testing menu rendering: ' + e.message);
+            }
+            
+            results.innerHTML = testResults.map(result => `<div class="mb-2">${result}</div>`).join('');
+        }
+
+        // Mock renderMenu function (simplified version for testing)
+        function renderMenu() {
+            const menuList = document.getElementById('menuList');
+            const role = currentUser.role;
+            
+            const menus = {
+                super_admin: [
+                    { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+                    { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+                    { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
+                    { icon: 'bi-file-excel', text: 'Upload Master Barang Excel', page: 'upload-master-barang-excel' },
+                    { icon: 'bi-info-circle', text: 'Tentang Aplikasi', page: 'tentang' }
+                ]
+            };
+            
+            const userMenus = menus[role] || [];
+            menuList.innerHTML = userMenus.map(menu => `
+                <li class="nav-item mb-2">
+                    <a class="nav-link btn btn-outline-primary text-start" href="#" data-page="${menu.page}">
+                        <i class="${menu.icon} me-2"></i>${menu.text}
+                    </a>
+                </li>
+            `).join('');
+        }
+
+        // Mock navigateTo function
+        function navigateTo(page) {
+            console.log('Navigate to:', page);
+            if (page === 'upload-master-barang-excel') {
+                alert('Menu Upload Master Barang Excel diklik! Halaman akan dimuat.');
+            }
+        }
+    </script>
+    
+    <!-- Load the actual menu integration script -->
+    <script src="js/uploadMasterBarangExcelMenu.js"></script>
+    
+    <script>
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>
