@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnose Upload Barang Issue</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Diagnose Upload Barang Issue</h1>
+        <p>Testing upload master barang functionality...</p>
+        
+        <div id="results"></div>
+        
+        <div class="mt-4">
+            <h3>Test Upload File</h3>
+            <input type="file" id="testFileInput" accept=".csv,.xlsx" class="form-control mb-3">
+            <button id="testUploadBtn" class="btn btn-primary">Test Upload</button>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="js/upload-excel/types.js"></script>
+    <script src="js/upload-excel/ValidationEngine.js"></script>
+    <script src="js/upload-excel/DataProcessor.js"></script>
+    <script src="js/upload-excel/CategoryUnitManager.js"></script>
+    <script src="js/upload-excel/AuditLogger.js"></script>
+    <script src="js/upload-excel/ExcelUploadManager.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        // Test component loading
+        function testComponentLoading() {
+            addResult('<h4>Testing Component Loading</h4>', 'info');
+            
+            const components = [
+                'ValidationEngine',
+                'DataProcessor', 
+                'CategoryUnitManager',
+                'AuditLogger',
+                'ExcelUploadManager'
+            ];
+            
+            components.forEach(component => {
+                if (typeof window[component] !== 'undefined') {
+                    addResult(`✓ ${component} loaded successfully`, 'success');
+                } else {
+                    addResult(`✗ ${component} not found`, 'error');
+                }
+            });
+        }
+
+        // Test ExcelUploadManager initialization
+        function testManagerInitialization() {
+            addResult('<h4>Testing ExcelUploadManager Initialization</h4>', 'info');
+            
+            try {
+                const manager = new ExcelUploadManager();
+                addResult('✓ ExcelUploadManager created successfully', 'success');
+                
+                // Test methods exist
+                const methods = ['uploadFile', 'processFileContent', 'previewData'];
+                methods.forEach(method => {
+                    if (typeof manager[method] === 'function') {
+                        addResult(`✓ Method ${method} exists`, 'success');
+                    } else {
+                        addResult(`✗ Method ${method} missing`, 'error');
+                    }
+                });
+                
+                return manager;
+            } catch (error) {
+                addResult(`✗ Failed to create ExcelUploadManager: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Test file upload functionality
+        async function testFileUpload(file, manager) {
+            addResult('<h4>Testing File Upload</h4>', 'info');
+            
+            if (!file) {
+                addResult('⚠ No file selected for testing', 'warning');
+                return;
+            }
+            
+            if (!manager) {
+                addResult('✗ ExcelUploadManager not available', 'error');
+                return;
+            }
+            
+            try {
+                addResult(`Testing file: ${file.name} (${file.size} bytes)`, 'info');
+                
+                // Test uploadFile method
+                addResult('Testing uploadFile method...', 'info');
+                const session = await manager.uploadFile(file);
+                addResult(`✓ uploadFile completed - Session ID: ${session.id}`, 'success');
+                
+                // Test processFileContent method
+                addResult('Testing processFileContent method...', 'info');
+                const data = await manager.processFileContent(file);
+                addResult(`✓ processFileContent completed - ${data.length} records processed`, 'success');
+                
+                // Test previewData method
+                addResult('Testing previewData method...', 'info');
+                const preview = await manager.previewData(data);
+                addResult(`✓ previewData completed - Preview generated`, 'success');
+                
+                // Show sample data
+                if (data.length > 0) {
+                    const sample = data[0];
+                    addResult(`Sample data: ${JSON.stringify(sample, null, 2)}`, 'info');
+                }
+                
+            } catch (error) {
+                addResult(`✗ Upload test failed: ${error.message}`, 'error');
+                console.error('Upload test error:', error);
+            }
+        }
+
+        // Initialize tests
+        document.addEventListener('DOMContentLoaded', function() {
+            testComponentLoading();
+            const manager = testManagerInitialization();
+            
+            // Setup file upload test
+            document.getElementById('testUploadBtn').addEventListener('click', async function() {
+                const fileInput = document.getElementById('testFileInput');
+                const file = fileInput.files[0];
+                
+                if (file) {
+                    await testFileUpload(file, manager);
+                } else {
+                    addResult('⚠ Please select a file first', 'warning');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

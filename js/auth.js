@@ -184,6 +184,9 @@ function renderPage(page) {
         case 'barang':
             renderBarang();
             break;
+        case 'upload-master-barang-excel':
+            renderUploadMasterBarangExcel();
+            break;
         case 'supplier':
             renderSupplier();
             break;
@@ -1230,5 +1233,224 @@ function showSupportInfo() {
     
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('supportModal'));
+    modal.show();
+}
+
+// Render Upload Master Barang Excel
+function renderUploadMasterBarangExcel() {
+    const content = document.getElementById('mainContent');
+    
+    content.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #2d6a4f; font-weight: 700;">
+                <i class="bi bi-file-excel me-2"></i>Upload Master Barang Excel
+            </h2>
+            <div>
+                <button class="btn btn-outline-primary" onclick="window.open('upload_master_barang_excel.html', '_blank')">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Buka di Tab Baru
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header" style="background: linear-gradient(135deg, #2d6a4f 0%, #52b788 100%); color: white;">
+                <i class="bi bi-upload me-2"></i>Upload Data Barang Massal
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Informasi:</strong> Fitur ini memungkinkan Anda mengupload data barang secara massal menggunakan file Excel atau CSV.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 style="color: #2d6a4f;" class="mb-3">
+                            <i class="bi bi-list-check me-2"></i>Fitur Utama
+                        </h5>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Upload file Excel (.xlsx) atau CSV (.csv)
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Drag & drop interface yang mudah digunakan
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Validasi data otomatis dan real-time
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Preview data sebelum import
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Auto-create kategori dan satuan baru
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Progress tracking dan error handling
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Audit log lengkap untuk compliance
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-download me-2"></i>Template & Panduan
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-3">
+                                    <small>
+                                        Download template CSV untuk mempersiapkan data dengan format yang benar.
+                                    </small>
+                                </p>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success" onclick="downloadTemplate()">
+                                        <i class="bi bi-download me-2"></i>Download Template
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="showFormatGuide()">
+                                        <i class="bi bi-question-circle me-2"></i>Panduan Format
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <button class="btn btn-primary btn-lg" onclick="window.open('upload_master_barang_excel.html', '_blank')" style="padding: 15px 30px; font-size: 1.2rem;">
+                        <i class="bi bi-upload me-2"></i>Mulai Upload Data Barang
+                    </button>
+                    <p class="text-muted mt-2">
+                        <small>Klik tombol di atas untuk membuka halaman upload dalam tab baru</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Format Guide -->
+        <div class="modal fade" id="formatGuideModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-question-circle me-2"></i>Panduan Format File
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 class="text-primary">Format Kolom yang Diperlukan:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Kolom</th>
+                                        <th>Wajib</th>
+                                        <th>Format</th>
+                                        <th>Contoh</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>kode</strong></td>
+                                        <td><span class="badge bg-danger">Ya</span></td>
+                                        <td>Teks, maksimal 20 karakter, unik</td>
+                                        <td>BRG001</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>nama</strong></td>
+                                        <td><span class="badge bg-danger">Ya</span></td>
+                                        <td>Teks, maksimal 100 karakter</td>
+                                        <td>Beras Premium 5kg</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>kategori</strong></td>
+                                        <td><span class="badge bg-danger">Ya</span></td>
+                                        <td>Teks, akan dibuat otomatis jika belum ada</td>
+                                        <td>makanan</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>satuan</strong></td>
+                                        <td><span class="badge bg-danger">Ya</span></td>
+                                        <td>Teks, akan dibuat otomatis jika belum ada</td>
+                                        <td>kg</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>harga_beli</strong></td>
+                                        <td><span class="badge bg-danger">Ya</span></td>
+                                        <td>Angka, harus positif</td>
+                                        <td>65000</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>stok</strong></td>
+                                        <td><span class="badge bg-danger">Ya</span></td>
+                                        <td>Angka, tidak boleh negatif</td>
+                                        <td>50</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>supplier</strong></td>
+                                        <td><span class="badge bg-secondary">Tidak</span></td>
+                                        <td>Teks, maksimal 100 karakter</td>
+                                        <td>PT Beras Sejahtera</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Penting:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>File maksimal 5MB</li>
+                                <li>Format yang didukung: .xlsx, .csv</li>
+                                <li>Baris pertama harus berisi header kolom</li>
+                                <li>Kode barang harus unik (tidak boleh duplikat)</li>
+                                <li>Harga beli dan stok harus berupa angka</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-success" onclick="downloadTemplate()">
+                            <i class="bi bi-download me-1"></i>Download Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to download template
+function downloadTemplate() {
+    const template = \`kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,Beras Premium 5kg,makanan,kg,65000,50,PT Beras Sejahtera
+BRG002,Minyak Goreng 1L,makanan,botol,15000,30,CV Minyak Murni
+BRG003,Pulpen Pilot Hitam,alat-tulis,pcs,3000,100,Toko ATK Lengkap
+BRG004,Air Mineral 600ml,minuman,botol,2500,200,PT Air Bersih\`;
+
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_master_barang_excel.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showAlert('Template berhasil didownload!', 'success');
+}
+
+// Function to show format guide
+function showFormatGuide() {
+    const modal = new bootstrap.Modal(document.getElementById('formatGuideModal'));
     modal.show();
 }
