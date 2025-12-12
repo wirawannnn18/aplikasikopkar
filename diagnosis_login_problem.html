@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnosis Masalah Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>🔍 Diagnosis Masalah Login</h2>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>1. Cek Data User di LocalStorage</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="checkUserData()">Periksa Data User</button>
+                        <div id="userDataResult" class="mt-3"></div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>2. Reset Data User (Jika Diperlukan)</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning" onclick="resetUserData()">Reset ke User Default</button>
+                        <div id="resetResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>3. Test Login Manual</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="testLoginForm">
+                            <div class="mb-3">
+                                <label for="testUsername" class="form-label">Username:</label>
+                                <input type="text" class="form-control" id="testUsername" value="admin">
+                            </div>
+                            <div class="mb-3">
+                                <label for="testPassword" class="form-label">Password:</label>
+                                <input type="password" class="form-control" id="testPassword" value="admin">
+                            </div>
+                            <button type="submit" class="btn btn-success">Test Login</button>
+                        </form>
+                        <div id="testLoginResult" class="mt-3"></div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>4. Cek Console Errors</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info" onclick="checkConsoleErrors()">Periksa Error</button>
+                        <div id="consoleResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>5. Solusi Cepat</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-danger" onclick="clearAllData()">Clear Semua Data & Reset</button>
+                        <button class="btn btn-primary ms-2" onclick="goToMainApp()">Langsung ke Aplikasi</button>
+                        <div id="solutionResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load auth.js functions
+        let currentUser = null;
+        let loginAttempts = new Map();
+
+        // Default users
+        const defaultUsers = [
+            {
+                id: 1,
+                username: 'admin',
+                password: 'admin',
+                name: 'Administrator',
+                role: 'super_admin',
+                active: true,
+                createdAt: new Date().toISOString(),
+                passwordChangedAt: new Date().toISOString(),
+                passwordHistory: []
+            },
+            {
+                id: 2,
+                username: 'kasir',
+                password: 'kasir123',
+                name: 'Kasir',
+                role: 'kasir',
+                active: true,
+                createdAt: new Date().toISOString(),
+                passwordChangedAt: new Date().toISOString(),
+                passwordHistory: []
+            }
+        ];
+
+        function checkUserData() {
+            const result = document.getElementById('userDataResult');
+            try {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                
+                let html = '<div class="alert alert-info">';
+                html += '<h6>Data Users:</h6>';
+                if (users.length === 0) {
+                    html += '<p class="text-danger">❌ Tidak ada data user ditemukan!</p>';
+                } else {
+                    html += '<ul>';
+                    users.forEach(user => {
+                        html += `<li><strong>${user.username}</strong> (${user.role}) - Active: ${user.active}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                html += '<h6>Current User:</h6>';
+                if (currentUser) {
+                    html += `<p class="text-success">✅ Logged in as: ${currentUser.username} (${currentUser.role})</p>`;
+                } else {
+                    html += '<p class="text-warning">⚠️ Tidak ada user yang login</p>';
+                }
+                html += '</div>';
+                
+                result.innerHTML = html;
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function resetUserData() {
+            const result = document.getElementById('resetResult');
+            try {
+                localStorage.setItem('users', JSON.stringify(defaultUsers));
+                localStorage.removeItem('currentUser');
+                result.innerHTML = '<div class="alert alert-success">✅ Data user berhasil direset ke default!</div>';
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testLogin() {
+            const result = document.getElementById('testLoginResult');
+            const username = document.getElementById('testUsername').value;
+            const password = document.getElementById('testPassword').value;
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const user = users.find(u => u.username === username && u.password === password);
+                
+                if (user) {
+                    if (user.active === false) {
+                        result.innerHTML = '<div class="alert alert-warning">⚠️ Akun dinonaktifkan!</div>';
+                        return;
+                    }
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    result.innerHTML = '<div class="alert alert-success">✅ Login berhasil!</div>';
+                } else {
+                    result.innerHTML = '<div class="alert alert-danger">❌ Username atau password salah!</div>';
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function checkConsoleErrors() {
+            const result = document.getElementById('consoleResult');
+            result.innerHTML = '<div class="alert alert-info">Periksa Console Browser (F12) untuk melihat error JavaScript yang mungkin terjadi.</div>';
+        }
+
+        function clearAllData() {
+            const result = document.getElementById('solutionResult');
+            try {
+                // Clear all localStorage
+                localStorage.clear();
+                
+                // Set default users
+                localStorage.setItem('users', JSON.stringify(defaultUsers));
+                
+                // Set default current user
+                localStorage.setItem('currentUser', JSON.stringify(defaultUsers[0]));
+                
+                result.innerHTML = '<div class="alert alert-success">✅ Semua data berhasil direset! Silakan refresh halaman.</div>';
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function goToMainApp() {
+            const result = document.getElementById('solutionResult');
+            try {
+                // Ensure we have users
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                if (users.length === 0) {
+                    localStorage.setItem('users', JSON.stringify(defaultUsers));
+                }
+                
+                // Set current user to admin
+                localStorage.setItem('currentUser', JSON.stringify(defaultUsers[0]));
+                
+                // Redirect to main app
+                window.location.href = 'index.html';
+            } catch (error) {
+                result.innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('testLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            testLogin();
+        });
+
+        // Auto check on load
+        window.addEventListener('load', function() {
+            checkUserData();
+        });
+    </script>
+</body>
+</html>
