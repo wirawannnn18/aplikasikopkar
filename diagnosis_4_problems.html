@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnosis 4 Problems - Sistem Koperasi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="alert alert-warning">
+            <h3><i class="bi bi-exclamation-triangle-fill me-2"></i>Diagnosis 4 Problems</h3>
+            <p>Tool ini akan membantu mengidentifikasi dan memperbaiki 4 masalah utama yang mungkin ada di sistem.</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h4><i class="bi bi-bug me-2"></i>Identifikasi Masalah</h4>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-danger mb-3" onclick="runDiagnosis()">
+                            <i class="bi bi-search me-2"></i>Scan Masalah Sistem
+                        </button>
+                        <div id="problemResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="bi bi-list-check me-2"></i>Kemungkinan Masalah</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div class="list-group-item">
+                                <h6 class="mb-1">1. Login/Authentication Issues</h6>
+                                <p class="mb-1">User tidak bisa login dengan kredensial default</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="checkProblem('login')">Check</button>
+                            </div>
+                            <div class="list-group-item">
+                                <h6 class="mb-1">2. Menu Upload Master Barang Excel</h6>
+                                <p class="mb-1">Menu tidak muncul di sidebar</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="checkProblem('menu')">Check</button>
+                            </div>
+                            <div class="list-group-item">
+                                <h6 class="mb-1">3. Browser Cache Issues</h6>
+                                <p class="mb-1">File JavaScript tidak ter-update</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="checkProblem('cache')">Check</button>
+                            </div>
+                            <div class="list-group-item">
+                                <h6 class="mb-1">4. Data Corruption</h6>
+                                <p class="mb-1">LocalStorage data corrupt atau hilang</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="checkProblem('data')">Check</button>
+                            </div>
+                            <div class="list-group-item">
+                                <h6 class="mb-1">5. JavaScript Errors</h6>
+                                <p class="mb-1">Error di console yang mencegah fungsi berjalan</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="checkProblem('js')">Check</button>
+                            </div>
+                            <div class="list-group-item">
+                                <h6 class="mb-1">6. File Missing/Corrupt</h6>
+                                <p class="mb-1">File JavaScript atau HTML tidak ter-load</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="checkProblem('files')">Check</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="bi bi-tools me-2"></i>Quick Fixes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" onclick="fixLogin()">
+                                <i class="bi bi-person-check me-2"></i>Fix Login Issues
+                            </button>
+                            <button class="btn btn-warning" onclick="clearCache()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Clear Browser Cache
+                            </button>
+                            <button class="btn btn-info" onclick="resetData()">
+                                <i class="bi bi-database me-2"></i>Reset User Data
+                            </button>
+                            <button class="btn btn-primary" onclick="forceRefresh()">
+                                <i class="bi bi-arrow-repeat me-2"></i>Force Refresh
+                            </button>
+                            <button class="btn btn-secondary" onclick="checkConsole()">
+                                <i class="bi bi-terminal me-2"></i>Check Console Errors
+                            </button>
+                            <button class="btn btn-dark" onclick="fullDiagnostic()">
+                                <i class="bi bi-gear me-2"></i>Full System Diagnostic
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h4><i class="bi bi-clipboard-data me-2"></i>Diagnostic Results</h4>
+            </div>
+            <div class="card-body">
+                <div id="diagnosticResults">
+                    <p class="text-muted">Klik "Scan Masalah Sistem" untuk memulai diagnosis...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                              type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            return `
+                <div class="${alertClass} alert-dismissible fade show" role="alert">
+                    <small class="text-muted">[${timestamp}]</small> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        function runDiagnosis() {
+            const resultsDiv = document.getElementById('problemResults');
+            let results = '<h5>🔍 Scanning System...</h5>';
+            
+            // Problem 1: Check Login System
+            results += '<h6>Problem 1: Login System</h6>';
+            try {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                if (users.length === 0) {
+                    results += log('❌ PROBLEM: No users found in system', 'error');
+                } else {
+                    const expectedUsers = ['superadmin', 'admin', 'keuangan', 'kasir'];
+                    const foundUsers = users.map(u => u.username);
+                    const missingUsers = expectedUsers.filter(u => !foundUsers.includes(u));
+                    
+                    if (missingUsers.length > 0) {
+                        results += log(`❌ PROBLEM: Missing users: ${missingUsers.join(', ')}`, 'error');
+                    } else {
+                        results += log('✅ Login system OK - All default users found', 'success');
+                    }
+                }
+            } catch (error) {
+                results += log(`❌ PROBLEM: Login system error - ${error.message}`, 'error');
+            }
+            
+            // Problem 2: Check Menu System
+            results += '<h6>Problem 2: Menu System</h6>';
+            try {
+                if (typeof renderMenu === 'function') {
+                    results += log('✅ Menu system OK - renderMenu function exists', 'success');
+                } else {
+                    results += log('❌ PROBLEM: renderMenu function not found', 'error');
+                }
+                
+                if (typeof renderUploadMasterBarangExcel === 'function') {
+                    results += log('✅ Upload Excel menu OK - function exists', 'success');
+                } else {
+                    results += log('❌ PROBLEM: renderUploadMasterBarangExcel function not found', 'error');
+                }
+            } catch (error) {
+                results += log(`❌ PROBLEM: Menu system error - ${error.message}`, 'error');
+            }
+            
+            // Problem 3: Check Current User
+            results += '<h6>Problem 3: Current User Session</h6>';
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                if (!currentUser) {
+                    results += log('⚠️ WARNING: No user currently logged in', 'warning');
+                } else {
+                    results += log(`✅ User session OK - Logged in as: ${currentUser.username} (${currentUser.role})`, 'success');
+                }
+            } catch (error) {
+                results += log(`❌ PROBLEM: User session error - ${error.message}`, 'error');
+            }
+            
+            // Problem 4: Check JavaScript Errors
+            results += '<h6>Problem 4: JavaScript Environment</h6>';
+            try {
+                // Check essential functions
+                const essentialFunctions = [
+                    'handleLogin', 'showMainApp', 'navigateTo', 'renderPage', 
+                    'formatRupiah', 'showAlert', 'logout'
+                ];
+                
+                const missingFunctions = essentialFunctions.filter(fn => typeof window[fn] !== 'function');
+                
+                if (missingFunctions.length > 0) {
+                    results += log(`❌ PROBLEM: Missing functions: ${missingFunctions.join(', ')}`, 'error');
+                } else {
+                    results += log('✅ JavaScript environment OK - All essential functions found', 'success');
+                }
+            } catch (error) {
+                results += log(`❌ PROBLEM: JavaScript environment error - ${error.message}`, 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        function checkProblem(type) {
+            const diagnosticDiv = document.getElementById('diagnosticResults');
+            let result = '';
+            
+            switch(type) {
+                case 'login':
+                    result = checkLoginProblem();
+                    break;
+                case 'menu':
+                    result = checkMenuProblem();
+                    break;
+                case 'cache':
+                    result = checkCacheProblem();
+                    break;
+                case 'data':
+                    result = checkDataProblem();
+                    break;
+                case 'js':
+                    result = checkJSProblem();
+                    break;
+                case 'files':
+                    result = checkFilesProblem();
+                    break;
+            }
+            
+            diagnosticDiv.innerHTML = result;
+        }
+
+        function checkLoginProblem() {
+            let result = '<h5>🔍 Login Problem Analysis</h5>';
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                if (users.length === 0) {
+                    result += log('❌ CRITICAL: No users in system - Need to initialize default users', 'error');
+                    return result;
+                }
+                
+                const defaultUsers = [
+                    { username: 'superadmin', password: 'super123', role: 'super_admin' },
+                    { username: 'admin', password: 'admin123', role: 'administrator' },
+                    { username: 'keuangan', password: 'keuangan123', role: 'keuangan' },
+                    { username: 'kasir', password: 'kasir123', role: 'kasir' }
+                ];
+                
+                defaultUsers.forEach(expected => {
+                    const user = users.find(u => u.username === expected.username);
+                    if (!user) {
+                        result += log(`❌ Missing user: ${expected.username}`, 'error');
+                    } else if (user.password !== expected.password) {
+                        result += log(`❌ Wrong password for ${expected.username}`, 'error');
+                    } else if (user.role !== expected.role) {
+                        result += log(`❌ Wrong role for ${expected.username}: expected ${expected.role}, got ${user.role}`, 'error');
+                    } else {
+                        result += log(`✅ User ${expected.username} OK`, 'success');
+                    }
+                });
+                
+            } catch (error) {
+                result += log(`❌ Error checking login: ${error.message}`, 'error');
+            }
+            
+            return result;
+        }
+
+        function checkMenuProblem() {
+            let result = '<h5>🔍 Menu Problem Analysis</h5>';
+            
+            // Check if auth.js is loaded
+            if (typeof renderMenu !== 'function') {
+                result += log('❌ auth.js not loaded or renderMenu function missing', 'error');
+                return result;
+            }
+            
+            // Check current user
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (!currentUser) {
+                result += log('⚠️ No user logged in - menu won\'t show', 'warning');
+                return result;
+            }
+            
+            // Check if user has correct role for upload menu
+            if (currentUser.role === 'super_admin' || currentUser.role === 'administrator') {
+                result += log('✅ User has correct role for Upload Master Barang Excel menu', 'success');
+            } else {
+                result += log(`⚠️ User role '${currentUser.role}' cannot see Upload Master Barang Excel menu`, 'warning');
+            }
+            
+            // Check if function exists
+            if (typeof renderUploadMasterBarangExcel === 'function') {
+                result += log('✅ renderUploadMasterBarangExcel function exists', 'success');
+            } else {
+                result += log('❌ renderUploadMasterBarangExcel function not found', 'error');
+            }
+            
+            return result;
+        }
+
+        function checkCacheProblem() {
+            let result = '<h5>🔍 Cache Problem Analysis</h5>';
+            
+            // Check if files are cached
+            const timestamp = new Date().getTime();
+            result += log(`Current timestamp: ${timestamp}`, 'info');
+            result += log('Browser cache may be preventing updated files from loading', 'warning');
+            result += log('Recommended: Hard refresh (Ctrl+F5) or clear browser cache', 'info');
+            
+            return result;
+        }
+
+        function checkDataProblem() {
+            let result = '<h5>🔍 Data Problem Analysis</h5>';
+            
+            const essentialKeys = ['users', 'koperasi', 'anggota', 'coa', 'barang'];
+            
+            essentialKeys.forEach(key => {
+                try {
+                    const data = localStorage.getItem(key);
+                    if (!data) {
+                        result += log(`❌ Missing data: ${key}`, 'error');
+                    } else {
+                        const parsed = JSON.parse(data);
+                        result += log(`✅ Data OK: ${key} (${Array.isArray(parsed) ? parsed.length + ' items' : 'object'})`, 'success');
+                    }
+                } catch (error) {
+                    result += log(`❌ Corrupt data: ${key} - ${error.message}`, 'error');
+                }
+            });
+            
+            return result;
+        }
+
+        function checkJSProblem() {
+            let result = '<h5>🔍 JavaScript Problem Analysis</h5>';
+            
+            // Check for console errors
+            result += log('Check browser console (F12) for JavaScript errors', 'info');
+            
+            // Check essential functions
+            const functions = [
+                'handleLogin', 'showMainApp', 'renderMenu', 'navigateTo', 
+                'renderPage', 'formatRupiah', 'showAlert', 'logout',
+                'renderUploadMasterBarangExcel'
+            ];
+            
+            functions.forEach(fn => {
+                if (typeof window[fn] === 'function') {
+                    result += log(`✅ Function OK: ${fn}`, 'success');
+                } else {
+                    result += log(`❌ Function missing: ${fn}`, 'error');
+                }
+            });
+            
+            return result;
+        }
+
+        function checkFilesProblem() {
+            let result = '<h5>🔍 Files Problem Analysis</h5>';
+            
+            result += log('Checking if essential files are loaded...', 'info');
+            
+            // Check if main scripts are loaded by checking for their functions
+            const fileChecks = [
+                { file: 'js/app.js', check: () => typeof initializeApp === 'function' },
+                { file: 'js/auth.js', check: () => typeof handleLogin === 'function' },
+                { file: 'index.html', check: () => document.getElementById('loginPage') !== null }
+            ];
+            
+            fileChecks.forEach(({ file, check }) => {
+                try {
+                    if (check()) {
+                        result += log(`✅ File loaded: ${file}`, 'success');
+                    } else {
+                        result += log(`❌ File not loaded or incomplete: ${file}`, 'error');
+                    }
+                } catch (error) {
+                    result += log(`❌ Error checking ${file}: ${error.message}`, 'error');
+                }
+            });
+            
+            return result;
+        }
+
+        // Quick Fix Functions
+        function fixLogin() {
+            try {
+                const defaultUsers = [
+                    { id: 1, username: 'superadmin', password: 'super123', name: 'Super Administrator', role: 'super_admin', active: true },
+                    { id: 2, username: 'admin', password: 'admin123', name: 'Administrator', role: 'administrator', active: true },
+                    { id: 3, username: 'keuangan', password: 'keuangan123', name: 'Admin Keuangan', role: 'keuangan', active: true },
+                    { id: 4, username: 'kasir', password: 'kasir123', name: 'Kasir', role: 'kasir', active: true }
+                ];
+                
+                localStorage.setItem('users', JSON.stringify(defaultUsers));
+                alert('✅ Login system fixed! Default users restored.');
+            } catch (error) {
+                alert('❌ Error fixing login: ' + error.message);
+            }
+        }
+
+        function clearCache() {
+            if (confirm('This will clear browser cache and reload the page. Continue?')) {
+                // Clear localStorage
+                localStorage.clear();
+                
+                // Force reload with cache bypass
+                window.location.reload(true);
+            }
+        }
+
+        function resetData() {
+            if (confirm('This will reset all user data. Continue?')) {
+                localStorage.clear();
+                alert('✅ Data reset complete. Page will reload.');
+                window.location.reload();
+            }
+        }
+
+        function forceRefresh() {
+            // Add timestamp to force reload
+            const timestamp = new Date().getTime();
+            window.location.href = window.location.href.split('?')[0] + '?v=' + timestamp;
+        }
+
+        function checkConsole() {
+            alert('Open browser console (F12) and look for red error messages. Screenshot any errors you find.');
+        }
+
+        function fullDiagnostic() {
+            runDiagnosis();
+            
+            // Also check each problem type
+            setTimeout(() => {
+                checkProblem('login');
+            }, 1000);
+        }
+
+        // Auto-run diagnosis on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('4 Problems Diagnosis Tool loaded');
+            setTimeout(runDiagnosis, 500);
+        });
+    </script>
+</body>
+</html>
