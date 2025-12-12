@@ -6,7 +6,7 @@
  */
 
 // Global variables
-let currentUser = null;
+// Note: currentUser is declared in js/app.js
 let loginAttempts = new Map(); // Track login attempts for rate limiting
 
 // Password security configuration
@@ -137,7 +137,60 @@ function handleLogin() {
             // Update last login time
             updateLastLogin(user.id);
             
-            showMainApp();
+            // Show main app with error handling
+            try {
+                console.log('Login successful, attempting to show main app...');
+                if (typeof showMainApp === 'function') {
+                    console.log('showMainApp function found, calling it...');
+                    showMainApp();
+                    console.log('showMainApp called successfully');
+                } else {
+                    console.error('showMainApp function not found, trying alternative approach');
+                    // Try alternative navigation without page reload
+                    if (typeof navigateTo === 'function' && typeof renderMenu === 'function') {
+                        console.log('Using alternative navigation approach...');
+                        document.getElementById('loginPage').classList.add('d-none');
+                        document.getElementById('mainApp').classList.remove('d-none');
+                        
+                        // Update user display
+                        const currentUserEl = document.getElementById('currentUser');
+                        const currentRoleEl = document.getElementById('currentRole');
+                        if (currentUserEl) currentUserEl.textContent = currentUser.name;
+                        if (currentRoleEl) currentRoleEl.textContent = getRoleName(currentUser.role);
+                        
+                        renderMenu();
+                        navigateTo('dashboard');
+                    } else {
+                        console.error('Required functions not available, showing error');
+                        showLoginError('Terjadi kesalahan sistem. Silakan refresh halaman.');
+                    }
+                }
+            } catch (error) {
+                console.error('Error showing main app:', error);
+                // Try alternative navigation without page reload
+                try {
+                    if (typeof navigateTo === 'function' && typeof renderMenu === 'function') {
+                        console.log('Trying fallback navigation to dashboard...');
+                        document.getElementById('loginPage').classList.add('d-none');
+                        document.getElementById('mainApp').classList.remove('d-none');
+                        
+                        // Update user display
+                        const currentUserEl = document.getElementById('currentUser');
+                        const currentRoleEl = document.getElementById('currentRole');
+                        if (currentUserEl) currentUserEl.textContent = currentUser.name;
+                        if (currentRoleEl) currentRoleEl.textContent = getRoleName(currentUser.role);
+                        
+                        renderMenu();
+                        navigateTo('dashboard');
+                    } else {
+                        console.error('Fallback navigation also failed');
+                        showLoginError('Terjadi kesalahan sistem. Silakan refresh halaman dan coba lagi.');
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback navigation error:', fallbackError);
+                    showLoginError('Terjadi kesalahan sistem. Silakan refresh halaman dan coba lagi.');
+                }
+            }
         } else {
             showLoginError('Username atau password salah!');
             recordLoginAttempt(username, false);

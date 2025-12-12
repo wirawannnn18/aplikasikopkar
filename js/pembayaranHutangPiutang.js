@@ -1167,20 +1167,41 @@ if (typeof module !== 'undefined' && module.exports) {
     };
 }
 
-// ES module exports for testing
-export {
-    renderPembayaranHutangPiutang,
-    hitungSaldoHutang,
-    hitungSaldoPiutang,
-    updateSummaryCards,
-    renderFormPembayaran,
-    searchAnggota,
-    validatePembayaran,
-    savePembayaran,
-    rollbackPembayaran,
-    createJurnalPembayaranHutang,
-    createJurnalPembayaranPiutang,
-    saveAuditLog,
-    cetakBuktiPembayaran,
-    checkPembayaranAccess
-};
+// ES module exports for testing (conditional to avoid syntax errors in browser)
+if (typeof module !== 'undefined' && module.exports) {
+    // Node.js environment
+    module.exports = {
+        renderPembayaranHutangPiutang,
+        hitungSaldoHutang,
+        hitungSaldoPiutang,
+        updateSummaryCards,
+        renderFormPembayaran,
+        searchAnggota,
+        validatePembayaran,
+        savePembayaran,
+        rollbackPembayaran,
+        createJurnalPembayaranHutang,
+        createJurnalPembayaranPiutang,
+        saveAuditLog,
+        cetakBuktiPembayaran,
+        checkPembayaranAccess
+    };
+} else if (typeof window !== 'undefined') {
+    // Browser environment - attach to window for testing
+    window.PembayaranHutangPiutangModule = {
+        renderPembayaranHutangPiutang,
+        hitungSaldoHutang,
+        hitungSaldoPiutang,
+        updateSummaryCards,
+        renderFormPembayaran,
+        searchAnggota,
+        validatePembayaran,
+        savePembayaran,
+        rollbackPembayaran,
+        createJurnalPembayaranHutang,
+        createJurnalPembayaranPiutang,
+        saveAuditLog,
+        cetakBuktiPembayaran,
+        checkPembayaranAccess
+    };
+}

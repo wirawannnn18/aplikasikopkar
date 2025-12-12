@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Fix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #52b788 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .test-container {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            margin: 20px;
+        }
+        .log-entry {
+            padding: 5px 10px;
+            margin: 2px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .log-info { background-color: #d1ecf1; color: #0c5460; }
+        .log-success { background-color: #d4edda; color: #155724; }
+        .log-error { background-color: #f8d7da; color: #721c24; }
+        .log-warning { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-container">
+            <h2><i class="bi bi-bug me-2"></i>Test Login Fix Verification</h2>
+            <p>Testing the login functionality and routing after authentication.</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Test Controls</h4>
+                    <button class="btn btn-primary mb-2" onclick="testLoginFunctionality()">
+                        <i class="bi bi-play-circle me-1"></i>Test Login Functionality
+                    </button>
+                    <button class="btn btn-info mb-2" onclick="checkDOMElements()">
+                        <i class="bi bi-search me-1"></i>Check DOM Elements
+                    </button>
+                    <button class="btn btn-warning mb-2" onclick="checkFunctions()">
+                        <i class="bi bi-gear me-1"></i>Check Functions
+                    </button>
+                    <button class="btn btn-success mb-2" onclick="simulateLogin()">
+                        <i class="bi bi-person-check me-1"></i>Simulate Login
+                    </button>
+                    <button class="btn btn-secondary mb-2" onclick="clearLogs()">
+                        <i class="bi bi-trash me-1"></i>Clear Logs
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <h4>Test Results</h4>
+                    <div id="testResults" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f8f9fa;">
+                        <div class="log-info">Ready to run tests...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mock DOM elements for testing -->
+    <div id="loginPage" class="d-none">
+        <div id="loginError" class="d-none"></div>
+        <form id="loginForm">
+            <input type="text" id="username" value="admin">
+            <input type="password" id="password" value="admin123">
+        </form>
+    </div>
+    
+    <div id="mainApp" class="d-none">
+        <div id="currentUser"></div>
+        <div id="currentRole"></div>
+        <div id="menuList"></div>
+        <div id="mainContent"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        let testResults = document.getElementById('testResults');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            testResults.appendChild(logEntry);
+            testResults.scrollTop = testResults.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearLogs() {
+            testResults.innerHTML = '<div class="log-info">Logs cleared...</div>';
+        }
+        
+        function checkDOMElements() {
+            log('Checking DOM elements...', 'info');
+            
+            const elements = [
+                'loginPage', 'mainApp', 'loginForm', 'username', 'password',
+                'loginError', 'currentUser', 'currentRole', 'menuList', 'mainContent'
+            ];
+            
+            let allFound = true;
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    log(`✓ Element '${id}' found`, 'success');
+                } else {
+                    log(`✗ Element '${id}' NOT found`, 'error');
+                    allFound = false;
+                }
+            });
+            
+            if (allFound) {
+                log('All required DOM elements found!', 'success');
+            } else {
+                log('Some DOM elements are missing!', 'error');
+            }
+        }
+        
+        function checkFunctions() {
+            log('Checking required functions...', 'info');
+            
+            const functions = [
+                'handleLogin', 'showMainApp', 'navigateTo', 'renderPage',
+                'renderMenu', 'getUsersFromStorage', 'showLoginError'
+            ];
+            
+            let allFound = true;
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    log(`✓ Function '${funcName}' found`, 'success');
+                } else {
+                    log(`✗ Function '${funcName}' NOT found`, 'error');
+                    allFound = false;
+                }
+            });
+            
+            if (allFound) {
+                log('All required functions found!', 'success');
+            } else {
+                log('Some functions are missing!', 'error');
+            }
+        }
+        
+        function testLoginFunctionality() {
+            log('Testing login functionality...', 'info');
+            
+            // First check if we have the required elements and functions
+            checkDOMElements();
+            checkFunctions();
+            
+            // Check localStorage for users
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            log(`Found ${users.length} users in localStorage`, 'info');
+            
+            if (users.length === 0) {
+                log('No users found, creating default admin user...', 'warning');
+                createDefaultUser();
+            }
+            
+            // Test the login process
+            log('Testing login process...', 'info');
+        }
+        
+        function createDefaultUser() {
+            const defaultUsers = [
+                {
+                    id: 1,
+                    username: 'admin',
+                    password: 'admin123',
+                    name: 'Administrator',
+                    role: 'super_admin',
+                    active: true,
+                    createdAt: new Date().toISOString()
+                }
+            ];
+            
+            localStorage.setItem('users', JSON.stringify(defaultUsers));
+            log('Default admin user created (username: admin, password: admin123)', 'success');
+        }
+        
+        function simulateLogin() {
+            log('Simulating login process...', 'info');
+            
+            try {
+                // Set form values
+                document.getElementById('username').value = 'admin';
+                document.getElementById('password').value = 'admin123';
+                
+                log('Form values set', 'info');
+                
+                // Check if users exist
+                let users = JSON.parse(localStorage.getItem('users') || '[]');
+                if (users.length === 0) {
+                    createDefaultUser();
+                    users = JSON.parse(localStorage.getItem('users') || '[]');
+                }
+                
+                // Call handleLogin directly
+                if (typeof handleLogin === 'function') {
+                    log('Calling handleLogin()...', 'info');
+                    handleLogin();
+                } else {
+                    log('handleLogin function not found!', 'error');
+                }
+                
+            } catch (error) {
+                log(`Error during login simulation: ${error.message}`, 'error');
+                console.error('Login simulation error:', error);
+            }
+        }
+        
+        // Initialize test
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Test page loaded successfully', 'success');
+            log('Click "Test Login Functionality" to start testing', 'info');
+        });
+        
+        // Override console methods to capture logs
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            if (args[0] && typeof args[0] === 'string') {
+                log(args.join(' '), 'info');
+            }
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            if (args[0] && typeof args[0] === 'string') {
+                log(args.join(' '), 'error');
+            }
+        };
+    </script>
+</body>
+</html>
