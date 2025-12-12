@@ -311,7 +311,7 @@ function validatePasswordStrength(password) {
             hasUppercase: /[A-Z]/.test(password),
             hasLowercase: /[a-z]/.test(password),
             hasNumbers: /\d/.test(password),
-            hasSpecialChars: new RegExp(`[${PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(password)
+            hasSpecialChars: new RegExp('[' + PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ']').test(password)
         },
         feedback: []
     };
@@ -362,7 +362,7 @@ function validatePasswordStrength(password) {
     
     // Special characters check
     if (PASSWORD_CONFIG.requireSpecialChars) {
-        const specialCharsRegex = new RegExp(`[${PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
+        const specialCharsRegex = new RegExp('[' + PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ']');
         if (specialCharsRegex.test(password)) {
             result.score += 20;
         } else {
