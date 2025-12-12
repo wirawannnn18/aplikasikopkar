@@ -1430,8 +1430,8 @@ function saveUser() {
                 }
             }
         }
-    
-    // Permission validation: Check if non-Super Admin is trying to manage Super Admin accounts
+        
+        // Permission validation: Check if non-Super Admin is trying to manage Super Admin accounts
     if (!isSuperAdmin() && role === 'super_admin') {
         showAlert('Anda tidak memiliki izin untuk menetapkan role ini!', 'danger');
         return;
