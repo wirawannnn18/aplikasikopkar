@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 7.1 - Auto Refresh System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .dashboard-container {
+            padding: 20px;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .widget {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .widget-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .widget-content {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #666;
+        }
+
+        .refresh-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .refresh-indicator.refresh-animation {
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .dashboard-refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .widget-error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .error-content {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-content i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .status-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-value {
+            font-weight: 600;
+        }
+
+        .status-value.active {
+            color: #28a745;
+        }
+
+        .status-value.inactive {
+            color: #dc3545;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-group {
+            margin-bottom: 10px;
+        }
+
+        .log-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-entry.info {
+            color: #0066cc;
+        }
+
+        .log-entry.success {
+            color: #28a745;
+        }
+
+        .log-entry.error {
+            color: #dc3545;
+        }
+
+        .log-entry.warning {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-sync-alt"></i>
+                    Task 7.1 - Auto Refresh System Test
+                </h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Dashboard Container -->
+                <div id="dashboard-container" class="dashboard-container">
+                    <!-- Widgets will be loaded here -->
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <h5><i class="fas fa-cogs"></i> Control Panel</h5>
+                    
+                    <div class="btn-group w-100 mb-3">
+                        <button id="startRefresh" class="btn btn-success">
+                            <i class="fas fa-play"></i> Start Auto-Refresh
+                        </button>
+                        <button id="stopRefresh" class="btn btn-danger">
+                            <i class="fas fa-stop"></i> Stop Auto-Refresh
+                        </button>
+                    </div>
+
+                    <div class="btn-group w-100 mb-3">
+                        <button id="forceRefresh" class="btn btn-primary">
+                            <i class="fas fa-sync"></i> Force Refresh All
+                        </button>
+                        <button id="simulateError" class="btn btn-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Simulate Error
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="refreshInterval" class="form-label">Refresh Interval (seconds):</label>
+                        <input type="range" class="form-range" id="refreshInterval" min="5" max="300" value="30">
+                        <div class="d-flex justify-content-between">
+                            <small>5s</small>
+                            <small id="intervalValue">30s</small>
+                            <small>300s</small>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="changeDetection" checked>
+                        <label class="form-check-label" for="changeDetection">
+                            Enable Change Detection
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Status Panel -->
+                <div class="status-panel">
+                    <h5><i class="fas fa-info-circle"></i> System Status</h5>
+                    
+                    <div class="status-item">
+                        <span>Auto-Refresh:</span>
+                        <span id="refreshStatus" class="status-value inactive">Inactive</span>
+                    </div>
+                    
+                    <div class="status-item">
+                        <span>Change Detection:</span>
+                        <span id="changeDetectionStatus" class="status-value active">Active</span>
+                    </div>
+                    
+                    <div class="status-item">
+                        <span>Active Widgets:</span>
+                        <span id="widgetCount" class="status-value">0</span>
+                    </div>
+                    
+                    <div class="status-item">
+                        <span>Last Refresh:</span>
+                        <span id="lastRefresh" class="status-value">Never</span>
+                    </div>
+                    
+                    <div class="status-item">
+                        <span>Connection:</span>
+                        <span id="connectionStatus" class="status-value active">Online</span>
+                    </div>
+                </div>
+
+                <!-- Log Panel -->
+                <div class="status-panel">
+                    <h5><i class="fas fa-list"></i> Activity Log</h5>
+                    <div id="logPanel" class="log-panel">
+                        <!-- Log entries will appear here -->
+                    </div>
+                    <button id="clearLog" class="btn btn-sm btn-outline-secondary mt-2">
+                        <i class="fas fa-trash"></i> Clear Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/dashboard/types.js"></script>
+    <script src="js/dashboard/AutoRefreshManager.js"></script>
+    <script src="js/dashboard/DataChangeDetector.js"></script>
+    <script src="js/dashboard/DashboardController.js"></script>
+
+    <script>
+        // Test implementation
+        class TestWidget {
+            constructor(config) {
+                this.config = config;
+                this.element = null;
+                this.data = null;
+                this.lastDataChecksum = null;
+                this.supportsPartialUpdate = true;
+                this.refreshCount = 0;
+                this.errorSimulation = false;
+            }
+
+            async initialize() {
+                this.createElement();
+                await this.refresh();
+            }
+
+            createElement() {
+                this.element = document.createElement('div');
+                this.element.className = 'widget';
+                this.element.innerHTML = `
+                    <div class="widget-header">
+                        <div class="widget-title">${this.config.title}</div>
+                        <small class="text-muted">ID: ${this.config.id}</small>
+                    </div>
+                    <div class="widget-content">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `;
+
+                const container = document.getElementById('dashboard-container');
+                container.appendChild(this.element);
+            }
+
+            async refresh() {
+                if (this.errorSimulation) {
+                    throw new Error('Simulated refresh error');
+                }
+
+                this.refreshCount++;
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+
+                // Generate mock data
+                this.data = {
+                    value: Math.floor(Math.random() * 1000),
+                    timestamp: new Date(),
+                    refreshCount: this.refreshCount
+                };
+
+                this.updateDisplay();
+                
+                logActivity(`Widget ${this.config.id} refreshed (count: ${this.refreshCount})`, 'success');
+            }
+
+            async partialUpdate(newData) {
+                this.data = { ...this.data, ...newData };
+                this.updateDisplay();
+                
+                logActivity(`Widget ${this.config.id} partially updated`, 'info');
+            }
+
+            updateDisplay() {
+                const content = this.element.querySelector('.widget-content');
+                content.innerHTML = `
+                    <div class="text-center">
+                        <div class="h2 text-primary">${this.data.value}</div>
+                        <div class="small text-muted">
+                            Refreshed: ${this.data.timestamp.toLocaleTimeString()}<br>
+                            Count: ${this.data.refreshCount}
+                        </div>
+                    </div>
+                `;
+            }
+
+            async getDataChecksum() {
+                if (!this.data) return null;
+                
+                const dataString = JSON.stringify({
+                    value: this.data.value,
+                    timestamp: this.data.timestamp.getTime()
+                });
+                
+                // Simple checksum
+                let hash = 0;
+                for (let i = 0; i < dataString.length; i++) {
+                    const char = dataString.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                
+                return Math.abs(hash).toString(36);
+            }
+
+            async getChangedData() {
+                return {
+                    value: this.data.value + Math.floor(Math.random() * 10),
+                    timestamp: new Date()
+                };
+            }
+
+            resize() {
+                // Handle resize if needed
+            }
+
+            destroy() {
+                if (this.element && this.element.parentElement) {
+                    this.element.remove();
+                }
+            }
+        }
+
+        // Global variables
+        let dashboardController;
+        let testWidgets = [];
+
+        // Initialize test
+        async function initializeTest() {
+            try {
+                logActivity('Initializing Auto Refresh System test...', 'info');
+
+                // Create dashboard controller
+                dashboardController = new DashboardController('dashboard-container', {
+                    refreshInterval: 30000, // 30 seconds
+                    theme: 'light'
+                });
+
+                await dashboardController.initialize();
+
+                // Create test widgets
+                const widgetConfigs = [
+                    {
+                        id: 'financial-health',
+                        type: 'kpi',
+                        title: 'Financial Health Score',
+                        dataSource: 'financial-health',
+                        refreshInterval: 30000
+                    },
+                    {
+                        id: 'member-count',
+                        type: 'kpi',
+                        title: 'Total Members',
+                        dataSource: 'member-analytics',
+                        refreshInterval: 45000
+                    },
+                    {
+                        id: 'transaction-volume',
+                        type: 'chart',
+                        title: 'Transaction Volume',
+                        dataSource: 'transaction-volume',
+                        refreshInterval: 60000
+                    },
+                    {
+                        id: 'cash-balance',
+                        type: 'kpi',
+                        title: 'Cash Balance',
+                        dataSource: 'cash-balance',
+                        refreshInterval: 20000
+                    }
+                ];
+
+                for (const config of widgetConfigs) {
+                    const widget = new TestWidget(config);
+                    await widget.initialize();
+                    
+                    testWidgets.push(widget);
+                    dashboardController.widgets.set(config.id, widget);
+                }
+
+                // Setup data change listeners
+                dashboardController.setupDataChangeListeners();
+
+                logActivity(`Created ${testWidgets.length} test widgets`, 'success');
+                updateStatus();
+
+            } catch (error) {
+                logActivity(`Initialization failed: ${error.message}`, 'error');
+                console.error('Test initialization failed:', error);
+            }
+        }
+
+        // Event handlers
+        function setupEventHandlers() {
+            // Control buttons
+            document.getElementById('startRefresh').addEventListener('click', () => {
+                if (dashboardController && dashboardController.autoRefreshManager) {
+                    dashboardController.autoRefreshManager.startAutoRefresh(dashboardController.widgets);
+                    logActivity('Auto-refresh started', 'success');
+                    updateStatus();
+                }
+            });
+
+            document.getElementById('stopRefresh').addEventListener('click', () => {
+                if (dashboardController && dashboardController.autoRefreshManager) {
+                    dashboardController.autoRefreshManager.stopAutoRefresh();
+                    logActivity('Auto-refresh stopped', 'warning');
+                    updateStatus();
+                }
+            });
+
+            document.getElementById('forceRefresh').addEventListener('click', async () => {
+                if (dashboardController) {
+                    logActivity('Force refreshing all widgets...', 'info');
+                    await dashboardController.refreshData();
+                    
+                    if (dashboardController.dataChangeDetector) {
+                        await dashboardController.dataChangeDetector.forceCheckAll();
+                    }
+                    
+                    logActivity('Force refresh completed', 'success');
+                    updateStatus();
+                }
+            });
+
+            document.getElementById('simulateError').addEventListener('click', () => {
+                // Toggle error simulation for random widget
+                if (testWidgets.length > 0) {
+                    const randomWidget = testWidgets[Math.floor(Math.random() * testWidgets.length)];
+                    randomWidget.errorSimulation = !randomWidget.errorSimulation;
+                    
+                    const status = randomWidget.errorSimulation ? 'enabled' : 'disabled';
+                    logActivity(`Error simulation ${status} for widget ${randomWidget.config.id}`, 'warning');
+                }
+            });
+
+            // Refresh interval slider
+            const intervalSlider = document.getElementById('refreshInterval');
+            const intervalValue = document.getElementById('intervalValue');
+            
+            intervalSlider.addEventListener('input', (e) => {
+                const seconds = parseInt(e.target.value);
+                intervalValue.textContent = `${seconds}s`;
+                
+                // Update refresh intervals for all widgets
+                if (dashboardController && dashboardController.autoRefreshManager) {
+                    testWidgets.forEach(widget => {
+                        dashboardController.autoRefreshManager.updateWidgetRefreshInterval(
+                            widget.config.id, 
+                            seconds * 1000
+                        );
+                    });
+                    
+                    logActivity(`Refresh interval updated to ${seconds} seconds`, 'info');
+                }
+            });
+
+            // Change detection toggle
+            document.getElementById('changeDetection').addEventListener('change', (e) => {
+                if (dashboardController && dashboardController.dataChangeDetector) {
+                    if (e.target.checked) {
+                        dashboardController.dataChangeDetector.startMonitoring();
+                        logActivity('Change detection enabled', 'success');
+                    } else {
+                        dashboardController.dataChangeDetector.stopMonitoring();
+                        logActivity('Change detection disabled', 'warning');
+                    }
+                    updateStatus();
+                }
+            });
+
+            // Clear log button
+            document.getElementById('clearLog').addEventListener('click', () => {
+                document.getElementById('logPanel').innerHTML = '';
+            });
+
+            // Dashboard events
+            document.addEventListener('dashboard:refresh', (event) => {
+                const { widgetId, success, refreshTime, error } = event.detail;
+                
+                if (success) {
+                    logActivity(`Widget ${widgetId} auto-refreshed in ${refreshTime?.toFixed(2)}ms`, 'success');
+                } else {
+                    logActivity(`Widget ${widgetId} refresh failed: ${error}`, 'error');
+                }
+                
+                updateStatus();
+            });
+
+            document.addEventListener('dashboard:dataChange', (event) => {
+                const { sourceId, timestamp } = event.detail;
+                logActivity(`Data change detected: ${sourceId}`, 'info');
+                updateStatus();
+            });
+
+            document.addEventListener('dashboard:dataError', (event) => {
+                const { sourceId, error } = event.detail;
+                logActivity(`Data source error: ${sourceId} - ${error}`, 'error');
+            });
+
+            // Connection status
+            window.addEventListener('online', () => {
+                logActivity('Connection restored', 'success');
+                updateStatus();
+            });
+
+            window.addEventListener('offline', () => {
+                logActivity('Connection lost', 'warning');
+                updateStatus();
+            });
+        }
+
+        // Utility functions
+        function logActivity(message, type = 'info') {
+            const logPanel = document.getElementById('logPanel');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        function updateStatus() {
+            // Refresh status
+            const refreshStatus = document.getElementById('refreshStatus');
+            if (dashboardController && dashboardController.autoRefreshManager) {
+                const status = dashboardController.autoRefreshManager.getRefreshStatus();
+                refreshStatus.textContent = status.isActive ? 'Active' : 'Inactive';
+                refreshStatus.className = `status-value ${status.isActive ? 'active' : 'inactive'}`;
+            }
+
+            // Change detection status
+            const changeDetectionStatus = document.getElementById('changeDetectionStatus');
+            if (dashboardController && dashboardController.dataChangeDetector) {
+                const status = dashboardController.dataChangeDetector.getStatus();
+                changeDetectionStatus.textContent = status.isActive ? 'Active' : 'Inactive';
+                changeDetectionStatus.className = `status-value ${status.isActive ? 'active' : 'inactive'}`;
+            }
+
+            // Widget count
+            document.getElementById('widgetCount').textContent = testWidgets.length;
+
+            // Last refresh
+            document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString();
+
+            // Connection status
+            const connectionStatus = document.getElementById('connectionStatus');
+            connectionStatus.textContent = navigator.onLine ? 'Online' : 'Offline';
+            connectionStatus.className = `status-value ${navigator.onLine ? 'active' : 'inactive'}`;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            setupEventHandlers();
+            await initializeTest();
+            
+            // Start auto-refresh by default
+            setTimeout(() => {
+                document.getElementById('startRefresh').click();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 4.1 - Chart Rendering Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .chart-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .chart-item h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .chart-item .chart-container {
+            height: 250px;
+            background: white;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        .controls button {
+            margin: 5px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #0056b3;
+        }
+        .controls select {
+            margin: 5px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .metrics {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Task 4.1 - Chart Renderer Implementation Test</h1>
+            <p>Testing comprehensive chart rendering system with multiple chart types, responsive design, and interactive features.</p>
+            <div id="initialization-status" class="status info">Initializing Chart Renderer...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Chart Type Tests</h2>
+            <p>Testing all supported chart types with sample data</p>
+            
+            <div class="controls">
+                <button onclick="renderAllCharts()">Render All Charts</button>
+                <button onclick="updateAllCharts()">Update Charts</button>
+                <button onclick="destroyAllCharts()">Destroy Charts</button>
+                <select id="colorScheme" onchange="changeColorScheme()">
+                    <option value="default">Default Colors</option>
+                    <option value="financial">Financial Colors</option>
+                    <option value="pastel">Pastel Colors</option>
+                    <option value="dark">Dark Colors</option>
+                </select>
+                <button onclick="exportCharts()">Export Charts</button>
+            </div>
+
+            <div class="chart-grid">
+                <div class="chart-item">
+                    <h4>Line Chart - Revenue Trend</h4>
+                    <div id="line-chart" class="chart-container"></div>
+                </div>
+                
+                <div class="chart-item">
+                    <h4>Bar Chart - Monthly Transactions</h4>
+                    <div id="bar-chart" class="chart-container"></div>
+                </div>
+                
+                <div class="chart-item">
+                    <h4>Pie Chart - Savings Distribution</h4>
+                    <div id="pie-chart" class="chart-container"></div>
+                </div>
+                
+                <div class="chart-item">
+                    <h4>Doughnut Chart - Loan Portfolio</h4>
+                    <div id="doughnut-chart" class="chart-container"></div>
+                </div>
+                
+                <div class="chart-item">
+                    <h4>Radar Chart - Performance Metrics</h4>
+                    <div id="radar-chart" class="chart-container"></div>
+                </div>
+                
+                <div class="chart-item">
+                    <h4>Gauge Chart - Financial Health</h4>
+                    <div id="gauge-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Responsive Design Test</h2>
+            <p>Testing responsive behavior and mobile optimization</p>
+            
+            <div class="controls">
+                <button onclick="simulateMobile()">Simulate Mobile</button>
+                <button onclick="simulateTablet()">Simulate Tablet</button>
+                <button onclick="simulateDesktop()">Simulate Desktop</button>
+                <button onclick="testResize()">Test Resize</button>
+            </div>
+            
+            <div id="responsive-chart" class="chart-container"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Performance Metrics</h2>
+            <div id="performance-metrics" class="metrics">
+                <p>Performance data will appear here after rendering charts...</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Interactive Features Test</h2>
+            <p>Testing chart interactions and customization</p>
+            
+            <div class="controls">
+                <button onclick="testDrillDown()">Test Drill-down</button>
+                <button onclick="testTooltips()">Test Tooltips</button>
+                <button onclick="testAnimations()">Test Animations</button>
+                <button onclick="testThemes()">Cycle Themes</button>
+            </div>
+            
+            <div id="interactive-chart" class="chart-container"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Error Handling Test</h2>
+            <p>Testing error scenarios and edge cases</p>
+            
+            <div class="controls">
+                <button onclick="testInvalidConfig()">Test Invalid Config</button>
+                <button onclick="testMissingData()">Test Missing Data</button>
+                <button onclick="testLargeDataset()">Test Large Dataset</button>
+                <button onclick="testEmptyData()">Test Empty Data</button>
+            </div>
+            
+            <div id="error-log" class="status info">
+                <h4>Error Log:</h4>
+                <div id="error-messages"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Chart Renderer -->
+    <script src="js/dashboard/ChartRenderer.js"></script>
+    
+    <script>
+        let chartRenderer;
+        let currentColorScheme = 'default';
+        
+        // Sample data for testing
+        const sampleData = {
+            line: {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Revenue (Million Rp)',
+                        data: [120, 135, 150, 142, 168, 180],
+                        tension: 0.4
+                    }, {
+                        label: 'Expenses (Million Rp)',
+                        data: [80, 85, 90, 88, 95, 100],
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Monthly Financial Trend'
+                        }
+                    }
+                }
+            },
+            
+            bar: {
+                type: 'bar',
+                data: {
+                    labels: ['Simpanan Pokok', 'Simpanan Wajib', 'Simpanan Sukarela', 'Pinjaman', 'Toko'],
+                    datasets: [{
+                        label: 'Transaction Count',
+                        data: [450, 320, 180, 95, 220]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Monthly Transaction Volume'
+                        }
+                    }
+                }
+            },
+            
+            pie: {
+                type: 'pie',
+                data: {
+                    labels: ['Simpanan Pokok', 'Simpanan Wajib', 'Simpanan Sukarela'],
+                    datasets: [{
+                        data: [35, 45, 20]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Savings Distribution (%)'
+                        }
+                    }
+                }
+            },
+            
+            doughnut: {
+                type: 'doughnut',
+                data: {
+                    labels: ['Performing', 'Watch List', 'Substandard', 'Doubtful', 'Loss'],
+                    datasets: [{
+                        data: [85, 8, 4, 2, 1]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Loan Portfolio Quality (%)'
+                        }
+                    }
+                }
+            },
+            
+            radar: {
+                type: 'radar',
+                data: {
+                    labels: ['Liquidity', 'Profitability', 'Efficiency', 'Growth', 'Risk Management'],
+                    datasets: [{
+                        label: 'Current Performance',
+                        data: [85, 78, 92, 65, 88]
+                    }, {
+                        label: 'Target',
+                        data: [90, 85, 95, 80, 90]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Performance Radar'
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            },
+            
+            gauge: {
+                type: 'gauge',
+                data: {
+                    value: 78,
+                    max: 100,
+                    label: 'Financial Health Score'
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Financial Health Score'
+                        }
+                    }
+                }
+            }
+        };
+
+        // Initialize application
+        async function initializeApp() {
+            try {
+                chartRenderer = new ChartRenderer();
+                await chartRenderer.initialize();
+                
+                updateStatus('initialization-status', 'Chart Renderer initialized successfully!', 'success');
+                
+                // Render initial charts
+                setTimeout(renderAllCharts, 500);
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Initialization failed: ${error.message}`, 'error');
+                logError('Initialization Error', error);
+            }
+        }
+
+        // Render all chart types
+        async function renderAllCharts() {
+            try {
+                updateStatus('initialization-status', 'Rendering charts...', 'info');
+                
+                // Apply current color scheme to all data
+                Object.keys(sampleData).forEach(key => {
+                    sampleData[key].data.colorScheme = currentColorScheme;
+                });
+                
+                // Render each chart type
+                await chartRenderer.renderChart('line-chart', sampleData.line);
+                await chartRenderer.renderChart('bar-chart', sampleData.bar);
+                await chartRenderer.renderChart('pie-chart', sampleData.pie);
+                await chartRenderer.renderChart('doughnut-chart', sampleData.doughnut);
+                await chartRenderer.renderChart('radar-chart', sampleData.radar);
+                await chartRenderer.renderChart('gauge-chart', sampleData.gauge);
+                
+                // Render responsive test chart
+                await chartRenderer.renderChart('responsive-chart', sampleData.line);
+                
+                // Render interactive test chart
+                await chartRenderer.renderChart('interactive-chart', sampleData.bar);
+                
+                updateStatus('initialization-status', 'All charts rendered successfully!', 'success');
+                updatePerformanceMetrics();
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Chart rendering failed: ${error.message}`, 'error');
+                logError('Chart Rendering Error', error);
+            }
+        }
+
+        // Update all charts with new data
+        function updateAllCharts() {
+            try {
+                // Generate new random data
+                const newData = generateRandomData();
+                
+                Object.keys(newData).forEach(chartType => {
+                    chartRenderer.updateChart(`${chartType}-chart`, newData[chartType].data);
+                });
+                
+                updateStatus('initialization-status', 'Charts updated with new data!', 'success');
+                updatePerformanceMetrics();
+                
+            } catch (error) {
+                logError('Chart Update Error', error);
+            }
+        }
+
+        // Destroy all charts
+        function destroyAllCharts() {
+            try {
+                ['line-chart', 'bar-chart', 'pie-chart', 'doughnut-chart', 'radar-chart', 'gauge-chart', 'responsive-chart', 'interactive-chart'].forEach(id => {
+                    chartRenderer.destroyChart(id);
+                });
+                
+                updateStatus('initialization-status', 'All charts destroyed!', 'info');
+                
+            } catch (error) {
+                logError('Chart Destruction Error', error);
+            }
+        }
+
+        // Change color scheme
+        function changeColorScheme() {
+            const select = document.getElementById('colorScheme');
+            currentColorScheme = select.value;
+            
+            // Re-render charts with new color scheme
+            renderAllCharts();
+        }
+
+        // Export charts
+        function exportCharts() {
+            try {
+                const exports = [];
+                ['line-chart', 'bar-chart', 'pie-chart', 'doughnut-chart'].forEach(id => {
+                    try {
+                        const dataUrl = chartRenderer.exportChart(id, 'png');
+                        exports.push({ id, dataUrl });
+                    } catch (error) {
+                        console.warn(`Failed to export ${id}:`, error);
+                    }
+                });
+                
+                updateStatus('initialization-status', `Exported ${exports.length} charts successfully!`, 'success');
+                
+                // You could download or display the exported images here
+                console.log('Exported charts:', exports);
+                
+            } catch (error) {
+                logError('Chart Export Error', error);
+            }
+        }
+
+        // Simulate different screen sizes
+        function simulateMobile() {
+            const container = document.querySelector('.container');
+            container.style.maxWidth = '375px';
+            setTimeout(() => chartRenderer.resizeAllCharts(), 100);
+        }
+
+        function simulateTablet() {
+            const container = document.querySelector('.container');
+            container.style.maxWidth = '768px';
+            setTimeout(() => chartRenderer.resizeAllCharts(), 100);
+        }
+
+        function simulateDesktop() {
+            const container = document.querySelector('.container');
+            container.style.maxWidth = '1200px';
+            setTimeout(() => chartRenderer.resizeAllCharts(), 100);
+        }
+
+        function testResize() {
+            // Simulate window resize
+            window.dispatchEvent(new Event('resize'));
+            updateStatus('initialization-status', 'Resize event triggered!', 'info');
+        }
+
+        // Test interactive features
+        function testDrillDown() {
+            updateStatus('initialization-status', 'Drill-down functionality would be implemented here', 'info');
+        }
+
+        function testTooltips() {
+            updateStatus('initialization-status', 'Tooltip customization would be implemented here', 'info');
+        }
+
+        function testAnimations() {
+            updateAllCharts(); // This triggers animations
+            updateStatus('initialization-status', 'Chart animations triggered!', 'info');
+        }
+
+        function testThemes() {
+            const schemes = ['default', 'financial', 'pastel', 'dark'];
+            const currentIndex = schemes.indexOf(currentColorScheme);
+            const nextIndex = (currentIndex + 1) % schemes.length;
+            
+            document.getElementById('colorScheme').value = schemes[nextIndex];
+            changeColorScheme();
+        }
+
+        // Test error scenarios
+        function testInvalidConfig() {
+            try {
+                chartRenderer.renderChart('error-test', {
+                    type: 'invalid-type',
+                    data: null
+                });
+            } catch (error) {
+                logError('Expected Error - Invalid Config', error);
+            }
+        }
+
+        function testMissingData() {
+            try {
+                chartRenderer.renderChart('error-test', {
+                    type: 'line'
+                    // Missing data property
+                });
+            } catch (error) {
+                logError('Expected Error - Missing Data', error);
+            }
+        }
+
+        function testLargeDataset() {
+            try {
+                const largeData = {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 1000}, (_, i) => `Point ${i}`),
+                        datasets: [{
+                            label: 'Large Dataset',
+                            data: Array.from({length: 1000}, () => Math.random() * 100)
+                        }]
+                    }
+                };
+                
+                chartRenderer.renderChart('responsive-chart', largeData);
+                updateStatus('initialization-status', 'Large dataset rendered successfully!', 'success');
+                
+            } catch (error) {
+                logError('Large Dataset Error', error);
+            }
+        }
+
+        function testEmptyData() {
+            try {
+                const emptyData = {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    }
+                };
+                
+                chartRenderer.renderChart('interactive-chart', emptyData);
+                updateStatus('initialization-status', 'Empty dataset handled!', 'info');
+                
+            } catch (error) {
+                logError('Empty Data Error', error);
+            }
+        }
+
+        // Utility functions
+        function generateRandomData() {
+            return {
+                line: {
+                    data: {
+                        labels: sampleData.line.data.labels,
+                        datasets: sampleData.line.data.datasets.map(dataset => ({
+                            ...dataset,
+                            data: dataset.data.map(() => Math.floor(Math.random() * 200) + 50)
+                        }))
+                    }
+                },
+                bar: {
+                    data: {
+                        labels: sampleData.bar.data.labels,
+                        datasets: [{
+                            ...sampleData.bar.data.datasets[0],
+                            data: sampleData.bar.data.labels.map(() => Math.floor(Math.random() * 500) + 50)
+                        }]
+                    }
+                },
+                pie: {
+                    data: {
+                        labels: sampleData.pie.data.labels,
+                        datasets: [{
+                            data: sampleData.pie.data.labels.map(() => Math.floor(Math.random() * 50) + 10)
+                        }]
+                    }
+                },
+                doughnut: {
+                    data: {
+                        labels: sampleData.doughnut.data.labels,
+                        datasets: [{
+                            data: sampleData.doughnut.data.labels.map(() => Math.floor(Math.random() * 30) + 5)
+                        }]
+                    }
+                },
+                radar: {
+                    data: {
+                        labels: sampleData.radar.data.labels,
+                        datasets: sampleData.radar.data.datasets.map(dataset => ({
+                            ...dataset,
+                            data: dataset.data.map(() => Math.floor(Math.random() * 100) + 20)
+                        }))
+                    }
+                },
+                gauge: {
+                    data: {
+                        value: Math.floor(Math.random() * 100),
+                        max: 100,
+                        label: 'Financial Health Score'
+                    }
+                }
+            };
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function updatePerformanceMetrics() {
+            if (!chartRenderer) return;
+            
+            const metrics = chartRenderer.getPerformanceMetrics();
+            const metricsHtml = `
+                <h4>Performance Metrics:</h4>
+                <p><strong>Total Charts:</strong> ${metrics.totalCharts}</p>
+                <p><strong>Failed Renders:</strong> ${metrics.failedRenders}</p>
+                <p><strong>Success Rate:</strong> ${metrics.successRate}</p>
+                <p><strong>Average Render Time:</strong> ${metrics.averageRenderTime.toFixed(2)}ms</p>
+                <p><strong>Render Times:</strong> ${metrics.renderTimes.length} samples</p>
+            `;
+            
+            document.getElementById('performance-metrics').innerHTML = metricsHtml;
+        }
+
+        function logError(title, error) {
+            const errorLog = document.getElementById('error-messages');
+            const errorDiv = document.createElement('div');
+            errorDiv.innerHTML = `
+                <p><strong>${title}:</strong> ${error.message}</p>
+                <small>${new Date().toLocaleTimeString()}</small>
+            `;
+            errorLog.appendChild(errorDiv);
+            
+            console.error(title, error);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>

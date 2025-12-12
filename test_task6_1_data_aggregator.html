@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 6.1: DataAggregator Testing</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        .results {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .info {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Task 6.1: DataAggregator Testing</h1>
+        
+        <div class="test-section">
+            <h2>📊 Time-based Aggregation Tests</h2>
+            <div class="test-controls">
+                <button class="btn-primary" onclick="testTimeAggregation()">Test Time Aggregation</button>
+                <button class="btn-success" onclick="testSavingsAggregation()">Test Savings by Category</button>
+                <button class="btn-primary" onclick="testLoansAggregation()">Test Loans by Category</button>
+            </div>
+            <div class="results" id="aggregationResults">Click buttons above to test data aggregation...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Filtering and Sorting Tests</h2>
+            <div class="test-controls">
+                <button class="btn-primary" onclick="testFilteringAndSorting()">Test Filtering & Sorting</button>
+                <button class="btn-success" onclick="testPivotTable()">Test Pivot Table</button>
+            </div>
+            <div class="results" id="filterResults">Click buttons above to test filtering and pivot functionality...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>💾 Cache Management Tests</h2>
+            <div class="test-controls">
+                <button class="btn-primary" onclick="testCacheManagement()">Test Cache Management</button>
+                <button class="btn-success" onclick="testPerformance()">Test Performance</button>
+            </div>
+            <div class="results" id="cacheResults">Click buttons above to test cache management...</div>
+        </div>
+    </div>
+
+    <script src="js/dashboard/DataAggregator.js"></script>
+    <script>
+        // Mock data source for testing
+        class MockDataSource {
+            constructor() {
+                this.generateMockData();
+            }
+
+            generateMockData() {
+                // Generate mock savings data
+                this.savingsData = [];
+                const savingsTypes = ['pokok', 'wajib', 'sukarela'];
+                const startDate = new Date('2024-01-01');
+                
+                for (let i = 0; i < 1000; i++) {
+                    const date = new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000));
+                    this.savingsData.push({
+                        id: i + 1,
+                        anggota_id: Math.floor(Math.random() * 100) + 1,
+                        jenis_simpanan: savingsTypes[Math.floor(Math.random() * savingsTypes.length)],
+                        jumlah: Math.floor(Math.random() * 1000000) + 50000,
+                        tanggal: date.toISOString(),
+                        status: 'active'
+                    });
+                }
+
+                // Generate mock loans data
+                this.loansData = [];
+                const loanTypes = ['produktif', 'konsumtif', 'darurat'];
+                const loanStatuses = ['active', 'completed', 'overdue'];
+                
+                for (let i = 0; i < 500; i++) {
+                    const date = new Date(startDate.getTime() + (i * 2 * 24 * 60 * 60 * 1000));
+                    this.loansData.push({
+                        id: i + 1,
+                        anggota_id: Math.floor(Math.random() * 100) + 1,
+                        jenis_pinjaman: loanTypes[Math.floor(Math.random() * loanTypes.length)],
+                        jumlah_pinjaman: Math.floor(Math.random() * 5000000) + 1000000,
+                        tanggal: date.toISOString(),
+                        status_pinjaman: loanStatuses[Math.floor(Math.random() * loanStatuses.length)]
+                    });
+                }
+
+                // Generate mock transaction data
+                this.transactionData = [];
+                for (let i = 0; i < 2000; i++) {
+                    const date = new Date(startDate.getTime() + (Math.random() * 365 * 24 * 60 * 60 * 1000));
+                    this.transactionData.push({
+                        id: i + 1,
+                        member_id: Math.floor(Math.random() * 100) + 1,
+                        amount: Math.floor(Math.random() * 500000) + 10000,
+                        date: date.toISOString(),
+                        type: Math.random() > 0.5 ? 'credit' : 'debit',
+                        category: ['food', 'transport', 'utilities', 'entertainment'][Math.floor(Math.random() * 4)]
+                    });
+                }
+            }
+
+            async getSavingsByDateRange(startDate, endDate) {
+                return this.savingsData.filter(s => {
+                    const date = new Date(s.tanggal);
+                    return date >= startDate && date <= endDate;
+                });
+            }
+
+            async getLoansByDateRange(startDate, endDate) {
+                return this.loansData.filter(l => {
+                    const date = new Date(l.tanggal);
+                    return date >= startDate && date <= endDate;
+                });
+            }
+
+            async getTransactionsByDateRange(startDate, endDate) {
+                return this.transactionData.filter(t => {
+                    const date = new Date(t.date);
+                    return date >= startDate && date <= endDate;
+                });
+            }
+        }
+
+        // Initialize DataAggregator with mock data source
+        const mockDataSource = new MockDataSource();
+        const dataAggregator = new DataAggregator(mockDataSource);
+
+        async function testTimeAggregation() {
+            const results = document.getElementById('aggregationResults');
+            results.innerHTML = '<span class="info">🔄 Testing time-based aggregation...</span>\n\n';
+
+            try {
+                // Test monthly aggregation
+                const monthlyResult = await dataAggregator.aggregateByTime(
+                    mockDataSource.transactionData,
+                    'monthly',
+                    'date',
+                    'amount',
+                    'sum'
+                );
+
+                results.innerHTML += '<span class="success">✅ Monthly Aggregation Test:</span>\n';
+                results.innerHTML += `Total Periods: ${monthlyResult.summary.periods}\n`;
+                results.innerHTML += `Total Value: ${monthlyResult.summary.totalValue.toLocaleString()}\n`;
+                results.innerHTML += `Average per Period: ${monthlyResult.summary.averageValue.toLocaleString()}\n\n`;
+
+                // Show first few periods
+                results.innerHTML += 'Sample Periods:\n';
+                monthlyResult.data.slice(0, 5).forEach(period => {
+                    results.innerHTML += `${period.period}: ${period.value.toLocaleString()} (${period.count} transactions)\n`;
+                });
+
+                // Test daily aggregation
+                const dailyResult = await dataAggregator.aggregateByTime(
+                    mockDataSource.transactionData.slice(0, 100),
+                    'daily',
+                    'date',
+                    'amount',
+                    'avg'
+                );
+
+                results.innerHTML += '\n<span class="success">✅ Daily Aggregation (Average) Test:</span>\n';
+                results.innerHTML += `Total Periods: ${dailyResult.summary.periods}\n`;
+                results.innerHTML += `Average Value: ${dailyResult.summary.averageValue.toLocaleString()}\n\n`;
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        async function testSavingsAggregation() {
+            const results = document.getElementById('aggregationResults');
+            results.innerHTML = '<span class="info">🔄 Testing savings aggregation by category...</span>\n\n';
+
+            try {
+                const startDate = new Date('2024-01-01');
+                const endDate = new Date('2024-12-31');
+                
+                const savingsResult = await dataAggregator.aggregateSavingsByCategory(startDate, endDate);
+
+                results.innerHTML += '<span class="success">✅ Savings by Category Test:</span>\n';
+                results.innerHTML += `Total Amount: ${savingsResult.summary.totalAmount.toLocaleString()}\n`;
+                results.innerHTML += `Total Transactions: ${savingsResult.summary.totalTransactions}\n`;
+                results.innerHTML += `Total Members: ${savingsResult.summary.totalMembers}\n\n`;
+
+                results.innerHTML += 'Category Breakdown:\n';
+                Object.keys(savingsResult.categories).forEach(category => {
+                    const cat = savingsResult.categories[category];
+                    results.innerHTML += `${category.toUpperCase()}:\n`;
+                    results.innerHTML += `  Amount: ${cat.totalAmount.toLocaleString()} (${cat.percentage.toFixed(1)}%)\n`;
+                    results.innerHTML += `  Transactions: ${cat.transactionCount}\n`;
+                    results.innerHTML += `  Members: ${cat.memberCount}\n`;
+                    results.innerHTML += `  Avg per Transaction: ${cat.averagePerTransaction.toLocaleString()}\n\n`;
+                });
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        async function testLoansAggregation() {
+            const results = document.getElementById('aggregationResults');
+            results.innerHTML = '<span class="info">🔄 Testing loans aggregation by category...</span>\n\n';
+
+            try {
+                const startDate = new Date('2024-01-01');
+                const endDate = new Date('2024-12-31');
+                
+                const loansResult = await dataAggregator.aggregateLoansByCategory(startDate, endDate);
+
+                results.innerHTML += '<span class="success">✅ Loans by Category Test:</span>\n';
+                results.innerHTML += `Total Amount: ${loansResult.summary.totalAmount.toLocaleString()}\n`;
+                results.innerHTML += `Total Loans: ${loansResult.summary.totalLoans}\n`;
+                results.innerHTML += `Total Members: ${loansResult.summary.totalMembers}\n\n`;
+
+                results.innerHTML += 'Category Breakdown:\n';
+                Object.keys(loansResult.categories).forEach(category => {
+                    const cat = loansResult.categories[category];
+                    results.innerHTML += `${category.toUpperCase()}:\n`;
+                    results.innerHTML += `  Amount: ${cat.totalAmount.toLocaleString()} (${cat.percentage.toFixed(1)}%)\n`;
+                    results.innerHTML += `  Loans: ${cat.loanCount}\n`;
+                    results.innerHTML += `  Members: ${cat.memberCount}\n`;
+                    results.innerHTML += `  Active: ${cat.activeLoans}, Completed: ${cat.completedLoans}\n\n`;
+                });
+
+                results.innerHTML += 'Status Breakdown:\n';
+                Object.keys(loansResult.statuses).forEach(status => {
+                    const stat = loansResult.statuses[status];
+                    results.innerHTML += `${status.toUpperCase()}: ${stat.count} loans, ${stat.amount.toLocaleString()}\n`;
+                });
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        function testFilteringAndSorting() {
+            const results = document.getElementById('filterResults');
+            results.innerHTML = '<span class="info">🔄 Testing filtering and sorting...</span>\n\n';
+
+            try {
+                // Test basic filtering
+                const testData = mockDataSource.transactionData.slice(0, 100);
+                
+                // Filter by type
+                const creditTransactions = dataAggregator.filterAndSort(testData, { type: 'credit' });
+                results.innerHTML += '<span class="success">✅ Basic Filtering Test:</span>\n';
+                results.innerHTML += `Original records: ${testData.length}\n`;
+                results.innerHTML += `Credit transactions: ${creditTransactions.length}\n\n`;
+
+                // Test advanced filtering
+                const highValueTransactions = dataAggregator.filterAndSort(testData, {
+                    amount: { operator: 'greaterThan', value: 100000 }
+                });
+                results.innerHTML += '<span class="success">✅ Advanced Filtering Test:</span>\n';
+                results.innerHTML += `High value transactions (>100K): ${highValueTransactions.length}\n\n`;
+
+                // Test sorting
+                const sortedByAmount = dataAggregator.filterAndSort(testData, {}, {
+                    field: 'amount',
+                    direction: 'desc'
+                });
+                results.innerHTML += '<span class="success">✅ Sorting Test:</span>\n';
+                results.innerHTML += `Highest amount: ${sortedByAmount[0].amount.toLocaleString()}\n`;
+                results.innerHTML += `Lowest amount: ${sortedByAmount[sortedByAmount.length - 1].amount.toLocaleString()}\n\n`;
+
+                // Test combined filtering and sorting
+                const filteredAndSorted = dataAggregator.filterAndSort(testData, 
+                    { type: 'credit' },
+                    { field: 'amount', direction: 'desc' }
+                );
+                results.innerHTML += '<span class="success">✅ Combined Filter & Sort Test:</span>\n';
+                results.innerHTML += `Credit transactions sorted by amount: ${filteredAndSorted.length}\n`;
+                if (filteredAndSorted.length > 0) {
+                    results.innerHTML += `Top credit transaction: ${filteredAndSorted[0].amount.toLocaleString()}\n`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        function testPivotTable() {
+            const results = document.getElementById('filterResults');
+            results.innerHTML = '<span class="info">🔄 Testing pivot table creation...</span>\n\n';
+
+            try {
+                const testData = mockDataSource.transactionData.slice(0, 200);
+                
+                // Create pivot table: type vs category
+                const pivot = dataAggregator.createPivotTable(testData, 'type', 'category', 'amount', 'sum');
+                
+                results.innerHTML += '<span class="success">✅ Pivot Table Test:</span>\n';
+                results.innerHTML += `Rows: ${pivot.metadata.totalRows}\n`;
+                results.innerHTML += `Columns: ${pivot.metadata.totalColumns}\n`;
+                results.innerHTML += `Records: ${pivot.metadata.totalRecords}\n`;
+                results.innerHTML += `Grand Total: ${pivot.grandTotal.toLocaleString()}\n\n`;
+
+                results.innerHTML += 'Pivot Data (Type vs Category):\n';
+                Object.keys(pivot.pivot).forEach(rowKey => {
+                    results.innerHTML += `${rowKey.toUpperCase()}:\n`;
+                    Object.keys(pivot.pivot[rowKey]).forEach(colKey => {
+                        const value = pivot.pivot[rowKey][colKey];
+                        results.innerHTML += `  ${colKey}: ${value.toLocaleString()}\n`;
+                    });
+                    results.innerHTML += `  TOTAL: ${pivot.rowTotals[rowKey].toLocaleString()}\n\n`;
+                });
+
+                results.innerHTML += 'Column Totals:\n';
+                Object.keys(pivot.columnTotals).forEach(colKey => {
+                    results.innerHTML += `${colKey}: ${pivot.columnTotals[colKey].toLocaleString()}\n`;
+                });
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        function testCacheManagement() {
+            const results = document.getElementById('cacheResults');
+            results.innerHTML = '<span class="info">🔄 Testing cache management...</span>\n\n';
+
+            try {
+                // Get initial cache stats
+                let stats = dataAggregator.getCacheStats();
+                results.innerHTML += '<span class="success">✅ Initial Cache Stats:</span>\n';
+                results.innerHTML += `Total Entries: ${stats.totalEntries}\n`;
+                results.innerHTML += `Valid Entries: ${stats.validEntries}\n`;
+                results.innerHTML += `Memory Usage: ${stats.memoryUsage} bytes\n\n`;
+
+                // Perform some operations to populate cache
+                const testData = mockDataSource.transactionData.slice(0, 100);
+                dataAggregator.aggregateByTime(testData, 'monthly', 'date', 'amount', 'sum');
+                dataAggregator.aggregateByTime(testData, 'daily', 'date', 'amount', 'avg');
+
+                // Check cache stats after operations
+                stats = dataAggregator.getCacheStats();
+                results.innerHTML += '<span class="success">✅ Cache Stats After Operations:</span>\n';
+                results.innerHTML += `Total Entries: ${stats.totalEntries}\n`;
+                results.innerHTML += `Valid Entries: ${stats.validEntries}\n`;
+                results.innerHTML += `Memory Usage: ${stats.memoryUsage} bytes\n\n`;
+
+                // Test cache clearing
+                dataAggregator.clearCache('time_monthly');
+                stats = dataAggregator.getCacheStats();
+                results.innerHTML += '<span class="success">✅ Cache Stats After Partial Clear:</span>\n';
+                results.innerHTML += `Total Entries: ${stats.totalEntries}\n\n`;
+
+                // Clear all cache
+                dataAggregator.clearCache();
+                stats = dataAggregator.getCacheStats();
+                results.innerHTML += '<span class="success">✅ Cache Stats After Full Clear:</span>\n';
+                results.innerHTML += `Total Entries: ${stats.totalEntries}\n`;
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        async function testPerformance() {
+            const results = document.getElementById('cacheResults');
+            results.innerHTML = '<span class="info">🔄 Testing performance...</span>\n\n';
+
+            try {
+                const testData = mockDataSource.transactionData;
+                
+                // Test aggregation performance
+                const start1 = performance.now();
+                await dataAggregator.aggregateByTime(testData, 'monthly', 'date', 'amount', 'sum');
+                const end1 = performance.now();
+                
+                results.innerHTML += '<span class="success">✅ Performance Test - Time Aggregation:</span>\n';
+                results.innerHTML += `Records: ${testData.length}\n`;
+                results.innerHTML += `Time: ${(end1 - start1).toFixed(2)}ms\n`;
+                results.innerHTML += `Rate: ${(testData.length / (end1 - start1) * 1000).toFixed(0)} records/second\n\n`;
+
+                // Test filtering performance
+                const start2 = performance.now();
+                dataAggregator.filterAndSort(testData, { type: 'credit' }, { field: 'amount', direction: 'desc' });
+                const end2 = performance.now();
+                
+                results.innerHTML += '<span class="success">✅ Performance Test - Filtering & Sorting:</span>\n';
+                results.innerHTML += `Records: ${testData.length}\n`;
+                results.innerHTML += `Time: ${(end2 - start2).toFixed(2)}ms\n`;
+                results.innerHTML += `Rate: ${(testData.length / (end2 - start2) * 1000).toFixed(0)} records/second\n\n`;
+
+                // Test pivot table performance
+                const start3 = performance.now();
+                dataAggregator.createPivotTable(testData, 'type', 'category', 'amount', 'sum');
+                const end3 = performance.now();
+                
+                results.innerHTML += '<span class="success">✅ Performance Test - Pivot Table:</span>\n';
+                results.innerHTML += `Records: ${testData.length}\n`;
+                results.innerHTML += `Time: ${(end3 - start3).toFixed(2)}ms\n`;
+                results.innerHTML += `Rate: ${(testData.length / (end3 - start3) * 1000).toFixed(0)} records/second\n`;
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ Error: ${error.message}</span>\n`;
+            }
+        }
+
+        // Initialize with welcome message
+        document.addEventListener('DOMContentLoaded', function() {
+            const aggregationResults = document.getElementById('aggregationResults');
+            aggregationResults.innerHTML = '<span class="info">🎯 DataAggregator ready for testing!</span>\n';
+            aggregationResults.innerHTML += `Mock data generated:\n`;
+            aggregationResults.innerHTML += `- ${mockDataSource.savingsData.length} savings records\n`;
+            aggregationResults.innerHTML += `- ${mockDataSource.loansData.length} loan records\n`;
+            aggregationResults.innerHTML += `- ${mockDataSource.transactionData.length} transaction records\n\n`;
+            aggregationResults.innerHTML += 'Click buttons above to test different aggregation features.';
+        });
+    </script>
+</body>
+</html>

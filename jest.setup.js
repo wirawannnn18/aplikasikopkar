@@ -1,7 +1,19 @@
 // Setup TextEncoder/TextDecoder for jsdom
-import { TextEncoder, TextDecoder } from 'util';
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+if (typeof TextEncoder === 'undefined') {
+  global.TextEncoder = class TextEncoder {
+    encode(str) {
+      return new Uint8Array(Buffer.from(str, 'utf8'));
+    }
+  };
+}
+
+if (typeof TextDecoder === 'undefined') {
+  global.TextDecoder = class TextDecoder {
+    decode(bytes) {
+      return Buffer.from(bytes).toString('utf8');
+    }
+  };
+}
 
 // Setup localStorage mock for tests
 const localStorageMock = (() => {

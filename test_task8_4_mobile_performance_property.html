@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 8.4 - Mobile Performance Property Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .property-card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .property-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .property-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .result-card {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .result-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-pass { background-color: #28a745; }
+        .status-fail { background-color: #dc3545; }
+        .status-running { background-color: #ffc107; }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .config-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .config-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .config-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .config-input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .test-results {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mobile Performance Property Tests</h1>
+            <p>Task 8.4 - Property-based testing for mobile performance optimization</p>
+        </div>
+
+        <!-- Property Test Configuration -->
+        <div class="test-section">
+            <h3>Test Configuration</h3>
+            <div class="config-section">
+                <div class="config-item">
+                    <div class="config-label">Number of Test Runs</div>
+                    <input type="number" id="testRuns" class="config-input" value="25" min="5" max="100">
+                </div>
+                <div class="config-item">
+                    <div class="config-label">Max Data Size</div>
+                    <input type="number" id="maxDataSize" class="config-input" value="1000" min="100" max="10000">
+                </div>
+                <div class="config-item">
+                    <div class="config-label">Test Timeout (ms)</div>
+                    <input type="number" id="testTimeout" class="config-input" value="30000" min="5000" max="60000">
+                </div>
+                <div class="config-item">
+                    <div class="config-label">Enable Verbose Logging</div>
+                    <input type="checkbox" id="verboseLogging" checked>
+                </div>
+            </div>
+        </div>
+
+        <!-- Property Tests -->
+        <div class="test-section">
+            <h3>Property Tests</h3>
+            
+            <!-- Property 14: Mobile Performance Optimization -->
+            <div class="property-card">
+                <div class="property-title">
+                    <span class="status-indicator" id="property14Status"></span>
+                    Property 14: Mobile Performance Optimization
+                </div>
+                <div class="property-description">
+                    For any device configuration and network conditions, mobile optimizations
+                    should maintain performance benefits and data efficiency.
+                </div>
+                <button class="test-button" onclick="testProperty14()">Test Property 14</button>
+                <div class="test-results" id="property14Results" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-label">Test Runs</div>
+                        <div class="result-value" id="property14Runs">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Pass Rate</div>
+                        <div class="result-value" id="property14PassRate">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Avg Compression</div>
+                        <div class="result-value" id="property14Compression">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Avg Load Time</div>
+                        <div class="result-value" id="property14LoadTime">0ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Compression Effectiveness -->
+            <div class="property-card">
+                <div class="property-title">
+                    <span class="status-indicator" id="compressionStatus"></span>
+                    Data Compression Effectiveness
+                </div>
+                <div class="property-description">
+                    For any data size and compression level, compression should be effective
+                    and maintain data integrity.
+                </div>
+                <button class="test-button" onclick="testCompressionEffectiveness()">Test Compression</button>
+                <div class="test-results" id="compressionResults" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-label">Test Runs</div>
+                        <div class="result-value" id="compressionRuns">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Pass Rate</div>
+                        <div class="result-value" id="compressionPassRate">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Max Compression</div>
+                        <div class="result-value" id="maxCompression">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Avg Compression</div>
+                        <div class="result-value" id="avgCompression">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progressive Loading Queue Management -->
+            <div class="property-card">
+                <div class="property-title">
+                    <span class="status-indicator" id="progressiveStatus"></span>
+                    Progressive Loading Queue Management
+                </div>
+                <div class="property-description">
+                    For any number of charts and priorities, progressive loading should
+                    maintain order and complete all tasks.
+                </div>
+                <button class="test-button" onclick="testProgressiveLoading()">Test Progressive Loading</button>
+                <div class="test-results" id="progressiveResults" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-label">Test Runs</div>
+                        <div class="result-value" id="progressiveRuns">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Pass Rate</div>
+                        <div class="result-value" id="progressivePassRate">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Max Charts</div>
+                        <div class="result-value" id="maxCharts">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Avg Load Time</div>
+                        <div class="result-value" id="progressiveLoadTime">0ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache Size Management -->
+            <div class="property-card">
+                <div class="property-title">
+                    <span class="status-indicator" id="cacheStatus"></span>
+                    Cache Size Management
+                </div>
+                <div class="property-description">
+                    For any cache size limit and data operations, cache should respect
+                    size limits and maintain efficiency.
+                </div>
+                <button class="test-button" onclick="testCacheManagement()">Test Cache Management</button>
+                <div class="test-results" id="cacheResults" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-label">Test Runs</div>
+                        <div class="result-value" id="cacheRuns">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Pass Rate</div>
+                        <div class="result-value" id="cachePassRate">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Avg Hit Rate</div>
+                        <div class="result-value" id="avgHitRate">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Cache Efficiency</div>
+                        <div class="result-value" id="cacheEfficiency">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Adaptation -->
+            <div class="property-card">
+                <div class="property-title">
+                    <span class="status-indicator" id="networkStatus"></span>
+                    Network Adaptation Consistency
+                </div>
+                <div class="property-description">
+                    For any network conditions, performance settings should adapt appropriately
+                    and maintain consistency.
+                </div>
+                <button class="test-button" onclick="testNetworkAdaptation()">Test Network Adaptation</button>
+                <div class="test-results" id="networkResults" style="display: none;">
+                    <div class="result-card">
+                        <div class="result-label">Test Runs</div>
+                        <div class="result-value" id="networkRuns">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Pass Rate</div>
+                        <div class="result-value" id="networkPassRate">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Adaptation Accuracy</div>
+                        <div class="result-value" id="adaptationAccuracy">0%</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Settings Validity</div>
+                        <div class="result-value" id="settingsValidity">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <div style="margin: 15px 0;">
+                <button class="test-button" onclick="runAllPropertyTests()">Run All Property Tests</button>
+                <button class="test-button" onclick="resetAllTests()">Reset All Tests</button>
+                <button class="test-button" onclick="exportResults()">Export Results</button>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="overallProgress"></div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="test-section">
+            <h3>Test Log</h3>
+            <div class="log-area" id="testLog"></div>
+            <button class="test-button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { MobileOptimizer } from './js/dashboard/MobileOptimizer.js';
+        
+        let testResults = {
+            property14: { runs: 0, passes: 0, failures: 0, metrics: [] },
+            compression: { runs: 0, passes: 0, failures: 0, metrics: [] },
+            progressive: { runs: 0, passes: 0, failures: 0, metrics: [] },
+            cache: { runs: 0, passes: 0, failures: 0, metrics: [] },
+            network: { runs: 0, passes: 0, failures: 0, metrics: [] }
+        };
+        
+        // Test Property 14: Mobile Performance Optimization
+        window.testProperty14 = async function() {
+            log('Starting Property 14: Mobile Performance Optimization tests...');
+            setStatus('property14Status', 'running');
+            
+            const testRuns = parseInt(document.getElementById('testRuns').value);
+            const maxDataSize = parseInt(document.getElementById('maxDataSize').value);
+            
+            let passes = 0;
+            let failures = 0;
+            const metrics = [];
+            
+            try {
+                for (let i = 0; i < testRuns; i++) {
+                    const testConfig = generateRandomTestConfig(maxDataSize);
+                    
+                    try {
+                        const result = await runMobileOptimizationTest(testConfig);
+                        passes++;
+                        metrics.push(result);
+                        
+                        if (document.getElementById('verboseLogging').checked) {
+                            log(`Test ${i + 1}/${testRuns}: PASS - Compression: ${(result.compressionRatio * 100).toFixed(1)}%, Load time: ${result.loadTime.toFixed(1)}ms`);
+                        }
+                    } catch (error) {
+                        failures++;
+                        log(`Test ${i + 1}/${testRuns}: FAIL - ${error.message}`);
+                    }
+                    
+                    // Update progress
+                    updateProgress('property14', i + 1, testRuns, passes, failures, metrics);
+                }
+                
+                testResults.property14 = { runs: testRuns, passes, failures, metrics };
+                setStatus('property14Status', passes === testRuns ? 'pass' : 'fail');
+                
+                log(`Property 14 completed: ${passes}/${testRuns} tests passed (${((passes/testRuns)*100).toFixed(1)}%)`);
+                
+            } catch (error) {
+                log(`Property 14 failed: ${error.message}`);
+                setStatus('property14Status', 'fail');
+            }
+        };
+        
+        // Test Compression Effectiveness
+        window.testCompressionEffectiveness = async function() {
+            log('Starting Compression Effectiveness tests...');
+            setStatus('compressionStatus', 'running');
+            
+            const testRuns = parseInt(document.getElementById('testRuns').value);
+            let passes = 0;
+            let failures = 0;
+            const metrics = [];
+            
+            try {
+                for (let i = 0; i < testRuns; i++) {
+                    const testConfig = {
+                        dataSize: Math.floor(Math.random() * 1000) + 10,
+                        compressionLevel: ['maximum', 'high', 'medium'][Math.floor(Math.random() * 3)],
+                        dataType: ['transactions', 'members', 'mixed'][Math.floor(Math.random() * 3)]
+                    };
+                    
+                    try {
+                        const result = await runCompressionTest(testConfig);
+                        passes++;
+                        metrics.push(result);
+                        
+                        if (document.getElementById('verboseLogging').checked) {
+                            log(`Compression test ${i + 1}/${testRuns}: PASS - ${(result.compressionRatio * 100).toFixed(1)}% compression`);
+                        }
+                    } catch (error) {
+                        failures++;
+                        log(`Compression test ${i + 1}/${testRuns}: FAIL - ${error.message}`);
+                    }
+                    
+                    updateProgress('compression', i + 1, testRuns, passes, failures, metrics);
+                }
+                
+                testResults.compression = { runs: testRuns, passes, failures, metrics };
+                setStatus('compressionStatus', passes === testRuns ? 'pass' : 'fail');
+                
+                log(`Compression tests completed: ${passes}/${testRuns} tests passed`);
+                
+            } catch (error) {
+                log(`Compression tests failed: ${error.message}`);
+                setStatus('compressionStatus', 'fail');
+            }
+        };
+        
+        // Test Progressive Loading
+        window.testProgressiveLoading = async function() {
+            log('Starting Progressive Loading tests...');
+            setStatus('progressiveStatus', 'running');
+            
+            const testRuns = parseInt(document.getElementById('testRuns').value);
+            let passes = 0;
+            let failures = 0;
+            const metrics = [];
+            
+            try {
+                for (let i = 0; i < testRuns; i++) {
+                    const testConfig = {
+                        chartCount: Math.floor(Math.random() * 20) + 1,
+                        batchSize: Math.floor(Math.random() * 5) + 1,
+                        networkDelay: Math.floor(Math.random() * 1000)
+                    };
+                    
+                    try {
+                        const result = await runProgressiveLoadingTest(testConfig);
+                        passes++;
+                        metrics.push(result);
+                        
+                        if (document.getElementById('verboseLogging').checked) {
+                            log(`Progressive test ${i + 1}/${testRuns}: PASS - ${result.chartCount} charts in ${result.loadTime.toFixed(1)}ms`);
+                        }
+                    } catch (error) {
+                        failures++;
+                        log(`Progressive test ${i + 1}/${testRuns}: FAIL - ${error.message}`);
+                    }
+                    
+                    updateProgress('progressive', i + 1, testRuns, passes, failures, metrics);
+                }
+                
+                testResults.progressive = { runs: testRuns, passes, failures, metrics };
+                setStatus('progressiveStatus', passes === testRuns ? 'pass' : 'fail');
+                
+                log(`Progressive loading tests completed: ${passes}/${testRuns} tests passed`);
+                
+            } catch (error) {
+                log(`Progressive loading tests failed: ${error.message}`);
+                setStatus('progressiveStatus', 'fail');
+            }
+        };
+        
+        // Test Cache Management
+        window.testCacheManagement = async function() {
+            log('Starting Cache Management tests...');
+            setStatus('cacheStatus', 'running');
+            
+            const testRuns = parseInt(document.getElementById('testRuns').value);
+            let passes = 0;
+            let failures = 0;
+            const metrics = [];
+            
+            try {
+                for (let i = 0; i < testRuns; i++) {
+                    const testConfig = {
+                        maxCacheSize: Math.floor(Math.random() * 9216) + 1024, // 1KB to 10KB
+                        itemCount: Math.floor(Math.random() * 45) + 5,
+                        itemSize: Math.floor(Math.random() * 900) + 100
+                    };
+                    
+                    try {
+                        const result = await runCacheManagementTest(testConfig);
+                        passes++;
+                        metrics.push(result);
+                        
+                        if (document.getElementById('verboseLogging').checked) {
+                            log(`Cache test ${i + 1}/${testRuns}: PASS - Hit rate: ${(result.hitRate * 100).toFixed(1)}%`);
+                        }
+                    } catch (error) {
+                        failures++;
+                        log(`Cache test ${i + 1}/${testRuns}: FAIL - ${error.message}`);
+                    }
+                    
+                    updateProgress('cache', i + 1, testRuns, passes, failures, metrics);
+                }
+                
+                testResults.cache = { runs: testRuns, passes, failures, metrics };
+                setStatus('cacheStatus', passes === testRuns ? 'pass' : 'fail');
+                
+                log(`Cache management tests completed: ${passes}/${testRuns} tests passed`);
+                
+            } catch (error) {
+                log(`Cache management tests failed: ${error.message}`);
+                setStatus('cacheStatus', 'fail');
+            }
+        };
+        
+        // Test Network Adaptation
+        window.testNetworkAdaptation = async function() {
+            log('Starting Network Adaptation tests...');
+            setStatus('networkStatus', 'running');
+            
+            const testRuns = parseInt(document.getElementById('testRuns').value);
+            let passes = 0;
+            let failures = 0;
+            const metrics = [];
+            
+            try {
+                for (let i = 0; i < testRuns; i++) {
+                    const testConfig = {
+                        effectiveType: ['slow-2g', '2g', '3g', '4g'][Math.floor(Math.random() * 4)],
+                        downlink: Math.random() * 99.9 + 0.1,
+                        rtt: Math.floor(Math.random() * 1950) + 50,
+                        saveData: Math.random() < 0.3
+                    };
+                    
+                    try {
+                        const result = await runNetworkAdaptationTest(testConfig);
+                        passes++;
+                        metrics.push(result);
+                        
+                        if (document.getElementById('verboseLogging').checked) {
+                            log(`Network test ${i + 1}/${testRuns}: PASS - ${testConfig.effectiveType} adapted correctly`);
+                        }
+                    } catch (error) {
+                        failures++;
+                        log(`Network test ${i + 1}/${testRuns}: FAIL - ${error.message}`);
+                    }
+                    
+                    updateProgress('network', i + 1, testRuns, passes, failures, metrics);
+                }
+                
+                testResults.network = { runs: testRuns, passes, failures, metrics };
+                setStatus('networkStatus', passes === testRuns ? 'pass' : 'fail');
+                
+                log(`Network adaptation tests completed: ${passes}/${testRuns} tests passed`);
+                
+            } catch (error) {
+                log(`Network adaptation tests failed: ${error.message}`);
+                setStatus('networkStatus', 'fail');
+            }
+        };
+        
+        // Run all property tests
+        window.runAllPropertyTests = async function() {
+            log('Starting all property tests...');
+            
+            try {
+                await testProperty14();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testCompressionEffectiveness();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testProgressiveLoading();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testCacheManagement();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testNetworkAdaptation();
+                
+                log('All property tests completed!');
+                
+                // Calculate overall results
+                const totalRuns = Object.values(testResults).reduce((sum, result) => sum + result.runs, 0);
+                const totalPasses = Object.values(testResults).reduce((sum, result) => sum + result.passes, 0);
+                const overallPassRate = totalRuns > 0 ? (totalPasses / totalRuns * 100).toFixed(1) : 0;
+                
+                log(`Overall Results: ${totalPasses}/${totalRuns} tests passed (${overallPassRate}%)`);
+                
+            } catch (error) {
+                log(`Property test suite failed: ${error.message}`);
+            }
+        };
+        
+        // Helper functions
+        async function runMobileOptimizationTest(config) {
+            const mockController = createMockController();
+            const optimizer = new MobileOptimizer(mockController);
+            
+            // Setup environment
+            setupTestEnvironment(config);
+            
+            await optimizer.initialize();
+            
+            try {
+                // Test compression
+                const testData = generateTestData(config.dataSize);
+                const originalSize = JSON.stringify(testData).length;
+                const compressedData = await optimizer.compressData(testData);
+                const compressedSize = compressedData.length;
+                const compressionRatio = (originalSize - compressedSize) / originalSize;
+                
+                // Test progressive loading
+                const chartConfigs = generateChartConfigs(Math.min(config.dataSize / 100, 10));
+                const loadStartTime = performance.now();
+                
+                const loadPromises = chartConfigs.map(config => 
+                    optimizer.loadChartProgressively(config, { id: 'test-container' })
+                );
+                
+                const results = await Promise.all(loadPromises);
+                const loadTime = performance.now() - loadStartTime;
+                
+                // Validate results
+                if (compressedSize > originalSize * 1.1) {
+                    throw new Error('Compression increased size significantly');
+                }
+                
+                if (results.length !== chartConfigs.length) {
+                    throw new Error('Not all charts loaded');
+                }
+                
+                if (!results.every(r => r.success)) {
+                    throw new Error('Some charts failed to load');
+                }
+                
+                return {
+                    compressionRatio,
+                    loadTime,
+                    chartCount: results.length,
+                    config
+                };
+                
+            } finally {
+                optimizer.destroy();
+            }
+        }
+        
+        async function runCompressionTest(config) {
+            const mockController = createMockController();
+            const optimizer = new MobileOptimizer(mockController);
+            
+            await optimizer.initialize();
+            optimizer.performanceSettings.compressionLevel = config.compressionLevel;
+            
+            try {
+                const testData = generateTypedTestData(config.dataSize, config.dataType);
+                const originalSize = JSON.stringify(testData).length;
+                const compressedData = await optimizer.compressData(testData);
+                const compressedSize = compressedData.length;
+                const compressionRatio = (originalSize - compressedSize) / originalSize;
+                
+                if (typeof compressedData !== 'string' || compressedData.length === 0) {
+                    throw new Error('Invalid compression result');
+                }
+                
+                return {
+                    compressionRatio,
+                    originalSize,
+                    compressedSize,
+                    config
+                };
+                
+            } finally {
+                optimizer.destroy();
+            }
+        }
+        
+        async function runProgressiveLoadingTest(config) {
+            const mockController = createMockController();
+            const optimizer = new MobileOptimizer(mockController);
+            
+            await optimizer.initialize();
+            optimizer.progressiveLoader.batchSize = config.batchSize;
+            optimizer.progressiveLoader.delay = config.networkDelay;
+            
+            try {
+                const chartConfigs = generateChartConfigs(config.chartCount);
+                const loadStartTime = performance.now();
+                
+                const loadPromises = chartConfigs.map(config => 
+                    optimizer.loadChartProgressively(config, { id: 'container' })
+                );
+                
+                const results = await Promise.all(loadPromises);
+                const loadTime = performance.now() - loadStartTime;
+                
+                if (results.length !== config.chartCount) {
+                    throw new Error('Chart count mismatch');
+                }
+                
+                if (!results.every(r => r.success)) {
+                    throw new Error('Some charts failed');
+                }
+                
+                if (optimizer.progressiveLoader.queue.length !== 0) {
+                    throw new Error('Queue not empty after completion');
+                }
+                
+                return {
+                    chartCount: config.chartCount,
+                    loadTime,
+                    config
+                };
+                
+            } finally {
+                optimizer.destroy();
+            }
+        }
+        
+        async function runCacheManagementTest(config) {
+            const mockController = createMockController();
+            const optimizer = new MobileOptimizer(mockController);
+            
+            await optimizer.initialize();
+            optimizer.performanceSettings.maxCacheSize = config.maxCacheSize;
+            
+            try {
+                const cacheKeys = [];
+                
+                // Add items to cache
+                for (let i = 0; i < config.itemCount; i++) {
+                    const key = `item-${i}`;
+                    const data = generateFixedSizeData(config.itemSize);
+                    
+                    await optimizer.cacheData(key, data);
+                    cacheKeys.push(key);
+                }
+                
+                // Test retrieval
+                let retrievableCount = 0;
+                for (const key of cacheKeys) {
+                    const cachedData = await optimizer.getCachedData(key);
+                    if (cachedData !== null) {
+                        retrievableCount++;
+                    }
+                }
+                
+                const hitRate = retrievableCount / cacheKeys.length;
+                
+                if (retrievableCount === 0) {
+                    throw new Error('No items cached');
+                }
+                
+                if (hitRate < 0 || hitRate > 1) {
+                    throw new Error('Invalid hit rate');
+                }
+                
+                return {
+                    hitRate,
+                    retrievableCount,
+                    totalItems: cacheKeys.length,
+                    config
+                };
+                
+            } finally {
+                optimizer.destroy();
+            }
+        }
+        
+        async function runNetworkAdaptationTest(config) {
+            const mockController = createMockController();
+            const optimizer = new MobileOptimizer(mockController);
+            
+            optimizer.networkInfo = {
+                type: 'cellular',
+                effectiveType: config.effectiveType,
+                downlink: config.downlink,
+                rtt: config.rtt,
+                saveData: config.saveData
+            };
+            
+            await optimizer.initialize();
+            optimizer.adjustPerformanceForNetwork();
+            
+            try {
+                const settings = optimizer.performanceSettings;
+                
+                // Validate compression level
+                const validLevels = ['maximum', 'high', 'medium', 'low'];
+                if (!validLevels.includes(settings.compressionLevel)) {
+                    throw new Error('Invalid compression level');
+                }
+                
+                // Validate image quality
+                if (settings.imageQuality <= 0 || settings.imageQuality > 1) {
+                    throw new Error('Invalid image quality');
+                }
+                
+                // Check network-specific adaptations
+                if (['slow-2g', '2g'].includes(config.effectiveType) || config.saveData) {
+                    if (settings.compressionLevel !== 'maximum') {
+                        throw new Error('Should use maximum compression for slow networks');
+                    }
+                    if (settings.imageQuality > 0.6) {
+                        throw new Error('Image quality too high for slow networks');
+                    }
+                }
+                
+                if (config.effectiveType === '4g' && !config.saveData) {
+                    if (settings.compressionLevel !== 'medium') {
+                        throw new Error('Should use medium compression for fast networks');
+                    }
+                    if (settings.imageQuality < 0.7) {
+                        throw new Error('Image quality too low for fast networks');
+                    }
+                }
+                
+                return {
+                    compressionLevel: settings.compressionLevel,
+                    imageQuality: settings.imageQuality,
+                    networkType: config.effectiveType,
+                    config
+                };
+                
+            } finally {
+                optimizer.destroy();
+            }
+        }
+        
+        // Helper functions for test data generation
+        function generateRandomTestConfig(maxDataSize) {
+            const deviceTypes = ['mobile', 'tablet', 'desktop'];
+            const networkTypes = ['slow-2g', '2g', '3g', '4g', 'wifi'];
+            
+            return {
+                deviceType: deviceTypes[Math.floor(Math.random() * deviceTypes.length)],
+                networkType: networkTypes[Math.floor(Math.random() * networkTypes.length)],
+                screenWidth: Math.floor(Math.random() * 2240) + 320,
+                screenHeight: Math.floor(Math.random() * 1200) + 240,
+                memorySize: Math.floor(Math.random() * 7680) + 512,
+                dataSize: Math.floor(Math.random() * maxDataSize) + 100,
+                saveData: Math.random() < 0.3,
+                isTouch: Math.random() < 0.7
+            };
+        }
+        
+        function generateTestData(size) {
+            return {
+                transactions: Array.from({ length: size }, (_, i) => ({
+                    id: `tx-${i}`,
+                    amount: Math.random() * 1000000,
+                    type: ['deposit', 'withdrawal', 'loan'][Math.floor(Math.random() * 3)],
+                    member_id: `member-${Math.floor(Math.random() * 100)}`,
+                    timestamp: Date.now() - Math.random() * 86400000,
+                    description: `Transaction ${i} with description text`
+                })),
+                metadata: {
+                    timestamp: Date.now(),
+                    version: '1.0.0',
+                    source: 'test-generator'
+                }
+            };
+        }
+        
+        function generateTypedTestData(size, type) {
+            const baseData = {
+                metadata: { timestamp: Date.now(), type: type, count: size }
+            };
+            
+            switch (type) {
+                case 'transactions':
+                    baseData.transactions = Array.from({ length: size }, (_, i) => ({
+                        transaction_id: `tx-${i}`,
+                        transaction_amount: Math.random() * 1000,
+                        transaction_type: 'payment',
+                        member_id: `member-${i}`,
+                        created_at: new Date().toISOString()
+                    }));
+                    break;
+                    
+                case 'members':
+                    baseData.members = Array.from({ length: size }, (_, i) => ({
+                        member_id: `member-${i}`,
+                        member_name: `Member ${i}`,
+                        member_balance: Math.random() * 10000,
+                        member_status: 'active'
+                    }));
+                    break;
+                    
+                case 'mixed':
+                    baseData.items = Array.from({ length: size }, (_, i) => ({
+                        id: i,
+                        transaction: `tx-${i}`,
+                        member: `member-${i}`,
+                        balance: Math.random() * 1000,
+                        description: `Mixed data item ${i}`
+                    }));
+                    break;
+            }
+            
+            return baseData;
+        }
+        
+        function generateChartConfigs(count) {
+            return Array.from({ length: count }, (_, i) => ({
+                id: `chart-${i}`,
+                type: ['line', 'bar', 'pie'][Math.floor(Math.random() * 3)],
+                data: {
+                    datasets: [{
+                        data: Array.from({ length: 20 }, () => Math.random() * 100)
+                    }]
+                },
+                priority: Math.random() * 10,
+                options: {}
+            }));
+        }
+        
+        function generateFixedSizeData(targetSize) {
+            const baseData = { id: 1, type: 'test' };
+            const baseSize = JSON.stringify(baseData).length;
+            const paddingSize = Math.max(0, targetSize - baseSize);
+            
+            return {
+                ...baseData,
+                padding: 'x'.repeat(paddingSize)
+            };
+        }
+        
+        function createMockController() {
+            return {
+                container: { id: 'test-container' },
+                widgets: new Map(),
+                config: { enableResponsive: true, enableTouch: true },
+                onNetworkChange: () => {},
+                autoRefreshManager: {
+                    pauseRefresh: () => {},
+                    resumeRefresh: () => {}
+                }
+            };
+        }
+        
+        function setupTestEnvironment(config) {
+            // This would normally set up the test environment
+            // For the web version, we'll just log the configuration
+            if (document.getElementById('verboseLogging').checked) {
+                log(`Test environment: ${config.deviceType}, ${config.networkType}, ${config.dataSize} items`);
+            }
+        }
+        
+        // UI helper functions
+        function setStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.className = `status-indicator status-${status}`;
+        }
+        
+        function updateProgress(testType, current, total, passes, failures, metrics) {
+            const progress = (current / total) * 100;
+            document.getElementById('overallProgress').style.width = `${progress}%`;
+            
+            // Update specific test results
+            const resultsDiv = document.getElementById(`${testType}Results`);
+            resultsDiv.style.display = 'block';
+            
+            document.getElementById(`${testType}Runs`).textContent = current;
+            document.getElementById(`${testType}PassRate`).textContent = `${((passes/current)*100).toFixed(1)}%`;
+            
+            // Update specific metrics based on test type
+            if (testType === 'property14' && metrics.length > 0) {
+                const avgCompression = metrics.reduce((sum, m) => sum + m.compressionRatio, 0) / metrics.length;
+                const avgLoadTime = metrics.reduce((sum, m) => sum + m.loadTime, 0) / metrics.length;
+                document.getElementById('property14Compression').textContent = `${(avgCompression * 100).toFixed(1)}%`;
+                document.getElementById('property14LoadTime').textContent = `${avgLoadTime.toFixed(1)}ms`;
+            }
+            
+            if (testType === 'compression' && metrics.length > 0) {
+                const maxCompression = Math.max(...metrics.map(m => m.compressionRatio));
+                const avgCompression = metrics.reduce((sum, m) => sum + m.compressionRatio, 0) / metrics.length;
+                document.getElementById('maxCompression').textContent = `${(maxCompression * 100).toFixed(1)}%`;
+                document.getElementById('avgCompression').textContent = `${(avgCompression * 100).toFixed(1)}%`;
+            }
+            
+            if (testType === 'progressive' && metrics.length > 0) {
+                const maxCharts = Math.max(...metrics.map(m => m.chartCount));
+                const avgLoadTime = metrics.reduce((sum, m) => sum + m.loadTime, 0) / metrics.length;
+                document.getElementById('maxCharts').textContent = maxCharts;
+                document.getElementById('progressiveLoadTime').textContent = `${avgLoadTime.toFixed(1)}ms`;
+            }
+            
+            if (testType === 'cache' && metrics.length > 0) {
+                const avgHitRate = metrics.reduce((sum, m) => sum + m.hitRate, 0) / metrics.length;
+                const efficiency = metrics.filter(m => m.hitRate > 0.5).length / metrics.length;
+                document.getElementById('avgHitRate').textContent = `${(avgHitRate * 100).toFixed(1)}%`;
+                document.getElementById('cacheEfficiency').textContent = `${(efficiency * 100).toFixed(1)}%`;
+            }
+            
+            if (testType === 'network' && metrics.length > 0) {
+                const adaptationAccuracy = passes / current;
+                const settingsValidity = passes / current;
+                document.getElementById('adaptationAccuracy').textContent = `${(adaptationAccuracy * 100).toFixed(1)}%`;
+                document.getElementById('settingsValidity').textContent = `${(settingsValidity * 100).toFixed(1)}%`;
+            }
+        }
+        
+        function log(message) {
+            const logArea = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(message);
+        }
+        
+        window.resetAllTests = function() {
+            testResults = {
+                property14: { runs: 0, passes: 0, failures: 0, metrics: [] },
+                compression: { runs: 0, passes: 0, failures: 0, metrics: [] },
+                progressive: { runs: 0, passes: 0, failures: 0, metrics: [] },
+                cache: { runs: 0, passes: 0, failures: 0, metrics: [] },
+                network: { runs: 0, passes: 0, failures: 0, metrics: [] }
+            };
+            
+            // Reset UI
+            ['property14', 'compression', 'progressive', 'cache', 'network'].forEach(testType => {
+                document.getElementById(`${testType}Results`).style.display = 'none';
+                setStatus(`${testType}Status`, 'fail');
+            });
+            
+            document.getElementById('overallProgress').style.width = '0%';
+            log('All tests reset');
+        };
+        
+        window.exportResults = function() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                configuration: {
+                    testRuns: document.getElementById('testRuns').value,
+                    maxDataSize: document.getElementById('maxDataSize').value,
+                    testTimeout: document.getElementById('testTimeout').value,
+                    verboseLogging: document.getElementById('verboseLogging').checked
+                },
+                results: testResults
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mobile-performance-property-tests-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('Test results exported');
+        };
+        
+        window.clearLog = function() {
+            document.getElementById('testLog').innerHTML = '';
+        };
+        
+        // Initialize
+        log('Mobile Performance Property Test Suite initialized');
+        log('Configure test parameters and click "Run All Property Tests" to begin');
+    </script>
+</body>
+</html>

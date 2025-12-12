@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analytics & KPI - Koperasi</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    
+    <!-- Dashboard Styles -->
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #16a34a;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --info-color: #0891b2;
+            --light-bg: #f8fafc;
+            --dark-bg: #1e293b;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .dashboard-title {
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .dashboard-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin: 8px 0 0 0;
+        }
+
+        .dashboard-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--light-bg);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .widget {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .widget:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .widget-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .widget-menu {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .widget-menu:hover {
+            background: var(--light-bg);
+        }
+
+        .widget-content {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kpi-widget {
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .kpi-value.positive {
+            color: var(--success-color);
+        }
+
+        .kpi-value.negative {
+            color: var(--danger-color);
+        }
+
+        .kpi-value.neutral {
+            color: var(--text-primary);
+        }
+
+        .kpi-change {
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .kpi-change.positive {
+            color: var(--success-color);
+        }
+
+        .kpi-change.negative {
+            color: var(--danger-color);
+        }
+
+        .kpi-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .dashboard-error {
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .last-updated {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 12px;
+            }
+
+            .dashboard-header {
+                padding: 16px;
+                text-align: center;
+            }
+
+            .dashboard-title {
+                font-size: 1.5rem;
+            }
+
+            .dashboard-controls {
+                justify-content: center;
+                margin-top: 16px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .widget {
+                padding: 16px;
+            }
+
+            .kpi-value {
+                font-size: 2rem;
+            }
+        }
+
+        /* Dark Theme */
+        .theme-dark {
+            background-color: var(--dark-bg);
+        }
+
+        .theme-dark .dashboard-header,
+        .theme-dark .widget {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        .theme-dark .widget-title,
+        .theme-dark .dashboard-title {
+            color: #f1f5f9;
+        }
+
+        .theme-dark .dashboard-subtitle,
+        .theme-dark .kpi-label,
+        .theme-dark .last-updated {
+            color: #94a3b8;
+        }
+
+        .theme-dark .theme-toggle {
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+
+        .theme-dark .theme-toggle:hover {
+            background: #475569;
+        }
+
+        /* Grid Sizes */
+        .widget-sm { grid-column: span 3; }
+        .widget-md { grid-column: span 4; }
+        .widget-lg { grid-column: span 6; }
+        .widget-xl { grid-column: span 8; }
+        .widget-full { grid-column: span 12; }
+
+        .widget-h1 { min-height: 200px; }
+        .widget-h2 { min-height: 300px; }
+        .widget-h3 { min-height: 400px; }
+        .widget-h4 { min-height: 500px; }
+    </style>
+</head>
+<body>
+    <div id="dashboardContainer" class="dashboard-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="dashboard-title">
+                        <i class="fas fa-chart-line me-3"></i>
+                        Dashboard Analytics & KPI
+                    </h1>
+                    <p class="dashboard-subtitle">
+                        Real-time insights dan metrik kinerja koperasi
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <div class="dashboard-controls">
+                        <button id="refreshBtn" class="refresh-btn">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            Refresh
+                        </button>
+                        <button id="themeToggle" class="theme-toggle">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" id="customizeBtn">
+                                    <i class="fas fa-edit me-2"></i>Customize Dashboard
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" id="exportBtn">
+                                    <i class="fas fa-download me-2"></i>Export Report
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="settingsBtn">
+                                    <i class="fas fa-cog me-2"></i>Settings
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboardContent" class="dashboard-grid">
+            <!-- Widgets will be dynamically loaded here -->
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p class="mt-2">Loading dashboard...</p>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="last-updated" id="lastUpdated">
+            Last updated: <span id="lastUpdatedTime">-</span>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Dashboard Scripts -->
+    <script src="js/dashboard/types.js"></script>
+    <script src="js/dashboard/AnalyticsEngine.js"></script>
+    <script src="js/dashboard/WidgetManager.js"></script>
+    <script src="js/dashboard/DashboardController.js"></script>
+    
+    <script>
+        // Initialize Dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Show loading indicator
+                document.getElementById('loadingIndicator').style.display = 'block';
+                
+                // Initialize dashboard controller
+                const dashboard = new DashboardController('dashboardContainer', {
+                    theme: localStorage.getItem('dashboard-theme') || 'light',
+                    refreshInterval: 300000, // 5 minutes
+                    autoSave: true
+                });
+
+                // Initialize dashboard
+                await dashboard.initialize();
+
+                // Load dashboard for current user (mock data for now)
+                const currentUser = getCurrentUser();
+                const userRole = getUserRole();
+                
+                await dashboard.loadDashboard(currentUser.id, userRole);
+
+                // Hide loading indicator
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                // Setup event listeners
+                setupEventListeners(dashboard);
+
+                // Update last updated time
+                updateLastUpdatedTime();
+
+                console.log('Dashboard Analytics & KPI initialized successfully');
+
+            } catch (error) {
+                console.error('Failed to initialize dashboard:', error);
+                document.getElementById('loadingIndicator').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> Failed to load dashboard. Please refresh the page.
+                    </div>
+                `;
+            }
+        });
+
+        /**
+         * Get current user (mock implementation)
+         */
+        function getCurrentUser() {
+            // In real implementation, get from authentication system
+            return {
+                id: 'user_001',
+                name: 'Admin User',
+                role: 'admin'
+            };
+        }
+
+        /**
+         * Get user role (mock implementation)
+         */
+        function getUserRole() {
+            // In real implementation, get from authentication system
+            return localStorage.getItem('user-role') || 'admin';
+        }
+
+        /**
+         * Setup event listeners
+         */
+        function setupEventListeners(dashboard) {
+            // Refresh button
+            document.getElementById('refreshBtn').addEventListener('click', async function() {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+                
+                try {
+                    await dashboard.refreshData();
+                    updateLastUpdatedTime();
+                } catch (error) {
+                    console.error('Refresh failed:', error);
+                } finally {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
+                }
+            });
+
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('click', function() {
+                const currentTheme = dashboard.config.theme;
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                
+                dashboard.applyTheme(newTheme);
+                localStorage.setItem('dashboard-theme', newTheme);
+                
+                // Update icon
+                const icon = this.querySelector('i');
+                icon.className = newTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            });
+
+            // Customize button
+            document.getElementById('customizeBtn').addEventListener('click', function() {
+                // TODO: Implement dashboard customization
+                alert('Dashboard customization coming soon!');
+            });
+
+            // Export button
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                // TODO: Implement export functionality
+                alert('Export functionality coming soon!');
+            });
+
+            // Settings button
+            document.getElementById('settingsBtn').addEventListener('click', function() {
+                // TODO: Implement settings panel
+                alert('Settings panel coming soon!');
+            });
+
+            // Listen for dashboard events
+            document.addEventListener('dashboard:dashboardLoaded', function(event) {
+                console.log('Dashboard loaded:', event.detail);
+                updateLastUpdatedTime();
+            });
+        }
+
+        /**
+         * Update last updated time
+         */
+        function updateLastUpdatedTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('id-ID', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            document.getElementById('lastUpdatedTime').textContent = timeString;
+        }
+
+        /**
+         * Handle window resize for responsive charts
+         */
+        window.addEventListener('resize', function() {
+            // Charts will be resized by the dashboard controller
+        });
+    </script>
+</body>
+</html>

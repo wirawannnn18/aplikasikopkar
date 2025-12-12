@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Analyzer Test - Dashboard Analytics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn.success {
+            background-color: #28a745;
+        }
+        
+        .btn.danger {
+            background-color: #dc3545;
+        }
+        
+        .btn.warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .btn.secondary {
+            background-color: #6c757d;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .result-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .result-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .result-card pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .correlation-matrix {
+            display: grid;
+            gap: 2px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        
+        .correlation-cell {
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+        }
+        
+        .correlation-header {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .correlation-positive {
+            background-color: #d4edda;
+        }
+        
+        .correlation-negative {
+            background-color: #f8d7da;
+        }
+        
+        .correlation-neutral {
+            background-color: #f8f9fa;
+        }
+        
+        .insights-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .insight-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #007bff;
+        }
+        
+        .insight-item.high {
+            border-left-color: #dc3545;
+        }
+        
+        .insight-item.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .insight-item.low {
+            border-left-color: #28a745;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .data-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Statistical Analyzer Test Suite</h1>
+        <p>Testing advanced statistical analysis tools including correlation analysis, regression analysis, and automated insight generation.</p>
+        
+        <!-- Data Generation Controls -->
+        <div class="test-section">
+            <h3>🎲 Data Generation Controls</h3>
+            <div class="data-controls">
+                <div class="control-group">
+                    <label for="dataPoints">Data Points:</label>
+                    <input type="number" id="dataPoints" value="20" min="5" max="100" />
+                </div>
+                <div class="control-group">
+                    <label for="noiseLevel">Noise Level:</label>
+                    <select id="noiseLevel">
+                        <option value="0.1">Low (0.1)</option>
+                        <option value="0.3" selected>Medium (0.3)</option>
+                        <option value="0.5">High (0.5)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="trendType">Trend Type:</label>
+                    <select id="trendType">
+                        <option value="linear">Linear</option>
+                        <option value="exponential">Exponential</option>
+                        <option value="polynomial">Polynomial</option>
+                        <option value="random">Random</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="correlationStrength">Correlation Strength:</label>
+                    <select id="correlationStrength">
+                        <option value="0.9">Strong (0.9)</option>
+                        <option value="0.7" selected>Moderate (0.7)</option>
+                        <option value="0.3">Weak (0.3)</option>
+                        <option value="0.0">None (0.0)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <button class="btn" onclick="generateTestData()">🎲 Generate Test Data</button>
+                <button class="btn secondary" onclick="loadSampleData()">📁 Load Sample Data</button>
+                <button class="btn warning" onclick="clearAllData()">🗑️ Clear Data</button>
+            </div>
+        </div>
+        
+        <!-- Correlation Analysis Section -->
+        <div class="test-section">
+            <h3>🔗 Correlation Analysis</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="runCorrelationAnalysis()">🔍 Run Correlation Analysis</button>
+                <button class="btn success" onclick="runCorrelationWithInsights()">💡 Run with Insights</button>
+                <button class="btn secondary" onclick="testCorrelationMethods()">🧪 Test Methods</button>
+            </div>
+            
+            <div class="results-grid">
+                <div class="result-card">
+                    <h4>Correlation Matrix</h4>
+                    <div id="correlationMatrix">
+                        <p><em>Run correlation analysis to see results...</em></p>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>Correlation Results</h4>
+                    <div id="correlationResults">
+                        <p><em>Results will appear here...</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Regression Analysis Section -->
+        <div class="test-section">
+            <h3>📈 Regression Analysis</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="runLinearRegression()">📊 Linear Regression</button>
+                <button class="btn" onclick="runPolynomialRegression()">📈 Polynomial Regression</button>
+                <button class="btn" onclick="runExponentialRegression()">📉 Exponential Regression</button>
+                <button class="btn success" onclick="compareRegressionMethods()">⚖️ Compare Methods</button>
+            </div>
+            
+            <div class="results-grid">
+                <div class="result-card">
+                    <h4>Regression Model</h4>
+                    <div id="regressionModel">
+                        <p><em>Run regression analysis to see model...</em></p>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>Predictions & Statistics</h4>
+                    <div id="regressionStats">
+                        <p><em>Statistics will appear here...</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Automated Insights Section -->
+        <div class="test-section">
+            <h3>🤖 Automated Insights</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="generateInsights()">🧠 Generate All Insights</button>
+                <button class="btn" onclick="generateTrendInsights()">📊 Trend Analysis</button>
+                <button class="btn" onclick="generateAnomalyInsights()">⚠️ Anomaly Detection</button>
+                <button class="btn success" onclick="generateRecommendations()">💡 Get Recommendations</button>
+            </div>
+            
+            <div class="results-grid">
+                <div class="result-card">
+                    <h4>Generated Insights</h4>
+                    <div id="insightsList" class="insights-list">
+                        <p><em>Generate insights to see results...</em></p>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>Recommendations</h4>
+                    <div id="recommendationsList">
+                        <p><em>Recommendations will appear here...</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Testing Section -->
+        <div class="test-section">
+            <h3>⚡ Performance Testing</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="runPerformanceTests()">🚀 Run Performance Tests</button>
+                <button class="btn" onclick="testCaching()">💾 Test Caching</button>
+                <button class="btn" onclick="stressTest()">💪 Stress Test</button>
+                <button class="btn secondary" onclick="clearCaches()">🗑️ Clear Caches</button>
+            </div>
+            
+            <div class="progress-bar" id="performanceProgress" style="display: none;">
+                <div class="progress-fill" id="performanceProgressFill"></div>
+            </div>
+            
+            <div id="performanceResults">
+                <p><em>Run performance tests to see results...</em></p>
+            </div>
+        </div>
+        
+        <!-- Test Results Section -->
+        <div class="test-section">
+            <h3>📋 Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <!-- Include our modules -->
+    <script src="js/dashboard/types.js"></script>
+    <script src="js/dashboard/AnalyticsEngine.js"></script>
+    <script src="js/dashboard/StatisticalAnalyzer.js"></script>
+    
+    <script>
+        // Global variables
+        let statisticalAnalyzer;
+        let mockAnalyticsEngine;
+        let testDatasets = [];
+        let testResults = [];
+        
+        // Mock Analytics Engine
+        class MockAnalyticsEngine {
+            constructor() {
+                this.data = new Map();
+            }
+            
+            // Mock methods that StatisticalAnalyzer might use
+            async getMetricData(metricId, options = {}) {
+                return this.data.get(metricId) || [];
+            }
+            
+            setMetricData(metricId, data) {
+                this.data.set(metricId, data);
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                mockAnalyticsEngine = new MockAnalyticsEngine();
+                statisticalAnalyzer = new StatisticalAnalyzer(mockAnalyticsEngine);
+                
+                addResult('✅ Statistical Analyzer initialized successfully', 'success');
+                loadSampleData();
+            } catch (error) {
+                addResult(`❌ Initialization failed: ${error.message}`, 'error');
+            }
+        });
+        
+        // Generate test data based on controls
+        function generateTestData() {
+            try {
+                const dataPoints = parseInt(document.getElementById('dataPoints').value);
+                const noiseLevel = parseFloat(document.getElementById('noiseLevel').value);
+                const trendType = document.getElementById('trendType').value;
+                const correlationStrength = parseFloat(document.getElementById('correlationStrength').value);
+                
+                testDatasets = [];
+                
+                // Generate base time series
+                const baseData = generateTimeSeries('Base Metric', dataPoints, trendType, noiseLevel);
+                testDatasets.push({ name: 'Base Metric', data: baseData });
+                
+                // Generate correlated metric
+                const correlatedData = generateCorrelatedSeries(baseData, correlationStrength, noiseLevel);
+                testDatasets.push({ name: 'Correlated Metric', data: correlatedData });
+                
+                // Generate independent metric
+                const independentData = generateTimeSeries('Independent Metric', dataPoints, 'random', noiseLevel);
+                testDatasets.push({ name: 'Independent Metric', data: independentData });
+                
+                // Generate financial metrics
+                const revenueData = generateTimeSeries('Revenue', dataPoints, 'linear', noiseLevel * 0.5, 50000, 5000);
+                testDatasets.push({ name: 'Revenue', data: revenueData });
+                
+                const expenseData = generateCorrelatedSeries(revenueData, 0.8, noiseLevel, 0.7); // Expenses correlate with revenue
+                testDatasets.push({ name: 'Expenses', data: expenseData });
+                
+                addResult(`✅ Generated ${testDatasets.length} test datasets with ${dataPoints} points each`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Data generation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load sample data
+        function loadSampleData() {
+            try {
+                testDatasets = [
+                    {
+                        name: 'Member Growth',
+                        data: [
+                            { x: 1, y: 1200 }, { x: 2, y: 1250 }, { x: 3, y: 1320 }, { x: 4, y: 1380 },
+                            { x: 5, y: 1450 }, { x: 6, y: 1520 }, { x: 7, y: 1580 }, { x: 8, y: 1650 },
+                            { x: 9, y: 1720 }, { x: 10, y: 1800 }, { x: 11, y: 1850 }, { x: 12, y: 1920 }
+                        ]
+                    },
+                    {
+                        name: 'Transaction Volume',
+                        data: [
+                            { x: 1, y: 125000 }, { x: 2, y: 132000 }, { x: 3, y: 148000 }, { x: 4, y: 152000 },
+                            { x: 5, y: 165000 }, { x: 6, y: 178000 }, { x: 7, y: 185000 }, { x: 8, y: 195000 },
+                            { x: 9, y: 205000 }, { x: 10, y: 220000 }, { x: 11, y: 235000 }, { x: 12, y: 250000 }
+                        ]
+                    },
+                    {
+                        name: 'Savings Balance',
+                        data: [
+                            { x: 1, y: 850000 }, { x: 2, y: 875000 }, { x: 3, y: 920000 }, { x: 4, y: 945000 },
+                            { x: 5, y: 980000 }, { x: 6, y: 1020000 }, { x: 7, y: 1050000 }, { x: 8, y: 1085000 },
+                            { x: 9, y: 1120000 }, { x: 10, y: 1160000 }, { x: 11, y: 1195000 }, { x: 12, y: 1230000 }
+                        ]
+                    },
+                    {
+                        name: 'Loan Defaults',
+                        data: [
+                            { x: 1, y: 15000 }, { x: 2, y: 12000 }, { x: 3, y: 18000 }, { x: 4, y: 14000 },
+                            { x: 5, y: 16000 }, { x: 6, y: 11000 }, { x: 7, y: 13000 }, { x: 8, y: 25000 }, // Anomaly
+                            { x: 9, y: 14000 }, { x: 10, y: 12000 }, { x: 11, y: 15000 }, { x: 12, y: 13000 }
+                        ]
+                    }
+                ];
+                
+                addResult(`📁 Loaded ${testDatasets.length} sample datasets`, 'info');
+                
+            } catch (error) {
+                addResult(`❌ Sample data loading failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Clear all data
+        function clearAllData() {
+            testDatasets = [];
+            document.getElementById('correlationMatrix').innerHTML = '<p><em>No data available</em></p>';
+            document.getElementById('correlationResults').innerHTML = '<p><em>No data available</em></p>';
+            document.getElementById('regressionModel').innerHTML = '<p><em>No data available</em></p>';
+            document.getElementById('regressionStats').innerHTML = '<p><em>No data available</em></p>';
+            document.getElementById('insightsList').innerHTML = '<p><em>No data available</em></p>';
+            document.getElementById('recommendationsList').innerHTML = '<p><em>No data available</em></p>';
+            
+            addResult('🗑️ All data cleared', 'info');
+        }
+        
+        // Run correlation analysis
+        async function runCorrelationAnalysis() {
+            try {
+                if (testDatasets.length < 2) {
+                    throw new Error('Need at least 2 datasets for correlation analysis');
+                }
+                
+                addResult('🔍 Running correlation analysis...', 'info');
+                
+                const results = await statisticalAnalyzer.performCorrelationAnalysis(testDatasets, {
+                    method: 'pearson',
+                    threshold: 0.3,
+                    includeInsights: false
+                });
+                
+                displayCorrelationMatrix(results.matrix);
+                displayCorrelationResults(results);
+                
+                addResult(`✅ Correlation analysis completed: ${results.correlations.length} correlations found`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Correlation analysis failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Run correlation analysis with insights
+        async function runCorrelationWithInsights() {
+            try {
+                if (testDatasets.length < 2) {
+                    throw new Error('Need at least 2 datasets for correlation analysis');
+                }
+                
+                addResult('💡 Running correlation analysis with insights...', 'info');
+                
+                const results = await statisticalAnalyzer.performCorrelationAnalysis(testDatasets, {
+                    method: 'pearson',
+                    threshold: 0.3,
+                    includeInsights: true
+                });
+                
+                displayCorrelationMatrix(results.matrix);
+                displayCorrelationResults(results);
+                displayInsights(results.insights, 'correlation');
+                
+                addResult(`✅ Correlation analysis with insights completed: ${results.insights.length} insights generated`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Correlation analysis failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test correlation methods
+        async function testCorrelationMethods() {
+            try {
+                if (testDatasets.length < 2) {
+                    throw new Error('Need at least 2 datasets for correlation testing');
+                }
+                
+                addResult('🧪 Testing correlation methods...', 'info');
+                
+                const methods = ['pearson', 'spearman'];
+                const results = {};
+                
+                for (const method of methods) {
+                    try {
+                        const result = await statisticalAnalyzer.performCorrelationAnalysis(testDatasets, {
+                            method: method,
+                            includeInsights: false,
+                            cacheResults: false
+                        });
+                        results[method] = result;
+                    } catch (error) {
+                        addResult(`⚠️ ${method} correlation failed: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Display comparison
+                let comparison = '<h5>Method Comparison</h5>';
+                for (const [method, result] of Object.entries(results)) {
+                    comparison += `<p><strong>${method.toUpperCase()}:</strong> ${result.correlations.length} correlations, avg: ${result.summary.averageCorrelation.toFixed(3)}</p>`;
+                }
+                
+                document.getElementById('correlationResults').innerHTML = comparison;
+                
+                addResult(`✅ Correlation method testing completed: ${Object.keys(results).length} methods tested`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Correlation method testing failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Run linear regression
+        async function runLinearRegression() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for regression analysis');
+                }
+                
+                addResult('📊 Running linear regression...', 'info');
+                
+                const dataset = testDatasets[0]; // Use first dataset
+                const results = await statisticalAnalyzer.performRegressionAnalysis(dataset.data, {
+                    method: 'linear',
+                    predictPeriods: 3,
+                    includeResiduals: true
+                });
+                
+                displayRegressionModel(results, 'linear');
+                displayRegressionStats(results);
+                
+                addResult(`✅ Linear regression completed: R² = ${results.statistics.rSquared.toFixed(4)}`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Linear regression failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Run polynomial regression
+        async function runPolynomialRegression() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for regression analysis');
+                }
+                
+                addResult('📈 Running polynomial regression...', 'info');
+                
+                const dataset = testDatasets[0];
+                const results = await statisticalAnalyzer.performRegressionAnalysis(dataset.data, {
+                    method: 'polynomial',
+                    degree: 2,
+                    predictPeriods: 3,
+                    includeResiduals: true
+                });
+                
+                displayRegressionModel(results, 'polynomial');
+                displayRegressionStats(results);
+                
+                addResult(`✅ Polynomial regression completed: R² = ${results.statistics.rSquared.toFixed(4)}`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Polynomial regression failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Run exponential regression
+        async function runExponentialRegression() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for regression analysis');
+                }
+                
+                addResult('📉 Running exponential regression...', 'info');
+                
+                const dataset = testDatasets[0];
+                const results = await statisticalAnalyzer.performRegressionAnalysis(dataset.data, {
+                    method: 'exponential',
+                    predictPeriods: 3,
+                    includeResiduals: true
+                });
+                
+                displayRegressionModel(results, 'exponential');
+                displayRegressionStats(results);
+                
+                addResult(`✅ Exponential regression completed: R² = ${results.statistics.rSquared.toFixed(4)}`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Exponential regression failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Compare regression methods
+        async function compareRegressionMethods() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for regression comparison');
+                }
+                
+                addResult('⚖️ Comparing regression methods...', 'info');
+                
+                const dataset = testDatasets[0];
+                const methods = ['linear', 'polynomial', 'exponential'];
+                const results = {};
+                
+                for (const method of methods) {
+                    try {
+                        const result = await statisticalAnalyzer.performRegressionAnalysis(dataset.data, {
+                            method: method,
+                            degree: method === 'polynomial' ? 2 : undefined,
+                            predictPeriods: 3,
+                            cacheResults: false
+                        });
+                        results[method] = result;
+                    } catch (error) {
+                        addResult(`⚠️ ${method} regression failed: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Display comparison
+                let comparison = '<h5>Regression Method Comparison</h5><table border="1" style="width:100%; border-collapse: collapse;">';
+                comparison += '<tr><th>Method</th><th>R²</th><th>RMSE</th><th>MAE</th><th>Equation</th></tr>';
+                
+                for (const [method, result] of Object.entries(results)) {
+                    comparison += `<tr>
+                        <td><strong>${method.toUpperCase()}</strong></td>
+                        <td>${result.statistics.rSquared.toFixed(4)}</td>
+                        <td>${result.statistics.rootMeanSquareError.toFixed(2)}</td>
+                        <td>${result.statistics.meanAbsoluteError.toFixed(2)}</td>
+                        <td><code>${result.model.equation}</code></td>
+                    </tr>`;
+                }
+                comparison += '</table>';
+                
+                document.getElementById('regressionStats').innerHTML = comparison;
+                
+                addResult(`✅ Regression comparison completed: ${Object.keys(results).length} methods compared`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Regression comparison failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Generate all insights
+        async function generateInsights() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for insight generation');
+                }
+                
+                addResult('🧠 Generating automated insights...', 'info');
+                
+                const results = await statisticalAnalyzer.generateAutomatedInsights(testDatasets, {
+                    includeCorrelations: true,
+                    includeTrends: true,
+                    includeAnomalies: true,
+                    insightLimit: 20
+                });
+                
+                displayAllInsights(results);
+                displayRecommendations(results.recommendations);
+                
+                const totalInsights = results.summary.totalInsights;
+                addResult(`✅ Insight generation completed: ${totalInsights} insights generated`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Insight generation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Generate trend insights
+        async function generateTrendInsights() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for trend analysis');
+                }
+                
+                addResult('📊 Analyzing trends...', 'info');
+                
+                const allTrendInsights = [];
+                for (const dataset of testDatasets) {
+                    const trendInsights = await statisticalAnalyzer.analyzeTrends(dataset);
+                    allTrendInsights.push(...trendInsights);
+                }
+                
+                displayInsights(allTrendInsights, 'trend');
+                
+                addResult(`✅ Trend analysis completed: ${allTrendInsights.length} trend insights generated`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Trend analysis failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Generate anomaly insights
+        async function generateAnomalyInsights() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for anomaly detection');
+                }
+                
+                addResult('⚠️ Detecting anomalies...', 'info');
+                
+                const allAnomalyInsights = [];
+                for (const dataset of testDatasets) {
+                    const anomalyInsights = await statisticalAnalyzer.detectAnomalies(dataset);
+                    allAnomalyInsights.push(...anomalyInsights);
+                }
+                
+                displayInsights(allAnomalyInsights, 'anomaly');
+                
+                addResult(`✅ Anomaly detection completed: ${allAnomalyInsights.length} anomalies detected`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Anomaly detection failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Generate recommendations
+        async function generateRecommendations() {
+            try {
+                if (testDatasets.length === 0) {
+                    throw new Error('No datasets available for recommendations');
+                }
+                
+                addResult('💡 Generating recommendations...', 'info');
+                
+                const insights = await statisticalAnalyzer.generateAutomatedInsights(testDatasets);
+                displayRecommendations(insights.recommendations);
+                
+                addResult(`✅ Recommendations generated: ${insights.recommendations.length} recommendations`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Recommendation generation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Run performance tests
+        async function runPerformanceTests() {
+            try {
+                addResult('🚀 Running performance tests...', 'info');
+                showProgress(0);
+                
+                const performanceResults = {
+                    correlationTests: [],
+                    regressionTests: [],
+                    insightTests: [],
+                    cacheTests: []
+                };
+                
+                // Test correlation performance with different dataset sizes
+                const sizes = [10, 50, 100];
+                for (let i = 0; i < sizes.length; i++) {
+                    const size = sizes[i];
+                    showProgress((i / sizes.length) * 25);
+                    
+                    const testData = generateLargeDataset(size);
+                    const startTime = performance.now();
+                    
+                    await statisticalAnalyzer.performCorrelationAnalysis(testData, { cacheResults: false });
+                    
+                    const endTime = performance.now();
+                    performanceResults.correlationTests.push({
+                        size: size,
+                        time: endTime - startTime,
+                        comparisons: (testData.length * (testData.length - 1)) / 2
+                    });
+                }
+                
+                showProgress(50);
+                
+                // Test regression performance
+                for (let i = 0; i < sizes.length; i++) {
+                    const size = sizes[i];
+                    const testData = generateTimeSeries('Performance Test', size, 'linear', 0.1);
+                    const startTime = performance.now();
+                    
+                    await statisticalAnalyzer.performRegressionAnalysis(testData, { cacheResults: false });
+                    
+                    const endTime = performance.now();
+                    performanceResults.regressionTests.push({
+                        size: size,
+                        time: endTime - startTime
+                    });
+                }
+                
+                showProgress(75);
+                
+                // Test insight generation performance
+                const largeDataset = generateLargeDataset(20);
+                const startTime = performance.now();
+                
+                await statisticalAnalyzer.generateAutomatedInsights(largeDataset, { cacheResults: false });
+                
+                const endTime = performance.now();
+                performanceResults.insightTests.push({
+                    datasets: largeDataset.length,
+                    time: endTime - startTime
+                });
+                
+                showProgress(100);
+                
+                displayPerformanceResults(performanceResults);
+                
+                setTimeout(() => hideProgress(), 1000);
+                addResult('✅ Performance tests completed', 'success');
+                
+            } catch (error) {
+                hideProgress();
+                addResult(`❌ Performance tests failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test caching
+        async function testCaching() {
+            try {
+                addResult('💾 Testing caching functionality...', 'info');
+                
+                const testData = testDatasets.slice(0, 3); // Use first 3 datasets
+                
+                // First run (no cache)
+                const startTime1 = performance.now();
+                await statisticalAnalyzer.performCorrelationAnalysis(testData, { cacheResults: true });
+                const time1 = performance.now() - startTime1;
+                
+                // Second run (with cache)
+                const startTime2 = performance.now();
+                await statisticalAnalyzer.performCorrelationAnalysis(testData, { cacheResults: true });
+                const time2 = performance.now() - startTime2;
+                
+                const speedup = time1 / time2;
+                const cacheStats = statisticalAnalyzer.getCacheStats();
+                
+                const cacheResults = `
+                    <h5>Cache Performance Test</h5>
+                    <p><strong>First Run (no cache):</strong> ${time1.toFixed(2)}ms</p>
+                    <p><strong>Second Run (with cache):</strong> ${time2.toFixed(2)}ms</p>
+                    <p><strong>Speedup:</strong> ${speedup.toFixed(2)}x</p>
+                    <h5>Cache Statistics</h5>
+                    <p><strong>Correlation Cache:</strong> ${cacheStats.correlationCacheSize} entries</p>
+                    <p><strong>Regression Cache:</strong> ${cacheStats.regressionCacheSize} entries</p>
+                    <p><strong>Insight Cache:</strong> ${cacheStats.insightCacheSize} entries</p>
+                    <p><strong>Total Cache Size:</strong> ${cacheStats.totalCacheSize}/${cacheStats.maxCacheSize}</p>
+                `;
+                
+                document.getElementById('performanceResults').innerHTML = cacheResults;
+                
+                addResult(`✅ Cache testing completed: ${speedup.toFixed(2)}x speedup achieved`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Cache testing failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Stress test
+        async function stressTest() {
+            try {
+                addResult('💪 Running stress test...', 'info');
+                showProgress(0);
+                
+                const iterations = 10;
+                const datasetSize = 50;
+                const results = [];
+                
+                for (let i = 0; i < iterations; i++) {
+                    showProgress((i / iterations) * 100);
+                    
+                    const testData = generateLargeDataset(datasetSize);
+                    const startTime = performance.now();
+                    
+                    // Run all analyses
+                    await Promise.all([
+                        statisticalAnalyzer.performCorrelationAnalysis(testData, { cacheResults: false }),
+                        statisticalAnalyzer.performRegressionAnalysis(testData[0].data, { cacheResults: false }),
+                        statisticalAnalyzer.generateAutomatedInsights(testData, { cacheResults: false })
+                    ]);
+                    
+                    const endTime = performance.now();
+                    results.push(endTime - startTime);
+                }
+                
+                const avgTime = results.reduce((sum, time) => sum + time, 0) / results.length;
+                const minTime = Math.min(...results);
+                const maxTime = Math.max(...results);
+                
+                const stressResults = `
+                    <h5>Stress Test Results (${iterations} iterations)</h5>
+                    <p><strong>Average Time:</strong> ${avgTime.toFixed(2)}ms</p>
+                    <p><strong>Min Time:</strong> ${minTime.toFixed(2)}ms</p>
+                    <p><strong>Max Time:</strong> ${maxTime.toFixed(2)}ms</p>
+                    <p><strong>Standard Deviation:</strong> ${calculateStdDev(results).toFixed(2)}ms</p>
+                    <p><strong>Dataset Size:</strong> ${datasetSize} datasets per iteration</p>
+                `;
+                
+                document.getElementById('performanceResults').innerHTML = stressResults;
+                
+                showProgress(100);
+                setTimeout(() => hideProgress(), 1000);
+                
+                addResult(`✅ Stress test completed: ${iterations} iterations, avg ${avgTime.toFixed(2)}ms`, 'success');
+                
+            } catch (error) {
+                hideProgress();
+                addResult(`❌ Stress test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Clear caches
+        function clearCaches() {
+            try {
+                statisticalAnalyzer.clearCaches();
+                addResult('🗑️ All caches cleared', 'info');
+            } catch (error) {
+                addResult(`❌ Cache clearing failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Helper functions for data generation
+        function generateTimeSeries(name, points, trendType, noiseLevel, baseValue = 1000, increment = 100) {
+            const data = [];
+            
+            for (let i = 0; i < points; i++) {
+                let value;
+                
+                switch (trendType) {
+                    case 'linear':
+                        value = baseValue + (increment * i);
+                        break;
+                    case 'exponential':
+                        value = baseValue * Math.pow(1.1, i);
+                        break;
+                    case 'polynomial':
+                        value = baseValue + (increment * i) + (10 * i * i);
+                        break;
+                    case 'random':
+                    default:
+                        value = baseValue + (Math.random() - 0.5) * increment * 2;
+                        break;
+                }
+                
+                // Add noise
+                value += (Math.random() - 0.5) * value * noiseLevel;
+                
+                data.push({ x: i + 1, y: Math.max(0, value) });
+            }
+            
+            return data;
+        }
+        
+        function generateCorrelatedSeries(baseData, correlation, noiseLevel, scale = 1) {
+            const data = [];
+            
+            for (let i = 0; i < baseData.length; i++) {
+                const baseValue = baseData[i].y;
+                const correlatedValue = baseValue * scale * correlation;
+                const randomValue = (Math.random() - 0.5) * baseValue * noiseLevel;
+                const finalValue = correlatedValue + randomValue * (1 - Math.abs(correlation));
+                
+                data.push({ x: baseData[i].x, y: Math.max(0, finalValue) });
+            }
+            
+            return data;
+        }
+        
+        function generateLargeDataset(numDatasets) {
+            const datasets = [];
+            
+            for (let i = 0; i < numDatasets; i++) {
+                const data = generateTimeSeries(`Dataset ${i + 1}`, 20, 'linear', 0.2);
+                datasets.push({ name: `Dataset ${i + 1}`, data: data });
+            }
+            
+            return datasets;
+        }
+        
+        // Display functions
+        function displayCorrelationMatrix(matrix) {
+            const metrics = Object.keys(matrix);
+            let html = '<div class="correlation-matrix" style="grid-template-columns: repeat(' + (metrics.length + 1) + ', 1fr);">';
+            
+            // Header row
+            html += '<div class="correlation-cell correlation-header"></div>';
+            for (const metric of metrics) {
+                html += `<div class="correlation-cell correlation-header">${metric}</div>`;
+            }
+            
+            // Data rows
+            for (const metric1 of metrics) {
+                html += `<div class="correlation-cell correlation-header">${metric1}</div>`;
+                for (const metric2 of metrics) {
+                    const value = matrix[metric1][metric2] || 0;
+                    const cellClass = value > 0.3 ? 'correlation-positive' : 
+                                     value < -0.3 ? 'correlation-negative' : 'correlation-neutral';
+                    html += `<div class="correlation-cell ${cellClass}">${value.toFixed(3)}</div>`;
+                }
+            }
+            
+            html += '</div>';
+            document.getElementById('correlationMatrix').innerHTML = html;
+        }
+        
+        function displayCorrelationResults(results) {
+            let html = `
+                <h5>Correlation Summary</h5>
+                <p><strong>Method:</strong> ${results.method}</p>
+                <p><strong>Total Correlations:</strong> ${results.summary.totalCorrelations}</p>
+                <p><strong>Significant Correlations:</strong> ${results.summary.significantCorrelations}</p>
+                <p><strong>Average Correlation:</strong> ${results.summary.averageCorrelation.toFixed(3)}</p>
+                
+                <h5>Detailed Results</h5>
+                <table border="1" style="width:100%; border-collapse: collapse;">
+                    <tr><th>Metric 1</th><th>Metric 2</th><th>Coefficient</th><th>P-Value</th><th>Strength</th></tr>
+            `;
+            
+            for (const corr of results.correlations) {
+                html += `<tr>
+                    <td>${corr.metric1}</td>
+                    <td>${corr.metric2}</td>
+                    <td>${corr.coefficient.toFixed(4)}</td>
+                    <td>${corr.pValue.toFixed(4)}</td>
+                    <td>${corr.strength} ${corr.direction}</td>
+                </tr>`;
+            }
+            
+            html += '</table>';
+            document.getElementById('correlationResults').innerHTML = html;
+        }
+        
+        function displayRegressionModel(results, method) {
+            let html = `
+                <h5>${method.toUpperCase()} Regression Model</h5>
+                <p><strong>Equation:</strong> <code>${results.model.equation}</code></p>
+                <p><strong>Type:</strong> ${results.model.type}</p>
+            `;
+            
+            if (results.model.slope !== undefined) {
+                html += `<p><strong>Slope:</strong> ${results.model.slope.toFixed(6)}</p>`;
+                html += `<p><strong>Intercept:</strong> ${results.model.intercept.toFixed(6)}</p>`;
+            }
+            
+            if (results.predictions.length > 0) {
+                html += '<h5>Predictions</h5><ul>';
+                for (const pred of results.predictions) {
+                    html += `<li>Period ${pred.period}: ${pred.y.toFixed(2)} (confidence: ${(pred.confidence * 100).toFixed(1)}%)</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            document.getElementById('regressionModel').innerHTML = html;
+        }
+        
+        function displayRegressionStats(results) {
+            const stats = results.statistics;
+            let html = `
+                <h5>Model Statistics</h5>
+                <p><strong>R-squared:</strong> ${stats.rSquared.toFixed(4)}</p>
+                <p><strong>Adjusted R-squared:</strong> ${stats.adjustedRSquared.toFixed(4)}</p>
+                <p><strong>RMSE:</strong> ${stats.rootMeanSquareError.toFixed(4)}</p>
+                <p><strong>MAE:</strong> ${stats.meanAbsoluteError.toFixed(4)}</p>
+                <p><strong>Standard Error:</strong> ${stats.standardError.toFixed(4)}</p>
+            `;
+            
+            if (results.insights.length > 0) {
+                html += '<h5>Model Insights</h5><ul>';
+                for (const insight of results.insights) {
+                    html += `<li>${insight.message}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            document.getElementById('regressionStats').innerHTML = html;
+        }
+        
+        function displayInsights(insights, type) {
+            let html = `<h5>${type.toUpperCase()} Insights</h5>`;
+            
+            if (insights.length === 0) {
+                html += '<p><em>No insights generated</em></p>';
+            } else {
+                for (const insight of insights) {
+                    html += `<div class="insight-item ${insight.severity}">
+                        <strong>${insight.type.toUpperCase()}:</strong> ${insight.message}
+                        <br><small>Confidence: ${(insight.confidence * 100).toFixed(1)}% | Severity: ${insight.severity}</small>
+                    </div>`;
+                }
+            }
+            
+            document.getElementById('insightsList').innerHTML = html;
+        }
+        
+        function displayAllInsights(results) {
+            let html = `
+                <h5>All Generated Insights (${results.summary.totalInsights} total)</h5>
+                <p><strong>Correlations:</strong> ${results.summary.correlationInsights} | 
+                   <strong>Trends:</strong> ${results.summary.trendInsights} | 
+                   <strong>Anomalies:</strong> ${results.summary.anomalyInsights}</p>
+            `;
+            
+            const allInsights = [
+                ...results.correlations,
+                ...results.trends,
+                ...results.anomalies
+            ];
+            
+            if (allInsights.length === 0) {
+                html += '<p><em>No insights generated</em></p>';
+            } else {
+                for (const insight of allInsights) {
+                    html += `<div class="insight-item ${insight.severity}">
+                        <strong>${insight.type.toUpperCase()}:</strong> ${insight.message}
+                        <br><small>Confidence: ${(insight.confidence * 100).toFixed(1)}% | Severity: ${insight.severity}</small>
+                    </div>`;
+                }
+            }
+            
+            document.getElementById('insightsList').innerHTML = html;
+        }
+        
+        function displayRecommendations(recommendations) {
+            let html = '<h5>Recommendations</h5>';
+            
+            if (recommendations.length === 0) {
+                html += '<p><em>No recommendations generated</em></p>';
+            } else {
+                for (const rec of recommendations) {
+                    html += `<div class="insight-item ${rec.priority}">
+                        <strong>${rec.type.toUpperCase()}:</strong> ${rec.message}
+                        <br><strong>Actions:</strong> ${rec.actions.join(', ')}
+                        <br><small>Priority: ${rec.priority}</small>
+                    </div>`;
+                }
+            }
+            
+            document.getElementById('recommendationsList').innerHTML = html;
+        }
+        
+        function displayPerformanceResults(results) {
+            let html = '<h5>Performance Test Results</h5>';
+            
+            // Correlation performance
+            html += '<h6>Correlation Analysis Performance</h6><table border="1" style="width:100%; border-collapse: collapse;">';
+            html += '<tr><th>Dataset Size</th><th>Comparisons</th><th>Time (ms)</th><th>Time per Comparison (ms)</th></tr>';
+            for (const test of results.correlationTests) {
+                const timePerComparison = test.time / test.comparisons;
+                html += `<tr><td>${test.size}</td><td>${test.comparisons}</td><td>${test.time.toFixed(2)}</td><td>${timePerComparison.toFixed(4)}</td></tr>`;
+            }
+            html += '</table>';
+            
+            // Regression performance
+            html += '<h6>Regression Analysis Performance</h6><table border="1" style="width:100%; border-collapse: collapse;">';
+            html += '<tr><th>Data Points</th><th>Time (ms)</th></tr>';
+            for (const test of results.regressionTests) {
+                html += `<tr><td>${test.size}</td><td>${test.time.toFixed(2)}</td></tr>`;
+            }
+            html += '</table>';
+            
+            // Insight generation performance
+            if (results.insightTests.length > 0) {
+                html += '<h6>Insight Generation Performance</h6>';
+                const test = results.insightTests[0];
+                html += `<p><strong>Datasets:</strong> ${test.datasets} | <strong>Time:</strong> ${test.time.toFixed(2)}ms</p>`;
+            }
+            
+            document.getElementById('performanceResults').innerHTML = html;
+        }
+        
+        // Utility functions
+        function calculateStdDev(values) {
+            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+            return Math.sqrt(variance);
+        }
+        
+        function addResult(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            const result = {
+                message: message,
+                type: type,
+                timestamp: timestamp
+            };
+            
+            testResults.push(result);
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.appendChild(resultDiv);
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+        }
+        
+        function showProgress(percent) {
+            const progressBar = document.getElementById('performanceProgress');
+            const progressFill = document.getElementById('performanceProgressFill');
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = percent + '%';
+        }
+        
+        function hideProgress() {
+            document.getElementById('performanceProgress').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Excel Task 2 - Koperasi</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="fas fa-vial me-3 text-success"></i>Test Upload Excel Task 2
+                </h1>
+                <p class="text-muted mt-2">Testing file upload and parsing functionality</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-light" onclick="window.location.href='upload_master_barang_excel.html'">
+                    <i class="fas fa-arrow-left me-2"></i>Ke Menu Upload
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-play me-2"></i>Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-primary me-2" onclick="testFileValidation()">
+                                    <i class="fas fa-check me-2"></i>Test File Validation
+                                </button>
+                                <button class="btn btn-success me-2" onclick="testCSVParsing()">
+                                    <i class="fas fa-file-csv me-2"></i>Test CSV Parsing
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-info me-2" onclick="testDataTransformation()">
+                                    <i class="fas fa-exchange-alt me-2"></i>Test Data Transformation
+                                </button>
+                                <button class="btn btn-warning" onclick="testPreviewGeneration()">
+                                    <i class="fas fa-eye me-2"></i>Test Preview Generation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                <p>Klik tombol test untuk melihat hasil</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-list me-2"></i>Test Log</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="testLog" style="max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; background-color: #f8f9fa; padding: 1rem; border-radius: 0.375rem;">
+                            <!-- Test log will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core Components -->
+    <script src="js/upload-excel/types.js"></script>
+    <script src="js/upload-excel/DataProcessor.js"></script>
+    <script src="js/upload-excel/ValidationEngine.js"></script>
+    <script src="js/upload-excel/CategoryUnitManager.js"></script>
+    <script src="js/upload-excel/AuditLogger.js"></script>
+    <script src="js/upload-excel/ExcelUploadManager.js"></script>
+    
+    <script>
+        // Test framework
+        class Task2Tester {
+            constructor() {
+                this.logElement = document.getElementById('testLog');
+                this.resultsElement = document.getElementById('testResults');
+                this.uploadManager = new ExcelUploadManager();
+                this.dataProcessor = new DataProcessor();
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `text-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'muted'}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                this.logElement.appendChild(logEntry);
+                this.logElement.scrollTop = this.logElement.scrollHeight;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+
+            showResults(results) {
+                const passed = results.filter(r => r.passed).length;
+                const total = results.length;
+                const percentage = Math.round((passed / total) * 100);
+
+                let html = `
+                    <div class="row text-center mb-3">
+                        <div class="col-md-3">
+                            <div class="card border-${percentage === 100 ? 'success' : percentage >= 80 ? 'warning' : 'danger'}">
+                                <div class="card-body">
+                                    <i class="fas fa-chart-pie fa-2x text-${percentage === 100 ? 'success' : percentage >= 80 ? 'warning' : 'danger'} mb-2"></i>
+                                    <h4 class="text-${percentage === 100 ? 'success' : percentage >= 80 ? 'warning' : 'danger'}">${percentage}%</h4>
+                                    <p class="mb-0">Success Rate</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                    <h4 class="text-success">${passed}</h4>
+                                    <p class="mb-0">Passed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-danger">
+                                <div class="card-body">
+                                    <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                                    <h4 class="text-danger">${total - passed}</h4>
+                                    <p class="mb-0">Failed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <i class="fas fa-list fa-2x text-primary mb-2"></i>
+                                    <h4 class="text-primary">${total}</h4>
+                                    <p class="mb-0">Total Tests</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                html += '<div class="list-group">';
+                results.forEach(result => {
+                    html += `
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            ${result.name}
+                            <span class="badge bg-${result.passed ? 'success' : 'danger'}">
+                                <i class="fas fa-${result.passed ? 'check' : 'times'} me-1"></i>
+                                ${result.passed ? 'PASSED' : 'FAILED'}
+                            </span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                this.resultsElement.innerHTML = html;
+            }
+        }
+
+        // Initialize tester
+        const tester = new Task2Tester();
+
+        // Test functions
+        function testFileValidation() {
+            tester.log('=== Testing File Validation ===', 'info');
+            const results = [];
+
+            try {
+                // Test valid CSV file
+                const validCSV = new File(['test content'], 'test.csv', { type: 'text/csv' });
+                const csvResult = tester.uploadManager.validateFileFormat(validCSV);
+                results.push({
+                    name: 'Valid CSV file format',
+                    passed: csvResult.isValid === true
+                });
+                tester.log(`Valid CSV: ${csvResult.isValid ? 'PASS' : 'FAIL'}`, csvResult.isValid ? 'success' : 'error');
+
+                // Test valid Excel file
+                const validExcel = new File(['test content'], 'test.xlsx', { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                const excelResult = tester.uploadManager.validateFileFormat(validExcel);
+                results.push({
+                    name: 'Valid Excel file format',
+                    passed: excelResult.isValid === true
+                });
+                tester.log(`Valid Excel: ${excelResult.isValid ? 'PASS' : 'FAIL'}`, excelResult.isValid ? 'success' : 'error');
+
+                // Test invalid file
+                const invalidFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
+                const invalidResult = tester.uploadManager.validateFileFormat(invalidFile);
+                results.push({
+                    name: 'Invalid file format rejection',
+                    passed: invalidResult.isValid === false
+                });
+                tester.log(`Invalid file rejection: ${!invalidResult.isValid ? 'PASS' : 'FAIL'}`, !invalidResult.isValid ? 'success' : 'error');
+
+                // Test file size validation
+                const smallFile = new File(['small'], 'small.csv', { type: 'text/csv' });
+                Object.defineProperty(smallFile, 'size', { value: 1000 });
+                const sizeResult = tester.uploadManager.validateFileSize(smallFile);
+                results.push({
+                    name: 'Small file size validation',
+                    passed: sizeResult.isValid === true
+                });
+                tester.log(`Small file size: ${sizeResult.isValid ? 'PASS' : 'FAIL'}`, sizeResult.isValid ? 'success' : 'error');
+
+                // Test oversized file
+                const largeFile = new File(['large'], 'large.csv', { type: 'text/csv' });
+                Object.defineProperty(largeFile, 'size', { value: 10 * 1024 * 1024 }); // 10MB
+                const largeSizeResult = tester.uploadManager.validateFileSize(largeFile);
+                results.push({
+                    name: 'Oversized file rejection',
+                    passed: largeSizeResult.isValid === false
+                });
+                tester.log(`Oversized file rejection: ${!largeSizeResult.isValid ? 'PASS' : 'FAIL'}`, !largeSizeResult.isValid ? 'success' : 'error');
+
+            } catch (error) {
+                tester.log(`Error in file validation test: ${error.message}`, 'error');
+                results.push({
+                    name: 'File validation error handling',
+                    passed: false
+                });
+            }
+
+            tester.showResults(results);
+        }
+
+        function testCSVParsing() {
+            tester.log('=== Testing CSV Parsing ===', 'info');
+            const results = [];
+
+            try {
+                // Test basic CSV parsing
+                const basicCSV = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+BRG001,Test Item,makanan,pcs,5000,10,Test Supplier
+BRG002,Another Item,minuman,botol,3000,20,Another Supplier`;
+
+                const parsedData = tester.dataProcessor.parseCSV(basicCSV);
+                results.push({
+                    name: 'Basic CSV parsing',
+                    passed: Array.isArray(parsedData) && parsedData.length === 2
+                });
+                tester.log(`Basic CSV parsing: ${parsedData.length} records parsed`, 'success');
+
+                // Test header validation
+                const invalidHeaderCSV = `invalid,headers
+value1,value2`;
+                
+                try {
+                    tester.dataProcessor.parseCSV(invalidHeaderCSV);
+                    results.push({
+                        name: 'Invalid header rejection',
+                        passed: false
+                    });
+                } catch (error) {
+                    results.push({
+                        name: 'Invalid header rejection',
+                        passed: error.message.includes('Header yang hilang')
+                    });
+                    tester.log('Invalid header properly rejected', 'success');
+                }
+
+                // Test quoted values
+                const quotedCSV = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+"BRG001","Item with, comma","makanan","pcs","5000","10","Supplier, Inc"`;
+                
+                const quotedData = tester.dataProcessor.parseCSV(quotedCSV);
+                results.push({
+                    name: 'Quoted values parsing',
+                    passed: quotedData.length === 1 && quotedData[0].nama === 'Item with, comma'
+                });
+                tester.log(`Quoted values parsing: ${quotedData[0]?.nama}`, 'success');
+
+                // Test empty lines handling
+                const emptyLinesCSV = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+
+BRG001,Test Item,makanan,pcs,5000,10,Test Supplier
+
+BRG002,Another Item,minuman,botol,3000,20,Another Supplier
+
+`;
+                
+                const cleanData = tester.dataProcessor.parseCSV(emptyLinesCSV);
+                results.push({
+                    name: 'Empty lines handling',
+                    passed: cleanData.length === 2
+                });
+                tester.log(`Empty lines handling: ${cleanData.length} records (empty lines ignored)`, 'success');
+
+            } catch (error) {
+                tester.log(`Error in CSV parsing test: ${error.message}`, 'error');
+                results.push({
+                    name: 'CSV parsing error handling',
+                    passed: false
+                });
+            }
+
+            tester.showResults(results);
+        }
+
+        function testDataTransformation() {
+            tester.log('=== Testing Data Transformation ===', 'info');
+            const results = [];
+
+            try {
+                const rawData = [
+                    {
+                        kode: '  brg001  ',
+                        nama: '  Test Item  ',
+                        kategori: '  MAKANAN  ',
+                        satuan: '  PCS  ',
+                        harga_beli: '5,000',
+                        stok: '10.5',
+                        supplier: '  Test Supplier  '
+                    }
+                ];
+
+                const transformedData = tester.dataProcessor.transformData(rawData);
+                const item = transformedData[0];
+
+                // Test kode normalization (uppercase, trim)
+                results.push({
+                    name: 'Kode normalization (uppercase)',
+                    passed: item.kode === 'BRG001'
+                });
+                tester.log(`Kode normalization: "${rawData[0].kode}" -> "${item.kode}"`, 'success');
+
+                // Test kategori normalization (lowercase, trim)
+                results.push({
+                    name: 'Kategori normalization (lowercase)',
+                    passed: item.kategori === 'makanan'
+                });
+                tester.log(`Kategori normalization: "${rawData[0].kategori}" -> "${item.kategori}"`, 'success');
+
+                // Test satuan normalization (lowercase, trim)
+                results.push({
+                    name: 'Satuan normalization (lowercase)',
+                    passed: item.satuan === 'pcs'
+                });
+                tester.log(`Satuan normalization: "${rawData[0].satuan}" -> "${item.satuan}"`, 'success');
+
+                // Test price normalization
+                results.push({
+                    name: 'Price normalization (number)',
+                    passed: typeof item.harga_beli === 'number' && item.harga_beli === 5000
+                });
+                tester.log(`Price normalization: "${rawData[0].harga_beli}" -> ${item.harga_beli}`, 'success');
+
+                // Test stock normalization
+                results.push({
+                    name: 'Stock normalization (integer)',
+                    passed: typeof item.stok === 'number' && item.stok === 10
+                });
+                tester.log(`Stock normalization: "${rawData[0].stok}" -> ${item.stok}`, 'success');
+
+                // Test timestamp addition
+                results.push({
+                    name: 'Timestamp addition',
+                    passed: item.created_at && item.updated_at
+                });
+                tester.log('Timestamps added successfully', 'success');
+
+                // Test negative value rejection
+                try {
+                    const negativeData = [{ kode: 'TEST', nama: 'Test', kategori: 'test', satuan: 'pcs', harga_beli: '-100', stok: '5', supplier: '' }];
+                    tester.dataProcessor.transformData(negativeData);
+                    results.push({
+                        name: 'Negative price rejection',
+                        passed: false
+                    });
+                } catch (error) {
+                    results.push({
+                        name: 'Negative price rejection',
+                        passed: error.message.includes('tidak boleh negatif')
+                    });
+                    tester.log('Negative price properly rejected', 'success');
+                }
+
+            } catch (error) {
+                tester.log(`Error in data transformation test: ${error.message}`, 'error');
+                results.push({
+                    name: 'Data transformation error handling',
+                    passed: false
+                });
+            }
+
+            tester.showResults(results);
+        }
+
+        function testPreviewGeneration() {
+            tester.log('=== Testing Preview Generation ===', 'info');
+            const results = [];
+
+            try {
+                const testData = [
+                    {
+                        kode: 'BRG001',
+                        nama: 'Test Item 1',
+                        kategori: 'makanan',
+                        satuan: 'pcs',
+                        harga_beli: 5000,
+                        stok: 10,
+                        supplier: 'Test Supplier'
+                    },
+                    {
+                        kode: 'BRG002',
+                        nama: 'Test Item 2',
+                        kategori: 'minuman',
+                        satuan: 'botol',
+                        harga_beli: 3000,
+                        stok: 20,
+                        supplier: 'Another Supplier'
+                    }
+                ];
+
+                const preview = tester.uploadManager.previewData(testData);
+
+                // Test preview structure
+                results.push({
+                    name: 'Preview structure completeness',
+                    passed: preview.data && preview.validation && preview.statistics && preview.newCategories && preview.newUnits
+                });
+                tester.log('Preview structure is complete', 'success');
+
+                // Test data preservation
+                results.push({
+                    name: 'Data preservation in preview',
+                    passed: preview.data.length === testData.length
+                });
+                tester.log(`Data preservation: ${testData.length} -> ${preview.data.length} records`, 'success');
+
+                // Test statistics calculation
+                results.push({
+                    name: 'Statistics calculation',
+                    passed: preview.statistics.totalRecords === testData.length
+                });
+                tester.log(`Statistics: ${preview.statistics.totalRecords} total records`, 'success');
+
+                // Test unique categories extraction
+                results.push({
+                    name: 'Unique categories extraction',
+                    passed: preview.newCategories.includes('makanan') && preview.newCategories.includes('minuman')
+                });
+                tester.log(`Categories extracted: ${preview.newCategories.join(', ')}`, 'success');
+
+                // Test unique units extraction
+                results.push({
+                    name: 'Unique units extraction',
+                    passed: preview.newUnits.includes('pcs') && preview.newUnits.includes('botol')
+                });
+                tester.log(`Units extracted: ${preview.newUnits.join(', ')}`, 'success');
+
+                // Test empty data handling
+                const emptyPreview = tester.uploadManager.previewData([]);
+                results.push({
+                    name: 'Empty data handling',
+                    passed: emptyPreview.data.length === 0 && emptyPreview.statistics.totalRecords === 0
+                });
+                tester.log('Empty data handled correctly', 'success');
+
+                // Test invalid input handling
+                try {
+                    tester.uploadManager.previewData('invalid');
+                    results.push({
+                        name: 'Invalid input rejection',
+                        passed: false
+                    });
+                } catch (error) {
+                    results.push({
+                        name: 'Invalid input rejection',
+                        passed: error.message.includes('must be an array')
+                    });
+                    tester.log('Invalid input properly rejected', 'success');
+                }
+
+            } catch (error) {
+                tester.log(`Error in preview generation test: ${error.message}`, 'error');
+                results.push({
+                    name: 'Preview generation error handling',
+                    passed: false
+                });
+            }
+
+            tester.showResults(results);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            tester.log('Task 2 Test Suite initialized', 'info');
+            tester.log('Ready to test file upload and parsing functionality', 'info');
+        });
+    </script>
+</body>
+</html>

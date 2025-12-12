@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 7.3 - Connection Monitoring and Error Handling</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .dashboard-container {
+            padding: 20px;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .connection-status-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator.online {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status-indicator.offline {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status-indicator.poor {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .quality-meter {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .quality-bar {
+            width: 20px;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 2px;
+        }
+
+        .quality-bar.active {
+            background-color: #28a745;
+        }
+
+        .quality-bar.active.poor {
+            background-color: #dc3545;
+        }
+
+        .quality-bar.active.fair {
+            background-color: #ffc107;
+        }
+
+        .retry-queue-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .retry-queue-item.failed {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+
+        .retry-queue-item.success {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+
+        .connection-history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.85rem;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .latency-chart {
+            height: 100px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .latency-bar {
+            position: absolute;
+            bottom: 10px;
+            width: 3px;
+            background-color: #007bff;
+            border-radius: 1px;
+            transition: height 0.3s ease;
+        }
+
+        .dashboard-connection-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .dashboard-connection-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1040;
+        }
+
+        .test-controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-group {
+            margin-bottom: 10px;
+        }
+
+        .statistics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-network-wired"></i>
+                    Task 7.3 - Connection Monitoring and Error Handling Test
+                </h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Connection Status Panel -->
+                <div class="connection-status-panel">
+                    <h5><i class="fas fa-signal"></i> Connection Status</h5>
+                    
+                    <div id="connectionStatus" class="status-indicator offline">
+                        <i class="fas fa-wifi-slash"></i>
+                        <span>Initializing...</span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Connection Quality</h6>
+                            <div id="qualityMeter" class="quality-meter">
+                                <div class="quality-bar"></div>
+                                <div class="quality-bar"></div>
+                                <div class="quality-bar"></div>
+                                <div class="quality-bar"></div>
+                                <div class="quality-bar"></div>
+                                <span id="qualityText">Unknown</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Latency</h6>
+                            <div id="latencyValue" class="h4 text-primary">-- ms</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6>Latency History</h6>
+                        <div id="latencyChart" class="latency-chart">
+                            <!-- Latency bars will be added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Retry Queue Panel -->
+                <div class="connection-status-panel">
+                    <h5><i class="fas fa-redo"></i> Retry Queue</h5>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Queue Size: <span id="queueSize" class="badge bg-primary">0</span></span>
+                        <button id="clearQueue" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i> Clear Queue
+                        </button>
+                    </div>
+
+                    <div id="retryQueue">
+                        <div class="text-muted text-center py-3">
+                            <i class="fas fa-inbox"></i>
+                            <p class="mb-0">No items in retry queue</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection History Panel -->
+                <div class="connection-status-panel">
+                    <h5><i class="fas fa-history"></i> Connection History</h5>
+                    
+                    <div id="connectionHistory" class="connection-history">
+                        <!-- History items will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Test Controls -->
+                <div class="test-controls">
+                    <h5><i class="fas fa-cogs"></i> Test Controls</h5>
+                    
+                    <div class="btn-group w-100 mb-3">
+                        <button id="testConnection" class="btn btn-primary">
+                            <i class="fas fa-satellite-dish"></i> Test Connection
+                        </button>
+                        <button id="forceOffline" class="btn btn-warning">
+                            <i class="fas fa-wifi-slash"></i> Simulate Offline
+                        </button>
+                    </div>
+
+                    <div class="btn-group w-100 mb-3">
+                        <button id="simulateSlowConnection" class="btn btn-info">
+                            <i class="fas fa-hourglass-half"></i> Simulate Slow
+                        </button>
+                        <button id="simulateError" class="btn btn-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Simulate Error
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="simulatedLatency" class="form-label">Simulated Latency (ms):</label>
+                        <input type="range" class="form-range" id="simulatedLatency" min="0" max="5000" value="100">
+                        <div class="d-flex justify-content-between">
+                            <small>0ms</small>
+                            <small id="latencyValue">100ms</small>
+                            <small>5000ms</small>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="enableRetry" checked>
+                        <label class="form-check-label" for="enableRetry">
+                            Enable Auto-Retry
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Statistics Panel -->
+                <div class="connection-status-panel">
+                    <h5><i class="fas fa-chart-bar"></i> Statistics</h5>
+                    
+                    <div class="statistics-grid">
+                        <div class="stat-card">
+                            <div id="uptimeValue" class="stat-value">--</div>
+                            <div class="stat-label">Uptime %</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div id="avgLatencyValue" class="stat-value">--</div>
+                            <div class="stat-label">Avg Latency</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div id="connectionEventsValue" class="stat-value">--</div>
+                            <div class="stat-label">Events</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div id="retryCountValue" class="stat-value">--</div>
+                            <div class="stat-label">Retries</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="connection-status-panel">
+                    <h5><i class="fas fa-list"></i> Activity Log</h5>
+                    
+                    <div id="activityLog" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px; font-family: monospace; font-size: 0.85rem;">
+                        <!-- Log entries will appear here -->
+                    </div>
+                    
+                    <button id="clearLog" class="btn btn-sm btn-outline-secondary mt-2 w-100">
+                        <i class="fas fa-trash"></i> Clear Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/dashboard/ConnectionMonitor.js"></script>
+
+    <script>
+        // Test implementation
+        let connectionMonitor;
+        let simulatedLatency = 100;
+        let isOfflineSimulation = false;
+        let isSlowSimulation = false;
+        let retryCount = 0;
+        let latencyHistory = [];
+
+        // Initialize test
+        async function initializeTest() {
+            try {
+                logActivity('Initializing Connection Monitor test...', 'info');
+
+                // Create connection monitor with test configuration
+                connectionMonitor = new ConnectionMonitor();
+                
+                // Override the connection test method for simulation
+                connectionMonitor.performConnectionTest = createMockConnectionTest();
+                
+                await connectionMonitor.initialize();
+
+                // Setup status listener
+                connectionMonitor.addStatusListener(handleConnectionStatusChange);
+
+                logActivity('Connection Monitor initialized successfully', 'success');
+                updateDisplay();
+
+            } catch (error) {
+                logActivity(`Initialization failed: ${error.message}`, 'error');
+                console.error('Test initialization failed:', error);
+            }
+        }
+
+        // Create mock connection test function
+        function createMockConnectionTest() {
+            return async function() {
+                // Simulate offline condition
+                if (isOfflineSimulation) {
+                    throw new Error('Simulated offline condition');
+                }
+
+                // Simulate network delay
+                const delay = isSlowSimulation ? simulatedLatency * 3 : simulatedLatency;
+                await new Promise(resolve => setTimeout(resolve, delay));
+
+                // Simulate random errors (10% chance)
+                if (Math.random() < 0.1) {
+                    throw new Error('Simulated network error');
+                }
+
+                // Return mock response
+                return {
+                    ok: true,
+                    status: 200,
+                    statusText: 'OK'
+                };
+            };
+        }
+
+        // Handle connection status changes
+        function handleConnectionStatusChange(statusInfo) {
+            logActivity(`Connection status: ${statusInfo.isOnline ? 'online' : 'offline'} (${statusInfo.quality})`, 
+                       statusInfo.isOnline ? 'success' : 'error');
+            
+            updateConnectionStatus(statusInfo);
+            updateConnectionHistory();
+            updateStatistics();
+        }
+
+        // Update connection status display
+        function updateConnectionStatus(statusInfo) {
+            const statusElement = document.getElementById('connectionStatus');
+            const qualityMeter = document.getElementById('qualityMeter');
+            const qualityText = document.getElementById('qualityText');
+            const latencyValue = document.getElementById('latencyValue');
+
+            // Update status indicator
+            statusElement.className = `status-indicator ${statusInfo.isOnline ? 'online' : 'offline'}`;
+            
+            const icon = statusInfo.isOnline ? 'fas fa-wifi' : 'fas fa-wifi-slash';
+            const statusText = statusInfo.isOnline 
+                ? `Connected (${statusInfo.quality})` 
+                : 'Disconnected';
+            
+            statusElement.innerHTML = `
+                <i class="${icon}"></i>
+                <span>${statusText}</span>
+            `;
+
+            // Update quality meter
+            const qualityLevels = ['offline', 'very-poor', 'poor', 'fair', 'good', 'excellent'];
+            const currentLevel = qualityLevels.indexOf(statusInfo.quality);
+            
+            const bars = qualityMeter.querySelectorAll('.quality-bar');
+            bars.forEach((bar, index) => {
+                bar.classList.remove('active', 'poor', 'fair');
+                
+                if (index < currentLevel) {
+                    bar.classList.add('active');
+                    
+                    if (statusInfo.quality === 'poor' || statusInfo.quality === 'very-poor') {
+                        bar.classList.add('poor');
+                    } else if (statusInfo.quality === 'fair') {
+                        bar.classList.add('fair');
+                    }
+                }
+            });
+
+            qualityText.textContent = statusInfo.quality;
+
+            // Update latency
+            if (statusInfo.latency !== null) {
+                latencyValue.textContent = `${Math.round(statusInfo.latency)} ms`;
+                updateLatencyChart(statusInfo.latency);
+            } else {
+                latencyValue.textContent = '-- ms';
+            }
+        }
+
+        // Update latency chart
+        function updateLatencyChart(latency) {
+            latencyHistory.push(latency);
+            
+            // Keep only last 20 measurements
+            if (latencyHistory.length > 20) {
+                latencyHistory.shift();
+            }
+
+            const chart = document.getElementById('latencyChart');
+            chart.innerHTML = '';
+
+            const maxLatency = Math.max(...latencyHistory, 1000); // At least 1000ms scale
+            const chartWidth = chart.clientWidth - 20;
+            const chartHeight = chart.clientHeight - 20;
+            const barWidth = Math.max(2, chartWidth / latencyHistory.length - 1);
+
+            latencyHistory.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'latency-bar';
+                bar.style.left = `${10 + index * (barWidth + 1)}px`;
+                bar.style.width = `${barWidth}px`;
+                bar.style.height = `${(value / maxLatency) * chartHeight}px`;
+                
+                // Color based on latency
+                if (value < 100) {
+                    bar.style.backgroundColor = '#28a745'; // Green
+                } else if (value < 300) {
+                    bar.style.backgroundColor = '#ffc107'; // Yellow
+                } else {
+                    bar.style.backgroundColor = '#dc3545'; // Red
+                }
+                
+                chart.appendChild(bar);
+            });
+        }
+
+        // Update connection history
+        function updateConnectionHistory() {
+            const historyElement = document.getElementById('connectionHistory');
+            const status = connectionMonitor.getStatus();
+            
+            historyElement.innerHTML = '';
+            
+            status.history.forEach(event => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                
+                const statusIcon = event.isOnline ? 'fas fa-check-circle text-success' : 'fas fa-times-circle text-danger';
+                const timeString = event.timestamp.toLocaleTimeString();
+                const latencyText = event.latency ? ` (${Math.round(event.latency)}ms)` : '';
+                
+                item.innerHTML = `
+                    <div>
+                        <i class="${statusIcon}"></i>
+                        <span>${event.quality}${latencyText}</span>
+                    </div>
+                    <small class="text-muted">${timeString}</small>
+                `;
+                
+                historyElement.appendChild(item);
+            });
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const stats = connectionMonitor.getStatistics();
+            
+            document.getElementById('uptimeValue').textContent = 
+                stats.uptime !== null ? `${stats.uptime}%` : '--';
+            
+            document.getElementById('avgLatencyValue').textContent = 
+                stats.averageLatency !== null ? `${stats.averageLatency}ms` : '--';
+            
+            document.getElementById('connectionEventsValue').textContent = stats.connectionEvents;
+            document.getElementById('retryCountValue').textContent = retryCount;
+        }
+
+        // Update retry queue display
+        function updateRetryQueue() {
+            const queueElement = document.getElementById('retryQueue');
+            const queueSizeElement = document.getElementById('queueSize');
+            const status = connectionMonitor.getStatus();
+            
+            queueSizeElement.textContent = status.retryQueueSize;
+            
+            if (status.retryQueueSize === 0) {
+                queueElement.innerHTML = `
+                    <div class="text-muted text-center py-3">
+                        <i class="fas fa-inbox"></i>
+                        <p class="mb-0">No items in retry queue</p>
+                    </div>
+                `;
+            } else {
+                // This is a simplified display - in real implementation,
+                // you'd need access to the actual retry queue items
+                queueElement.innerHTML = `
+                    <div class="retry-queue-item">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-clock"></i> ${status.retryQueueSize} pending requests</span>
+                            <small class="text-muted">Retrying...</small>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Update display
+        function updateDisplay() {
+            if (connectionMonitor) {
+                const status = connectionMonitor.getStatus();
+                updateConnectionStatus({
+                    isOnline: status.isOnline,
+                    quality: status.quality,
+                    latency: null
+                });
+                updateConnectionHistory();
+                updateStatistics();
+                updateRetryQueue();
+            }
+        }
+
+        // Setup event handlers
+        function setupEventHandlers() {
+            // Test connection button
+            document.getElementById('testConnection').addEventListener('click', async () => {
+                logActivity('Manual connection test initiated', 'info');
+                
+                try {
+                    const result = await connectionMonitor.forceTest();
+                    logActivity(`Connection test result: ${result.isOnline ? 'online' : 'offline'}`, 
+                               result.isOnline ? 'success' : 'error');
+                } catch (error) {
+                    logActivity(`Connection test failed: ${error.message}`, 'error');
+                }
+            });
+
+            // Force offline button
+            document.getElementById('forceOffline').addEventListener('click', () => {
+                isOfflineSimulation = !isOfflineSimulation;
+                const button = document.getElementById('forceOffline');
+                
+                if (isOfflineSimulation) {
+                    button.innerHTML = '<i class="fas fa-wifi"></i> Restore Online';
+                    button.className = 'btn btn-success';
+                    logActivity('Simulating offline condition', 'warning');
+                } else {
+                    button.innerHTML = '<i class="fas fa-wifi-slash"></i> Simulate Offline';
+                    button.className = 'btn btn-warning';
+                    logActivity('Restored online condition', 'success');
+                }
+            });
+
+            // Simulate slow connection button
+            document.getElementById('simulateSlowConnection').addEventListener('click', () => {
+                isSlowSimulation = !isSlowSimulation;
+                const button = document.getElementById('simulateSlowConnection');
+                
+                if (isSlowSimulation) {
+                    button.innerHTML = '<i class="fas fa-tachometer-alt"></i> Restore Speed';
+                    button.className = 'btn btn-success';
+                    logActivity('Simulating slow connection', 'warning');
+                } else {
+                    button.innerHTML = '<i class="fas fa-hourglass-half"></i> Simulate Slow';
+                    button.className = 'btn btn-info';
+                    logActivity('Restored normal speed', 'success');
+                }
+            });
+
+            // Simulate error button
+            document.getElementById('simulateError').addEventListener('click', async () => {
+                logActivity('Simulating failed request with retry...', 'info');
+                
+                // Create a failing request function
+                const failingRequest = async () => {
+                    throw new Error('Simulated API failure');
+                };
+
+                try {
+                    if (document.getElementById('enableRetry').checked) {
+                        // Add to retry queue
+                        await connectionMonitor.addToRetryQueue(failingRequest, {
+                            maxAttempts: 3,
+                            initialDelay: 2000
+                        });
+                        
+                        retryCount++;
+                        logActivity('Request added to retry queue', 'info');
+                    } else {
+                        // Execute without retry
+                        await failingRequest();
+                    }
+                } catch (error) {
+                    logActivity(`Request failed: ${error.message}`, 'error');
+                }
+                
+                updateRetryQueue();
+            });
+
+            // Latency slider
+            const latencySlider = document.getElementById('simulatedLatency');
+            const latencyValueDisplay = document.getElementById('latencyValue');
+            
+            latencySlider.addEventListener('input', (e) => {
+                simulatedLatency = parseInt(e.target.value);
+                latencyValueDisplay.textContent = `${simulatedLatency}ms`;
+            });
+
+            // Clear queue button
+            document.getElementById('clearQueue').addEventListener('click', () => {
+                connectionMonitor.clearRetryQueue();
+                logActivity('Retry queue cleared', 'info');
+                updateRetryQueue();
+            });
+
+            // Clear log button
+            document.getElementById('clearLog').addEventListener('click', () => {
+                document.getElementById('activityLog').innerHTML = '';
+            });
+
+            // Connection change events
+            document.addEventListener('dashboard:connectionChange', (event) => {
+                const { isOnline, quality, latency } = event.detail;
+                logActivity(`Connection event: ${isOnline ? 'online' : 'offline'} (${quality})`, 
+                           isOnline ? 'success' : 'warning');
+            });
+        }
+
+        // Utility functions
+        function logActivity(message, type = 'info') {
+            const logElement = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.marginBottom = '4px';
+            logEntry.style.color = type === 'success' ? '#28a745' : 
+                                  type === 'error' ? '#dc3545' : 
+                                  type === 'warning' ? '#ffc107' : '#007bff';
+            
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            setupEventHandlers();
+            await initializeTest();
+            
+            // Update display periodically
+            setInterval(updateDisplay, 2000);
+        });
+    </script>
+</body>
+</html>

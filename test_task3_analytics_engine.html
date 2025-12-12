@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 3 - Analytics Engine Implementation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+        .test-success {
+            background-color: #d1e7dd;
+            border: 1px solid #badbcc;
+            color: #0f5132;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #055160;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0d6efd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">
+            <i class="fas fa-calculator me-2"></i>
+            Test Task 3 - Analytics Engine Implementation
+        </h1>
+        
+        <div class="alert alert-info">
+            <strong>Testing:</strong> Task 3.1 (AnalyticsEngine class) dan Task 3.2 (KPI calculation accuracy property test)
+        </div>
+
+        <!-- Test 1: Analytics Engine Initialization -->
+        <div class="test-section">
+            <h3>Test 1: Analytics Engine Initialization</h3>
+            <p>Testing AnalyticsEngine class initialization and basic functionality.</p>
+            <button id="test1Btn" class="btn btn-primary">Run Test</button>
+            <div id="test1Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Financial Health Score Calculation -->
+        <div class="test-section">
+            <h3>Test 2: Financial Health Score Calculation</h3>
+            <p>Testing financial health score calculation with sample data.</p>
+            <button id="test2Btn" class="btn btn-primary">Run Test</button>
+            <div id="test2Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Member Growth Rate Calculation -->
+        <div class="test-section">
+            <h3>Test 3: Member Growth Rate Calculation</h3>
+            <p>Testing member growth rate calculation and metrics.</p>
+            <button id="test3Btn" class="btn btn-primary">Run Test</button>
+            <div id="test3Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Transaction Volume Analysis -->
+        <div class="test-section">
+            <h3>Test 4: Transaction Volume Analysis</h3>
+            <p>Testing transaction volume calculation and analysis.</p>
+            <button id="test4Btn" class="btn btn-primary">Run Test</button>
+            <div id="test4Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 5: Financial Ratios Calculation -->
+        <div class="test-section">
+            <h3>Test 5: Financial Ratios Calculation</h3>
+            <p>Testing comprehensive financial ratios calculation.</p>
+            <button id="test5Btn" class="btn btn-primary">Run Test</button>
+            <div id="test5Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 6: Cache Performance -->
+        <div class="test-section">
+            <h3>Test 6: Cache Performance</h3>
+            <p>Testing caching mechanism and performance optimization.</p>
+            <button id="test6Btn" class="btn btn-primary">Run Test</button>
+            <div id="test6Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 7: Edge Cases -->
+        <div class="test-section">
+            <h3>Test 7: Edge Cases</h3>
+            <p>Testing edge cases and error handling.</p>
+            <button id="test7Btn" class="btn btn-primary">Run Test</button>
+            <div id="test7Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 8: Performance Metrics -->
+        <div class="test-section">
+            <h3>Test 8: Performance Metrics</h3>
+            <p>Testing performance tracking and metrics collection.</p>
+            <button id="test8Btn" class="btn btn-primary">Run Test</button>
+            <div id="test8Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <button id="runAllBtn" class="btn btn-success btn-lg">Run All Tests</button>
+            <div id="allTestsResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="js/dashboard/AnalyticsEngine.js"></script>
+
+    <script>
+        // Test utilities
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result ${success ? 'test-success' : 'test-error'}`;
+            
+            let html = `<strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}`;
+            
+            if (data) {
+                html += `<pre class="mt-2 mb-0">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            element.innerHTML = html;
+        }
+
+        function showLoading(buttonId) {
+            const button = document.getElementById(buttonId);
+            button.disabled = true;
+            button.innerHTML = '<span class="loading me-2"></span>Running...';
+        }
+
+        function hideLoading(buttonId, originalText) {
+            const button = document.getElementById(buttonId);
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+
+        // Sample data generators
+        function generateFinancialData() {
+            return {
+                totalAssets: 10000000,
+                totalLiabilities: 4000000,
+                totalEquity: 6000000,
+                totalRevenue: 2000000,
+                totalExpenses: 1500000,
+                cashBalance: 1000000,
+                totalLoans: 3000000,
+                totalSavings: 8000000,
+                memberCount: 500,
+                previousPeriodData: {
+                    totalRevenue: 1800000,
+                    totalAssets: 9000000,
+                    memberCount: 450
+                }
+            };
+        }
+
+        function generateMemberData() {
+            return {
+                currentMembers: 500,
+                previousMembers: 450,
+                newMembersThisMonth: 50,
+                newMembersLastMonth: 40,
+                activeMembersThisMonth: 400,
+                activeMembersLastMonth: 360
+            };
+        }
+
+        function generateTransactionData() {
+            const currentTransactions = [];
+            const previousTransactions = [];
+            
+            // Generate current month transactions
+            for (let i = 0; i < 100; i++) {
+                currentTransactions.push({
+                    id: `TXN_${Date.now()}_${i}`,
+                    value: Math.random() * 500000 + 50000
+                });
+            }
+            
+            // Generate previous month transactions
+            for (let i = 0; i < 80; i++) {
+                previousTransactions.push({
+                    id: `TXN_PREV_${i}`,
+                    value: Math.random() * 400000 + 40000
+                });
+            }
+            
+            return {
+                currentMonthTransactions: currentTransactions,
+                previousMonthTransactions: previousTransactions,
+                currentMonthValue: currentTransactions.reduce((sum, txn) => sum + txn.value, 0),
+                previousMonthValue: previousTransactions.reduce((sum, txn) => sum + txn.value, 0)
+            };
+        }
+
+        // Test 1: Analytics Engine Initialization
+        document.getElementById('test1Btn').addEventListener('click', async function() {
+            showLoading('test1Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                
+                // Test initialization
+                await engine.initialize();
+                
+                // Verify initialization
+                const isInitialized = engine.isInitialized;
+                const hasModules = engine.financial && engine.members && engine.transactions;
+                
+                if (isInitialized && hasModules) {
+                    showResult('test1Result', true, 'Analytics Engine initialized successfully', {
+                        isInitialized,
+                        modules: {
+                            financial: !!engine.financial,
+                            members: !!engine.members,
+                            transactions: !!engine.transactions
+                        }
+                    });
+                } else {
+                    showResult('test1Result', false, 'Analytics Engine initialization failed');
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test1Result', false, `Initialization error: ${error.message}`);
+            }
+            
+            hideLoading('test1Btn', 'Run Test');
+        });
+
+        // Test 2: Financial Health Score Calculation
+        document.getElementById('test2Btn').addEventListener('click', async function() {
+            showLoading('test2Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const financialData = generateFinancialData();
+                const healthScore = await engine.calculateFinancialHealthScore(financialData);
+                
+                // Validate results
+                const isValid = 
+                    healthScore.score >= 0 && healthScore.score <= 100 &&
+                    ['A', 'B', 'C', 'D', 'F'].includes(healthScore.grade) &&
+                    healthScore.components &&
+                    healthScore.calculatedAt instanceof Date;
+                
+                if (isValid) {
+                    showResult('test2Result', true, 'Financial health score calculated successfully', {
+                        score: healthScore.score,
+                        grade: healthScore.grade,
+                        status: healthScore.status,
+                        components: healthScore.components
+                    });
+                } else {
+                    showResult('test2Result', false, 'Invalid financial health score result', healthScore);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test2Result', false, `Calculation error: ${error.message}`);
+            }
+            
+            hideLoading('test2Btn', 'Run Test');
+        });
+
+        // Test 3: Member Growth Rate Calculation
+        document.getElementById('test3Btn').addEventListener('click', async function() {
+            showLoading('test3Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const memberData = generateMemberData();
+                const growthMetrics = await engine.calculateMemberGrowthRate(memberData);
+                
+                // Validate results
+                const isValid = 
+                    typeof growthMetrics.overallGrowthRate === 'number' &&
+                    typeof growthMetrics.newMemberGrowthRate === 'number' &&
+                    growthMetrics.activityRate >= 0 && growthMetrics.activityRate <= 100 &&
+                    growthMetrics.totalMembers === memberData.currentMembers;
+                
+                if (isValid) {
+                    showResult('test3Result', true, 'Member growth rate calculated successfully', {
+                        overallGrowthRate: `${growthMetrics.overallGrowthRate}%`,
+                        newMemberGrowthRate: `${growthMetrics.newMemberGrowthRate}%`,
+                        activityRate: `${growthMetrics.activityRate}%`,
+                        retentionRate: `${growthMetrics.retentionRate}%`,
+                        totalMembers: growthMetrics.totalMembers
+                    });
+                } else {
+                    showResult('test3Result', false, 'Invalid member growth rate result', growthMetrics);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test3Result', false, `Calculation error: ${error.message}`);
+            }
+            
+            hideLoading('test3Btn', 'Run Test');
+        });
+
+        // Test 4: Transaction Volume Analysis
+        document.getElementById('test4Btn').addEventListener('click', async function() {
+            showLoading('test4Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const transactionData = generateTransactionData();
+                const volumeMetrics = await engine.calculateTransactionVolume(transactionData);
+                
+                // Validate results
+                const isValid = 
+                    volumeMetrics.currentMonthCount === transactionData.currentMonthTransactions.length &&
+                    volumeMetrics.previousMonthCount === transactionData.previousMonthTransactions.length &&
+                    typeof volumeMetrics.countGrowthRate === 'number' &&
+                    typeof volumeMetrics.valueGrowthRate === 'number' &&
+                    volumeMetrics.avgTransactionValue >= 0;
+                
+                if (isValid) {
+                    showResult('test4Result', true, 'Transaction volume calculated successfully', {
+                        currentMonthCount: volumeMetrics.currentMonthCount,
+                        countGrowthRate: `${volumeMetrics.countGrowthRate}%`,
+                        currentMonthValue: `Rp ${volumeMetrics.currentMonthValue.toLocaleString()}`,
+                        valueGrowthRate: `${volumeMetrics.valueGrowthRate}%`,
+                        avgTransactionValue: `Rp ${volumeMetrics.avgTransactionValue.toLocaleString()}`,
+                        dailyAvgCount: volumeMetrics.dailyAvgCount
+                    });
+                } else {
+                    showResult('test4Result', false, 'Invalid transaction volume result', volumeMetrics);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test4Result', false, `Calculation error: ${error.message}`);
+            }
+            
+            hideLoading('test4Btn', 'Run Test');
+        });
+
+        // Test 5: Financial Ratios Calculation
+        document.getElementById('test5Btn').addEventListener('click', async function() {
+            showLoading('test5Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const financialData = generateFinancialData();
+                const ratios = await engine.calculateFinancialRatios(financialData);
+                
+                // Validate results
+                const isValid = 
+                    ratios.liquidity && ratios.profitability && ratios.efficiency && ratios.leverage &&
+                    typeof ratios.liquidity.currentRatio === 'number' &&
+                    typeof ratios.profitability.profitMargin === 'number' &&
+                    typeof ratios.efficiency.assetTurnover === 'number' &&
+                    ratios.calculatedAt instanceof Date;
+                
+                if (isValid) {
+                    showResult('test5Result', true, 'Financial ratios calculated successfully', {
+                        liquidity: {
+                            currentRatio: ratios.liquidity.currentRatio,
+                            cashRatio: `${ratios.liquidity.cashRatio}%`
+                        },
+                        profitability: {
+                            profitMargin: `${ratios.profitability.profitMargin}%`,
+                            returnOnAssets: `${ratios.profitability.returnOnAssets}%`,
+                            returnOnEquity: `${ratios.profitability.returnOnEquity}%`
+                        },
+                        efficiency: {
+                            assetTurnover: ratios.efficiency.assetTurnover,
+                            operatingRatio: `${ratios.efficiency.operatingRatio}%`
+                        }
+                    });
+                } else {
+                    showResult('test5Result', false, 'Invalid financial ratios result', ratios);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test5Result', false, `Calculation error: ${error.message}`);
+            }
+            
+            hideLoading('test5Btn', 'Run Test');
+        });
+
+        // Test 6: Cache Performance
+        document.getElementById('test6Btn').addEventListener('click', async function() {
+            showLoading('test6Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const financialData = generateFinancialData();
+                
+                // First calculation (cache miss)
+                const start1 = performance.now();
+                const result1 = await engine.calculateFinancialHealthScore(financialData);
+                const time1 = performance.now() - start1;
+                
+                // Second calculation (cache hit)
+                const start2 = performance.now();
+                const result2 = await engine.calculateFinancialHealthScore(financialData);
+                const time2 = performance.now() - start2;
+                
+                // Verify cache hit
+                const cacheWorking = 
+                    Math.abs(result1.score - result2.score) < 0.001 &&
+                    result1.grade === result2.grade &&
+                    time2 < time1; // Cache should be faster
+                
+                const metrics = engine.getPerformanceMetrics();
+                
+                if (cacheWorking && metrics.cacheHitRate > 0) {
+                    showResult('test6Result', true, 'Cache performance test passed', {
+                        firstCalculationTime: `${time1.toFixed(2)}ms`,
+                        secondCalculationTime: `${time2.toFixed(2)}ms`,
+                        cacheHitRate: `${metrics.cacheHitRate}%`,
+                        totalCalculations: metrics.totalCalculations,
+                        cacheSize: metrics.cacheSize
+                    });
+                } else {
+                    showResult('test6Result', false, 'Cache performance test failed', {
+                        cacheWorking,
+                        metrics
+                    });
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test6Result', false, `Cache test error: ${error.message}`);
+            }
+            
+            hideLoading('test6Btn', 'Run Test');
+        });
+
+        // Test 7: Edge Cases
+        document.getElementById('test7Btn').addEventListener('click', async function() {
+            showLoading('test7Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const edgeCases = [];
+                
+                // Test with zero values
+                const zeroData = {
+                    totalAssets: 0,
+                    totalLiabilities: 0,
+                    totalRevenue: 0,
+                    totalExpenses: 0,
+                    memberCount: 0
+                };
+                
+                try {
+                    const zeroResult = await engine.calculateFinancialHealthScore(zeroData);
+                    edgeCases.push({ case: 'Zero values', success: true, result: zeroResult.score });
+                } catch (error) {
+                    edgeCases.push({ case: 'Zero values', success: false, error: error.message });
+                }
+                
+                // Test with negative values
+                const negativeData = {
+                    totalAssets: 1000000,
+                    totalLiabilities: 500000,
+                    totalRevenue: 100000,
+                    totalExpenses: 150000, // Loss
+                    memberCount: 100
+                };
+                
+                try {
+                    const negativeResult = await engine.calculateFinancialHealthScore(negativeData);
+                    edgeCases.push({ case: 'Negative profit', success: true, result: negativeResult.score });
+                } catch (error) {
+                    edgeCases.push({ case: 'Negative profit', success: false, error: error.message });
+                }
+                
+                // Test growth rate with zero previous
+                const zeroGrowth = engine.calculateGrowthRate(100, 0);
+                edgeCases.push({ case: 'Zero previous growth', success: true, result: zeroGrowth });
+                
+                const allPassed = edgeCases.every(test => test.success);
+                
+                if (allPassed) {
+                    showResult('test7Result', true, 'All edge cases handled correctly', edgeCases);
+                } else {
+                    showResult('test7Result', false, 'Some edge cases failed', edgeCases);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test7Result', false, `Edge case test error: ${error.message}`);
+            }
+            
+            hideLoading('test7Btn', 'Run Test');
+        });
+
+        // Test 8: Performance Metrics
+        document.getElementById('test8Btn').addEventListener('click', async function() {
+            showLoading('test8Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                // Perform multiple calculations
+                const financialData = generateFinancialData();
+                const memberData = generateMemberData();
+                
+                await engine.calculateFinancialHealthScore(financialData);
+                await engine.calculateMemberGrowthRate(memberData);
+                await engine.calculateFinancialRatios(financialData);
+                
+                const metrics = engine.getPerformanceMetrics();
+                
+                const isValid = 
+                    metrics.totalCalculations > 0 &&
+                    metrics.averageCalculationTime >= 0 &&
+                    metrics.cacheHitRate >= 0 &&
+                    metrics.isInitialized === true;
+                
+                if (isValid) {
+                    showResult('test8Result', true, 'Performance metrics collected successfully', {
+                        totalCalculations: metrics.totalCalculations,
+                        averageCalculationTime: `${metrics.averageCalculationTime}ms`,
+                        cacheHitRate: `${metrics.cacheHitRate}%`,
+                        cacheSize: metrics.cacheSize,
+                        isInitialized: metrics.isInitialized
+                    });
+                } else {
+                    showResult('test8Result', false, 'Invalid performance metrics', metrics);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test8Result', false, `Performance test error: ${error.message}`);
+            }
+            
+            hideLoading('test8Btn', 'Run Test');
+        });
+
+        // Run All Tests
+        document.getElementById('runAllBtn').addEventListener('click', async function() {
+            showLoading('runAllBtn');
+            
+            const tests = [
+                'test1Btn', 'test2Btn', 'test3Btn', 'test4Btn',
+                'test5Btn', 'test6Btn', 'test7Btn', 'test8Btn'
+            ];
+            
+            let passedTests = 0;
+            const totalTests = tests.length;
+            
+            for (const testId of tests) {
+                try {
+                    // Trigger test
+                    document.getElementById(testId).click();
+                    
+                    // Wait for test to complete
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Check if test passed (simple check based on result class)
+                    const resultId = testId.replace('Btn', 'Result');
+                    const resultElement = document.getElementById(resultId);
+                    
+                    if (resultElement.classList.contains('test-success')) {
+                        passedTests++;
+                    }
+                } catch (error) {
+                    console.error(`Test ${testId} failed:`, error);
+                }
+            }
+            
+            const allPassed = passedTests === totalTests;
+            
+            showResult('allTestsResult', allPassed, 
+                `Tests completed: ${passedTests}/${totalTests} passed`, {
+                    passedTests,
+                    totalTests,
+                    successRate: `${Math.round((passedTests / totalTests) * 100)}%`
+                });
+            
+            hideLoading('runAllBtn', 'Run All Tests');
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Analytics Engine Test Page loaded');
+            
+            // Check if AnalyticsEngine is available
+            if (typeof AnalyticsEngine === 'undefined') {
+                document.body.innerHTML = `
+                    <div class="container mt-4">
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> AnalyticsEngine class not found. 
+                            Please ensure js/dashboard/AnalyticsEngine.js is loaded correctly.
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

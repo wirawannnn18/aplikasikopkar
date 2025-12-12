@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Validation Engine - Task 3</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        .error-item {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .warning-item {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .success-item {
+            background-color: #d1edff;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .test-data {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Test Validation Engine - Task 3</h1>
+        <p class="lead">Testing multi-layer validation untuk upload master barang Excel</p>
+
+        <!-- Test 1: Header Validation -->
+        <div class="test-section">
+            <h3>Test 1: Header Validation</h3>
+            <button class="btn btn-primary" onclick="testHeaderValidation()">Run Header Validation Test</button>
+            <div id="headerValidationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 2: Data Type Validation -->
+        <div class="test-section">
+            <h3>Test 2: Data Type Validation</h3>
+            <button class="btn btn-primary" onclick="testDataTypeValidation()">Run Data Type Validation Test</button>
+            <div id="dataTypeValidationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 3: Business Rules Validation -->
+        <div class="test-section">
+            <h3>Test 3: Business Rules Validation</h3>
+            <button class="btn btn-primary" onclick="testBusinessRulesValidation()">Run Business Rules Test</button>
+            <div id="businessRulesResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 4: Duplicate Detection -->
+        <div class="test-section">
+            <h3>Test 4: Duplicate Detection</h3>
+            <button class="btn btn-primary" onclick="testDuplicateDetection()">Run Duplicate Detection Test</button>
+            <div id="duplicateDetectionResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 5: Existing Data Validation -->
+        <div class="test-section">
+            <h3>Test 5: Existing Data Validation</h3>
+            <button class="btn btn-primary" onclick="testExistingDataValidation()">Run Existing Data Test</button>
+            <div id="existingDataResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 6: Complete Dataset Validation -->
+        <div class="test-section">
+            <h3>Test 6: Complete Dataset Validation</h3>
+            <button class="btn btn-primary" onclick="testCompleteDatasetValidation()">Run Complete Validation Test</button>
+            <div id="completeValidationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 7: Integration with ExcelUploadManager -->
+        <div class="test-section">
+            <h3>Test 7: Integration with ExcelUploadManager</h3>
+            <button class="btn btn-primary" onclick="testIntegrationValidation()">Run Integration Test</button>
+            <div id="integrationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <button class="btn btn-success btn-lg" onclick="runAllTests()">Run All Validation Tests</button>
+            <div id="allTestsResult" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Include ValidationEngine and ExcelUploadManager -->
+    <script src="js/upload-excel/ValidationEngine.js"></script>
+    <script src="js/upload-excel/ExcelUploadManager.js"></script>
+
+    <script>
+        let validationEngine;
+        let uploadManager;
+
+        // Initialize components
+        document.addEventListener('DOMContentLoaded', function() {
+            validationEngine = new ValidationEngine();
+            uploadManager = new ExcelUploadManager();
+            console.log('Validation Engine and Upload Manager initialized');
+        });
+
+        function displayResult(containerId, result, testData = null) {
+            const container = document.getElementById(containerId);
+            let html = '';
+
+            if (testData) {
+                html += '<h5>Test Data:</h5>';
+                html += `<div class="test-data">${JSON.stringify(testData, null, 2)}</div>`;
+            }
+
+            html += '<h5>Validation Result:</h5>';
+            html += `<div class="success-item">Valid: ${result.isValid ? 'Yes' : 'No'}</div>`;
+
+            if (result.errors && result.errors.length > 0) {
+                html += '<h6>Errors:</h6>';
+                result.errors.forEach(error => {
+                    html += `<div class="error-item">
+                        <strong>Row ${error.row}, Field ${error.field}:</strong> ${error.message}
+                        <br><small>Type: ${error.type}, Code: ${error.code}</small>
+                    </div>`;
+                });
+            }
+
+            if (result.warnings && result.warnings.length > 0) {
+                html += '<h6>Warnings:</h6>';
+                result.warnings.forEach(warning => {
+                    html += `<div class="warning-item">
+                        <strong>Row ${warning.row}, Field ${warning.field}:</strong> ${warning.message}
+                        <br><small>Type: ${warning.type}, Code: ${warning.code}</small>
+                    </div>`;
+                });
+            }
+
+            if (result.statistics) {
+                html += '<h6>Statistics:</h6>';
+                html += `<div class="success-item">
+                    Total Rows: ${result.statistics.totalRows}<br>
+                    Valid Rows: ${result.statistics.validRows}<br>
+                    Errors: ${result.statistics.errorCount}<br>
+                    Warnings: ${result.statistics.warningCount}
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function testHeaderValidation() {
+            console.log('Testing header validation...');
+            
+            // Test valid headers
+            const validHeaders = ['kode', 'nama', 'kategori', 'satuan', 'harga_beli', 'stok', 'supplier'];
+            const validResult = validationEngine.validateHeaders(validHeaders);
+            
+            // Test invalid headers (missing required fields)
+            const invalidHeaders = ['kode', 'nama', 'kategori']; // Missing satuan, harga_beli, stok
+            const invalidResult = validationEngine.validateHeaders(invalidHeaders);
+            
+            // Test duplicate headers
+            const duplicateHeaders = ['kode', 'nama', 'kode', 'kategori', 'satuan', 'harga_beli', 'stok'];
+            const duplicateResult = validationEngine.validateHeaders(duplicateHeaders);
+
+            const testData = {
+                validHeaders: validHeaders,
+                invalidHeaders: invalidHeaders,
+                duplicateHeaders: duplicateHeaders
+            };
+
+            const combinedResult = {
+                isValid: validResult.isValid && !invalidResult.isValid && !duplicateResult.isValid,
+                errors: [...validResult.errors, ...invalidResult.errors, ...duplicateResult.errors],
+                warnings: [...validResult.warnings, ...invalidResult.warnings, ...duplicateResult.warnings]
+            };
+
+            displayResult('headerValidationResult', combinedResult, testData);
+        }
+
+        function testDataTypeValidation() {
+            console.log('Testing data type validation...');
+            
+            const testRows = [
+                // Valid data
+                { kode: 'BRG001', nama: 'Barang 1', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1000, stok: 10 },
+                // Invalid harga_beli (string)
+                { kode: 'BRG002', nama: 'Barang 2', kategori: 'elektronik', satuan: 'pcs', harga_beli: 'invalid', stok: 5 },
+                // Invalid stok (string)
+                { kode: 'BRG003', nama: 'Barang 3', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2000, stok: 'invalid' },
+                // Field too long
+                { kode: 'BRG004_VERY_LONG_CODE_THAT_EXCEEDS_LIMIT', nama: 'Barang 4', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1500, stok: 8 }
+            ];
+
+            const allErrors = [];
+            const allWarnings = [];
+
+            testRows.forEach((row, index) => {
+                const result = validationEngine.validateDataTypes(row, index + 1);
+                allErrors.push(...result.errors);
+                allWarnings.push(...result.warnings);
+            });
+
+            const combinedResult = {
+                isValid: allErrors.length === 0,
+                errors: allErrors,
+                warnings: allWarnings
+            };
+
+            displayResult('dataTypeValidationResult', combinedResult, testRows);
+        }
+
+        function testBusinessRulesValidation() {
+            console.log('Testing business rules validation...');
+            
+            const testRows = [
+                // Valid data
+                { kode: 'BRG001', nama: 'Barang 1', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1000, stok: 10 },
+                // Missing required fields
+                { kode: '', nama: 'Barang 2', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2000, stok: 5 },
+                { kode: 'BRG003', nama: '', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1500, stok: 8 },
+                // Negative values
+                { kode: 'BRG004', nama: 'Barang 4', kategori: 'elektronik', satuan: 'pcs', harga_beli: -1000, stok: 10 },
+                { kode: 'BRG005', nama: 'Barang 5', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2000, stok: -5 },
+                // High values (warnings)
+                { kode: 'BRG006', nama: 'Barang 6', kategori: 'elektronik', satuan: 'pcs', harga_beli: 15000000, stok: 15000 },
+                // Invalid kode format
+                { kode: 'BRG@007!', nama: 'Barang 7', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1000, stok: 10 }
+            ];
+
+            const allErrors = [];
+            const allWarnings = [];
+
+            testRows.forEach((row, index) => {
+                const result = validationEngine.validateBusinessRules(row, index + 1);
+                allErrors.push(...result.errors);
+                allWarnings.push(...result.warnings);
+            });
+
+            const combinedResult = {
+                isValid: allErrors.length === 0,
+                errors: allErrors,
+                warnings: allWarnings
+            };
+
+            displayResult('businessRulesResult', combinedResult, testRows);
+        }
+
+        function testDuplicateDetection() {
+            console.log('Testing duplicate detection...');
+            
+            const testData = [
+                { kode: 'BRG001', nama: 'Barang 1', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1000, stok: 10 },
+                { kode: 'BRG002', nama: 'Barang 2', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2000, stok: 5 },
+                { kode: 'BRG001', nama: 'Barang 1 Duplicate', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1500, stok: 8 }, // Duplicate
+                { kode: 'BRG003', nama: 'Barang 3', kategori: 'elektronik', satuan: 'pcs', harga_beli: 3000, stok: 12 },
+                { kode: 'brg002', nama: 'Barang 2 Case Insensitive', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2500, stok: 7 } // Case insensitive duplicate
+            ];
+
+            const result = validationEngine.validateDuplicates(testData);
+            displayResult('duplicateDetectionResult', result, testData);
+        }
+
+        function testExistingDataValidation() {
+            console.log('Testing existing data validation...');
+            
+            // Setup some existing data in localStorage
+            const existingData = [
+                { kode: 'EXISTING001', nama: 'Existing Product 1' },
+                { kode: 'EXISTING002', nama: 'Existing Product 2' }
+            ];
+            localStorage.setItem('master_barang', JSON.stringify(existingData));
+
+            const testData = [
+                { kode: 'NEW001', nama: 'New Product 1', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1000, stok: 10 },
+                { kode: 'EXISTING001', nama: 'Updated Product 1', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1500, stok: 8 }, // Existing
+                { kode: 'NEW002', nama: 'New Product 2', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2000, stok: 5 },
+                { kode: 'existing002', nama: 'Updated Product 2', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2500, stok: 12 } // Case insensitive existing
+            ];
+
+            const result = validationEngine.validateExistingData(testData);
+            displayResult('existingDataResult', result, { testData, existingData });
+        }
+
+        function testCompleteDatasetValidation() {
+            console.log('Testing complete dataset validation...');
+            
+            const headers = ['kode', 'nama', 'kategori', 'satuan', 'harga_beli', 'stok', 'supplier'];
+            const testData = [
+                // Valid row
+                { kode: 'BRG001', nama: 'Barang 1', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1000, stok: 10, supplier: 'Supplier A' },
+                // Missing required field
+                { kode: 'BRG002', nama: '', kategori: 'elektronik', satuan: 'pcs', harga_beli: 2000, stok: 5, supplier: 'Supplier B' },
+                // Invalid data type
+                { kode: 'BRG003', nama: 'Barang 3', kategori: 'elektronik', satuan: 'pcs', harga_beli: 'invalid', stok: 8, supplier: 'Supplier C' },
+                // Negative value
+                { kode: 'BRG004', nama: 'Barang 4', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1500, stok: -3, supplier: 'Supplier D' },
+                // Duplicate
+                { kode: 'BRG001', nama: 'Barang 1 Duplicate', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1200, stok: 12, supplier: 'Supplier E' }
+            ];
+
+            const result = validationEngine.validateCompleteDataset(testData, headers);
+            displayResult('completeValidationResult', result, { headers, testData });
+        }
+
+        function testIntegrationValidation() {
+            console.log('Testing integration with ExcelUploadManager...');
+            
+            const testData = [
+                { kode: 'INT001', nama: 'Integration Test 1', kategori: 'test', satuan: 'pcs', harga_beli: 1000, stok: 10 },
+                { kode: 'INT002', nama: 'Integration Test 2', kategori: 'test', satuan: 'pcs', harga_beli: 2000, stok: 5 },
+                { kode: '', nama: 'Missing Code', kategori: 'test', satuan: 'pcs', harga_beli: 1500, stok: 8 } // Error
+            ];
+
+            const headers = ['kode', 'nama', 'kategori', 'satuan', 'harga_beli', 'stok'];
+
+            try {
+                const result = uploadManager.validateData(testData, headers);
+                displayResult('integrationResult', result, { testData, headers });
+            } catch (error) {
+                document.getElementById('integrationResult').innerHTML = 
+                    `<div class="error-item">Integration test failed: ${error.message}</div>`;
+            }
+        }
+
+        function runAllTests() {
+            console.log('Running all validation tests...');
+            
+            const startTime = Date.now();
+            
+            testHeaderValidation();
+            testDataTypeValidation();
+            testBusinessRulesValidation();
+            testDuplicateDetection();
+            testExistingDataValidation();
+            testCompleteDatasetValidation();
+            testIntegrationValidation();
+            
+            const endTime = Date.now();
+            const duration = endTime - startTime;
+            
+            document.getElementById('allTestsResult').innerHTML = 
+                `<div class="success-item">
+                    <strong>All tests completed!</strong><br>
+                    Duration: ${duration}ms<br>
+                    Check individual test results above.
+                </div>`;
+        }
+    </script>
+</body>
+</html>

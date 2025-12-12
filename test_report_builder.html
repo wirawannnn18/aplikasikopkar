@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Builder Test - Dashboard Analytics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn.success {
+            background-color: #28a745;
+        }
+        
+        .btn.danger {
+            background-color: #dc3545;
+        }
+        
+        .btn.warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .btn.secondary {
+            background-color: #6c757d;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .template-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .template-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .template-card p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .template-card .template-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+        
+        .schedules-list {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .schedule-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .schedule-info {
+            flex: 1;
+        }
+        
+        .schedule-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .report-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .report-preview pre {
+            margin: 0;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        
+        .metrics-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .metric-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Report Builder Test Suite</h1>
+        <p>Testing custom report building functionality with templates, scheduling, and advanced features.</p>
+        
+        <!-- Report Configuration Section -->
+        <div class="test-section">
+            <h3>📝 Report Configuration</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="reportTitle">Report Title:</label>
+                    <input type="text" id="reportTitle" value="Custom Dashboard Report" />
+                </div>
+                <div class="form-group">
+                    <label for="reportDescription">Description:</label>
+                    <textarea id="reportDescription" placeholder="Enter report description..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reportTemplate">Template:</label>
+                    <select id="reportTemplate">
+                        <option value="">Custom Report</option>
+                        <option value="executive-summary">Executive Summary</option>
+                        <option value="financial-analysis">Financial Analysis</option>
+                        <option value="member-activity">Member Activity</option>
+                        <option value="compliance">Compliance Report</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reportFormat">Export Format:</label>
+                    <select id="reportFormat">
+                        <option value="pdf">PDF</option>
+                        <option value="excel">Excel</option>
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="dateRange">Date Range:</label>
+                    <select id="dateRange">
+                        <option value="current">Current Month</option>
+                        <option value="last3">Last 3 Months</option>
+                        <option value="last6">Last 6 Months</option>
+                        <option value="year">Current Year</option>
+                        <option value="lastYear">Last Year</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reportLayout">Layout Style:</label>
+                    <select id="reportLayout">
+                        <option value="standard">Standard</option>
+                        <option value="executive">Executive</option>
+                        <option value="detailed">Detailed</option>
+                        <option value="analytical">Analytical</option>
+                        <option value="formal">Formal</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="includeCharts" checked />
+                        <label for="includeCharts">Include Charts</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="includeRawData" />
+                        <label for="includeRawData">Include Raw Data</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="includeComparison" />
+                        <label for="includeComparison">Include Comparison</label>
+                    </div>
+                </div>
+            </div>
+            
+            <h4>Select Metrics:</h4>
+            <div class="metrics-selector" id="metricsSelector">
+                <div class="metric-option">
+                    <input type="checkbox" id="metric-financial-health" value="financial-health" />
+                    <label for="metric-financial-health">Financial Health Score</label>
+                </div>
+                <div class="metric-option">
+                    <input type="checkbox" id="metric-member-growth" value="member-growth" />
+                    <label for="metric-member-growth">Member Growth</label>
+                </div>
+                <div class="metric-option">
+                    <input type="checkbox" id="metric-transaction-volume" value="transaction-volume" />
+                    <label for="metric-transaction-volume">Transaction Volume</label>
+                </div>
+                <div class="metric-option">
+                    <input type="checkbox" id="metric-savings-distribution" value="savings-distribution" />
+                    <label for="metric-savings-distribution">Savings Distribution</label>
+                </div>
+                <div class="metric-option">
+                    <input type="checkbox" id="metric-loan-portfolio" value="loan-portfolio" />
+                    <label for="metric-loan-portfolio">Loan Portfolio</label>
+                </div>
+                <div class="metric-option">
+                    <input type="checkbox" id="metric-revenue-trends" value="revenue-trends" />
+                    <label for="metric-revenue-trends">Revenue Trends</label>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn" onclick="generateReport()">🚀 Generate Report</button>
+                <button class="btn success" onclick="saveAsTemplate()">💾 Save as Template</button>
+                <button class="btn warning" onclick="scheduleReport()">⏰ Schedule Report</button>
+                <button class="btn secondary" onclick="previewReport()">👁️ Preview</button>
+            </div>
+            
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+        
+        <!-- Templates Section -->
+        <div class="test-section">
+            <h3>📋 Report Templates</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="loadTemplates()">🔄 Refresh Templates</button>
+                <button class="btn success" onclick="createCustomTemplate()">➕ Create Template</button>
+            </div>
+            <div class="templates-grid" id="templatesGrid">
+                <!-- Templates will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Scheduled Reports Section -->
+        <div class="test-section">
+            <h3>⏰ Scheduled Reports</h3>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="loadScheduledReports()">🔄 Refresh Schedules</button>
+                <button class="btn danger" onclick="clearAllSchedules()">🗑️ Clear All</button>
+            </div>
+            <div class="schedules-list" id="schedulesList">
+                <!-- Scheduled reports will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Test Results Section -->
+        <div class="test-section">
+            <h3>📋 Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+        
+        <!-- Report Preview Section -->
+        <div class="test-section">
+            <h3>👁️ Report Preview</h3>
+            <div id="reportPreview" class="report-preview">
+                <p><em>Report preview will appear here...</em></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include required libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Include our modules -->
+    <script src="js/dashboard/types.js"></script>
+    <script src="js/dashboard/ExportManager.js"></script>
+    <script src="js/dashboard/ReportBuilder.js"></script>
+    
+    <script>
+        // Mock Dashboard Controller (same as before)
+        class MockDashboardController {
+            constructor() {
+                this.config = {
+                    id: 'dashboard-001',
+                    userId: 'user-123',
+                    role: 'manager',
+                    layout: [
+                        {
+                            id: 'financial-health',
+                            type: 'kpi',
+                            title: 'Financial Health Score',
+                            position: { x: 0, y: 0 },
+                            size: { width: 300, height: 200 }
+                        },
+                        {
+                            id: 'member-growth',
+                            type: 'chart',
+                            title: 'Member Growth',
+                            position: { x: 300, y: 0 },
+                            size: { width: 300, height: 200 }
+                        },
+                        {
+                            id: 'transaction-volume',
+                            type: 'chart',
+                            title: 'Transaction Volume',
+                            position: { x: 0, y: 200 },
+                            size: { width: 300, height: 200 }
+                        },
+                        {
+                            id: 'savings-distribution',
+                            type: 'chart',
+                            title: 'Savings Distribution',
+                            position: { x: 300, y: 200 },
+                            size: { width: 300, height: 200 }
+                        },
+                        {
+                            id: 'loan-portfolio',
+                            type: 'chart',
+                            title: 'Loan Portfolio',
+                            position: { x: 600, y: 0 },
+                            size: { width: 300, height: 200 }
+                        },
+                        {
+                            id: 'revenue-trends',
+                            type: 'chart',
+                            title: 'Revenue Trends',
+                            position: { x: 600, y: 200 },
+                            size: { width: 300, height: 200 }
+                        }
+                    ],
+                    theme: 'light',
+                    refreshInterval: 300000
+                };
+            }
+            
+            getCurrentConfig() {
+                return this.config;
+            }
+            
+            async getWidgetData(widgetId, options = {}) {
+                // Generate mock data based on widget ID
+                const mockData = {
+                    'financial-health': [
+                        { label: 'Health Score', value: 85, y: 85, category: 'financial' },
+                        { label: 'Liquidity Ratio', value: 1.2, y: 1.2, category: 'financial' },
+                        { label: 'Profitability', value: 0.15, y: 0.15, category: 'financial' }
+                    ],
+                    'member-growth': [
+                        { x: '2024-01', y: 1250, label: 'January' },
+                        { x: '2024-02', y: 1320, label: 'February' },
+                        { x: '2024-03', y: 1480, label: 'March' },
+                        { x: '2024-04', y: 1520, label: 'April' }
+                    ],
+                    'transaction-volume': [
+                        { x: '2024-01', y: 125000, label: 'January' },
+                        { x: '2024-02', y: 132000, label: 'February' },
+                        { x: '2024-03', y: 148000, label: 'March' },
+                        { x: '2024-04', y: 152000, label: 'April' }
+                    ],
+                    'savings-distribution': [
+                        { label: 'Simpanan Pokok', y: 45000, category: 'savings' },
+                        { label: 'Simpanan Wajib', y: 78000, category: 'savings' },
+                        { label: 'Simpanan Sukarela', y: 32000, category: 'savings' }
+                    ],
+                    'loan-portfolio': [
+                        { label: 'Active Loans', y: 250000, category: 'loans' },
+                        { label: 'Overdue Loans', y: 15000, category: 'loans' },
+                        { label: 'Paid Off', y: 180000, category: 'loans' }
+                    ],
+                    'revenue-trends': [
+                        { x: '2024-01', y: 25000, label: 'January' },
+                        { x: '2024-02', y: 28000, label: 'February' },
+                        { x: '2024-03', y: 32000, label: 'March' },
+                        { x: '2024-04', y: 35000, label: 'April' }
+                    ]
+                };
+                
+                return mockData[widgetId] || [];
+            }
+        }
+        
+        // Initialize components
+        let mockController;
+        let exportManager;
+        let reportBuilder;
+        let testResults = [];
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                mockController = new MockDashboardController();
+                exportManager = new ExportManager(mockController);
+                reportBuilder = new ReportBuilder(mockController, exportManager);
+                
+                addResult('✅ Report Builder initialized successfully', 'success');
+                loadTemplates();
+                loadScheduledReports();
+            } catch (error) {
+                addResult(`❌ Initialization failed: ${error.message}`, 'error');
+            }
+        });
+        
+        // Generate report
+        async function generateReport() {
+            try {
+                showProgress(0);
+                addResult('🚀 Starting report generation...', 'info');
+                
+                const config = getReportConfig();
+                
+                showProgress(30);
+                
+                const result = await reportBuilder.createReport(config);
+                
+                showProgress(70);
+                
+                // Show preview
+                let previewText = '';
+                if (typeof result.data === 'string') {
+                    previewText = result.data.substring(0, 1000) + (result.data.length > 1000 ? '...' : '');
+                } else if (result.data instanceof Blob) {
+                    previewText = `Binary data (${result.data.type}, ${result.data.size} bytes)`;
+                }
+                
+                document.getElementById('reportPreview').innerHTML = `
+                    <h4>Generated Report</h4>
+                    <p><strong>Report ID:</strong> ${result.reportId}</p>
+                    <p><strong>Format:</strong> ${config.format.toUpperCase()}</p>
+                    <p><strong>Size:</strong> ${result.metadata.size} ${typeof result.data === 'string' ? 'characters' : 'bytes'}</p>
+                    <p><strong>Filename:</strong> ${result.filename}</p>
+                    <pre>${previewText}</pre>
+                    <button class="btn success" onclick="downloadReport('${config.format}')">💾 Download Report</button>
+                `;
+                
+                // Store for download
+                window.lastReportData = result.data;
+                window.lastReportFilename = result.filename;
+                window.lastReportFormat = config.format;
+                
+                showProgress(100);
+                addResult(`✅ Report generated successfully: ${result.filename}`, 'success');
+                
+                setTimeout(() => hideProgress(), 1000);
+                
+            } catch (error) {
+                hideProgress();
+                addResult(`❌ Report generation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Preview report configuration
+        async function previewReport() {
+            try {
+                const config = getReportConfig();
+                
+                document.getElementById('reportPreview').innerHTML = `
+                    <h4>Report Configuration Preview</h4>
+                    <pre>${JSON.stringify(config, null, 2)}</pre>
+                `;
+                
+                addResult('👁️ Report configuration previewed', 'info');
+            } catch (error) {
+                addResult(`❌ Preview failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Save as template
+        function saveAsTemplate() {
+            try {
+                const config = getReportConfig();
+                const templateName = prompt('Enter template name:', config.title + ' Template');
+                
+                if (templateName) {
+                    const templateConfig = {
+                        name: templateName,
+                        description: config.description || 'Custom template',
+                        ...config
+                    };
+                    
+                    const templateId = reportBuilder.createTemplate(templateConfig);
+                    addResult(`✅ Template saved: ${templateName} (ID: ${templateId})`, 'success');
+                    loadTemplates();
+                }
+            } catch (error) {
+                addResult(`❌ Failed to save template: ${error.message}`, 'error');
+            }
+        }
+        
+        // Schedule report
+        function scheduleReport() {
+            try {
+                const config = getReportConfig();
+                const frequency = prompt('Enter frequency (daily, weekly, monthly, quarterly):', 'monthly');
+                const recipients = prompt('Enter email recipients (comma-separated):', 'manager@koperasi.com');
+                
+                if (frequency && recipients) {
+                    const scheduleConfig = {
+                        reportConfig: config,
+                        frequency: frequency,
+                        recipients: recipients.split(',').map(email => email.trim()),
+                        startDate: new Date(),
+                        enabled: true
+                    };
+                    
+                    const scheduleId = reportBuilder.scheduleReport(scheduleConfig);
+                    addResult(`✅ Report scheduled: ${frequency} (ID: ${scheduleId})`, 'success');
+                    loadScheduledReports();
+                }
+            } catch (error) {
+                addResult(`❌ Failed to schedule report: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load templates
+        function loadTemplates() {
+            try {
+                const templates = reportBuilder.getTemplates();
+                const grid = document.getElementById('templatesGrid');
+                
+                grid.innerHTML = templates.map(template => `
+                    <div class="template-card">
+                        <h4>${template.name}</h4>
+                        <p><strong>Description:</strong> ${template.description}</p>
+                        <p><strong>Format:</strong> ${template.format?.toUpperCase() || 'PDF'}</p>
+                        <p><strong>Layout:</strong> ${template.layout || 'standard'}</p>
+                        <p><strong>Widgets:</strong> ${template.widgets?.length || 0}</p>
+                        <div class="template-meta">
+                            ID: ${template.id}<br>
+                            Created: ${template.createdAt ? new Date(template.createdAt).toLocaleDateString() : 'Default'}
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn" onclick="useTemplate('${template.id}')">📋 Use Template</button>
+                            ${!['executive-summary', 'financial-analysis', 'member-activity', 'compliance'].includes(template.id) ? 
+                                `<button class="btn danger" onclick="deleteTemplate('${template.id}')">🗑️ Delete</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+                addResult(`📋 Loaded ${templates.length} templates`, 'info');
+            } catch (error) {
+                addResult(`❌ Failed to load templates: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load scheduled reports
+        function loadScheduledReports() {
+            try {
+                const schedules = reportBuilder.getScheduledReports();
+                const list = document.getElementById('schedulesList');
+                
+                if (schedules.length === 0) {
+                    list.innerHTML = '<p><em>No scheduled reports</em></p>';
+                } else {
+                    list.innerHTML = schedules.map(schedule => `
+                        <div class="schedule-item">
+                            <div class="schedule-info">
+                                <strong>${schedule.reportConfig.title}</strong><br>
+                                <small>
+                                    Frequency: ${schedule.frequency} | 
+                                    Next Run: ${new Date(schedule.nextRun).toLocaleDateString()} |
+                                    Recipients: ${schedule.recipients.join(', ')} |
+                                    Status: ${schedule.enabled ? 'Enabled' : 'Disabled'}
+                                </small>
+                            </div>
+                            <div class="schedule-actions">
+                                <button class="btn" onclick="toggleSchedule('${schedule.id}')">${schedule.enabled ? '⏸️' : '▶️'}</button>
+                                <button class="btn danger" onclick="deleteSchedule('${schedule.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                addResult(`⏰ Loaded ${schedules.length} scheduled reports`, 'info');
+            } catch (error) {
+                addResult(`❌ Failed to load schedules: ${error.message}`, 'error');
+            }
+        }
+        
+        // Use template
+        function useTemplate(templateId) {
+            try {
+                const template = reportBuilder.getTemplate(templateId);
+                if (template) {
+                    // Fill form with template values
+                    document.getElementById('reportTitle').value = template.name || '';
+                    document.getElementById('reportDescription').value = template.description || '';
+                    document.getElementById('reportTemplate').value = templateId;
+                    document.getElementById('reportFormat').value = template.format || 'pdf';
+                    document.getElementById('dateRange').value = template.dateRange || 'current';
+                    document.getElementById('reportLayout').value = template.layout || 'standard';
+                    document.getElementById('includeCharts').checked = template.includeCharts !== false;
+                    document.getElementById('includeRawData').checked = template.includeRawData === true;
+                    document.getElementById('includeComparison').checked = template.includeComparison === true;
+                    
+                    // Select metrics if specified
+                    if (template.widgets) {
+                        const checkboxes = document.querySelectorAll('#metricsSelector input[type="checkbox"]');
+                        checkboxes.forEach(cb => {
+                            cb.checked = template.widgets.includes(cb.value);
+                        });
+                    }
+                    
+                    addResult(`📋 Template applied: ${template.name}`, 'success');
+                }
+            } catch (error) {
+                addResult(`❌ Failed to use template: ${error.message}`, 'error');
+            }
+        }
+        
+        // Delete template
+        function deleteTemplate(templateId) {
+            try {
+                if (confirm('Are you sure you want to delete this template?')) {
+                    const success = reportBuilder.deleteTemplate(templateId);
+                    if (success) {
+                        addResult(`🗑️ Template deleted: ${templateId}`, 'success');
+                        loadTemplates();
+                    } else {
+                        addResult(`❌ Failed to delete template: ${templateId}`, 'error');
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ Delete template failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Toggle schedule
+        function toggleSchedule(scheduleId) {
+            try {
+                const schedules = reportBuilder.getScheduledReports();
+                const schedule = schedules.find(s => s.id === scheduleId);
+                
+                if (schedule) {
+                    const success = reportBuilder.updateScheduledReport(scheduleId, {
+                        enabled: !schedule.enabled
+                    });
+                    
+                    if (success) {
+                        addResult(`⏰ Schedule ${schedule.enabled ? 'disabled' : 'enabled'}: ${scheduleId}`, 'success');
+                        loadScheduledReports();
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ Toggle schedule failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Delete schedule
+        function deleteSchedule(scheduleId) {
+            try {
+                if (confirm('Are you sure you want to delete this scheduled report?')) {
+                    const success = reportBuilder.deleteScheduledReport(scheduleId);
+                    if (success) {
+                        addResult(`🗑️ Schedule deleted: ${scheduleId}`, 'success');
+                        loadScheduledReports();
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ Delete schedule failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Create custom template
+        function createCustomTemplate() {
+            try {
+                const name = prompt('Enter template name:', 'My Custom Template');
+                const description = prompt('Enter template description:', 'Custom report template');
+                
+                if (name && description) {
+                    const config = getReportConfig();
+                    const templateConfig = {
+                        name: name,
+                        description: description,
+                        ...config
+                    };
+                    
+                    const templateId = reportBuilder.createTemplate(templateConfig);
+                    addResult(`✅ Custom template created: ${name} (ID: ${templateId})`, 'success');
+                    loadTemplates();
+                }
+            } catch (error) {
+                addResult(`❌ Failed to create template: ${error.message}`, 'error');
+            }
+        }
+        
+        // Clear all schedules
+        function clearAllSchedules() {
+            try {
+                if (confirm('Are you sure you want to delete all scheduled reports?')) {
+                    const schedules = reportBuilder.getScheduledReports();
+                    let deleted = 0;
+                    
+                    for (const schedule of schedules) {
+                        if (reportBuilder.deleteScheduledReport(schedule.id)) {
+                            deleted++;
+                        }
+                    }
+                    
+                    addResult(`🗑️ Deleted ${deleted} scheduled reports`, 'success');
+                    loadScheduledReports();
+                }
+            } catch (error) {
+                addResult(`❌ Clear schedules failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Download report
+        function downloadReport(format) {
+            if (window.lastReportData) {
+                exportManager.downloadExportedData(
+                    window.lastReportData,
+                    window.lastReportFilename,
+                    format
+                );
+                addResult(`💾 Downloaded report: ${window.lastReportFilename}`, 'success');
+            } else {
+                addResult('❌ No report data available for download', 'error');
+            }
+        }
+        
+        // Get report configuration from form
+        function getReportConfig() {
+            const selectedMetrics = Array.from(
+                document.querySelectorAll('#metricsSelector input[type="checkbox"]:checked')
+            ).map(cb => cb.value);
+            
+            return {
+                templateId: document.getElementById('reportTemplate').value || null,
+                title: document.getElementById('reportTitle').value,
+                description: document.getElementById('reportDescription').value,
+                format: document.getElementById('reportFormat').value,
+                dateRange: document.getElementById('dateRange').value,
+                layout: document.getElementById('reportLayout').value,
+                selectedMetrics: selectedMetrics.length > 0 ? selectedMetrics : null,
+                includeCharts: document.getElementById('includeCharts').checked,
+                includeRawData: document.getElementById('includeRawData').checked,
+                includeComparison: document.getElementById('includeComparison').checked
+            };
+        }
+        
+        // Add test result
+        function addResult(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            const result = {
+                message: message,
+                type: type,
+                timestamp: timestamp
+            };
+            
+            testResults.push(result);
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.appendChild(resultDiv);
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+        }
+        
+        // Show progress bar
+        function showProgress(percent) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = percent + '%';
+        }
+        
+        // Hide progress bar
+        function hideProgress() {
+            document.getElementById('progressBar').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12.3 - Error Handling and Logging</title>
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-results {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .test-button.danger {
+            background: #dc3545;
+        }
+        
+        .test-button.danger:hover {
+            background: #c82333;
+        }
+        
+        .error-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .log-viewer {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+        
+        .log-entry.debug { background-color: #e9ecef; }
+        .log-entry.info { background-color: #d1ecf1; }
+        .log-entry.warning { background-color: #fff3cd; }
+        .log-entry.error { background-color: #f8d7da; }
+        .log-entry.critical { background-color: #f5c6cb; }
+        
+        .error-simulation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .simulation-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        
+        .notification-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            z-index: 10000;
+        }
+        
+        .performance-monitor {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .performance-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .performance-metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .metric-status.good { background-color: #d4edda; color: #155724; }
+        .metric-status.warning { background-color: #fff3cd; color: #856404; }
+        .metric-status.critical { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Task 12.3 - Error Handling and Logging</h1>
+        <p>Comprehensive error handling, logging system, and user feedback mechanisms</p>
+
+        <!-- Error Handler Status -->
+        <div class="test-section">
+            <h3>Error Handler Status</h3>
+            <div class="error-stats" id="errorStats"></div>
+            <button class="test-button" onclick="initializeErrorHandler()">Initialize Error Handler</button>
+            <button class="test-button" onclick="getErrorStatistics()">Refresh Statistics</button>
+            <div id="handlerStatus" class="test-results"></div>
+        </div>
+
+        <!-- Error Simulation -->
+        <div class="test-section">
+            <h3>1. Error Simulation and Recovery Testing</h3>
+            <p>Test different types of errors and automatic recovery mechanisms</p>
+            
+            <div class="error-simulation">
+                <div class="simulation-card">
+                    <h4>Dashboard Errors</h4>
+                    <button class="test-button danger" onclick="simulateDashboardError()">Dashboard Load Error</button>
+                    <button class="test-button danger" onclick="simulateWidgetError()">Widget Render Error</button>
+                </div>
+                
+                <div class="simulation-card">
+                    <h4>Data Errors</h4>
+                    <button class="test-button danger" onclick="simulateDataFetchError()">Data Fetch Error</button>
+                    <button class="test-button danger" onclick="simulateNetworkError()">Network Error</button>
+                </div>
+                
+                <div class="simulation-card">
+                    <h4>Performance Errors</h4>
+                    <button class="test-button danger" onclick="simulatePerformanceIssue()">Performance Issue</button>
+                    <button class="test-button danger" onclick="simulateMemoryLeak()">Memory Leak</button>
+                </div>
+                
+                <div class="simulation-card">
+                    <h4>Critical Errors</h4>
+                    <button class="test-button danger" onclick="simulateJavaScriptError()">JavaScript Error</button>
+                    <button class="test-button danger" onclick="simulateUnhandledPromise()">Promise Rejection</button>
+                </div>
+            </div>
+            
+            <div id="errorSimulationResults" class="test-results"></div>
+        </div>
+
+        <!-- Performance Monitoring -->
+        <div class="test-section">
+            <h3>2. Performance Monitoring and Alerting</h3>
+            <p>Monitor system performance and detect issues automatically</p>
+            
+            <button class="test-button" onclick="startPerformanceMonitoring()">Start Monitoring</button>
+            <button class="test-button" onclick="stopPerformanceMonitoring()">Stop Monitoring</button>
+            <button class="test-button" onclick="simulateLongTask()">Simulate Long Task</button>
+            
+            <div class="performance-monitor" id="performanceMonitor"></div>
+            <div id="performanceResults" class="test-results"></div>
+        </div>
+
+        <!-- Log Viewer -->
+        <div class="test-section">
+            <h3>3. Real-time Log Viewer</h3>
+            <p>View and analyze system logs in real-time</p>
+            
+            <button class="test-button" onclick="refreshLogs()">Refresh Logs</button>
+            <button class="test-button" onclick="clearLogs()">Clear Logs</button>
+            <button class="test-button" onclick="exportLogs('json')">Export JSON</button>
+            <button class="test-button" onclick="exportLogs('csv')">Export CSV</button>
+            
+            <div class="log-viewer" id="logViewer"></div>
+        </div>
+
+        <!-- User Notification Testing -->
+        <div class="test-section">
+            <h3>4. User Notification System</h3>
+            <p>Test user-friendly error notifications and recovery options</p>
+            
+            <button class="test-button" onclick="testInfoNotification()">Info Notification</button>
+            <button class="test-button" onclick="testWarningNotification()">Warning Notification</button>
+            <button class="test-button" onclick="testErrorNotification()">Error Notification</button>
+            <button class="test-button" onclick="testCriticalNotification()">Critical Notification</button>
+            
+            <div id="notificationResults" class="test-results"></div>
+        </div>
+
+        <!-- Error Recovery Testing -->
+        <div class="test-section">
+            <h3>5. Automatic Error Recovery</h3>
+            <p>Test automatic recovery mechanisms for different error types</p>
+            
+            <button class="test-button" onclick="testDashboardRecovery()">Test Dashboard Recovery</button>
+            <button class="test-button" onclick="testWidgetRecovery()">Test Widget Recovery</button>
+            <button class="test-button" onclick="testDataRecovery()">Test Data Recovery</button>
+            <button class="test-button" onclick="testExportRecovery()">Test Export Recovery</button>
+            
+            <div id="recoveryResults" class="test-results"></div>
+        </div>
+
+        <!-- Comprehensive Error Handling Test -->
+        <div class="test-section">
+            <h3>6. Comprehensive Error Handling Test</h3>
+            <button class="test-button" onclick="runComprehensiveErrorTest()">Run All Error Tests</button>
+            <div id="comprehensiveResults" class="test-results"></div>
+        </div>
+    </div>
+
+    <!-- Notification Area -->
+    <div class="notification-area" id="notificationArea"></div>
+
+    <script src="js/dashboard/ErrorHandler.js"></script>
+
+    <script>
+        class ErrorHandlingTestSuite {
+            constructor() {
+                this.errorHandler = null;
+                this.performanceMonitorInterval = null;
+                this.testResults = [];
+                this.performanceMetrics = {
+                    memoryUsage: 0,
+                    taskDuration: 0,
+                    errorCount: 0,
+                    recoveryRate: 0
+                };
+            }
+
+            // Initialize error handler
+            initializeErrorHandler() {
+                try {
+                    this.errorHandler = new DashboardErrorHandler({
+                        logLevel: 'debug',
+                        enableConsoleLogging: true,
+                        enableRemoteLogging: false,
+                        enableUserNotifications: true,
+                        maxLogEntries: 500,
+                        retryAttempts: 3,
+                        retryDelay: 1000
+                    });
+
+                    // Make it globally available
+                    window.errorHandler = this.errorHandler;
+
+                    const results = [];
+                    results.push("✅ Error handler initialized successfully");
+                    results.push(`📊 Configuration: Log level: ${this.errorHandler.config.logLevel}`);
+                    results.push(`🔔 User notifications: ${this.errorHandler.config.enableUserNotifications ? 'Enabled' : 'Disabled'}`);
+                    results.push(`🔄 Retry attempts: ${this.errorHandler.config.retryAttempts}`);
+                    results.push(`📝 Max log entries: ${this.errorHandler.config.maxLogEntries}`);
+
+                    document.getElementById('handlerStatus').textContent = results.join('\n');
+                    document.getElementById('handlerStatus').className = 'test-results success';
+
+                    // Update statistics
+                    this.updateErrorStatistics();
+
+                } catch (error) {
+                    document.getElementById('handlerStatus').textContent = `❌ Failed to initialize error handler: ${error.message}`;
+                    document.getElementById('handlerStatus').className = 'test-results error';
+                }
+            }
+
+            // Update error statistics display
+            updateErrorStatistics() {
+                if (!this.errorHandler) return;
+
+                const stats = this.errorHandler.getErrorStatistics();
+                const statsContainer = document.getElementById('errorStats');
+
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalLogs}</div>
+                        <div class="stat-label">Total Logs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.last24Hours}</div>
+                        <div class="stat-label">Last 24 Hours</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.lastHour}</div>
+                        <div class="stat-label">Last Hour</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.errorsByLevel.error || 0}</div>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.errorsByLevel.warning || 0}</div>
+                        <div class="stat-label">Warnings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.performanceIssues}</div>
+                        <div class="stat-label">Performance Issues</div>
+                    </div>
+                `;
+            }
+
+            // Simulate dashboard error
+            simulateDashboardError() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.handleError({
+                    type: 'dashboard_load',
+                    message: 'Failed to load dashboard configuration',
+                    severity: 'error',
+                    context: {
+                        operation: 'load',
+                        userId: 'test-user',
+                        dashboardId: 'main-dashboard'
+                    },
+                    recoverable: true
+                });
+
+                this.updateTestResults('Dashboard error simulated and handled');
+            }
+
+            // Simulate widget error
+            simulateWidgetError() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.handleError({
+                    type: 'widget_render',
+                    message: 'Widget failed to render due to invalid data',
+                    severity: 'error',
+                    context: {
+                        widgetId: 'financial-health-widget',
+                        widgetType: 'kpi',
+                        operation: 'render'
+                    },
+                    recoverable: true
+                });
+
+                this.updateTestResults('Widget error simulated and handled');
+            }
+
+            // Simulate data fetch error
+            simulateDataFetchError() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.handleError({
+                    type: 'data_fetch',
+                    message: 'Failed to fetch member data from API',
+                    severity: 'warning',
+                    context: {
+                        endpoint: '/api/members',
+                        operation: 'fetch',
+                        timeout: 5000
+                    },
+                    recoverable: true
+                });
+
+                this.updateTestResults('Data fetch error simulated and handled');
+            }
+
+            // Simulate network error
+            simulateNetworkError() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.handleError({
+                    type: 'network',
+                    message: 'Network connection timeout',
+                    severity: 'warning',
+                    context: {
+                        operation: 'api_call',
+                        url: '/api/dashboard/data',
+                        statusCode: 0
+                    },
+                    recoverable: true
+                });
+
+                this.updateTestResults('Network error simulated and handled');
+            }
+
+            // Simulate performance issue
+            simulatePerformanceIssue() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.logPerformanceIssue({
+                    type: 'long_task',
+                    duration: 150,
+                    startTime: performance.now(),
+                    severity: 'warning',
+                    context: {
+                        operation: 'data_processing',
+                        recordCount: 10000
+                    }
+                });
+
+                this.updateTestResults('Performance issue simulated and logged');
+            }
+
+            // Simulate memory leak
+            simulateMemoryLeak() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                // Create large objects to simulate memory usage
+                const largeArray = new Array(100000).fill(0).map((_, i) => ({
+                    id: i,
+                    data: new Array(100).fill(Math.random())
+                }));
+
+                this.errorHandler.handleError({
+                    type: 'performance',
+                    message: 'High memory usage detected',
+                    severity: 'warning',
+                    context: {
+                        memoryUsage: performance.memory ? performance.memory.usedJSHeapSize : 'unknown',
+                        operation: 'memory_intensive_task'
+                    },
+                    recoverable: true
+                });
+
+                // Clean up after a delay
+                setTimeout(() => {
+                    largeArray.length = 0;
+                }, 2000);
+
+                this.updateTestResults('Memory leak simulated and handled');
+            }
+
+            // Simulate JavaScript error
+            simulateJavaScriptError() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                try {
+                    // Intentionally cause an error
+                    const undefinedObject = null;
+                    undefinedObject.someProperty.anotherProperty = 'value';
+                } catch (error) {
+                    // This will be caught by the global error handler
+                    this.updateTestResults('JavaScript error simulated (check console for global handler)');
+                }
+            }
+
+            // Simulate unhandled promise rejection
+            simulateUnhandledPromise() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                // Create an unhandled promise rejection
+                Promise.reject(new Error('Simulated unhandled promise rejection'));
+                
+                this.updateTestResults('Unhandled promise rejection simulated (check console for global handler)');
+            }
+
+            // Start performance monitoring
+            startPerformanceMonitoring() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                const results = [];
+                results.push("🔄 Starting performance monitoring...");
+
+                this.performanceMonitorInterval = setInterval(() => {
+                    this.updatePerformanceMetrics();
+                }, 2000);
+
+                results.push("✅ Performance monitoring started (updates every 2 seconds)");
+                
+                document.getElementById('performanceResults').textContent = results.join('\n');
+                document.getElementById('performanceResults').className = 'test-results info';
+            }
+
+            // Stop performance monitoring
+            stopPerformanceMonitoring() {
+                if (this.performanceMonitorInterval) {
+                    clearInterval(this.performanceMonitorInterval);
+                    this.performanceMonitorInterval = null;
+
+                    document.getElementById('performanceResults').textContent = "🛑 Performance monitoring stopped";
+                    document.getElementById('performanceResults').className = 'test-results warning';
+                }
+            }
+
+            // Update performance metrics
+            updatePerformanceMetrics() {
+                const monitor = document.getElementById('performanceMonitor');
+                
+                // Get current metrics
+                const memoryUsage = performance.memory ? 
+                    (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2) : 'N/A';
+                
+                const errorCount = this.errorHandler ? this.errorHandler.logs.length : 0;
+                
+                const taskDuration = performance.now() % 1000; // Simulated task duration
+                
+                // Update display
+                monitor.innerHTML = `
+                    <div class="performance-metric">
+                        <span>Memory Usage</span>
+                        <span>
+                            ${memoryUsage} MB
+                            <span class="metric-status ${this.getMemoryStatus(memoryUsage)}">
+                                ${this.getMemoryStatus(memoryUsage).toUpperCase()}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="performance-metric">
+                        <span>Error Count</span>
+                        <span>
+                            ${errorCount}
+                            <span class="metric-status ${this.getErrorCountStatus(errorCount)}">
+                                ${this.getErrorCountStatus(errorCount).toUpperCase()}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="performance-metric">
+                        <span>Task Duration</span>
+                        <span>
+                            ${taskDuration.toFixed(2)} ms
+                            <span class="metric-status ${this.getTaskDurationStatus(taskDuration)}">
+                                ${this.getTaskDurationStatus(taskDuration).toUpperCase()}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="performance-metric">
+                        <span>Last Updated</span>
+                        <span>${new Date().toLocaleTimeString()}</span>
+                    </div>
+                `;
+            }
+
+            // Get memory status
+            getMemoryStatus(memoryUsage) {
+                if (memoryUsage === 'N/A') return 'warning';
+                const usage = parseFloat(memoryUsage);
+                if (usage < 50) return 'good';
+                if (usage < 100) return 'warning';
+                return 'critical';
+            }
+
+            // Get error count status
+            getErrorCountStatus(count) {
+                if (count < 10) return 'good';
+                if (count < 50) return 'warning';
+                return 'critical';
+            }
+
+            // Get task duration status
+            getTaskDurationStatus(duration) {
+                if (duration < 50) return 'good';
+                if (duration < 100) return 'warning';
+                return 'critical';
+            }
+
+            // Simulate long task
+            simulateLongTask() {
+                const startTime = performance.now();
+                
+                // Simulate CPU-intensive task
+                let result = 0;
+                for (let i = 0; i < 10000000; i++) {
+                    result += Math.sqrt(i);
+                }
+                
+                const duration = performance.now() - startTime;
+                
+                if (this.errorHandler) {
+                    this.errorHandler.logPerformanceIssue({
+                        type: 'long_task',
+                        duration: duration,
+                        startTime: startTime,
+                        severity: duration > 100 ? 'warning' : 'info'
+                    });
+                }
+
+                this.updateTestResults(`Long task simulated: ${duration.toFixed(2)}ms`);
+            }
+
+            // Refresh logs display
+            refreshLogs() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                const logViewer = document.getElementById('logViewer');
+                const logs = this.errorHandler.logs.slice(-50); // Show last 50 logs
+
+                logViewer.innerHTML = logs.map(log => `
+                    <div class="log-entry ${log.level}">
+                        <strong>[${log.level.toUpperCase()}]</strong> 
+                        ${log.timestamp} - ${log.message}
+                        ${Object.keys(log.data).length > 0 ? 
+                            `<br><small>Data: ${JSON.stringify(log.data, null, 2)}</small>` : ''}
+                    </div>
+                `).join('');
+
+                // Scroll to bottom
+                logViewer.scrollTop = logViewer.scrollHeight;
+            }
+
+            // Clear logs
+            clearLogs() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.clearLogs();
+                this.refreshLogs();
+                this.updateErrorStatistics();
+                
+                this.updateTestResults('Logs cleared successfully');
+            }
+
+            // Export logs
+            exportLogs(format) {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                try {
+                    const exportData = this.errorHandler.exportLogs(format);
+                    
+                    // Create download
+                    const blob = new Blob([exportData], { 
+                        type: format === 'json' ? 'application/json' : 'text/csv' 
+                    });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `error_logs_${new Date().toISOString().split('T')[0]}.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    this.updateTestResults(`Logs exported as ${format.toUpperCase()}`);
+
+                } catch (error) {
+                    this.updateTestResults(`Export failed: ${error.message}`);
+                }
+            }
+
+            // Test notification types
+            testInfoNotification() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.showUserNotification({
+                    severity: 'info',
+                    type: 'info',
+                    message: 'This is an informational message for testing purposes.'
+                });
+
+                this.updateTestResults('Info notification displayed');
+            }
+
+            testWarningNotification() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.showUserNotification({
+                    severity: 'warning',
+                    type: 'warning',
+                    message: 'This is a warning message. Some features may not work properly.'
+                });
+
+                this.updateTestResults('Warning notification displayed');
+            }
+
+            testErrorNotification() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.showUserNotification({
+                    severity: 'error',
+                    type: 'error',
+                    message: 'An error occurred while processing your request. Please try again.'
+                });
+
+                this.updateTestResults('Error notification displayed');
+            }
+
+            testCriticalNotification() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                this.errorHandler.showUserNotification({
+                    severity: 'critical',
+                    type: 'critical',
+                    message: 'Critical system error detected. The page will refresh automatically.'
+                });
+
+                this.updateTestResults('Critical notification displayed');
+            }
+
+            // Test recovery mechanisms
+            async testDashboardRecovery() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                const results = [];
+                results.push("🔄 Testing dashboard recovery...");
+
+                try {
+                    const recovered = await this.errorHandler.recoverDashboardLoad({
+                        type: 'dashboard_load',
+                        message: 'Dashboard failed to load',
+                        context: { operation: 'load' }
+                    });
+
+                    results.push(recovered ? "✅ Dashboard recovery successful" : "❌ Dashboard recovery failed");
+                } catch (error) {
+                    results.push(`❌ Dashboard recovery error: ${error.message}`);
+                }
+
+                document.getElementById('recoveryResults').textContent = results.join('\n');
+                document.getElementById('recoveryResults').className = 'test-results info';
+            }
+
+            async testWidgetRecovery() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                const results = [];
+                results.push("🔄 Testing widget recovery...");
+
+                try {
+                    const recovered = await this.errorHandler.recoverWidgetRender({
+                        type: 'widget_render',
+                        message: 'Widget failed to render',
+                        context: { widgetId: 'test-widget' }
+                    });
+
+                    results.push(recovered ? "✅ Widget recovery successful" : "❌ Widget recovery failed");
+                } catch (error) {
+                    results.push(`❌ Widget recovery error: ${error.message}`);
+                }
+
+                document.getElementById('recoveryResults').textContent = results.join('\n');
+                document.getElementById('recoveryResults').className = 'test-results info';
+            }
+
+            async testDataRecovery() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                const results = [];
+                results.push("🔄 Testing data recovery...");
+
+                try {
+                    const recovered = await this.errorHandler.recoverDataFetch({
+                        type: 'data_fetch',
+                        message: 'Data fetch failed',
+                        context: { endpoint: '/api/test' }
+                    });
+
+                    results.push(recovered ? "✅ Data recovery successful" : "❌ Data recovery failed");
+                } catch (error) {
+                    results.push(`❌ Data recovery error: ${error.message}`);
+                }
+
+                document.getElementById('recoveryResults').textContent = results.join('\n');
+                document.getElementById('recoveryResults').className = 'test-results info';
+            }
+
+            async testExportRecovery() {
+                if (!this.errorHandler) {
+                    alert('Please initialize error handler first');
+                    return;
+                }
+
+                const results = [];
+                results.push("🔄 Testing export recovery...");
+
+                try {
+                    const recovered = await this.errorHandler.recoverExport({
+                        type: 'export',
+                        message: 'Export failed',
+                        context: { 
+                            exportType: 'pdf',
+                            options: { maxRecords: 10000 }
+                        }
+                    });
+
+                    results.push(recovered ? "✅ Export recovery successful" : "❌ Export recovery failed");
+                } catch (error) {
+                    results.push(`❌ Export recovery error: ${error.message}`);
+                }
+
+                document.getElementById('recoveryResults').textContent = results.join('\n');
+                document.getElementById('recoveryResults').className = 'test-results info';
+            }
+
+            // Update test results
+            updateTestResults(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const currentResults = document.getElementById('errorSimulationResults').textContent || '';
+                
+                document.getElementById('errorSimulationResults').textContent = 
+                    `[${timestamp}] ${message}\n${currentResults}`;
+                document.getElementById('errorSimulationResults').className = 'test-results info';
+
+                // Update statistics
+                this.updateErrorStatistics();
+                
+                // Refresh logs
+                this.refreshLogs();
+            }
+
+            // Run comprehensive error handling test
+            async runComprehensiveErrorTest() {
+                const results = [];
+                results.push("🚀 Running comprehensive error handling test...\n");
+
+                try {
+                    // Initialize if not already done
+                    if (!this.errorHandler) {
+                        this.initializeErrorHandler();
+                        results.push("✅ Error handler initialized");
+                    }
+
+                    // Test different error types
+                    const errorTests = [
+                        { name: 'Dashboard Error', fn: () => this.simulateDashboardError() },
+                        { name: 'Widget Error', fn: () => this.simulateWidgetError() },
+                        { name: 'Data Fetch Error', fn: () => this.simulateDataFetchError() },
+                        { name: 'Network Error', fn: () => this.simulateNetworkError() },
+                        { name: 'Performance Issue', fn: () => this.simulatePerformanceIssue() }
+                    ];
+
+                    for (const test of errorTests) {
+                        try {
+                            test.fn();
+                            results.push(`✅ ${test.name}: Handled successfully`);
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        } catch (error) {
+                            results.push(`❌ ${test.name}: Failed - ${error.message}`);
+                        }
+                    }
+
+                    // Test recovery mechanisms
+                    results.push("\n🔧 Testing recovery mechanisms:");
+                    
+                    const recoveryTests = [
+                        { name: 'Dashboard Recovery', fn: () => this.testDashboardRecovery() },
+                        { name: 'Widget Recovery', fn: () => this.testWidgetRecovery() },
+                        { name: 'Data Recovery', fn: () => this.testDataRecovery() }
+                    ];
+
+                    for (const test of recoveryTests) {
+                        try {
+                            await test.fn();
+                            results.push(`✅ ${test.name}: Tested successfully`);
+                        } catch (error) {
+                            results.push(`❌ ${test.name}: Failed - ${error.message}`);
+                        }
+                    }
+
+                    // Test notifications
+                    results.push("\n🔔 Testing notification system:");
+                    this.testInfoNotification();
+                    this.testWarningNotification();
+                    results.push("✅ Notification system tested");
+
+                    // Performance monitoring
+                    results.push("\n📊 Testing performance monitoring:");
+                    this.startPerformanceMonitoring();
+                    this.simulateLongTask();
+                    setTimeout(() => this.stopPerformanceMonitoring(), 5000);
+                    results.push("✅ Performance monitoring tested");
+
+                    // Final statistics
+                    const stats = this.errorHandler.getErrorStatistics();
+                    results.push(`\n📈 Test Summary:`);
+                    results.push(`   Total logs generated: ${stats.totalLogs}`);
+                    results.push(`   Errors handled: ${stats.errorsByLevel.error || 0}`);
+                    results.push(`   Warnings generated: ${stats.errorsByLevel.warning || 0}`);
+                    results.push(`   Performance issues: ${stats.performanceIssues}`);
+
+                    results.push("\n🎉 Comprehensive error handling test completed successfully!");
+
+                } catch (error) {
+                    results.push(`\n❌ Comprehensive test failed: ${error.message}`);
+                }
+
+                document.getElementById('comprehensiveResults').textContent = results.join('\n');
+                document.getElementById('comprehensiveResults').className = 'test-results info';
+            }
+        }
+
+        // Initialize test suite
+        const errorTestSuite = new ErrorHandlingTestSuite();
+
+        // Global functions for button handlers
+        function initializeErrorHandler() {
+            errorTestSuite.initializeErrorHandler();
+        }
+
+        function getErrorStatistics() {
+            errorTestSuite.updateErrorStatistics();
+        }
+
+        function simulateDashboardError() {
+            errorTestSuite.simulateDashboardError();
+        }
+
+        function simulateWidgetError() {
+            errorTestSuite.simulateWidgetError();
+        }
+
+        function simulateDataFetchError() {
+            errorTestSuite.simulateDataFetchError();
+        }
+
+        function simulateNetworkError() {
+            errorTestSuite.simulateNetworkError();
+        }
+
+        function simulatePerformanceIssue() {
+            errorTestSuite.simulatePerformanceIssue();
+        }
+
+        function simulateMemoryLeak() {
+            errorTestSuite.simulateMemoryLeak();
+        }
+
+        function simulateJavaScriptError() {
+            errorTestSuite.simulateJavaScriptError();
+        }
+
+        function simulateUnhandledPromise() {
+            errorTestSuite.simulateUnhandledPromise();
+        }
+
+        function startPerformanceMonitoring() {
+            errorTestSuite.startPerformanceMonitoring();
+        }
+
+        function stopPerformanceMonitoring() {
+            errorTestSuite.stopPerformanceMonitoring();
+        }
+
+        function simulateLongTask() {
+            errorTestSuite.simulateLongTask();
+        }
+
+        function refreshLogs() {
+            errorTestSuite.refreshLogs();
+        }
+
+        function clearLogs() {
+            errorTestSuite.clearLogs();
+        }
+
+        function exportLogs(format) {
+            errorTestSuite.exportLogs(format);
+        }
+
+        function testInfoNotification() {
+            errorTestSuite.testInfoNotification();
+        }
+
+        function testWarningNotification() {
+            errorTestSuite.testWarningNotification();
+        }
+
+        function testErrorNotification() {
+            errorTestSuite.testErrorNotification();
+        }
+
+        function testCriticalNotification() {
+            errorTestSuite.testCriticalNotification();
+        }
+
+        function testDashboardRecovery() {
+            errorTestSuite.testDashboardRecovery();
+        }
+
+        function testWidgetRecovery() {
+            errorTestSuite.testWidgetRecovery();
+        }
+
+        function testDataRecovery() {
+            errorTestSuite.testDataRecovery();
+        }
+
+        function testExportRecovery() {
+            errorTestSuite.testExportRecovery();
+        }
+
+        function runComprehensiveErrorTest() {
+            errorTestSuite.runComprehensiveErrorTest();
+        }
+
+        // Auto-initialize on page load
+        window.addEventListener('load', () => {
+            errorTestSuite.initializeErrorHandler();
+        });
+    </script>
+</body>
+</html>

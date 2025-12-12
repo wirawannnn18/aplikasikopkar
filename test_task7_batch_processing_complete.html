@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 7: Batch Processing Complete</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .progress-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .performance-metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .batch-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .results-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test Task 7: Batch Processing Complete</h1>
+        <p class="text-muted">Testing comprehensive batch processing with progress tracking and results</p>
+
+        <!-- Batch Controls -->
+        <div class="batch-controls">
+            <h5>Batch Processing Controls</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="recordCount" class="form-label">Number of Records</label>
+                    <input type="number" class="form-control" id="recordCount" value="100" min="10" max="1000">
+                </div>
+                <div class="col-md-4">
+                    <label for="chunkSize" class="form-label">Chunk Size</label>
+                    <input type="number" class="form-control" id="chunkSize" value="20" min="5" max="100">
+                </div>
+                <div class="col-md-4">
+                    <label for="errorRate" class="form-label">Error Rate (%)</label>
+                    <input type="number" class="form-control" id="errorRate" value="10" min="0" max="50">
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="startBatchProcessing()">Start Batch Processing</button>
+                <button class="btn btn-warning" onclick="pauseProcessing()" id="pauseBtn" disabled>Pause</button>
+                <button class="btn btn-success" onclick="resumeProcessing()" id="resumeBtn" disabled>Resume</button>
+                <button class="btn btn-danger" onclick="cancelProcessing()" id="cancelBtn" disabled>Cancel</button>
+            </div>
+        </div>
+        <!-- Progress Display -->
+        <div class="progress-container">
+            <h5>Processing Progress</h5>
+            <div class="progress mb-3" style="height: 25px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     id="progressBar" role="progressbar" style="width: 0%">
+                    <span id="progressText">0%</span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="processedCount">0</div>
+                        <div class="stat-label">Processed</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="successCount">0</div>
+                        <div class="stat-label">Successful</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="failedCount">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="timeRemaining">--</div>
+                        <div class="stat-label">Time Remaining</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tachometer-alt"></i> Performance Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="performance-metric">
+                    <span>Records/Second:</span>
+                    <span id="recordsPerSecond">0</span>
+                </div>
+                <div class="performance-metric">
+                    <span>Average Chunk Time:</span>
+                    <span id="avgChunkTime">0ms</span>
+                </div>
+                <div class="performance-metric">
+                    <span>Memory Usage:</span>
+                    <span id="memoryUsage">0 MB</span>
+                </div>
+                <div class="performance-metric">
+                    <span>Current Chunk:</span>
+                    <span id="currentChunk">0 / 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Results -->
+        <div id="resultsContainer" class="results-section" style="display: none;">
+            <h5><i class="fas fa-chart-bar"></i> Import Results</h5>
+            <div id="resultsContent"></div>
+        </div>
+
+        <!-- Processing Log -->
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between">
+                <h5><i class="fas fa-list"></i> Processing Log</h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">Clear Log</button>
+            </div>
+            <div class="card-body">
+                <div id="processingLog" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;">
+                    <div class="text-muted">Processing log will appear here...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import BatchProcessor from './js/upload-excel/BatchProcessor.js';
+        import ImportResultsManager from './js/upload-excel/ImportResultsManager.js';
+
+        let batchProcessor;
+        let resultsManager;
+        let isProcessing = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            resultsManager = new ImportResultsManager({
+                container: document.getElementById('resultsContent')
+            });
+            logMessage('System initialized and ready for batch processing');
+        });
+
+        // Make functions global for onclick handlers
+        window.startBatchProcessing = startBatchProcessing;
+        window.pauseProcessing = pauseProcessing;
+        window.resumeProcessing = resumeProcessing;
+        window.cancelProcessing = cancelProcessing;
+        window.clearLog = clearLog;
+
+        async function startBatchProcessing() {
+            if (isProcessing) {
+                logMessage('Processing already in progress', 'warning');
+                return;
+            }
+
+            const recordCount = parseInt(document.getElementById('recordCount').value);
+            const chunkSize = parseInt(document.getElementById('chunkSize').value);
+            const errorRate = parseInt(document.getElementById('errorRate').value);
+
+            logMessage(`Starting batch processing: ${recordCount} records, chunk size: ${chunkSize}, error rate: ${errorRate}%`);
+
+            // Generate test data
+            const testData = generateTestData(recordCount, errorRate);
+            
+            // Initialize batch processor
+            batchProcessor = new BatchProcessor({
+                chunkSize: chunkSize,
+                delayBetweenChunks: 50, // 50ms delay for demo
+                progressCallback: updateProgress,
+                errorCallback: handleError
+            });
+
+            // Update UI state
+            isProcessing = true;
+            updateButtonStates();
+            document.getElementById('resultsContainer').style.display = 'none';
+
+            try {
+                const results = await batchProcessor.processData(testData, processChunk);
+                
+                logMessage('Batch processing completed successfully', 'success');
+                displayResults(results);
+                
+            } catch (error) {
+                logMessage(`Batch processing failed: ${error.message}`, 'error');
+            } finally {
+                isProcessing = false;
+                updateButtonStates();
+            }
+        }
+
+        function generateTestData(count, errorRate) {
+            const data = [];
+            for (let i = 0; i < count; i++) {
+                const shouldFail = Math.random() * 100 < errorRate;
+                data.push({
+                    kode: `BRG${String(i + 1).padStart(4, '0')}`,
+                    nama: `Barang ${i + 1}`,
+                    kategori: `kategori${Math.floor(Math.random() * 5) + 1}`,
+                    satuan: ['pcs', 'kg', 'liter', 'box'][Math.floor(Math.random() * 4)],
+                    harga_beli: Math.round(Math.random() * 100000),
+                    stok: Math.floor(Math.random() * 100),
+                    shouldFail: shouldFail
+                });
+            }
+            return data;
+        }
+
+        async function processChunk(chunk, chunkId, context) {
+            logMessage(`Processing chunk ${chunkId + 1}: ${chunk.length} records`);
+            
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
+            
+            let successCount = 0;
+            let failureCount = 0;
+            
+            chunk.forEach(item => {
+                if (item.shouldFail) {
+                    failureCount++;
+                } else {
+                    successCount++;
+                }
+            });
+            
+            if (failureCount > 0) {
+                logMessage(`Chunk ${chunkId + 1}: ${successCount} success, ${failureCount} failed`, 'warning');
+            } else {
+                logMessage(`Chunk ${chunkId + 1}: All ${successCount} records processed successfully`, 'success');
+            }
+            
+            return {
+                successCount: successCount,
+                failureCount: failureCount
+            };
+        }
+
+        function updateProgress(progressInfo) {
+            // Update progress bar
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressBar.style.width = `${progressInfo.progress}%`;
+            progressText.textContent = `${Math.round(progressInfo.progress)}%`;
+            
+            // Update counters
+            document.getElementById('processedCount').textContent = progressInfo.processedRecords || 0;
+            document.getElementById('successCount').textContent = progressInfo.successfulRecords || 0;
+            document.getElementById('failedCount').textContent = progressInfo.failedRecords || 0;
+            
+            // Update performance metrics
+            if (progressInfo.performanceMetrics) {
+                document.getElementById('recordsPerSecond').textContent = 
+                    Math.round(progressInfo.performanceMetrics.recordsPerSecond || 0);
+                document.getElementById('avgChunkTime').textContent = 
+                    `${Math.round(progressInfo.performanceMetrics.averageChunkTime || 0)}ms`;
+                
+                const memoryMB = progressInfo.performanceMetrics.memoryUsage ? 
+                    (progressInfo.performanceMetrics.memoryUsage / (1024 * 1024)).toFixed(1) : '0';
+                document.getElementById('memoryUsage').textContent = `${memoryMB} MB`;
+            }
+            
+            // Update chunk info
+            document.getElementById('currentChunk').textContent = 
+                `${progressInfo.currentChunk || 0} / ${progressInfo.totalChunks || 0}`;
+            
+            // Update time remaining
+            if (progressInfo.estimatedTimeRemaining) {
+                const timeRemaining = formatDuration(progressInfo.estimatedTimeRemaining);
+                document.getElementById('timeRemaining').textContent = timeRemaining;
+            }
+            
+            // Log progress message if available
+            if (progressInfo.message) {
+                logMessage(progressInfo.message, 'info');
+            }
+        }
+
+        function displayResults(results) {
+            const sessionId = 'session_' + Date.now();
+            
+            // Convert results to expected format
+            const importResults = {
+                totalRecords: results.totalRecords,
+                processedRecords: results.processedRecords,
+                successfulRecords: results.successfulRecords,
+                createdRecords: results.successfulRecords, // Assume all successful are new
+                updatedRecords: 0,
+                failedRecords: results.failedRecords,
+                fileName: 'test_batch_data.csv',
+                performanceMetrics: results.performanceMetrics,
+                errors: results.errors || []
+            };
+            
+            // Display results using ImportResultsManager
+            resultsManager.displayResults(importResults, sessionId);
+            document.getElementById('resultsContainer').style.display = 'block';
+            
+            logMessage('Results displayed successfully', 'success');
+        }
+
+        function pauseProcessing() {
+            if (batchProcessor && isProcessing) {
+                batchProcessor.pause();
+                logMessage('Processing paused', 'warning');
+                updateButtonStates();
+            }
+        }
+
+        function resumeProcessing() {
+            if (batchProcessor && isProcessing) {
+                batchProcessor.resume();
+                logMessage('Processing resumed', 'info');
+                updateButtonStates();
+            }
+        }
+
+        function cancelProcessing() {
+            if (batchProcessor && isProcessing) {
+                batchProcessor.cancel();
+                logMessage('Processing cancelled', 'error');
+                isProcessing = false;
+                updateButtonStates();
+            }
+        }
+
+        function updateButtonStates() {
+            const startBtn = document.querySelector('button[onclick="startBatchProcessing()"]');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const resumeBtn = document.getElementById('resumeBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            
+            if (isProcessing) {
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                cancelBtn.disabled = false;
+                
+                if (batchProcessor && batchProcessor.isPaused) {
+                    pauseBtn.disabled = true;
+                    resumeBtn.disabled = false;
+                } else {
+                    pauseBtn.disabled = false;
+                    resumeBtn.disabled = true;
+                }
+            } else {
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                resumeBtn.disabled = true;
+                cancelBtn.disabled = true;
+            }
+        }
+
+        function logMessage(message, type = 'info') {
+            const logContainer = document.getElementById('processingLog');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `text-${getLogColor(type)}`;
+            logEntry.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function getLogColor(type) {
+            const colors = {
+                'info': 'primary',
+                'success': 'success',
+                'warning': 'warning',
+                'error': 'danger'
+            };
+            return colors[type] || 'dark';
+        }
+
+        function clearLog() {
+            document.getElementById('processingLog').innerHTML = 
+                '<div class="text-muted">Processing log cleared...</div>';
+        }
+
+        function formatDuration(milliseconds) {
+            if (milliseconds < 1000) {
+                return `${Math.round(milliseconds)}ms`;
+            } else if (milliseconds < 60000) {
+                return `${(milliseconds / 1000).toFixed(1)}s`;
+            } else {
+                const minutes = Math.floor(milliseconds / 60000);
+                const seconds = Math.floor((milliseconds % 60000) / 1000);
+                return `${minutes}m ${seconds}s`;
+            }
+        }
+    </script>
+</body>
+</html>

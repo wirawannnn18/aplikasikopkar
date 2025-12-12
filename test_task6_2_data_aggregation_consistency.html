@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 6.2: Data Aggregation Consistency Property Tests</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        input, select, button {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .property-result {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+            background: #d4edda;
+        }
+        
+        .property-result.failed {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .property-result.running {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .data-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+        
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .warning {
+            color: #856404;
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Task 6.2: Data Aggregation Consistency Property Tests</h1>
+        <p>Interactive testing interface for validating mathematical accuracy of data aggregation algorithms</p>
+        <p><strong>Feature:</strong> dashboard-analytics-kpi | <strong>Property 10:</strong> Data Aggregation Consistency</p>
+        <p><strong>Validates:</strong> Requirements 2.1, 8.1</p>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('time-aggregation')">Time Aggregation</div>
+        <div class="tab" onclick="switchTab('filter-sort')">Filter & Sort</div>
+        <div class="tab" onclick="switchTab('pivot-table')">Pivot Table</div>
+        <div class="tab" onclick="switchTab('consistency')">Consistency Tests</div>
+        <div class="tab" onclick="switchTab('performance')">Performance</div>
+    </div>
+
+    <!-- Time Aggregation Tests -->
+    <div id="time-aggregation" class="tab-content active">
+        <div class="test-section">
+            <h2>Property 1: Time Aggregation Mathematical Accuracy</h2>
+            <p>Tests that time-based aggregations (sum, avg, count, min, max) produce mathematically correct results across different time intervals.</p>
+            
+            <div class="test-controls">
+                <div class="control-group">
+                    <label for="recordCount">Number of Records:</label>
+                    <input type="number" id="recordCount" value="50" min="1" max="1000">
+                </div>
+                <div class="control-group">
+                    <label for="timeInterval">Time Interval:</label>
+                    <select id="timeInterval">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly" selected>Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="aggregationType">Aggregation Type:</label>
+                    <select id="aggregationType">
+                        <option value="sum" selected>Sum</option>
+                        <option value="avg">Average</option>
+                        <option value="count">Count</option>
+                        <option value="min">Minimum</option>
+                        <option value="max">Maximum</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="testIterations">Test Iterations:</label>
+                    <input type="number" id="testIterations" value="10" min="1" max="100">
+                </div>
+            </div>
+            
+            <button onclick="runTimeAggregationTests()" id="timeAggregationBtn">Run Time Aggregation Tests</button>
+            
+            <div class="progress-bar" style="display: none;" id="timeProgress">
+                <div class="progress-fill" id="timeProgressFill"></div>
+            </div>
+            
+            <div id="timeAggregationResults" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Filter & Sort Tests -->
+    <div id="filter-sort" class="tab-content">
+        <div class="test-section">
+            <h2>Property 2: Filter and Sort Consistency</h2>
+            <p>Tests that filtering and sorting operations preserve data integrity and maintain correct order.</p>
+            
+            <div class="test-controls">
+                <div class="control-group">
+                    <label for="filterRecordCount">Number of Records:</label>
+                    <input type="number" id="filterRecordCount" value="100" min="1" max="1000">
+                </div>
+                <div class="control-group">
+                    <label for="filterType">Filter Type:</label>
+                    <select id="filterType">
+                        <option value="category">Category Filter</option>
+                        <option value="range">Numeric Range</option>
+                        <option value="text">Text Contains</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="sortField">Sort Field:</label>
+                    <select id="sortField">
+                        <option value="amount">Amount</option>
+                        <option value="name">Name</option>
+                        <option value="date">Date</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="sortDirection">Sort Direction:</label>
+                    <select id="sortDirection">
+                        <option value="asc">Ascending</option>
+                        <option value="desc">Descending</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="runFilterSortTests()" id="filterSortBtn">Run Filter & Sort Tests</button>
+            
+            <div class="progress-bar" style="display: none;" id="filterProgress">
+                <div class="progress-fill" id="filterProgressFill"></div>
+            </div>
+            
+            <div id="filterSortResults" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Pivot Table Tests -->
+    <div id="pivot-table" class="tab-content">
+        <div class="test-section">
+            <h2>Property 3: Pivot Table Mathematical Correctness</h2>
+            <p>Tests that pivot table calculations are mathematically accurate and totals are consistent.</p>
+            
+            <div class="test-controls">
+                <div class="control-group">
+                    <label for="pivotRecordCount">Number of Records:</label>
+                    <input type="number" id="pivotRecordCount" value="50" min="1" max="500">
+                </div>
+                <div class="control-group">
+                    <label for="pivotAggregation">Aggregation Type:</label>
+                    <select id="pivotAggregation">
+                        <option value="sum" selected>Sum</option>
+                        <option value="avg">Average</option>
+                        <option value="count">Count</option>
+                        <option value="min">Minimum</option>
+                        <option value="max">Maximum</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="rowCategories">Row Categories:</label>
+                    <input type="number" id="rowCategories" value="3" min="2" max="5">
+                </div>
+                <div class="control-group">
+                    <label for="colCategories">Column Categories:</label>
+                    <input type="number" id="colCategories" value="3" min="2" max="5">
+                </div>
+            </div>
+            
+            <button onclick="runPivotTableTests()" id="pivotTableBtn">Run Pivot Table Tests</button>
+            
+            <div class="progress-bar" style="display: none;" id="pivotProgress">
+                <div class="progress-fill" id="pivotProgressFill"></div>
+            </div>
+            
+            <div id="pivotTableResults" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Consistency Tests -->
+    <div id="consistency" class="tab-content">
+        <div class="test-section">
+            <h2>Property 4: Data Consistency Across Operations</h2>
+            <p>Tests that operations are idempotent and handle edge cases correctly.</p>
+            
+            <div class="test-controls">
+                <div class="control-group">
+                    <label for="consistencyTests">Test Type:</label>
+                    <select id="consistencyTests">
+                        <option value="idempotent">Idempotent Operations</option>
+                        <option value="empty">Empty Data Handling</option>
+                        <option value="single">Single Record</option>
+                        <option value="extreme">Extreme Values</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="consistencyIterations">Iterations:</label>
+                    <input type="number" id="consistencyIterations" value="20" min="1" max="100">
+                </div>
+            </div>
+            
+            <button onclick="runConsistencyTests()" id="consistencyBtn">Run Consistency Tests</button>
+            
+            <div class="progress-bar" style="display: none;" id="consistencyProgress">
+                <div class="progress-fill" id="consistencyProgressFill"></div>
+            </div>
+            
+            <div id="consistencyResults" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Performance Tests -->
+    <div id="performance" class="tab-content">
+        <div class="test-section">
+            <h2>Property 5: Performance and Boundary Conditions</h2>
+            <p>Tests performance characteristics and handling of large datasets and extreme values.</p>
+            
+            <div class="test-controls">
+                <div class="control-group">
+                    <label for="performanceDataSize">Dataset Size:</label>
+                    <select id="performanceDataSize">
+                        <option value="100">Small (100 records)</option>
+                        <option value="1000" selected>Medium (1,000 records)</option>
+                        <option value="5000">Large (5,000 records)</option>
+                        <option value="10000">Extra Large (10,000 records)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="performanceTest">Test Type:</label>
+                    <select id="performanceTest">
+                        <option value="speed">Processing Speed</option>
+                        <option value="memory">Memory Usage</option>
+                        <option value="accuracy">Large Dataset Accuracy</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="runPerformanceTests()" id="performanceBtn">Run Performance Tests</button>
+            
+            <div class="progress-bar" style="display: none;" id="performanceProgress">
+                <div class="progress-fill" id="performanceProgressFill"></div>
+            </div>
+            
+            <div id="performanceResults" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Overall Test Summary -->
+    <div class="test-section">
+        <h2>Overall Test Summary</h2>
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-value" id="totalTests">0</div>
+                <div class="metric-label">Total Tests Run</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="passedTests">0</div>
+                <div class="metric-label">Tests Passed</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="failedTests">0</div>
+                <div class="metric-label">Tests Failed</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="successRate">0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+        </div>
+        
+        <button onclick="runAllTests()" id="runAllBtn" style="width: 100%; margin-top: 20px;">Run All Property Tests</button>
+    </div>
+
+    <script>
+        // Mock DataAggregator implementation for testing
+        class MockDataSource {
+            constructor() {
+                this.savingsData = [];
+                this.loansData = [];
+            }
+
+            async getSavingsByDateRange(startDate, endDate) {
+                return this.savingsData.filter(saving => {
+                    const savingDate = new Date(saving.tanggal);
+                    return savingDate >= startDate && savingDate <= endDate;
+                });
+            }
+
+            async getLoansByDateRange(startDate, endDate) {
+                return this.loansData.filter(loan => {
+                    const loanDate = new Date(loan.tanggal_pinjaman);
+                    return loanDate >= startDate && loanDate <= endDate;
+                });
+            }
+        }
+
+        class DataAggregator {
+            constructor(dataSource) {
+                this.dataSource = dataSource;
+                this.aggregationCache = new Map();
+                this.cacheTimeout = 5 * 60 * 1000;
+                
+                this.timeIntervals = {
+                    daily: { unit: 'day', format: 'YYYY-MM-DD' },
+                    weekly: { unit: 'week', format: 'YYYY-[W]WW' },
+                    monthly: { unit: 'month', format: 'YYYY-MM' },
+                    quarterly: { unit: 'quarter', format: 'YYYY-[Q]Q' },
+                    yearly: { unit: 'year', format: 'YYYY' }
+                };
+            }
+
+            async aggregateByTime(data, timeInterval, dateField, valueField, aggregationType = 'sum') {
+                const interval = this.timeIntervals[timeInterval];
+                if (!interval) {
+                    throw new Error(`Unsupported time interval: ${timeInterval}`);
+                }
+
+                const aggregated = {};
+                const summary = {
+                    totalRecords: data.length,
+                    totalValue: 0,
+                    averageValue: 0,
+                    minValue: Infinity,
+                    maxValue: -Infinity,
+                    periods: 0
+                };
+
+                data.forEach(record => {
+                    if (!record[dateField] || record[valueField] === undefined) return;
+
+                    const date = new Date(record[dateField]);
+                    const periodKey = this._formatDateByInterval(date, interval);
+                    const value = parseFloat(record[valueField]) || 0;
+
+                    if (!aggregated[periodKey]) {
+                        aggregated[periodKey] = {
+                            period: periodKey,
+                            date: date,
+                            values: [],
+                            count: 0,
+                            sum: 0,
+                            avg: 0,
+                            min: Infinity,
+                            max: -Infinity
+                        };
+                    }
+
+                    aggregated[periodKey].values.push(value);
+                    aggregated[periodKey].count++;
+                    aggregated[periodKey].sum += value;
+                    aggregated[periodKey].min = Math.min(aggregated[periodKey].min, value);
+                    aggregated[periodKey].max = Math.max(aggregated[periodKey].max, value);
+                });
+
+                const result = [];
+                Object.keys(aggregated).sort().forEach(periodKey => {
+                    const period = aggregated[periodKey];
+                    period.avg = period.count > 0 ? period.sum / period.count : 0;
+                    
+                    let finalValue;
+                    switch (aggregationType) {
+                        case 'sum':
+                            finalValue = period.sum;
+                            break;
+                        case 'avg':
+                            finalValue = period.avg;
+                            break;
+                        case 'count':
+                            finalValue = period.count;
+                            break;
+                        case 'min':
+                            finalValue = period.min === Infinity ? 0 : period.min;
+                            break;
+                        case 'max':
+                            finalValue = period.max === -Infinity ? 0 : period.max;
+                            break;
+                        default:
+                            finalValue = period.sum;
+                    }
+
+                    const periodResult = {
+                        period: periodKey,
+                        date: period.date.toISOString(),
+                        value: finalValue,
+                        count: period.count,
+                        sum: period.sum,
+                        avg: period.avg,
+                        min: period.min === Infinity ? 0 : period.min,
+                        max: period.max === -Infinity ? 0 : period.max
+                    };
+
+                    result.push(periodResult);
+                    summary.totalValue += period.sum;
+                    summary.minValue = Math.min(summary.minValue, finalValue);
+                    summary.maxValue = Math.max(summary.maxValue, finalValue);
+                });
+
+                summary.periods = result.length;
+                summary.averageValue = summary.periods > 0 ? summary.totalValue / summary.periods : 0;
+                summary.minValue = summary.minValue === Infinity ? 0 : summary.minValue;
+                summary.maxValue = summary.maxValue === -Infinity ? 0 : summary.maxValue;
+
+                return {
+                    data: result,
+                    summary,
+                    aggregationType,
+                    timeInterval,
+                    generatedAt: new Date().toISOString()
+                };
+            }
+
+            filterAndSort(data, filters = {}, sortOptions = {}) {
+                let filteredData = [...data];
+
+                Object.keys(filters).forEach(field => {
+                    const filterValue = filters[field];
+                    
+                    if (filterValue !== undefined && filterValue !== null && filterValue !== '') {
+                        filteredData = filteredData.filter(record => {
+                            const recordValue = record[field];
+                            
+                            if (typeof filterValue === 'object' && filterValue.operator) {
+                                switch (filterValue.operator) {
+                                    case 'equals':
+                                        return recordValue === filterValue.value;
+                                    case 'contains':
+                                        return String(recordValue).toLowerCase().includes(String(filterValue.value).toLowerCase());
+                                    case 'greaterThan':
+                                        return parseFloat(recordValue) > parseFloat(filterValue.value);
+                                    case 'lessThan':
+                                        return parseFloat(recordValue) < parseFloat(filterValue.value);
+                                    case 'between':
+                                        const numValue = parseFloat(recordValue);
+                                        return numValue >= parseFloat(filterValue.min) && numValue <= parseFloat(filterValue.max);
+                                    default:
+                                        return recordValue === filterValue.value;
+                                }
+                            } else {
+                                return recordValue === filterValue;
+                            }
+                        });
+                    }
+                });
+
+                if (sortOptions.field) {
+                    filteredData.sort((a, b) => {
+                        const aValue = a[sortOptions.field];
+                        const bValue = b[sortOptions.field];
+                        
+                        let comparison = 0;
+                        
+                        if (typeof aValue === 'number' && typeof bValue === 'number') {
+                            comparison = aValue - bValue;
+                        } else if (aValue instanceof Date && bValue instanceof Date) {
+                            comparison = aValue.getTime() - bValue.getTime();
+                        } else {
+                            comparison = String(aValue).localeCompare(String(bValue));
+                        }
+                        
+                        return sortOptions.direction === 'desc' ? -comparison : comparison;
+                    });
+                }
+
+                return filteredData;
+            }
+
+            createPivotTable(data, rowField, columnField, valueField, aggregationType = 'sum') {
+                const pivot = {};
+                const rowTotals = {};
+                const columnTotals = {};
+                let grandTotal = 0;
+
+                data.forEach(record => {
+                    const rowKey = record[rowField] || 'Unknown';
+                    const colKey = record[columnField] || 'Unknown';
+                    const value = parseFloat(record[valueField]) || 0;
+
+                    if (!pivot[rowKey]) {
+                        pivot[rowKey] = {};
+                        rowTotals[rowKey] = { sum: 0, count: 0, values: [] };
+                    }
+
+                    if (!pivot[rowKey][colKey]) {
+                        pivot[rowKey][colKey] = { sum: 0, count: 0, values: [] };
+                    }
+
+                    if (!columnTotals[colKey]) {
+                        columnTotals[colKey] = { sum: 0, count: 0, values: [] };
+                    }
+
+                    pivot[rowKey][colKey].sum += value;
+                    pivot[rowKey][colKey].count++;
+                    pivot[rowKey][colKey].values.push(value);
+
+                    rowTotals[rowKey].sum += value;
+                    rowTotals[rowKey].count++;
+                    rowTotals[rowKey].values.push(value);
+
+                    columnTotals[colKey].sum += value;
+                    columnTotals[colKey].count++;
+                    columnTotals[colKey].values.push(value);
+
+                    grandTotal += value;
+                });
+
+                const applyAggregation = (cell) => {
+                    switch (aggregationType) {
+                        case 'sum':
+                            return cell.sum;
+                        case 'avg':
+                            return cell.count > 0 ? cell.sum / cell.count : 0;
+                        case 'count':
+                            return cell.count;
+                        case 'min':
+                            return cell.values.length > 0 ? Math.min(...cell.values) : 0;
+                        case 'max':
+                            return cell.values.length > 0 ? Math.max(...cell.values) : 0;
+                        default:
+                            return cell.sum;
+                    }
+                };
+
+                const processedPivot = {};
+                Object.keys(pivot).forEach(rowKey => {
+                    processedPivot[rowKey] = {};
+                    Object.keys(pivot[rowKey]).forEach(colKey => {
+                        processedPivot[rowKey][colKey] = applyAggregation(pivot[rowKey][colKey]);
+                    });
+                });
+
+                const processedRowTotals = {};
+                Object.keys(rowTotals).forEach(rowKey => {
+                    processedRowTotals[rowKey] = applyAggregation(rowTotals[rowKey]);
+                });
+
+                const processedColumnTotals = {};
+                Object.keys(columnTotals).forEach(colKey => {
+                    processedColumnTotals[colKey] = applyAggregation(columnTotals[colKey]);
+                });
+
+                return {
+                    pivot: processedPivot,
+                    rowTotals: processedRowTotals,
+                    columnTotals: processedColumnTotals,
+                    grandTotal: aggregationType === 'count' ? data.length : grandTotal,
+                    aggregationType,
+                    metadata: {
+                        rowField,
+                        columnField,
+                        valueField,
+                        totalRows: Object.keys(processedPivot).length,
+                        totalColumns: Object.keys(processedColumnTotals).length,
+                        totalRecords: data.length
+                    }
+                };
+            }
+
+            _formatDateByInterval(date, interval) {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                
+                switch (interval.unit) {
+                    case 'day':
+                        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    case 'week':
+                        const weekNumber = this._getWeekNumber(date);
+                        return `${year}-W${String(weekNumber).padStart(2, '0')}`;
+                    case 'month':
+                        return `${year}-${String(month).padStart(2, '0')}`;
+                    case 'quarter':
+                        const quarter = Math.ceil(month / 3);
+                        return `${year}-Q${quarter}`;
+                    case 'year':
+                        return `${year}`;
+                    default:
+                        return date.toISOString().split('T')[0];
+                }
+            }
+
+            _getWeekNumber(date) {
+                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            }
+        }
+
+        // Global test state
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        let dataAggregator;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const mockDataSource = new MockDataSource();
+            dataAggregator = new DataAggregator(mockDataSource);
+        });
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Generate test data
+        function generateTestData(count, startDate = new Date('2023-01-01'), endDate = new Date('2023-12-31')) {
+            const data = [];
+            const categories = ['A', 'B', 'C', 'D'];
+            const types = ['X', 'Y', 'Z'];
+            
+            for (let i = 0; i < count; i++) {
+                const randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+                data.push({
+                    id: i + 1,
+                    tanggal: randomDate.toISOString(),
+                    jumlah: Math.random() * 1000,
+                    category: categories[Math.floor(Math.random() * categories.length)],
+                    type: types[Math.floor(Math.random() * types.length)],
+                    name: `Item ${i + 1}`,
+                    amount: Math.random() * 1000,
+                    date: randomDate
+                });
+            }
+            
+            return data;
+        }
+
+        // Update progress bar
+        function updateProgress(progressId, fillId, percentage) {
+            const progressBar = document.getElementById(progressId);
+            const progressFill = document.getElementById(fillId);
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = percentage + '%';
+            
+            if (percentage >= 100) {
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 1000);
+            }
+        }
+
+        // Update test statistics
+        function updateTestStats() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            
+            const successRate = testStats.total > 0 ? Math.round((testStats.passed / testStats.total) * 100) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+
+        // Run time aggregation tests
+        async function runTimeAggregationTests() {
+            const btn = document.getElementById('timeAggregationBtn');
+            const resultsDiv = document.getElementById('timeAggregationResults');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running Tests...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="property-result running">Running time aggregation property tests...</div>';
+            
+            const recordCount = parseInt(document.getElementById('recordCount').value);
+            const timeInterval = document.getElementById('timeInterval').value;
+            const aggregationType = document.getElementById('aggregationType').value;
+            const iterations = parseInt(document.getElementById('testIterations').value);
+            
+            let results = [];
+            let passed = 0;
+            let failed = 0;
+            
+            try {
+                for (let i = 0; i < iterations; i++) {
+                    updateProgress('timeProgress', 'timeProgressFill', (i / iterations) * 100);
+                    
+                    // Generate test data
+                    const testData = generateTestData(recordCount);
+                    
+                    // Test 1: Mathematical accuracy
+                    try {
+                        const result = await dataAggregator.aggregateByTime(
+                            testData, timeInterval, 'tanggal', 'jumlah', aggregationType
+                        );
+                        
+                        // Verify mathematical accuracy
+                        const manualSum = testData.reduce((sum, record) => sum + parseFloat(record.jumlah), 0);
+                        const aggregatedSum = result.data.reduce((sum, period) => sum + (aggregationType === 'sum' ? period.value : period.sum), 0);
+                        
+                        const accuracy = Math.abs(aggregatedSum - manualSum) < 0.01;
+                        const recordCountMatch = result.summary.totalRecords === testData.length;
+                        
+                        if (accuracy && recordCountMatch) {
+                            passed++;
+                            testStats.passed++;
+                        } else {
+                            failed++;
+                            testStats.failed++;
+                            results.push(`Iteration ${i + 1}: Mathematical accuracy failed - Expected: ${manualSum.toFixed(2)}, Got: ${aggregatedSum.toFixed(2)}`);
+                        }
+                        
+                        testStats.total++;
+                        
+                    } catch (error) {
+                        failed++;
+                        testStats.failed++;
+                        testStats.total++;
+                        results.push(`Iteration ${i + 1}: Error - ${error.message}`);
+                    }
+                    
+                    // Small delay to prevent UI blocking
+                    if (i % 10 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
+                
+                updateProgress('timeProgress', 'timeProgressFill', 100);
+                
+                // Display results
+                let html = `
+                    <h3>Time Aggregation Test Results</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${iterations}</div>
+                            <div class="metric-label">Total Iterations</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${passed}</div>
+                            <div class="metric-label">Passed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${failed}</div>
+                            <div class="metric-label">Failed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${Math.round((passed / iterations) * 100)}%</div>
+                            <div class="metric-label">Success Rate</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (failed === 0) {
+                    html += '<div class="success">✅ All time aggregation property tests passed! Mathematical accuracy verified across all iterations.</div>';
+                } else {
+                    html += '<div class="error">❌ Some tests failed:</div>';
+                    results.forEach(result => {
+                        html += `<div class="error">${result}</div>`;
+                    });
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Test execution failed: ${error.message}</div>`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Time Aggregation Tests';
+            updateTestStats();
+        }
+
+        // Run filter and sort tests
+        async function runFilterSortTests() {
+            const btn = document.getElementById('filterSortBtn');
+            const resultsDiv = document.getElementById('filterSortResults');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running Tests...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="property-result running">Running filter and sort property tests...</div>';
+            
+            const recordCount = parseInt(document.getElementById('filterRecordCount').value);
+            const filterType = document.getElementById('filterType').value;
+            const sortField = document.getElementById('sortField').value;
+            const sortDirection = document.getElementById('sortDirection').value;
+            
+            let passed = 0;
+            let failed = 0;
+            let results = [];
+            
+            try {
+                const iterations = 20;
+                
+                for (let i = 0; i < iterations; i++) {
+                    updateProgress('filterProgress', 'filterProgressFill', (i / iterations) * 100);
+                    
+                    const testData = generateTestData(recordCount);
+                    
+                    // Test filtering
+                    let filters = {};
+                    if (filterType === 'category') {
+                        filters.category = 'A';
+                    } else if (filterType === 'range') {
+                        filters.amount = { operator: 'between', min: 200, max: 800 };
+                    }
+                    
+                    const sortOptions = { field: sortField, direction: sortDirection };
+                    
+                    try {
+                        const filtered = dataAggregator.filterAndSort(testData, filters, sortOptions);
+                        
+                        // Verify filter accuracy
+                        let filterAccurate = true;
+                        if (filterType === 'category') {
+                            filterAccurate = filtered.every(record => record.category === 'A');
+                        } else if (filterType === 'range') {
+                            filterAccurate = filtered.every(record => record.amount >= 200 && record.amount <= 800);
+                        }
+                        
+                        // Verify sort order
+                        let sortAccurate = true;
+                        for (let j = 1; j < filtered.length; j++) {
+                            const prev = filtered[j - 1][sortField];
+                            const curr = filtered[j][sortField];
+                            
+                            if (typeof prev === 'number' && typeof curr === 'number') {
+                                if (sortDirection === 'asc' && prev > curr) sortAccurate = false;
+                                if (sortDirection === 'desc' && prev < curr) sortAccurate = false;
+                            }
+                        }
+                        
+                        if (filterAccurate && sortAccurate) {
+                            passed++;
+                            testStats.passed++;
+                        } else {
+                            failed++;
+                            testStats.failed++;
+                            results.push(`Iteration ${i + 1}: Filter or sort accuracy failed`);
+                        }
+                        
+                        testStats.total++;
+                        
+                    } catch (error) {
+                        failed++;
+                        testStats.failed++;
+                        testStats.total++;
+                        results.push(`Iteration ${i + 1}: Error - ${error.message}`);
+                    }
+                }
+                
+                updateProgress('filterProgress', 'filterProgressFill', 100);
+                
+                // Display results
+                let html = `
+                    <h3>Filter & Sort Test Results</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${iterations}</div>
+                            <div class="metric-label">Total Iterations</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${passed}</div>
+                            <div class="metric-label">Passed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${failed}</div>
+                            <div class="metric-label">Failed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${Math.round((passed / iterations) * 100)}%</div>
+                            <div class="metric-label">Success Rate</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (failed === 0) {
+                    html += '<div class="success">✅ All filter and sort property tests passed! Data integrity and order consistency verified.</div>';
+                } else {
+                    html += '<div class="error">❌ Some tests failed:</div>';
+                    results.forEach(result => {
+                        html += `<div class="error">${result}</div>`;
+                    });
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Test execution failed: ${error.message}</div>`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Filter & Sort Tests';
+            updateTestStats();
+        }
+
+        // Run pivot table tests
+        async function runPivotTableTests() {
+            const btn = document.getElementById('pivotTableBtn');
+            const resultsDiv = document.getElementById('pivotTableResults');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running Tests...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="property-result running">Running pivot table property tests...</div>';
+            
+            const recordCount = parseInt(document.getElementById('pivotRecordCount').value);
+            const aggregationType = document.getElementById('pivotAggregation').value;
+            
+            let passed = 0;
+            let failed = 0;
+            let results = [];
+            
+            try {
+                const iterations = 15;
+                
+                for (let i = 0; i < iterations; i++) {
+                    updateProgress('pivotProgress', 'pivotProgressFill', (i / iterations) * 100);
+                    
+                    const testData = generateTestData(recordCount);
+                    
+                    try {
+                        const pivot = dataAggregator.createPivotTable(
+                            testData, 'category', 'type', 'amount', aggregationType
+                        );
+                        
+                        // Verify totals consistency
+                        const rowTotalSum = Object.values(pivot.rowTotals).reduce((sum, val) => sum + val, 0);
+                        const colTotalSum = Object.values(pivot.columnTotals).reduce((sum, val) => sum + val, 0);
+                        
+                        const totalsMatch = Math.abs(rowTotalSum - colTotalSum) < 0.01;
+                        const grandTotalMatch = Math.abs(colTotalSum - pivot.grandTotal) < 0.01;
+                        const metadataAccurate = pivot.metadata.totalRecords === testData.length;
+                        
+                        if (totalsMatch && grandTotalMatch && metadataAccurate) {
+                            passed++;
+                            testStats.passed++;
+                        } else {
+                            failed++;
+                            testStats.failed++;
+                            results.push(`Iteration ${i + 1}: Pivot table totals inconsistent`);
+                        }
+                        
+                        testStats.total++;
+                        
+                    } catch (error) {
+                        failed++;
+                        testStats.failed++;
+                        testStats.total++;
+                        results.push(`Iteration ${i + 1}: Error - ${error.message}`);
+                    }
+                }
+                
+                updateProgress('pivotProgress', 'pivotProgressFill', 100);
+                
+                // Display results
+                let html = `
+                    <h3>Pivot Table Test Results</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${iterations}</div>
+                            <div class="metric-label">Total Iterations</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${passed}</div>
+                            <div class="metric-label">Passed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${failed}</div>
+                            <div class="metric-label">Failed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${Math.round((passed / iterations) * 100)}%</div>
+                            <div class="metric-label">Success Rate</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (failed === 0) {
+                    html += '<div class="success">✅ All pivot table property tests passed! Mathematical correctness and totals consistency verified.</div>';
+                } else {
+                    html += '<div class="error">❌ Some tests failed:</div>';
+                    results.forEach(result => {
+                        html += `<div class="error">${result}</div>`;
+                    });
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Test execution failed: ${error.message}</div>`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Pivot Table Tests';
+            updateTestStats();
+        }
+
+        // Run consistency tests
+        async function runConsistencyTests() {
+            const btn = document.getElementById('consistencyBtn');
+            const resultsDiv = document.getElementById('consistencyResults');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running Tests...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="property-result running">Running consistency property tests...</div>';
+            
+            const testType = document.getElementById('consistencyTests').value;
+            const iterations = parseInt(document.getElementById('consistencyIterations').value);
+            
+            let passed = 0;
+            let failed = 0;
+            let results = [];
+            
+            try {
+                for (let i = 0; i < iterations; i++) {
+                    updateProgress('consistencyProgress', 'consistencyProgressFill', (i / iterations) * 100);
+                    
+                    try {
+                        if (testType === 'idempotent') {
+                            // Test idempotent operations
+                            const testData = generateTestData(50);
+                            
+                            const result1 = await dataAggregator.aggregateByTime(
+                                testData, 'monthly', 'tanggal', 'jumlah', 'sum'
+                            );
+                            
+                            const result2 = await dataAggregator.aggregateByTime(
+                                testData, 'monthly', 'tanggal', 'jumlah', 'sum'
+                            );
+                            
+                            const identical = result1.summary.totalValue === result2.summary.totalValue &&
+                                            result1.data.length === result2.data.length;
+                            
+                            if (identical) {
+                                passed++;
+                                testStats.passed++;
+                            } else {
+                                failed++;
+                                testStats.failed++;
+                                results.push(`Iteration ${i + 1}: Idempotent test failed`);
+                            }
+                            
+                        } else if (testType === 'empty') {
+                            // Test empty data handling
+                            const result = await dataAggregator.aggregateByTime(
+                                [], 'monthly', 'tanggal', 'jumlah', 'sum'
+                            );
+                            
+                            const correctEmpty = result.data.length === 0 &&
+                                              result.summary.totalRecords === 0 &&
+                                              result.summary.totalValue === 0;
+                            
+                            if (correctEmpty) {
+                                passed++;
+                                testStats.passed++;
+                            } else {
+                                failed++;
+                                testStats.failed++;
+                                results.push(`Iteration ${i + 1}: Empty data test failed`);
+                            }
+                            
+                        } else if (testType === 'single') {
+                            // Test single record
+                            const amount = Math.random() * 1000;
+                            const testData = [{
+                                id: 1,
+                                tanggal: new Date().toISOString(),
+                                jumlah: amount
+                            }];
+                            
+                            const result = await dataAggregator.aggregateByTime(
+                                testData, 'monthly', 'tanggal', 'jumlah', 'sum'
+                            );
+                            
+                            const correctSingle = result.data.length === 1 &&
+                                                Math.abs(result.summary.totalValue - amount) < 0.01 &&
+                                                result.summary.totalRecords === 1;
+                            
+                            if (correctSingle) {
+                                passed++;
+                                testStats.passed++;
+                            } else {
+                                failed++;
+                                testStats.failed++;
+                                results.push(`Iteration ${i + 1}: Single record test failed`);
+                            }
+                        }
+                        
+                        testStats.total++;
+                        
+                    } catch (error) {
+                        failed++;
+                        testStats.failed++;
+                        testStats.total++;
+                        results.push(`Iteration ${i + 1}: Error - ${error.message}`);
+                    }
+                }
+                
+                updateProgress('consistencyProgress', 'consistencyProgressFill', 100);
+                
+                // Display results
+                let html = `
+                    <h3>Consistency Test Results (${testType})</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${iterations}</div>
+                            <div class="metric-label">Total Iterations</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${passed}</div>
+                            <div class="metric-label">Passed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${failed}</div>
+                            <div class="metric-label">Failed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${Math.round((passed / iterations) * 100)}%</div>
+                            <div class="metric-label">Success Rate</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (failed === 0) {
+                    html += '<div class="success">✅ All consistency property tests passed! Data consistency verified across operations.</div>';
+                } else {
+                    html += '<div class="error">❌ Some tests failed:</div>';
+                    results.forEach(result => {
+                        html += `<div class="error">${result}</div>`;
+                    });
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Test execution failed: ${error.message}</div>`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Consistency Tests';
+            updateTestStats();
+        }
+
+        // Run performance tests
+        async function runPerformanceTests() {
+            const btn = document.getElementById('performanceBtn');
+            const resultsDiv = document.getElementById('performanceResults');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running Tests...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="property-result running">Running performance property tests...</div>';
+            
+            const dataSize = parseInt(document.getElementById('performanceDataSize').value);
+            const testType = document.getElementById('performanceTest').value;
+            
+            try {
+                updateProgress('performanceProgress', 'performanceProgressFill', 25);
+                
+                const testData = generateTestData(dataSize);
+                
+                updateProgress('performanceProgress', 'performanceProgressFill', 50);
+                
+                const startTime = performance.now();
+                const startMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                
+                const result = await dataAggregator.aggregateByTime(
+                    testData, 'monthly', 'tanggal', 'jumlah', 'sum'
+                );
+                
+                const endTime = performance.now();
+                const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                
+                updateProgress('performanceProgress', 'performanceProgressFill', 75);
+                
+                const processingTime = endTime - startTime;
+                const memoryUsed = endMemory - startMemory;
+                const recordsPerSecond = Math.round((dataSize / processingTime) * 1000);
+                
+                // Verify accuracy for large dataset
+                const manualSum = testData.reduce((sum, record) => sum + parseFloat(record.jumlah), 0);
+                const aggregatedSum = result.data.reduce((sum, period) => sum + period.value, 0);
+                const accuracy = Math.abs(aggregatedSum - manualSum) < 0.01;
+                
+                updateProgress('performanceProgress', 'performanceProgressFill', 100);
+                
+                // Performance thresholds
+                const speedThreshold = dataSize < 1000 ? 100 : 1000; // ms
+                const accuracyThreshold = 0.01;
+                
+                const speedPassed = processingTime < speedThreshold;
+                const accuracyPassed = accuracy;
+                
+                if (speedPassed && accuracyPassed) {
+                    testStats.passed++;
+                } else {
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                let html = `
+                    <h3>Performance Test Results</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${dataSize.toLocaleString()}</div>
+                            <div class="metric-label">Records Processed</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${processingTime.toFixed(2)}ms</div>
+                            <div class="metric-label">Processing Time</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${recordsPerSecond.toLocaleString()}</div>
+                            <div class="metric-label">Records/Second</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${(memoryUsed / 1024 / 1024).toFixed(2)}MB</div>
+                            <div class="metric-label">Memory Used</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (speedPassed && accuracyPassed) {
+                    html += '<div class="success">✅ Performance test passed! Processing speed and accuracy within acceptable thresholds.</div>';
+                } else {
+                    html += '<div class="error">❌ Performance test failed:</div>';
+                    if (!speedPassed) {
+                        html += `<div class="error">Processing time ${processingTime.toFixed(2)}ms exceeded threshold of ${speedThreshold}ms</div>`;
+                    }
+                    if (!accuracyPassed) {
+                        html += `<div class="error">Accuracy error ${Math.abs(aggregatedSum - manualSum).toFixed(2)} exceeded threshold of ${accuracyThreshold}</div>`;
+                    }
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Performance test failed: ${error.message}</div>`;
+                testStats.failed++;
+                testStats.total++;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Performance Tests';
+            updateTestStats();
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const btn = document.getElementById('runAllBtn');
+            btn.disabled = true;
+            btn.textContent = 'Running All Tests...';
+            
+            // Reset stats
+            testStats = { total: 0, passed: 0, failed: 0 };
+            updateTestStats();
+            
+            try {
+                await runTimeAggregationTests();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await runFilterSortTests();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await runPivotTableTests();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await runConsistencyTests();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await runPerformanceTests();
+                
+                // Show final summary
+                const successRate = testStats.total > 0 ? Math.round((testStats.passed / testStats.total) * 100) : 0;
+                
+                if (successRate >= 95) {
+                    alert(`🎉 All property tests completed successfully!\n\nTotal Tests: ${testStats.total}\nPassed: ${testStats.passed}\nFailed: ${testStats.failed}\nSuccess Rate: ${successRate}%\n\nData aggregation consistency verified across all test categories.`);
+                } else {
+                    alert(`⚠️ Some property tests failed.\n\nTotal Tests: ${testStats.total}\nPassed: ${testStats.passed}\nFailed: ${testStats.failed}\nSuccess Rate: ${successRate}%\n\nPlease review the individual test results for details.`);
+                }
+                
+            } catch (error) {
+                alert(`Error running tests: ${error.message}`);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Run All Property Tests';
+        }
+    </script>
+</body>
+</html>

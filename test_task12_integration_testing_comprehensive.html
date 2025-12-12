@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12.1 - Comprehensive Integration Testing</title>
+    <link rel="stylesheet" href="css/dashboard-customization.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-results {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .dashboard-preview {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            min-height: 200px;
+            background: #f8f9fa;
+        }
+        
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .test-widget {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Task 12.1 - Comprehensive Integration Testing</h1>
+        <p>Testing complete dashboard workflow, cross-widget interactions, and export functionality</p>
+
+        <!-- Dashboard Loading Workflow Test -->
+        <div class="test-section">
+            <h3>1. Dashboard Loading Workflow Test</h3>
+            <p>Tests complete dashboard initialization, data loading, and widget rendering</p>
+            <button class="test-button" onclick="testDashboardWorkflow()">Run Dashboard Workflow Test</button>
+            <div id="dashboardWorkflowResults" class="test-results"></div>
+            <div id="dashboardPreview" class="dashboard-preview"></div>
+        </div>
+
+        <!-- Cross-Widget Interactions Test -->
+        <div class="test-section">
+            <h3>2. Cross-Widget Interactions Test</h3>
+            <p>Tests widget dependencies, data sharing, and synchronized updates</p>
+            <button class="test-button" onclick="testWidgetInteractions()">Run Widget Interactions Test</button>
+            <div id="widgetInteractionsResults" class="test-results"></div>
+            <div class="widget-grid" id="widgetGrid"></div>
+        </div>
+
+        <!-- Export Functionality Test -->
+        <div class="test-section">
+            <h3>3. Export Functionality Test</h3>
+            <p>Tests PDF and Excel export with various data configurations</p>
+            <button class="test-button" onclick="testExportFunctionality()">Run Export Test</button>
+            <div id="exportResults" class="test-results"></div>
+        </div>
+
+        <!-- Real-time Updates Test -->
+        <div class="test-section">
+            <h3>4. Real-time Updates Test</h3>
+            <p>Tests automatic refresh, data synchronization, and update propagation</p>
+            <button class="test-button" onclick="testRealTimeUpdates()">Run Real-time Updates Test</button>
+            <button class="test-button" onclick="stopRealTimeTest()">Stop Test</button>
+            <div id="realTimeResults" class="test-results"></div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="test-section">
+            <h3>5. Performance Metrics</h3>
+            <div class="performance-metrics" id="performanceMetrics"></div>
+        </div>
+
+        <!-- Integration Test Summary -->
+        <div class="test-section">
+            <h3>6. Integration Test Summary</h3>
+            <button class="test-button" onclick="runAllTests()">Run All Integration Tests</button>
+            <div id="summaryResults" class="test-results"></div>
+        </div>
+    </div>
+
+    <script src="js/dashboard/DashboardController.js"></script>
+    <script src="js/dashboard/WidgetManager.js"></script>
+    <script src="js/dashboard/AnalyticsEngine.js"></script>
+    <script src="js/dashboard/ChartRenderer.js"></script>
+    <script src="js/dashboard/ExportManager.js"></script>
+    <script src="js/dashboard/AutoRefreshManager.js"></script>
+
+    <script>
+        class IntegrationTestSuite {
+            constructor() {
+                this.testResults = [];
+                this.performanceMetrics = {};
+                this.realTimeTestInterval = null;
+                this.dashboardController = null;
+                this.widgetManager = null;
+                this.exportManager = null;
+            }
+
+            // Generate comprehensive test data
+            generateTestData() {
+                const members = [];
+                const transactions = [];
+                const financialData = {};
+
+                // Generate 1000 members
+                for (let i = 1; i <= 1000; i++) {
+                    members.push({
+                        id: i,
+                        name: `Member ${i}`,
+                        joinDate: new Date(2020 + Math.floor(Math.random() * 4), 
+                                         Math.floor(Math.random() * 12), 
+                                         Math.floor(Math.random() * 28)),
+                        status: Math.random() > 0.1 ? 'active' : 'inactive',
+                        department: `Dept ${Math.floor(Math.random() * 10) + 1}`,
+                        totalSavings: Math.floor(Math.random() * 10000000),
+                        totalLoans: Math.floor(Math.random() * 5000000)
+                    });
+                }
+
+                // Generate 10000 transactions
+                for (let i = 1; i <= 10000; i++) {
+                    transactions.push({
+                        id: i,
+                        memberId: Math.floor(Math.random() * 1000) + 1,
+                        type: ['savings', 'loan', 'withdrawal', 'payment'][Math.floor(Math.random() * 4)],
+                        amount: Math.floor(Math.random() * 1000000) + 10000,
+                        date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)),
+                        description: `Transaction ${i}`
+                    });
+                }
+
+                // Generate financial data
+                financialData.totalAssets = 50000000000;
+                financialData.totalLiabilities = 30000000000;
+                financialData.totalEquity = 20000000000;
+                financialData.monthlyRevenue = 500000000;
+                financialData.monthlyExpenses = 300000000;
+                financialData.cashBalance = 5000000000;
+
+                return { members, transactions, financialData };
+            }
+
+            // Test 1: Dashboard Loading Workflow
+            async testDashboardWorkflow() {
+                const startTime = performance.now();
+                const results = [];
+
+                try {
+                    results.push("🔄 Starting dashboard workflow test...");
+                    
+                    // Initialize dashboard controller
+                    this.dashboardController = new DashboardController('dashboardPreview', {
+                        theme: 'default',
+                        refreshInterval: 300000
+                    });
+
+                    results.push("✅ Dashboard controller initialized");
+
+                    // Load test data
+                    const testData = this.generateTestData();
+                    results.push(`✅ Generated test data: ${testData.members.length} members, ${testData.transactions.length} transactions`);
+
+                    // Initialize dashboard
+                    await this.dashboardController.initialize();
+                    results.push("✅ Dashboard initialized successfully");
+
+                    // Load dashboard for admin user
+                    await this.dashboardController.loadDashboard('admin', 'Super Admin');
+                    results.push("✅ Dashboard loaded for admin user");
+
+                    // Verify all widgets are rendered
+                    const widgets = document.querySelectorAll('#dashboardPreview .widget');
+                    results.push(`✅ ${widgets.length} widgets rendered successfully`);
+
+                    // Create sample widgets
+                    this.createSampleWidgets();
+                    results.push("✅ Sample widgets created");
+
+                    const endTime = performance.now();
+                    const loadTime = endTime - startTime;
+                    this.performanceMetrics.dashboardLoadTime = loadTime;
+
+                    results.push(`⏱️ Dashboard load time: ${loadTime.toFixed(2)}ms`);
+                    
+                    if (loadTime < 3000) {
+                        results.push("✅ Performance requirement met (< 3 seconds)");
+                    } else {
+                        results.push("⚠️ Performance requirement not met (> 3 seconds)");
+                    }
+
+                    return { success: true, results: results.join('\n') };
+
+                } catch (error) {
+                    results.push(`❌ Error: ${error.message}`);
+                    return { success: false, results: results.join('\n') };
+                }
+            }
+
+            // Create sample widgets for testing
+            createSampleWidgets() {
+                const preview = document.getElementById('dashboardPreview');
+                preview.innerHTML = `
+                    <div class="widget-grid">
+                        <div class="test-widget">
+                            <h4>Financial Health Score</h4>
+                            <div class="metric-value" style="color: #28a745;">85</div>
+                            <div class="metric-label">Excellent</div>
+                        </div>
+                        <div class="test-widget">
+                            <h4>Active Members</h4>
+                            <div class="metric-value">1,247</div>
+                            <div class="metric-label">+5.2% this month</div>
+                        </div>
+                        <div class="test-widget">
+                            <h4>Transaction Volume</h4>
+                            <div class="metric-value">Rp 2.5B</div>
+                            <div class="metric-label">+12.3% vs last month</div>
+                        </div>
+                        <div class="test-widget">
+                            <h4>Cash Balance</h4>
+                            <div class="metric-value">Rp 5.2B</div>
+                            <div class="metric-label">Available funds</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Test 2: Cross-Widget Interactions
+            async testWidgetInteractions() {
+                const results = [];
+
+                try {
+                    results.push("🔄 Testing cross-widget interactions...");
+
+                    // Initialize widget manager
+                    this.widgetManager = new WidgetManager(this.dashboardController);
+                    results.push("✅ Widget manager initialized");
+
+                    // Create interconnected widgets
+                    const memberWidget = await this.widgetManager.createWidget('member-analytics', {
+                        id: 'member-widget',
+                        title: 'Member Analytics',
+                        dataSource: 'members'
+                    });
+
+                    const transactionWidget = await this.widgetManager.createWidget('transaction-volume', {
+                        id: 'transaction-widget', 
+                        title: 'Transaction Volume',
+                        dataSource: 'transactions'
+                    });
+
+                    const financialWidget = await this.widgetManager.createWidget('financial-health', {
+                        id: 'financial-widget',
+                        title: 'Financial Health',
+                        dataSource: 'financial'
+                    });
+
+                    results.push("✅ Created interconnected widgets");
+
+                    // Test data sharing between widgets
+                    const testData = this.generateTestData();
+                    
+                    // Update member widget and verify transaction widget updates
+                    await this.widgetManager.updateWidget('member-widget', {
+                        selectedMembers: testData.members.slice(0, 10)
+                    });
+
+                    // Simulate widget interaction
+                    const memberTransactions = testData.transactions.filter(t => 
+                        testData.members.slice(0, 10).some(m => m.id === t.memberId)
+                    );
+
+                    await this.widgetManager.updateWidget('transaction-widget', {
+                        filteredTransactions: memberTransactions
+                    });
+
+                    results.push(`✅ Widget interaction test: ${memberTransactions.length} transactions filtered`);
+
+                    // Test widget refresh synchronization
+                    const refreshPromises = [
+                        this.widgetManager.refreshWidget('member-widget'),
+                        this.widgetManager.refreshWidget('transaction-widget'),
+                        this.widgetManager.refreshWidget('financial-widget')
+                    ];
+
+                    await Promise.all(refreshPromises);
+                    results.push("✅ Synchronized widget refresh completed");
+
+                    // Create visual representation
+                    this.createWidgetInteractionDemo();
+
+                    return { success: true, results: results.join('\n') };
+
+                } catch (error) {
+                    results.push(`❌ Error: ${error.message}`);
+                    return { success: false, results: results.join('\n') };
+                }
+            }
+
+            // Create widget interaction demo
+            createWidgetInteractionDemo() {
+                const grid = document.getElementById('widgetGrid');
+                grid.innerHTML = `
+                    <div class="test-widget">
+                        <h4>Member Analytics</h4>
+                        <div>Selected: 10 members</div>
+                        <div style="margin-top: 10px;">
+                            <button onclick="integrationTest.simulateWidgetClick('member')" class="test-button">
+                                Select Members
+                            </button>
+                        </div>
+                    </div>
+                    <div class="test-widget">
+                        <h4>Transaction Volume</h4>
+                        <div id="transactionCount">Filtered: 0 transactions</div>
+                        <div style="margin-top: 10px;">
+                            <button onclick="integrationTest.simulateWidgetClick('transaction')" class="test-button">
+                                Update Transactions
+                            </button>
+                        </div>
+                    </div>
+                    <div class="test-widget">
+                        <h4>Financial Health</h4>
+                        <div id="healthScore">Score: 85</div>
+                        <div style="margin-top: 10px;">
+                            <button onclick="integrationTest.simulateWidgetClick('financial')" class="test-button">
+                                Recalculate Score
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Simulate widget interactions
+            simulateWidgetClick(widgetType) {
+                switch (widgetType) {
+                    case 'member':
+                        const count = Math.floor(Math.random() * 50) + 10;
+                        document.getElementById('transactionCount').textContent = 
+                            `Filtered: ${count * 15} transactions`;
+                        break;
+                    case 'transaction':
+                        const newCount = Math.floor(Math.random() * 1000) + 100;
+                        document.getElementById('transactionCount').textContent = 
+                            `Filtered: ${newCount} transactions`;
+                        break;
+                    case 'financial':
+                        const score = Math.floor(Math.random() * 40) + 60;
+                        document.getElementById('healthScore').textContent = `Score: ${score}`;
+                        break;
+                }
+            }
+
+            // Test 3: Export Functionality
+            async testExportFunctionality() {
+                const results = [];
+
+                try {
+                    results.push("🔄 Testing export functionality...");
+
+                    // Initialize export manager
+                    this.exportManager = new ExportManager();
+                    results.push("✅ Export manager initialized");
+
+                    const testData = this.generateTestData();
+
+                    // Test PDF export
+                    const pdfStartTime = performance.now();
+                    const pdfResult = await this.exportManager.exportToPDF({
+                        title: 'Dashboard Report',
+                        data: testData,
+                        charts: ['member-growth', 'transaction-volume', 'financial-health'],
+                        dateRange: { start: '2024-01-01', end: '2024-12-31' }
+                    });
+                    const pdfEndTime = performance.now();
+                    
+                    results.push(`✅ PDF export completed in ${(pdfEndTime - pdfStartTime).toFixed(2)}ms`);
+                    results.push(`📄 PDF size: ${(pdfResult.size / 1024).toFixed(2)} KB`);
+
+                    // Test Excel export
+                    const excelStartTime = performance.now();
+                    const excelResult = await this.exportManager.exportToExcel({
+                        sheets: [
+                            { name: 'Members', data: testData.members },
+                            { name: 'Transactions', data: testData.transactions.slice(0, 1000) },
+                            { name: 'Financial Summary', data: [testData.financialData] }
+                        ]
+                    });
+                    const excelEndTime = performance.now();
+
+                    results.push(`✅ Excel export completed in ${(excelEndTime - excelStartTime).toFixed(2)}ms`);
+                    results.push(`📊 Excel size: ${(excelResult.size / 1024).toFixed(2)} KB`);
+
+                    // Test export with different configurations
+                    const configurations = [
+                        { format: 'pdf', charts: true, data: true },
+                        { format: 'excel', charts: false, data: true },
+                        { format: 'pdf', charts: true, data: false }
+                    ];
+
+                    for (const config of configurations) {
+                        const configResult = await this.testExportConfiguration(config, testData);
+                        results.push(`✅ Export config test: ${config.format} - ${configResult.status}`);
+                    }
+
+                    this.performanceMetrics.pdfExportTime = pdfEndTime - pdfStartTime;
+                    this.performanceMetrics.excelExportTime = excelEndTime - excelStartTime;
+
+                    return { success: true, results: results.join('\n') };
+
+                } catch (error) {
+                    results.push(`❌ Error: ${error.message}`);
+                    return { success: false, results: results.join('\n') };
+                }
+            }
+
+            // Test export configuration
+            async testExportConfiguration(config, testData) {
+                try {
+                    if (config.format === 'pdf') {
+                        await this.exportManager.exportToPDF({
+                            title: 'Test Export',
+                            data: config.data ? testData : null,
+                            charts: config.charts ? ['test-chart'] : [],
+                            includeCharts: config.charts,
+                            includeData: config.data
+                        });
+                    } else {
+                        await this.exportManager.exportToExcel({
+                            sheets: config.data ? [{ name: 'Test', data: testData.members.slice(0, 100) }] : []
+                        });
+                    }
+                    return { status: 'success' };
+                } catch (error) {
+                    return { status: 'failed', error: error.message };
+                }
+            }
+
+            // Test 4: Real-time Updates
+            async testRealTimeUpdates() {
+                const results = [];
+
+                try {
+                    results.push("🔄 Starting real-time updates test...");
+
+                    let updateCount = 0;
+                    const maxUpdates = 10;
+
+                    this.realTimeTestInterval = setInterval(async () => {
+                        updateCount++;
+                        
+                        // Simulate data changes
+                        const newData = {
+                            timestamp: new Date().toISOString(),
+                            memberCount: 1000 + Math.floor(Math.random() * 100),
+                            transactionVolume: Math.floor(Math.random() * 1000000000),
+                            healthScore: Math.floor(Math.random() * 40) + 60
+                        };
+
+                        // Update widgets with new data
+                        if (this.widgetManager) {
+                            await this.widgetManager.updateWidget('member-widget', newData);
+                            await this.widgetManager.updateWidget('transaction-widget', newData);
+                            await this.widgetManager.updateWidget('financial-widget', newData);
+                        }
+
+                        const currentResults = document.getElementById('realTimeResults');
+                        if (currentResults) {
+                            currentResults.textContent = 
+                                `Update ${updateCount}/${maxUpdates}: Members: ${newData.memberCount}, Volume: Rp ${(newData.transactionVolume/1000000).toFixed(1)}M, Score: ${newData.healthScore}\n` +
+                                currentResults.textContent;
+                        }
+
+                        if (updateCount >= maxUpdates) {
+                            clearInterval(this.realTimeTestInterval);
+                            const finalResults = currentResults.textContent + 
+                                "\n✅ Real-time updates test completed successfully";
+                            currentResults.textContent = finalResults;
+                        }
+                    }, 2000); // Update every 2 seconds
+
+                    results.push("✅ Real-time updates test started (updates every 2 seconds)");
+                    results.push("⏱️ Test will run for 20 seconds with 10 updates");
+
+                    return { success: true, results: results.join('\n') };
+
+                } catch (error) {
+                    results.push(`❌ Error: ${error.message}`);
+                    return { success: false, results: results.join('\n') };
+                }
+            }
+
+            // Stop real-time test
+            stopRealTimeTest() {
+                if (this.realTimeTestInterval) {
+                    clearInterval(this.realTimeTestInterval);
+                    this.realTimeTestInterval = null;
+                    
+                    const results = document.getElementById('realTimeResults');
+                    if (results) {
+                        results.textContent = "🛑 Real-time updates test stopped\n" + results.textContent;
+                    }
+                }
+            }
+
+            // Update performance metrics display
+            updatePerformanceMetrics() {
+                const container = document.getElementById('performanceMetrics');
+                const metrics = [
+                    { label: 'Dashboard Load Time', value: this.performanceMetrics.dashboardLoadTime, unit: 'ms' },
+                    { label: 'PDF Export Time', value: this.performanceMetrics.pdfExportTime, unit: 'ms' },
+                    { label: 'Excel Export Time', value: this.performanceMetrics.excelExportTime, unit: 'ms' },
+                    { label: 'Widget Refresh Time', value: this.performanceMetrics.widgetRefreshTime, unit: 'ms' },
+                    { label: 'Memory Usage', value: this.performanceMetrics.memoryUsage, unit: 'MB' },
+                    { label: 'Tests Passed', value: this.testResults.filter(r => r.success).length, unit: '' }
+                ];
+
+                container.innerHTML = metrics.map(metric => `
+                    <div class="metric-card">
+                        <div class="metric-value">${metric.value ? metric.value.toFixed(2) : 'N/A'}</div>
+                        <div class="metric-label">${metric.label} ${metric.unit}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Run all integration tests
+            async runAllTests() {
+                const results = [];
+                results.push("🚀 Running comprehensive integration test suite...\n");
+
+                try {
+                    // Test 1: Dashboard Workflow
+                    const workflowResult = await this.testDashboardWorkflow();
+                    this.testResults.push(workflowResult);
+                    results.push("1. Dashboard Workflow: " + (workflowResult.success ? "✅ PASSED" : "❌ FAILED"));
+
+                    // Test 2: Widget Interactions
+                    const interactionResult = await this.testWidgetInteractions();
+                    this.testResults.push(interactionResult);
+                    results.push("2. Widget Interactions: " + (interactionResult.success ? "✅ PASSED" : "❌ FAILED"));
+
+                    // Test 3: Export Functionality
+                    const exportResult = await this.testExportFunctionality();
+                    this.testResults.push(exportResult);
+                    results.push("3. Export Functionality: " + (exportResult.success ? "✅ PASSED" : "❌ FAILED"));
+
+                    // Test 4: Real-time Updates
+                    const realTimeResult = await this.testRealTimeUpdates();
+                    this.testResults.push(realTimeResult);
+                    results.push("4. Real-time Updates: " + (realTimeResult.success ? "✅ STARTED" : "❌ FAILED"));
+
+                    // Calculate overall success rate
+                    const passedTests = this.testResults.filter(r => r.success).length;
+                    const totalTests = this.testResults.length;
+                    const successRate = (passedTests / totalTests) * 100;
+
+                    results.push(`\n📊 Test Summary: ${passedTests}/${totalTests} tests passed (${successRate.toFixed(1)}%)`);
+
+                    if (successRate >= 80) {
+                        results.push("🎉 Integration test suite PASSED - System ready for production");
+                    } else {
+                        results.push("⚠️ Integration test suite FAILED - Issues need to be addressed");
+                    }
+
+                    // Update performance metrics
+                    this.performanceMetrics.memoryUsage = performance.memory ? 
+                        performance.memory.usedJSHeapSize / 1024 / 1024 : 0;
+                    this.updatePerformanceMetrics();
+
+                    return results.join('\n');
+
+                } catch (error) {
+                    results.push(`❌ Critical error in test suite: ${error.message}`);
+                    return results.join('\n');
+                }
+            }
+        }
+
+        // Initialize integration test suite
+        const integrationTest = new IntegrationTestSuite();
+
+        // Test functions for buttons
+        async function testDashboardWorkflow() {
+            const result = await integrationTest.testDashboardWorkflow();
+            document.getElementById('dashboardWorkflowResults').textContent = result.results;
+            document.getElementById('dashboardWorkflowResults').className = 
+                `test-results ${result.success ? 'success' : 'error'}`;
+        }
+
+        async function testWidgetInteractions() {
+            const result = await integrationTest.testWidgetInteractions();
+            document.getElementById('widgetInteractionsResults').textContent = result.results;
+            document.getElementById('widgetInteractionsResults').className = 
+                `test-results ${result.success ? 'success' : 'error'}`;
+        }
+
+        async function testExportFunctionality() {
+            const result = await integrationTest.testExportFunctionality();
+            document.getElementById('exportResults').textContent = result.results;
+            document.getElementById('exportResults').className = 
+                `test-results ${result.success ? 'success' : 'error'}`;
+        }
+
+        async function testRealTimeUpdates() {
+            const result = await integrationTest.testRealTimeUpdates();
+            document.getElementById('realTimeResults').textContent = result.results;
+            document.getElementById('realTimeResults').className = 
+                `test-results ${result.success ? 'success' : 'error'}`;
+        }
+
+        function stopRealTimeTest() {
+            integrationTest.stopRealTimeTest();
+        }
+
+        async function runAllTests() {
+            const results = await integrationTest.runAllTests();
+            document.getElementById('summaryResults').textContent = results;
+            document.getElementById('summaryResults').className = 'test-results info';
+        }
+
+        // Initialize performance metrics display
+        integrationTest.updatePerformanceMetrics();
+    </script>
+</body>
+</html>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 8.3 - Mobile Performance Optimization Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .metric-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .metric-value {
+            font-size: 1.5em;
+            color: #333;
+            margin: 5px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-good { background-color: #28a745; }
+        .status-warning { background-color: #ffc107; }
+        .status-error { background-color: #dc3545; }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .network-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .network-item {
+            background: white;
+            padding: 10px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mobile Performance Optimization Test</h1>
+            <p>Task 8.3 - Testing data compression, progressive loading, and mobile caching</p>
+        </div>
+
+        <!-- Device Information -->
+        <div class="test-section">
+            <h3>Device Information</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Device Type</div>
+                    <div class="metric-value" id="deviceType">Detecting...</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Screen Size</div>
+                    <div class="metric-value" id="screenSize">Detecting...</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Pixel Ratio</div>
+                    <div class="metric-value" id="pixelRatio">Detecting...</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Memory (Approx)</div>
+                    <div class="metric-value" id="memoryInfo">Detecting...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Information -->
+        <div class="test-section">
+            <h3>Network Information</h3>
+            <div class="network-info">
+                <div class="network-item">
+                    <strong>Connection Type:</strong> <span id="connectionType">Unknown</span>
+                </div>
+                <div class="network-item">
+                    <strong>Effective Type:</strong> <span id="effectiveType">Unknown</span>
+                </div>
+                <div class="network-item">
+                    <strong>Downlink:</strong> <span id="downlink">Unknown</span>
+                </div>
+                <div class="network-item">
+                    <strong>RTT:</strong> <span id="rtt">Unknown</span>
+                </div>
+                <div class="network-item">
+                    <strong>Save Data:</strong> <span id="saveData">Unknown</span>
+                </div>
+                <div class="network-item">
+                    <strong>Estimated Speed:</strong> <span id="estimatedSpeed">Testing...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optimization Status -->
+        <div class="test-section">
+            <h3>Optimization Status</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">
+                        <span class="status-indicator" id="compressionStatus"></span>
+                        Data Compression
+                    </div>
+                    <div class="metric-value" id="compressionRatio">0%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">
+                        <span class="status-indicator" id="progressiveStatus"></span>
+                        Progressive Loading
+                    </div>
+                    <div class="metric-value" id="progressiveEnabled">Disabled</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">
+                        <span class="status-indicator" id="cacheStatus"></span>
+                        Mobile Caching
+                    </div>
+                    <div class="metric-value" id="cacheHitRate">0%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">
+                        <span class="status-indicator" id="networkStatus"></span>
+                        Network Awareness
+                    </div>
+                    <div class="metric-value" id="networkAware">Disabled</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Tests -->
+        <div class="test-section">
+            <h3>Performance Tests</h3>
+            <div style="margin: 15px 0;">
+                <button class="test-button" onclick="testDataCompression()">Test Data Compression</button>
+                <button class="test-button" onclick="testProgressiveLoading()">Test Progressive Loading</button>
+                <button class="test-button" onclick="testMobileCaching()">Test Mobile Caching</button>
+                <button class="test-button" onclick="testNetworkAdaptation()">Test Network Adaptation</button>
+                <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="testProgress"></div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Average Load Time</div>
+                    <div class="metric-value" id="avgLoadTime">0ms</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Data Transferred</div>
+                    <div class="metric-value" id="dataTransferred">0 KB</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Cache Size</div>
+                    <div class="metric-value" id="cacheSize">0 KB</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Compression Savings</div>
+                    <div class="metric-value" id="compressionSavings">0 KB</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="test-section">
+            <h3>Test Log</h3>
+            <div class="log-area" id="testLog"></div>
+            <button class="test-button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { MobileOptimizer } from './js/dashboard/MobileOptimizer.js';
+        
+        let mobileOptimizer;
+        let mockDashboardController;
+        let testResults = {};
+        
+        // Initialize test environment
+        async function initializeTest() {
+            log('Initializing mobile performance optimization test...');
+            
+            // Create mock dashboard controller
+            mockDashboardController = {
+                container: document.body,
+                widgets: new Map(),
+                config: {
+                    enableResponsive: true,
+                    enableTouch: true
+                },
+                onNetworkChange: (networkInfo) => {
+                    log(`Network changed: ${networkInfo.effectiveType}`);
+                    updateNetworkInfo(networkInfo);
+                }
+            };
+            
+            // Initialize mobile optimizer
+            mobileOptimizer = new MobileOptimizer(mockDashboardController);
+            await mobileOptimizer.initialize();
+            
+            // Update UI with device and network information
+            updateDeviceInfo();
+            updateOptimizationStatus();
+            
+            log('Mobile optimizer initialized successfully');
+        }
+        
+        // Update device information display
+        function updateDeviceInfo() {
+            const metrics = mobileOptimizer.getPerformanceMetrics();
+            const deviceInfo = metrics.deviceInfo;
+            
+            document.getElementById('deviceType').textContent = 
+                deviceInfo.isMobile ? 'Mobile' : 
+                deviceInfo.isTablet ? 'Tablet' : 'Desktop';
+            
+            document.getElementById('screenSize').textContent = 
+                `${deviceInfo.screenSize.width}x${deviceInfo.screenSize.height}`;
+            
+            document.getElementById('pixelRatio').textContent = deviceInfo.pixelRatio;
+            
+            document.getElementById('memoryInfo').textContent = 
+                deviceInfo.memory ? `${Math.round(deviceInfo.memory / 1024 / 1024)}MB` : 'Unknown';
+        }
+        
+        // Update network information display
+        function updateNetworkInfo(networkInfo = null) {
+            const metrics = mobileOptimizer.getPerformanceMetrics();
+            const info = networkInfo || metrics.networkInfo;
+            
+            document.getElementById('connectionType').textContent = info.type || 'Unknown';
+            document.getElementById('effectiveType').textContent = info.effectiveType || 'Unknown';
+            document.getElementById('downlink').textContent = info.downlink ? `${info.downlink} Mbps` : 'Unknown';
+            document.getElementById('rtt').textContent = info.rtt ? `${info.rtt}ms` : 'Unknown';
+            document.getElementById('saveData').textContent = info.saveData ? 'Yes' : 'No';
+            document.getElementById('estimatedSpeed').textContent = info.estimatedSpeed || 'Unknown';
+        }
+        
+        // Update optimization status display
+        function updateOptimizationStatus() {
+            const status = mobileOptimizer.getOptimizationStatus();
+            
+            // Update status indicators
+            updateStatusIndicator('compressionStatus', status.compressionEnabled);
+            updateStatusIndicator('progressiveStatus', status.progressiveLoadingEnabled);
+            updateStatusIndicator('cacheStatus', status.cachingEnabled);
+            updateStatusIndicator('networkStatus', status.networkAware);
+            
+            // Update values
+            document.getElementById('compressionRatio').textContent = 
+                `${(status.compressionRatio * 100).toFixed(1)}%`;
+            document.getElementById('progressiveEnabled').textContent = 
+                status.progressiveLoadingEnabled ? 'Enabled' : 'Disabled';
+            document.getElementById('cacheHitRate').textContent = 
+                `${(status.cacheHitRate * 100).toFixed(1)}%`;
+            document.getElementById('networkAware').textContent = 
+                status.networkAware ? 'Enabled' : 'Disabled';
+            
+            // Update performance metrics
+            document.getElementById('avgLoadTime').textContent = 
+                `${status.averageLoadTime.toFixed(1)}ms`;
+            
+            const metrics = mobileOptimizer.getPerformanceMetrics();
+            document.getElementById('dataTransferred').textContent = 
+                `${(metrics.dataTransferred / 1024).toFixed(1)} KB`;
+            document.getElementById('cacheSize').textContent = 
+                `${(metrics.cacheStats.size / 1024).toFixed(1)} KB`;
+        }
+        
+        // Update status indicator
+        function updateStatusIndicator(elementId, isEnabled) {
+            const element = document.getElementById(elementId);
+            element.className = `status-indicator ${isEnabled ? 'status-good' : 'status-error'}`;
+        }
+        
+        // Test data compression
+        window.testDataCompression = async function() {
+            log('Testing data compression...');
+            setProgress(10);
+            
+            try {
+                // Generate test data
+                const testData = generateTestData(1000);
+                const originalSize = JSON.stringify(testData).length;
+                
+                log(`Original data size: ${originalSize} bytes`);
+                
+                // Test compression
+                const compressedData = await mobileOptimizer.compressData(testData);
+                const compressedSize = JSON.stringify(compressedData).length;
+                
+                const compressionRatio = (originalSize - compressedSize) / originalSize;
+                const savings = originalSize - compressedSize;
+                
+                log(`Compressed size: ${compressedSize} bytes`);
+                log(`Compression ratio: ${(compressionRatio * 100).toFixed(1)}%`);
+                log(`Savings: ${savings} bytes`);
+                
+                // Update UI
+                document.getElementById('compressionSavings').textContent = `${(savings / 1024).toFixed(1)} KB`;
+                
+                testResults.compression = {
+                    originalSize,
+                    compressedSize,
+                    compressionRatio,
+                    savings
+                };
+                
+                setProgress(100);
+                log('Data compression test completed successfully');
+                
+            } catch (error) {
+                log(`Data compression test failed: ${error.message}`);
+                setProgress(0);
+            }
+        };
+        
+        // Test progressive loading
+        window.testProgressiveLoading = async function() {
+            log('Testing progressive loading...');
+            setProgress(10);
+            
+            try {
+                const chartConfigs = [];
+                
+                // Generate multiple chart configurations
+                for (let i = 0; i < 5; i++) {
+                    chartConfigs.push({
+                        id: `chart-${i}`,
+                        type: 'line',
+                        data: generateChartData(),
+                        priority: Math.random() * 10,
+                        options: {}
+                    });
+                }
+                
+                log(`Generated ${chartConfigs.length} chart configurations`);
+                setProgress(30);
+                
+                // Test progressive loading
+                const startTime = performance.now();
+                const promises = chartConfigs.map(config => 
+                    mobileOptimizer.loadChartProgressively(config, document.body)
+                );
+                
+                setProgress(60);
+                
+                const results = await Promise.all(promises);
+                const endTime = performance.now();
+                const totalTime = endTime - startTime;
+                
+                log(`Progressive loading completed in ${totalTime.toFixed(1)}ms`);
+                log(`Loaded ${results.length} charts`);
+                
+                testResults.progressiveLoading = {
+                    chartCount: results.length,
+                    totalTime,
+                    averageTime: totalTime / results.length
+                };
+                
+                setProgress(100);
+                log('Progressive loading test completed successfully');
+                
+            } catch (error) {
+                log(`Progressive loading test failed: ${error.message}`);
+                setProgress(0);
+            }
+        };
+        
+        // Test mobile caching
+        window.testMobileCaching = async function() {
+            log('Testing mobile caching...');
+            setProgress(10);
+            
+            try {
+                const testKeys = [];
+                const testData = [];
+                
+                // Generate test data for caching
+                for (let i = 0; i < 10; i++) {
+                    const key = `test-data-${i}`;
+                    const data = generateTestData(100);
+                    
+                    testKeys.push(key);
+                    testData.push(data);
+                    
+                    // Cache the data
+                    await mobileOptimizer.cacheData(key, data);
+                }
+                
+                log(`Cached ${testKeys.length} items`);
+                setProgress(50);
+                
+                // Test cache retrieval
+                let cacheHits = 0;
+                let cacheMisses = 0;
+                
+                for (const key of testKeys) {
+                    const cachedData = await mobileOptimizer.getCachedData(key);
+                    if (cachedData) {
+                        cacheHits++;
+                    } else {
+                        cacheMisses++;
+                    }
+                }
+                
+                const hitRate = cacheHits / (cacheHits + cacheMisses);
+                
+                log(`Cache hits: ${cacheHits}, misses: ${cacheMisses}`);
+                log(`Cache hit rate: ${(hitRate * 100).toFixed(1)}%`);
+                
+                testResults.caching = {
+                    itemsCached: testKeys.length,
+                    cacheHits,
+                    cacheMisses,
+                    hitRate
+                };
+                
+                setProgress(100);
+                log('Mobile caching test completed successfully');
+                
+            } catch (error) {
+                log(`Mobile caching test failed: ${error.message}`);
+                setProgress(0);
+            }
+        };
+        
+        // Test network adaptation
+        window.testNetworkAdaptation = async function() {
+            log('Testing network adaptation...');
+            setProgress(10);
+            
+            try {
+                // Get current network info
+                const metrics = mobileOptimizer.getPerformanceMetrics();
+                const networkInfo = metrics.networkInfo;
+                
+                log(`Current network: ${networkInfo.effectiveType}`);
+                log(`Downlink: ${networkInfo.downlink} Mbps`);
+                log(`RTT: ${networkInfo.rtt}ms`);
+                
+                setProgress(50);
+                
+                // Test performance settings adaptation
+                const performanceSettings = metrics.performanceSettings;
+                
+                log(`Compression level: ${performanceSettings.compressionLevel}`);
+                log(`Image quality: ${performanceSettings.imageQuality}`);
+                log(`Progressive loading: ${performanceSettings.enableProgressiveLoading}`);
+                
+                testResults.networkAdaptation = {
+                    networkType: networkInfo.effectiveType,
+                    compressionLevel: performanceSettings.compressionLevel,
+                    imageQuality: performanceSettings.imageQuality,
+                    progressiveLoading: performanceSettings.enableProgressiveLoading
+                };
+                
+                setProgress(100);
+                log('Network adaptation test completed successfully');
+                
+            } catch (error) {
+                log(`Network adaptation test failed: ${error.message}`);
+                setProgress(0);
+            }
+        };
+        
+        // Run all tests
+        window.runAllTests = async function() {
+            log('Running all performance tests...');
+            
+            try {
+                await testDataCompression();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testProgressiveLoading();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testMobileCaching();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testNetworkAdaptation();
+                
+                // Update final metrics
+                updateOptimizationStatus();
+                
+                log('All tests completed successfully!');
+                log('Test Results Summary:');
+                log(JSON.stringify(testResults, null, 2));
+                
+            } catch (error) {
+                log(`Test suite failed: ${error.message}`);
+            }
+        };
+        
+        // Generate test data
+        function generateTestData(size) {
+            const data = {
+                transactions: [],
+                members: [],
+                metadata: {
+                    timestamp: Date.now(),
+                    version: '1.0.0',
+                    source: 'test-generator'
+                }
+            };
+            
+            for (let i = 0; i < size; i++) {
+                data.transactions.push({
+                    id: `tx-${i}`,
+                    amount: Math.random() * 1000000,
+                    type: ['deposit', 'withdrawal', 'loan', 'payment'][Math.floor(Math.random() * 4)],
+                    member_id: `member-${Math.floor(Math.random() * 100)}`,
+                    timestamp: Date.now() - Math.random() * 86400000,
+                    description: `Test transaction ${i} with some description text`
+                });
+            }
+            
+            for (let i = 0; i < size / 10; i++) {
+                data.members.push({
+                    id: `member-${i}`,
+                    name: `Test Member ${i}`,
+                    email: `member${i}@test.com`,
+                    balance: Math.random() * 10000000,
+                    status: ['active', 'inactive', 'suspended'][Math.floor(Math.random() * 3)],
+                    joined_date: Date.now() - Math.random() * 31536000000
+                });
+            }
+            
+            return data;
+        }
+        
+        // Generate chart data
+        function generateChartData() {
+            const labels = [];
+            const data = [];
+            
+            for (let i = 0; i < 50; i++) {
+                labels.push(`Point ${i}`);
+                data.push(Math.random() * 1000);
+            }
+            
+            return {
+                labels,
+                datasets: [{
+                    label: 'Test Data',
+                    data,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)'
+                }]
+            };
+        }
+        
+        // Set progress bar
+        function setProgress(percent) {
+            document.getElementById('testProgress').style.width = `${percent}%`;
+        }
+        
+        // Log function
+        function log(message) {
+            const logArea = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(message);
+        }
+        
+        // Clear log
+        window.clearLog = function() {
+            document.getElementById('testLog').innerHTML = '';
+        };
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeTest);
+        
+        // Update network info periodically
+        setInterval(() => {
+            if (mobileOptimizer) {
+                updateNetworkInfo();
+                updateOptimizationStatus();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

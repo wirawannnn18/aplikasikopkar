@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 4.3 - Interactive Chart Features Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: white;
+        }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .chart-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .chart-item h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .chart-item .chart-container {
+            height: 300px;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button:hover {
+            background: #0056b3;
+        }
+        .controls button.secondary {
+            background: #6c757d;
+        }
+        .controls button.secondary:hover {
+            background: #545b62;
+        }
+        .controls button.success {
+            background: #28a745;
+        }
+        .controls button.success:hover {
+            background: #1e7e34;
+        }
+        .controls button.danger {
+            background: #dc3545;
+        }
+        .controls button.danger:hover {
+            background: #c82333;
+        }
+        .controls select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .controls input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .drill-down-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .export-results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .annotation-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .theme-preview {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .theme-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+        }
+        .feature-demo {
+            border: 2px dashed #007bff;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            background: #f8f9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Task 4.3 - Interactive Chart Features Implementation Test</h1>
+            <p>Testing comprehensive interactive features including drill-down capability, export functionality, theming, and customization options.</p>
+            <div id="initialization-status" class="status info">Initializing Chart Renderer...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Drill-Down Capability Test</h2>
+            <p>Click on any chart element to see drill-down functionality in action</p>
+            
+            <div class="controls">
+                <button onclick="enableDrillDownDemo()">Enable Drill-Down</button>
+                <button onclick="disableDrillDownDemo()" class="secondary">Disable Drill-Down</button>
+                <button onclick="clearDrillDownLog()" class="danger">Clear Log</button>
+            </div>
+
+            <div class="feature-demo">
+                <h4>Interactive Sales Chart - Click on bars to drill down</h4>
+                <div id="drilldown-chart" class="chart-container"></div>
+                
+                <div id="drilldown-info" class="drill-down-info" style="display: none;">
+                    <h5>Drill-Down Information:</h5>
+                    <div id="drilldown-details"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📤 Export Functionality Test</h2>
+            <p>Test chart export in multiple formats with various options</p>
+            
+            <div class="controls">
+                <select id="exportFormat">
+                    <option value="png">PNG Image</option>
+                    <option value="jpeg">JPEG Image</option>
+                    <option value="webp">WebP Image</option>
+                    <option value="svg">SVG Vector</option>
+                    <option value="pdf">PDF Document</option>
+                </select>
+                <input type="range" id="exportQuality" min="0.1" max="1" step="0.1" value="1">
+                <span id="qualityLabel">Quality: 100%</span>
+                <button onclick="exportChart()" class="success">Export Chart</button>
+                <button onclick="exportWithDownload()" class="success">Export & Download</button>
+            </div>
+
+            <div class="feature-demo">
+                <h4>Revenue Trend Chart - Export Test</h4>
+                <div id="export-chart" class="chart-container"></div>
+                
+                <div id="export-results" class="export-results">
+                    <h5>Export Results:</h5>
+                    <div id="export-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎨 Theme & Customization Test</h2>
+            <p>Apply different themes and customize chart appearance</p>
+            
+            <div class="controls">
+                <select id="themeSelector">
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                    <option value="corporate">Corporate Theme</option>
+                    <option value="vibrant">Vibrant Theme</option>
+                    <option value="custom">Custom Theme</option>
+                </select>
+                <button onclick="applySelectedTheme()">Apply Theme</button>
+                <button onclick="resetTheme()" class="secondary">Reset Theme</button>
+            </div>
+
+            <div class="theme-preview">
+                <div class="theme-swatch" style="background: #3B82F6" onclick="applyTheme('light')" title="Light Theme"></div>
+                <div class="theme-swatch" style="background: #1a1a1a" onclick="applyTheme('dark')" title="Dark Theme"></div>
+                <div class="theme-swatch" style="background: #2c3e50" onclick="applyTheme('corporate')" title="Corporate Theme"></div>
+                <div class="theme-swatch" style="background: #FF6B6B" onclick="applyTheme('vibrant')" title="Vibrant Theme"></div>
+            </div>
+
+            <div class="feature-demo">
+                <h4>Member Activity Chart - Theme Test</h4>
+                <div id="theme-chart" class="chart-container"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📍 Annotations & Markers Test</h2>
+            <p>Add and remove annotations, target lines, and markers</p>
+            
+            <div class="controls annotation-controls">
+                <input type="number" id="annotationValue" placeholder="Value" value="75">
+                <input type="text" id="annotationLabel" placeholder="Label" value="Target">
+                <select id="annotationColor">
+                    <option value="#ff0000">Red</option>
+                    <option value="#00ff00">Green</option>
+                    <option value="#0000ff">Blue</option>
+                    <option value="#ffaa00">Orange</option>
+                </select>
+                <button onclick="addAnnotation()" class="success">Add Annotation</button>
+                <button onclick="removeLastAnnotation()" class="danger">Remove Last</button>
+                <button onclick="clearAllAnnotations()" class="danger">Clear All</button>
+            </div>
+
+            <div class="feature-demo">
+                <h4>Performance Metrics Chart - Annotations Test</h4>
+                <div id="annotation-chart" class="chart-container"></div>
+                
+                <div id="annotation-list" class="status info">
+                    <h5>Active Annotations:</h5>
+                    <div id="annotation-details">No annotations added yet</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Interaction API Test</h2>
+            <p>Test the comprehensive interaction API for programmatic control</p>
+            
+            <div class="controls">
+                <button onclick="testInteractionAPI()">Test Full API</button>
+                <button onclick="demonstrateChaining()">Demonstrate Chaining</button>
+                <button onclick="testErrorHandling()">Test Error Handling</button>
+                <button onclick="showAPIDocumentation()">Show API Docs</button>
+            </div>
+
+            <div class="feature-demo">
+                <h4>API Test Chart - Programmatic Control</h4>
+                <div id="api-chart" class="chart-container"></div>
+                
+                <div id="api-results" class="status info">
+                    <h5>API Test Results:</h5>
+                    <div id="api-log">Click "Test Full API" to see results</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Performance & Edge Cases</h2>
+            <p>Test performance with large datasets and edge cases</p>
+            
+            <div class="controls">
+                <button onclick="testLargeDataset()">Large Dataset Test</button>
+                <button onclick="testEmptyData()">Empty Data Test</button>
+                <button onclick="testRapidUpdates()">Rapid Updates Test</button>
+                <button onclick="measurePerformance()">Measure Performance</button>
+            </div>
+
+            <div class="feature-demo">
+                <h4>Performance Test Chart</h4>
+                <div id="performance-chart" class="chart-container"></div>
+                
+                <div id="performance-results" class="status info">
+                    <h5>Performance Metrics:</h5>
+                    <div id="performance-log">No tests run yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Chart Renderer -->
+    <script src="js/dashboard/ChartRenderer.js"></script>
+    
+    <script>
+        let chartRenderer;
+        let annotationCounter = 0;
+        let activeAnnotations = [];
+        
+        // Sample data for testing
+        const sampleData = {
+            sales: {
+                type: 'bar',
+                data: {
+                    labels: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+                    datasets: [{
+                        label: 'Sales Revenue (Million Rp)',
+                        data: [450, 520, 480, 650],
+                        backgroundColor: '#3B82F6'
+                    }, {
+                        label: 'Target (Million Rp)',
+                        data: [400, 500, 550, 600],
+                        backgroundColor: '#10B981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Quarterly Sales Performance'
+                        }
+                    }
+                }
+            },
+            
+            revenue: {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Revenue Trend',
+                        data: [120, 135, 150, 142, 168, 180, 195, 210, 185, 220, 240, 260],
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Monthly Revenue Trend 2024'
+                        }
+                    }
+                }
+            },
+            
+            activity: {
+                type: 'radar',
+                data: {
+                    labels: ['Transactions', 'New Members', 'Loan Applications', 'Savings Growth', 'Digital Usage', 'Customer Satisfaction'],
+                    datasets: [{
+                        label: 'Current Performance',
+                        data: [85, 72, 68, 90, 78, 82],
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.2)'
+                    }, {
+                        label: 'Target',
+                        data: [90, 80, 75, 95, 85, 90],
+                        borderColor: '#EF4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Member Activity Metrics'
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            },
+            
+            performance: {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'KPI Score',
+                        data: [65, 72, 78, 85],
+                        borderColor: '#06B6D4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Weekly Performance Metrics'
+                        }
+                    }
+                }
+            }
+        };
+
+        // Initialize application
+        async function initializeApp() {
+            try {
+                chartRenderer = new ChartRenderer();
+                await chartRenderer.initialize();
+                
+                updateStatus('initialization-status', 'Chart Renderer initialized successfully!', 'success');
+                
+                // Render initial charts
+                setTimeout(renderAllCharts, 500);
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Initialization failed: ${error.message}`, 'error');
+                console.error('Initialization Error:', error);
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Export quality slider
+            const qualitySlider = document.getElementById('exportQuality');
+            const qualityLabel = document.getElementById('qualityLabel');
+            
+            qualitySlider.addEventListener('input', (e) => {
+                const quality = Math.round(e.target.value * 100);
+                qualityLabel.textContent = `Quality: ${quality}%`;
+            });
+        }
+
+        // Render all charts
+        async function renderAllCharts() {
+            try {
+                await chartRenderer.renderChart('drilldown-chart', sampleData.sales);
+                await chartRenderer.renderChart('export-chart', sampleData.revenue);
+                await chartRenderer.renderChart('theme-chart', sampleData.activity);
+                await chartRenderer.renderChart('annotation-chart', sampleData.performance);
+                await chartRenderer.renderChart('api-chart', sampleData.sales);
+                await chartRenderer.renderChart('performance-chart', sampleData.revenue);
+                
+                updateStatus('initialization-status', 'All charts rendered successfully!', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Chart rendering failed: ${error.message}`, 'error');
+                console.error('Chart Rendering Error:', error);
+            }
+        }
+
+        // Drill-down functionality
+        function enableDrillDownDemo() {
+            try {
+                chartRenderer.enableDrillDown('drilldown-chart', (data) => {
+                    showDrillDownInfo(data);
+                }, {
+                    enableTooltipIndicator: true,
+                    cursorStyle: 'pointer',
+                    highlightOnHover: true
+                });
+                
+                updateStatus('initialization-status', 'Drill-down enabled! Click on chart elements.', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Failed to enable drill-down: ${error.message}`, 'error');
+            }
+        }
+
+        function disableDrillDownDemo() {
+            try {
+                chartRenderer.disableDrillDown('drilldown-chart');
+                document.getElementById('drilldown-info').style.display = 'none';
+                updateStatus('initialization-status', 'Drill-down disabled.', 'info');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Failed to disable drill-down: ${error.message}`, 'error');
+            }
+        }
+
+        function showDrillDownInfo(data) {
+            const infoDiv = document.getElementById('drilldown-info');
+            const detailsDiv = document.getElementById('drilldown-details');
+            
+            detailsDiv.innerHTML = `
+                <p><strong>Chart Type:</strong> ${data.chartType}</p>
+                <p><strong>Dataset:</strong> ${data.dataset.label}</p>
+                <p><strong>Label:</strong> ${data.label}</p>
+                <p><strong>Value:</strong> ${data.value.toLocaleString()}</p>
+                <p><strong>Dataset Index:</strong> ${data.datasetIndex}</p>
+                <p><strong>Data Index:</strong> ${data.index}</p>
+                <p><strong>Timestamp:</strong> ${new Date().toLocaleTimeString()}</p>
+            `;
+            
+            infoDiv.style.display = 'block';
+        }
+
+        function clearDrillDownLog() {
+            document.getElementById('drilldown-info').style.display = 'none';
+        }
+
+        // Export functionality
+        async function exportChart() {
+            try {
+                const format = document.getElementById('exportFormat').value;
+                const quality = parseFloat(document.getElementById('exportQuality').value);
+                
+                const exportData = await chartRenderer.exportChartAdvanced('export-chart', {
+                    format: format,
+                    quality: quality,
+                    filename: `revenue-chart-${Date.now()}`
+                });
+                
+                logExportResult(format, quality, exportData, false);
+                updateStatus('initialization-status', `Chart exported as ${format.toUpperCase()}!`, 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Export failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function exportWithDownload() {
+            try {
+                const format = document.getElementById('exportFormat').value;
+                const quality = parseFloat(document.getElementById('exportQuality').value);
+                
+                const exportData = await chartRenderer.exportChartAdvanced('export-chart', {
+                    format: format,
+                    quality: quality,
+                    filename: `revenue-chart-${Date.now()}`,
+                    download: true
+                });
+                
+                logExportResult(format, quality, exportData, true);
+                updateStatus('initialization-status', `Chart exported and downloaded as ${format.toUpperCase()}!`, 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Export with download failed: ${error.message}`, 'error');
+            }
+        }
+
+        function logExportResult(format, quality, data, downloaded) {
+            const logDiv = document.getElementById('export-log');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let dataInfo = '';
+            if (typeof data === 'string') {
+                dataInfo = `String (${data.length} chars)`;
+            } else if (data instanceof Blob) {
+                dataInfo = `Blob (${data.size} bytes, ${data.type})`;
+            } else {
+                dataInfo = typeof data;
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `
+                <p><strong>${timestamp}</strong> - Format: ${format.toUpperCase()}, Quality: ${Math.round(quality * 100)}%</p>
+                <p>Data Type: ${dataInfo}, Downloaded: ${downloaded ? 'Yes' : 'No'}</p>
+                <hr>
+            `;
+            
+            logDiv.insertBefore(logEntry, logDiv.firstChild);
+        }
+
+        // Theme functionality
+        function applySelectedTheme() {
+            const theme = document.getElementById('themeSelector').value;
+            applyTheme(theme);
+        }
+
+        function applyTheme(themeName) {
+            try {
+                if (themeName === 'custom') {
+                    const customTheme = {
+                        backgroundColor: '#f0f8ff',
+                        textColor: '#2c3e50',
+                        gridColor: '#bdc3c7',
+                        colors: ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
+                    };
+                    chartRenderer.applyTheme('theme-chart', customTheme);
+                } else {
+                    chartRenderer.applyTheme('theme-chart', themeName);
+                }
+                
+                updateStatus('initialization-status', `${themeName} theme applied!`, 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Failed to apply theme: ${error.message}`, 'error');
+            }
+        }
+
+        function resetTheme() {
+            applyTheme('light');
+        }
+
+        // Annotation functionality
+        function addAnnotation() {
+            try {
+                const value = parseFloat(document.getElementById('annotationValue').value);
+                const label = document.getElementById('annotationLabel').value;
+                const color = document.getElementById('annotationColor').value;
+                
+                if (isNaN(value)) {
+                    updateStatus('initialization-status', 'Please enter a valid number for annotation value', 'warning');
+                    return;
+                }
+                
+                const annotation = {
+                    id: `annotation-${annotationCounter++}`,
+                    type: 'line',
+                    value: value,
+                    color: color,
+                    label: label,
+                    width: 2
+                };
+                
+                chartRenderer.addAnnotations('annotation-chart', [annotation]);
+                activeAnnotations.push(annotation);
+                
+                updateAnnotationList();
+                updateStatus('initialization-status', `Annotation added at value ${value}`, 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Failed to add annotation: ${error.message}`, 'error');
+            }
+        }
+
+        function removeLastAnnotation() {
+            if (activeAnnotations.length === 0) {
+                updateStatus('initialization-status', 'No annotations to remove', 'warning');
+                return;
+            }
+            
+            try {
+                const lastAnnotation = activeAnnotations.pop();
+                chartRenderer.removeAnnotations('annotation-chart', [lastAnnotation.id]);
+                
+                updateAnnotationList();
+                updateStatus('initialization-status', `Annotation "${lastAnnotation.label}" removed`, 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Failed to remove annotation: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAllAnnotations() {
+            try {
+                chartRenderer.removeAnnotations('annotation-chart');
+                activeAnnotations = [];
+                
+                updateAnnotationList();
+                updateStatus('initialization-status', 'All annotations cleared', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Failed to clear annotations: ${error.message}`, 'error');
+            }
+        }
+
+        function updateAnnotationList() {
+            const detailsDiv = document.getElementById('annotation-details');
+            
+            if (activeAnnotations.length === 0) {
+                detailsDiv.innerHTML = 'No annotations added yet';
+                return;
+            }
+            
+            const listHtml = activeAnnotations.map(ann => 
+                `<p>• ${ann.label} (Value: ${ann.value}, Color: ${ann.color})</p>`
+            ).join('');
+            
+            detailsDiv.innerHTML = listHtml;
+        }
+
+        // Interaction API testing
+        function testInteractionAPI() {
+            try {
+                const api = chartRenderer.getInteractionAPI('api-chart');
+                const results = [];
+                
+                // Test drill-down
+                let drillDownWorking = false;
+                api.enableDrillDown((data) => {
+                    drillDownWorking = true;
+                    results.push(`✓ Drill-down callback executed for ${data.label}`);
+                });
+                results.push('✓ Drill-down enabled successfully');
+                
+                // Test export
+                api.export({ format: 'png' }).then(data => {
+                    results.push(`✓ Export successful: ${typeof data}`);
+                    updateAPILog(results);
+                });
+                
+                // Test theme
+                api.applyTheme('dark');
+                results.push('✓ Theme applied successfully');
+                
+                // Test annotations
+                api.addAnnotations([{
+                    id: 'api-test-line',
+                    value: 500,
+                    color: '#ff0000',
+                    label: 'API Test Line'
+                }]);
+                results.push('✓ Annotation added successfully');
+                
+                updateAPILog(results);
+                updateStatus('initialization-status', 'Interaction API test completed!', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `API test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function demonstrateChaining() {
+            try {
+                const api = chartRenderer.getInteractionAPI('api-chart');
+                
+                // Demonstrate method chaining concept
+                const results = [
+                    '🔗 Demonstrating API method chaining:',
+                    '1. Apply vibrant theme',
+                    '2. Add target line annotation',
+                    '3. Enable drill-down',
+                    '4. Export as PNG'
+                ];
+                
+                api.applyTheme('vibrant');
+                api.addAnnotations([{
+                    id: 'chain-target',
+                    value: 550,
+                    color: '#00ff00',
+                    label: 'Target Line'
+                }]);
+                api.enableDrillDown((data) => {
+                    results.push(`✓ Drill-down triggered: ${data.label} = ${data.value}`);
+                    updateAPILog(results);
+                });
+                
+                api.export({ format: 'png' }).then(() => {
+                    results.push('✓ All operations completed successfully!');
+                    updateAPILog(results);
+                });
+                
+                updateAPILog(results);
+                updateStatus('initialization-status', 'Method chaining demonstration completed!', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Chaining demo failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testErrorHandling() {
+            const results = ['🚨 Testing error handling:'];
+            
+            try {
+                // Test with non-existent chart
+                chartRenderer.getInteractionAPI('non-existent-chart');
+                results.push('❌ Should have thrown error for non-existent chart');
+            } catch (error) {
+                results.push(`✓ Correctly caught error: ${error.message}`);
+            }
+            
+            try {
+                // Test invalid export format
+                chartRenderer.exportChartAdvanced('api-chart', { format: 'invalid-format' });
+                results.push('✓ Invalid format handled gracefully');
+            } catch (error) {
+                results.push(`✓ Export error handled: ${error.message}`);
+            }
+            
+            updateAPILog(results);
+            updateStatus('initialization-status', 'Error handling test completed!', 'success');
+        }
+
+        function showAPIDocumentation() {
+            const docs = [
+                '📚 Interaction API Documentation:',
+                '',
+                '🎯 Drill-Down Methods:',
+                '• enableDrillDown(callback, options)',
+                '• disableDrillDown()',
+                '',
+                '📤 Export Methods:',
+                '• export(options) - Returns Promise<string|Blob>',
+                '• Formats: png, jpeg, webp, svg, pdf',
+                '',
+                '🎨 Theme Methods:',
+                '• applyTheme(theme) - theme: string|object',
+                '• Predefined: light, dark, corporate, vibrant',
+                '',
+                '📍 Annotation Methods:',
+                '• addAnnotations(annotations[])',
+                '• removeAnnotations(ids[])',
+                '',
+                '🔧 Utility Methods:',
+                '• updateData(newData)',
+                '• destroy()',
+                '',
+                '💡 All methods return the API object for chaining!'
+            ];
+            
+            updateAPILog(docs);
+        }
+
+        function updateAPILog(results) {
+            const logDiv = document.getElementById('api-log');
+            logDiv.innerHTML = results.map(result => `<p>${result}</p>`).join('');
+        }
+
+        // Performance testing
+        function testLargeDataset() {
+            try {
+                const largeData = {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 1000}, (_, i) => `Point ${i + 1}`),
+                        datasets: [{
+                            label: 'Large Dataset',
+                            data: Array.from({length: 1000}, () => Math.random() * 100 + 50),
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Large Dataset Test (1000 points)'
+                            }
+                        }
+                    }
+                };
+                
+                const startTime = performance.now();
+                chartRenderer.renderChart('performance-chart', largeData).then(() => {
+                    const endTime = performance.now();
+                    const renderTime = endTime - startTime;
+                    
+                    logPerformanceResult('Large Dataset', renderTime, '1000 data points');
+                    updateStatus('initialization-status', `Large dataset rendered in ${renderTime.toFixed(2)}ms`, 'success');
+                });
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Large dataset test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testEmptyData() {
+            try {
+                const emptyData = {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Empty Dataset Test'
+                            }
+                        }
+                    }
+                };
+                
+                chartRenderer.renderChart('performance-chart', emptyData);
+                logPerformanceResult('Empty Dataset', 0, 'No data points');
+                updateStatus('initialization-status', 'Empty dataset handled successfully', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Empty dataset test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testRapidUpdates() {
+            try {
+                let updateCount = 0;
+                const maxUpdates = 10;
+                const startTime = performance.now();
+                
+                const interval = setInterval(() => {
+                    const newData = {
+                        labels: sampleData.revenue.data.labels,
+                        datasets: [{
+                            ...sampleData.revenue.data.datasets[0],
+                            data: sampleData.revenue.data.datasets[0].data.map(() => 
+                                Math.random() * 200 + 100
+                            )
+                        }]
+                    };
+                    
+                    chartRenderer.updateChart('performance-chart', newData);
+                    updateCount++;
+                    
+                    if (updateCount >= maxUpdates) {
+                        clearInterval(interval);
+                        const endTime = performance.now();
+                        const totalTime = endTime - startTime;
+                        
+                        logPerformanceResult('Rapid Updates', totalTime, `${maxUpdates} updates`);
+                        updateStatus('initialization-status', `${maxUpdates} rapid updates completed in ${totalTime.toFixed(2)}ms`, 'success');
+                    }
+                }, 100);
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Rapid updates test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function measurePerformance() {
+            try {
+                const metrics = chartRenderer.getPerformanceMetrics();
+                
+                const performanceInfo = [
+                    `📊 Performance Metrics:`,
+                    `• Total Charts: ${metrics.totalCharts}`,
+                    `• Failed Renders: ${metrics.failedRenders}`,
+                    `• Success Rate: ${metrics.successRate}`,
+                    `• Average Render Time: ${metrics.averageRenderTime.toFixed(2)}ms`,
+                    `• Render Samples: ${metrics.renderTimes.length}`,
+                    `• Min Render Time: ${Math.min(...metrics.renderTimes).toFixed(2)}ms`,
+                    `• Max Render Time: ${Math.max(...metrics.renderTimes).toFixed(2)}ms`
+                ];
+                
+                logPerformanceResult('System Metrics', 0, performanceInfo.join('\n'));
+                updateStatus('initialization-status', 'Performance metrics collected', 'success');
+                
+            } catch (error) {
+                updateStatus('initialization-status', `Performance measurement failed: ${error.message}`, 'error');
+            }
+        }
+
+        function logPerformanceResult(testName, time, details) {
+            const logDiv = document.getElementById('performance-log');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `
+                <p><strong>${timestamp} - ${testName}</strong></p>
+                <p>Time: ${time.toFixed(2)}ms</p>
+                <p>Details: ${details}</p>
+                <hr>
+            `;
+            
+            logDiv.insertBefore(logEntry, logDiv.firstChild);
+        }
+
+        // Utility functions
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>

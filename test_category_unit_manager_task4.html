@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Category Unit Manager - Task 4</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        .success-item {
+            background-color: #d1edff;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .error-item {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .warning-item {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .test-data {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .item-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .item-badge {
+            background-color: #e9ecef;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Test Category Unit Manager - Task 4</h1>
+        <p class="lead">Testing category dan unit management dengan auto-creation capability</p>
+
+        <!-- Test 1: Basic CRUD Operations -->
+        <div class="test-section">
+            <h3>Test 1: Basic CRUD Operations</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Categories</h5>
+                    <div class="mb-3">
+                        <input type="text" id="newCategoryInput" class="form-control" placeholder="New category name">
+                        <button class="btn btn-primary mt-2" onclick="testCreateCategory()">Create Category</button>
+                        <button class="btn btn-danger mt-2" onclick="testDeleteCategory()">Delete Category</button>
+                    </div>
+                    <div id="categoriesList" class="item-list mb-3"></div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Units</h5>
+                    <div class="mb-3">
+                        <input type="text" id="newUnitInput" class="form-control" placeholder="New unit name">
+                        <button class="btn btn-primary mt-2" onclick="testCreateUnit()">Create Unit</button>
+                        <button class="btn btn-danger mt-2" onclick="testDeleteUnit()">Delete Unit</button>
+                    </div>
+                    <div id="unitsList" class="item-list mb-3"></div>
+                </div>
+            </div>
+            <div id="crudResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 2: Auto-Creation from Data -->
+        <div class="test-section">
+            <h3>Test 2: Auto-Creation from Upload Data</h3>
+            <button class="btn btn-primary" onclick="testAutoCreation()">Test Auto-Creation</button>
+            <div id="autoCreationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 3: Usage Validation -->
+        <div class="test-section">
+            <h3>Test 3: Usage Validation</h3>
+            <button class="btn btn-primary" onclick="testUsageValidation()">Test Usage Validation</button>
+            <div id="usageValidationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 4: Storage Persistence -->
+        <div class="test-section">
+            <h3>Test 4: Storage Persistence</h3>
+            <button class="btn btn-primary" onclick="testStoragePersistence()">Test Storage Persistence</button>
+            <button class="btn btn-warning" onclick="testResetToDefaults()">Reset to Defaults</button>
+            <div id="storageResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 5: Configuration Import/Export -->
+        <div class="test-section">
+            <h3>Test 5: Configuration Import/Export</h3>
+            <button class="btn btn-primary" onclick="testExportConfiguration()">Export Configuration</button>
+            <button class="btn btn-success" onclick="testImportConfiguration()">Import Test Configuration</button>
+            <div id="configResult" class="mt-3"></div>
+        </div>
+
+        <!-- Test 6: Statistics -->
+        <div class="test-section">
+            <h3>Test 6: Statistics</h3>
+            <button class="btn btn-primary" onclick="testStatistics()">Get Statistics</button>
+            <div id="statisticsResult" class="mt-3"></div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <button class="btn btn-success btn-lg" onclick="runAllTests()">Run All Category Unit Tests</button>
+            <div id="allTestsResult" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Include CategoryUnitManager -->
+    <script src="js/upload-excel/CategoryUnitManager.js"></script>
+
+    <script>
+        let categoryUnitManager;
+
+        // Initialize components
+        document.addEventListener('DOMContentLoaded', function() {
+            categoryUnitManager = new CategoryUnitManager();
+            updateDisplays();
+            console.log('CategoryUnitManager initialized');
+        });
+
+        function updateDisplays() {
+            // Update categories display
+            const categories = categoryUnitManager.getCategories();
+            const categoriesHtml = categories.map(cat => 
+                `<span class="item-badge">${cat}</span>`
+            ).join('');
+            document.getElementById('categoriesList').innerHTML = categoriesHtml;
+
+            // Update units display
+            const units = categoryUnitManager.getUnits();
+            const unitsHtml = units.map(unit => 
+                `<span class="item-badge">${unit}</span>`
+            ).join('');
+            document.getElementById('unitsList').innerHTML = unitsHtml;
+        }
+
+        function displayResult(containerId, result, testData = null) {
+            const container = document.getElementById(containerId);
+            let html = '';
+
+            if (testData) {
+                html += '<h5>Test Data:</h5>';
+                html += `<div class="test-data">${JSON.stringify(testData, null, 2)}</div>`;
+            }
+
+            if (typeof result === 'object') {
+                html += '<h5>Result:</h5>';
+                html += `<div class="test-data">${JSON.stringify(result, null, 2)}</div>`;
+            } else {
+                html += `<div class="success-item">${result}</div>`;
+            }
+
+            container.innerHTML = html;
+            updateDisplays();
+        }
+
+        function testCreateCategory() {
+            const input = document.getElementById('newCategoryInput');
+            const categoryName = input.value.trim();
+            
+            if (!categoryName) {
+                displayResult('crudResult', 'Please enter a category name');
+                return;
+            }
+
+            const success = categoryUnitManager.createCategory(categoryName);
+            const result = {
+                action: 'Create Category',
+                input: categoryName,
+                success: success,
+                message: success ? 'Category created successfully' : 'Failed to create category (may already exist)'
+            };
+
+            displayResult('crudResult', result);
+            input.value = '';
+        }
+
+        function testDeleteCategory() {
+            const input = document.getElementById('newCategoryInput');
+            const categoryName = input.value.trim();
+            
+            if (!categoryName) {
+                displayResult('crudResult', 'Please enter a category name to delete');
+                return;
+            }
+
+            const success = categoryUnitManager.deleteCategory(categoryName);
+            const result = {
+                action: 'Delete Category',
+                input: categoryName,
+                success: success,
+                message: success ? 'Category deleted successfully' : 'Failed to delete category (may not exist or in use)'
+            };
+
+            displayResult('crudResult', result);
+            input.value = '';
+        }
+
+        function testCreateUnit() {
+            const input = document.getElementById('newUnitInput');
+            const unitName = input.value.trim();
+            
+            if (!unitName) {
+                displayResult('crudResult', 'Please enter a unit name');
+                return;
+            }
+
+            const success = categoryUnitManager.createUnit(unitName);
+            const result = {
+                action: 'Create Unit',
+                input: unitName,
+                success: success,
+                message: success ? 'Unit created successfully' : 'Failed to create unit (may already exist)'
+            };
+
+            displayResult('crudResult', result);
+            input.value = '';
+        }
+
+        function testDeleteUnit() {
+            const input = document.getElementById('newUnitInput');
+            const unitName = input.value.trim();
+            
+            if (!unitName) {
+                displayResult('crudResult', 'Please enter a unit name to delete');
+                return;
+            }
+
+            const success = categoryUnitManager.deleteUnit(unitName);
+            const result = {
+                action: 'Delete Unit',
+                input: unitName,
+                success: success,
+                message: success ? 'Unit deleted successfully' : 'Failed to delete unit (may not exist or in use)'
+            };
+
+            displayResult('crudResult', result);
+            input.value = '';
+        }
+
+        function testAutoCreation() {
+            // Create test data with new categories and units
+            const testData = [
+                { kode: 'TEST001', nama: 'Test Product 1', kategori: 'new-category-1', satuan: 'new-unit-1', harga_beli: 1000, stok: 10 },
+                { kode: 'TEST002', nama: 'Test Product 2', kategori: 'new-category-2', satuan: 'new-unit-2', harga_beli: 2000, stok: 5 },
+                { kode: 'TEST003', nama: 'Test Product 3', kategori: 'elektronik', satuan: 'pcs', harga_beli: 1500, stok: 8 }, // Existing
+                { kode: 'TEST004', nama: 'Test Product 4', kategori: 'new-category-1', satuan: 'new-unit-3', harga_beli: 3000, stok: 12 } // Duplicate category
+            ];
+
+            // Detect new items
+            const detectionResult = categoryUnitManager.autoCreateFromData(testData);
+            
+            // Auto-create new items
+            const creationResult = categoryUnitManager.autoCreateNewItems(
+                detectionResult.newCategories,
+                detectionResult.newUnits
+            );
+
+            const result = {
+                testData: testData,
+                detection: detectionResult,
+                creation: creationResult,
+                finalCounts: {
+                    categories: categoryUnitManager.getCategories().length,
+                    units: categoryUnitManager.getUnits().length
+                }
+            };
+
+            displayResult('autoCreationResult', result);
+        }
+
+        function testUsageValidation() {
+            // Create some test data in localStorage to simulate existing barang
+            const existingBarang = [
+                { kode: 'EXISTING001', nama: 'Existing Product 1', kategori: 'elektronik', satuan: 'pcs' },
+                { kode: 'EXISTING002', nama: 'Existing Product 2', kategori: 'makanan', satuan: 'kg' }
+            ];
+            localStorage.setItem('master_barang', JSON.stringify(existingBarang));
+
+            // Test usage validation
+            const categoryUsage = {
+                elektronik: categoryUnitManager.validateCategoryUsage('elektronik'),
+                makanan: categoryUnitManager.validateCategoryUsage('makanan'),
+                'non-existent': categoryUnitManager.validateCategoryUsage('non-existent')
+            };
+
+            const unitUsage = {
+                pcs: categoryUnitManager.validateUnitUsage('pcs'),
+                kg: categoryUnitManager.validateUnitUsage('kg'),
+                'non-existent': categoryUnitManager.validateUnitUsage('non-existent')
+            };
+
+            const result = {
+                existingData: existingBarang,
+                categoryUsage: categoryUsage,
+                unitUsage: unitUsage
+            };
+
+            displayResult('usageValidationResult', result);
+        }
+
+        function testStoragePersistence() {
+            // Create a new manager to test loading from storage
+            const newManager = new CategoryUnitManager();
+            
+            const result = {
+                originalCategories: categoryUnitManager.getCategories(),
+                originalUnits: categoryUnitManager.getUnits(),
+                loadedCategories: newManager.getCategories(),
+                loadedUnits: newManager.getUnits(),
+                categoriesMatch: JSON.stringify(categoryUnitManager.getCategories()) === JSON.stringify(newManager.getCategories()),
+                unitsMatch: JSON.stringify(categoryUnitManager.getUnits()) === JSON.stringify(newManager.getUnits())
+            };
+
+            displayResult('storageResult', result);
+        }
+
+        function testResetToDefaults() {
+            const beforeReset = {
+                categories: categoryUnitManager.getCategories().length,
+                units: categoryUnitManager.getUnits().length
+            };
+
+            const success = categoryUnitManager.resetToDefaults();
+
+            const afterReset = {
+                categories: categoryUnitManager.getCategories().length,
+                units: categoryUnitManager.getUnits().length
+            };
+
+            const result = {
+                success: success,
+                beforeReset: beforeReset,
+                afterReset: afterReset,
+                resetCategories: categoryUnitManager.getCategories(),
+                resetUnits: categoryUnitManager.getUnits()
+            };
+
+            displayResult('storageResult', result);
+        }
+
+        function testExportConfiguration() {
+            const config = categoryUnitManager.exportConfiguration();
+            
+            // Store in a global variable for import test
+            window.testConfig = config;
+            
+            displayResult('configResult', config);
+        }
+
+        function testImportConfiguration() {
+            const testConfig = {
+                categories: ['imported-cat-1', 'imported-cat-2', 'elektronik'],
+                units: ['imported-unit-1', 'imported-unit-2', 'pcs'],
+                timestamp: new Date().toISOString(),
+                version: '1.0.0'
+            };
+
+            const success = categoryUnitManager.importConfiguration(testConfig);
+
+            const result = {
+                success: success,
+                importedConfig: testConfig,
+                finalCategories: categoryUnitManager.getCategories(),
+                finalUnits: categoryUnitManager.getUnits()
+            };
+
+            displayResult('configResult', result);
+        }
+
+        function testStatistics() {
+            const stats = categoryUnitManager.getStatistics();
+            displayResult('statisticsResult', stats);
+        }
+
+        function runAllTests() {
+            console.log('Running all category unit manager tests...');
+            
+            const startTime = Date.now();
+            
+            // Run all tests in sequence
+            setTimeout(() => testAutoCreation(), 100);
+            setTimeout(() => testUsageValidation(), 200);
+            setTimeout(() => testStoragePersistence(), 300);
+            setTimeout(() => testExportConfiguration(), 400);
+            setTimeout(() => testImportConfiguration(), 500);
+            setTimeout(() => testStatistics(), 600);
+            
+            setTimeout(() => {
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                document.getElementById('allTestsResult').innerHTML = 
+                    `<div class="success-item">
+                        <strong>All tests completed!</strong><br>
+                        Duration: ${duration}ms<br>
+                        Check individual test results above.
+                    </div>`;
+            }, 700);
+        }
+    </script>
+</body>
+</html>

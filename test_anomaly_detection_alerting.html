@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Detection & Alerting Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .test-content {
+            padding: 20px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .results {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .anomaly-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .anomaly-critical {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+        
+        .anomaly-warning {
+            border-left: 4px solid #ffc107;
+            background: #fffbf0;
+        }
+        
+        .anomaly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .severity-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .chart-container {
+            margin: 20px 0;
+            height: 300px;
+            position: relative;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .alert-panel {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .alert-critical {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .config-panel {
+            background: #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .config-row {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 15px;
+        }
+        
+        .config-label {
+            min-width: 150px;
+            font-weight: 500;
+        }
+        
+        .config-input {
+            padding: 5px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            width: 100px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-normal { background: #28a745; }
+        .status-warning { background: #ffc107; }
+        .status-critical { background: #dc3545; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Anomaly Detection & Alerting</h1>
+            <p>Advanced statistical anomaly detection and threshold-based alerting system</p>
+        </div>
+        
+        <div class="content">
+            <!-- Configuration Panel -->
+            <div class="test-section">
+                <div class="test-header">⚙️ Configuration</div>
+                <div class="test-content">
+                    <div class="config-panel">
+                        <div class="config-row">
+                            <span class="config-label">Z-Score Threshold:</span>
+                            <input type="number" id="zScoreThreshold" class="config-input" value="2.5" step="0.1">
+                        </div>
+                        <div class="config-row">
+                            <span class="config-label">IQR Multiplier:</span>
+                            <input type="number" id="iqrMultiplier" class="config-input" value="1.5" step="0.1">
+                        </div>
+                        <div class="config-row">
+                            <span class="config-label">Trend Change Threshold:</span>
+                            <input type="number" id="trendChangeThreshold" class="config-input" value="0.2" step="0.05">
+                        </div>
+                        <div class="config-row">
+                            <span class="config-label">Min Data Points:</span>
+                            <input type="number" id="minDataPoints" class="config-input" value="10" step="1">
+                        </div>
+                        <button class="btn btn-primary" onclick="updateConfiguration()">Update Configuration</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Generation -->
+            <div class="test-section">
+                <div class="test-header">📊 Test Data Generation</div>
+                <div class="test-content">
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="generateNormalData()">Generate Normal Data</button>
+                        <button class="btn btn-warning" onclick="generateDataWithOutliers()">Add Outliers</button>
+                        <button class="btn btn-danger" onclick="generateDataWithTrendChange()">Add Trend Change</button>
+                        <button class="btn btn-success" onclick="generateFinancialScenario()">Financial Scenario</button>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="dataChart"></canvas>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="dataPointsCount">0</div>
+                            <div class="metric-label">Data Points</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="dataMean">0</div>
+                            <div class="metric-label">Mean Value</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="dataStdDev">0</div>
+                            <div class="metric-label">Std Deviation</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="dataRange">0</div>
+                            <div class="metric-label">Range</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anomaly Detection -->
+            <div class="test-section">
+                <div class="test-header">🔍 Anomaly Detection</div>
+                <div class="test-content">
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="runAnomalyDetection()">Run Detection</button>
+                        <button class="btn btn-success" onclick="runAllMethods()">Test All Methods</button>
+                        <button class="btn btn-warning" onclick="testThresholds()">Test Thresholds</button>
+                        <button class="btn btn-danger" onclick="testTrendDetection()">Test Trend Detection</button>
+                    </div>
+                    
+                    <div id="anomalyResults"></div>
+                </div>
+            </div>
+
+            <!-- Alerting System -->
+            <div class="test-section">
+                <div class="test-header">🔔 Alerting System</div>
+                <div class="test-content">
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="subscribeToAlerts()">Subscribe to Alerts</button>
+                        <button class="btn btn-warning" onclick="simulateAlerts()">Simulate Alerts</button>
+                        <button class="btn btn-danger" onclick="testCriticalAlerts()">Test Critical Alerts</button>
+                        <button class="btn btn-success" onclick="clearAlerts()">Clear Alert History</button>
+                    </div>
+                    
+                    <div id="alertsPanel"></div>
+                </div>
+            </div>
+
+            <!-- Performance Testing -->
+            <div class="test-section">
+                <div class="test-header">⚡ Performance Testing</div>
+                <div class="test-content">
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="testPerformance()">Test Performance</button>
+                        <button class="btn btn-warning" onclick="testLargeDataset()">Large Dataset Test</button>
+                        <button class="btn btn-success" onclick="testRealTimeDetection()">Real-time Detection</button>
+                    </div>
+                    
+                    <div id="performanceResults"></div>
+                </div>
+            </div>
+
+            <!-- Integration Testing -->
+            <div class="test-section">
+                <div class="test-header">🔗 Integration Testing</div>
+                <div class="test-content">
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="testIntegration()">Full Integration Test</button>
+                        <button class="btn btn-success" onclick="testErrorHandling()">Error Handling</button>
+                        <button class="btn btn-warning" onclick="testEdgeCases()">Edge Cases</button>
+                    </div>
+                    
+                    <div id="integrationResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/dashboard/AnomalyDetector.js"></script>
+    
+    <script>
+        // Global variables
+        let anomalyDetector;
+        let testData = [];
+        let dataChart;
+        let alertSubscriptions = [];
+
+        // Initialize the test environment
+        function initializeTest() {
+            // Create anomaly detector instance
+            anomalyDetector = new AnomalyDetector({
+                zScoreThreshold: 2.5,
+                iqrMultiplier: 1.5,
+                trendChangeThreshold: 0.2,
+                minDataPoints: 10,
+                alertCooldown: 5000 // 5 seconds for testing
+            });
+
+            // Initialize chart
+            initializeChart();
+            
+            // Generate initial data
+            generateNormalData();
+            
+            console.log('Anomaly Detection Test initialized');
+        }
+
+        // Initialize the data visualization chart
+        function initializeChart() {
+            const ctx = document.getElementById('dataChart').getContext('2d');
+            
+            dataChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Data Values',
+                        data: [],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.1
+                    }, {
+                        label: 'Anomalies',
+                        data: [],
+                        backgroundColor: '#dc3545',
+                        borderColor: '#dc3545',
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        showLine: false,
+                        type: 'scatter'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 1) {
+                                        return `Anomaly: ${context.parsed.y}`;
+                                    }
+                                    return `Value: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update configuration
+        function updateConfiguration() {
+            const config = {
+                zScoreThreshold: parseFloat(document.getElementById('zScoreThreshold').value),
+                iqrMultiplier: parseFloat(document.getElementById('iqrMultiplier').value),
+                trendChangeThreshold: parseFloat(document.getElementById('trendChangeThreshold').value),
+                minDataPoints: parseInt(document.getElementById('minDataPoints').value)
+            };
+            
+            anomalyDetector.updateConfig(config);
+            
+            showResults('Configuration updated successfully', 'anomalyResults');
+        }
+
+        // Generate normal data
+        function generateNormalData() {
+            const mean = 100;
+            const stdDev = 15;
+            const count = 50;
+            
+            testData = [];
+            
+            for (let i = 0; i < count; i++) {
+                // Generate normal distribution using Box-Muller transform
+                const u1 = Math.random();
+                const u2 = Math.random();
+                const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                
+                const value = mean + (z0 * stdDev);
+                testData.push({
+                    value: Math.round(value * 100) / 100,
+                    timestamp: new Date(Date.now() - (count - i) * 86400000) // Daily data
+                });
+            }
+            
+            updateChart();
+            updateDataMetrics();
+        }
+
+        // Generate data with outliers
+        function generateDataWithOutliers() {
+            if (testData.length === 0) {
+                generateNormalData();
+            }
+            
+            // Add some outliers
+            const outlierIndices = [10, 25, 40];
+            
+            outlierIndices.forEach(index => {
+                if (index < testData.length) {
+                    // Create significant outlier
+                    testData[index].value = testData[index].value * (Math.random() > 0.5 ? 3 : 0.3);
+                }
+            });
+            
+            updateChart();
+            updateDataMetrics();
+        }
+
+        // Generate data with trend change
+        function generateDataWithTrendChange() {
+            if (testData.length === 0) {
+                generateNormalData();
+            }
+            
+            // Add trend change in the middle
+            const changePoint = Math.floor(testData.length / 2);
+            const trendChange = 5; // Units per day
+            
+            for (let i = changePoint; i < testData.length; i++) {
+                testData[i].value += (i - changePoint) * trendChange;
+            }
+            
+            updateChart();
+            updateDataMetrics();
+        }
+
+        // Generate financial scenario data
+        function generateFinancialScenario() {
+            testData = [];
+            
+            // Simulate financial health score over time
+            let baseScore = 75;
+            const volatility = 5;
+            
+            for (let i = 0; i < 60; i++) {
+                // Add some realistic financial patterns
+                let dailyChange = (Math.random() - 0.5) * volatility;
+                
+                // Simulate market events
+                if (i === 20) dailyChange -= 15; // Market crash
+                if (i === 35) dailyChange += 10; // Recovery
+                if (i === 50) dailyChange -= 8;  // Another dip
+                
+                baseScore += dailyChange;
+                baseScore = Math.max(0, Math.min(100, baseScore)); // Clamp to 0-100
+                
+                testData.push({
+                    value: Math.round(baseScore * 100) / 100,
+                    timestamp: new Date(Date.now() - (60 - i) * 86400000)
+                });
+            }
+            
+            updateChart();
+            updateDataMetrics();
+        }
+
+        // Update chart with current data
+        function updateChart() {
+            const labels = testData.map((_, index) => `Day ${index + 1}`);
+            const values = testData.map(d => d.value);
+            
+            dataChart.data.labels = labels;
+            dataChart.data.datasets[0].data = values;
+            dataChart.data.datasets[1].data = []; // Clear anomalies
+            
+            dataChart.update();
+        }
+
+        // Update data metrics display
+        function updateDataMetrics() {
+            if (testData.length === 0) return;
+            
+            const values = testData.map(d => d.value);
+            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            
+            document.getElementById('dataPointsCount').textContent = testData.length;
+            document.getElementById('dataMean').textContent = mean.toFixed(2);
+            document.getElementById('dataStdDev').textContent = stdDev.toFixed(2);
+            document.getElementById('dataRange').textContent = `${min.toFixed(1)} - ${max.toFixed(1)}`;
+        }
+
+        // Run anomaly detection
+        function runAnomalyDetection() {
+            if (testData.length === 0) {
+                showResults('No data available. Please generate test data first.', 'anomalyResults');
+                return;
+            }
+            
+            const startTime = performance.now();
+            const result = anomalyDetector.detectAnomalies(testData, 'financial_health_score');
+            const endTime = performance.now();
+            
+            // Update chart with anomalies
+            const anomalyPoints = result.anomalies.map(anomaly => ({
+                x: anomaly.index,
+                y: anomaly.value
+            }));
+            
+            dataChart.data.datasets[1].data = anomalyPoints;
+            dataChart.update();
+            
+            // Display results
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <div class="anomaly-header">
+                        <h4>Detection Results</h4>
+                        <span class="severity-badge ${result.anomalies.length > 0 ? 'severity-warning' : 'severity-normal'}">
+                            ${result.anomalies.length} Anomalies
+                        </span>
+                    </div>
+                    <p><strong>Method:</strong> ${result.method}</p>
+                    <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Processing Time:</strong> ${(endTime - startTime).toFixed(2)}ms</p>
+                    <p><strong>Summary:</strong> ${result.summary}</p>
+                    
+                    ${result.anomalies.length > 0 ? `
+                        <h5>Detected Anomalies:</h5>
+                        ${result.anomalies.map(anomaly => `
+                            <div class="anomaly-item anomaly-${anomaly.severity}">
+                                <strong>Index ${anomaly.index}:</strong> ${anomaly.description}<br>
+                                <small>Value: ${anomaly.value}, Severity: ${anomaly.severity}, Method: ${anomaly.method}</small>
+                            </div>
+                        `).join('')}
+                    ` : ''}
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'anomalyResults');
+        }
+
+        // Test all detection methods
+        function runAllMethods() {
+            if (testData.length === 0) {
+                showResults('No data available. Please generate test data first.', 'anomalyResults');
+                return;
+            }
+            
+            const values = testData.map(d => d.value);
+            const timestamps = testData.map(d => d.timestamp);
+            
+            // Test individual methods
+            const zScoreResult = anomalyDetector.detectZScoreAnomalies(values, timestamps);
+            const iqrResult = anomalyDetector.detectIQRAnomalies(values, timestamps);
+            const thresholdResult = anomalyDetector.detectThresholdAnomalies(values, timestamps, 'financial_health_score');
+            const trendResult = anomalyDetector.detectTrendAnomalies(values, timestamps);
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Z-Score Method</h4>
+                    <p>Anomalies: ${zScoreResult.anomalies.length}, Confidence: ${(zScoreResult.confidence * 100).toFixed(1)}%</p>
+                    <p>Threshold: ${anomalyDetector.getConfig().zScoreThreshold}</p>
+                </div>
+                
+                <div class="anomaly-item">
+                    <h4>IQR Method</h4>
+                    <p>Anomalies: ${iqrResult.anomalies.length}, Confidence: ${(iqrResult.confidence * 100).toFixed(1)}%</p>
+                    <p>Multiplier: ${anomalyDetector.getConfig().iqrMultiplier}</p>
+                </div>
+                
+                <div class="anomaly-item">
+                    <h4>Threshold Method</h4>
+                    <p>Anomalies: ${thresholdResult.anomalies.length}, Confidence: ${(thresholdResult.confidence * 100).toFixed(1)}%</p>
+                </div>
+                
+                <div class="anomaly-item">
+                    <h4>Trend Change Method</h4>
+                    <p>Anomalies: ${trendResult.anomalies.length}, Confidence: ${(trendResult.confidence * 100).toFixed(1)}%</p>
+                    <p>Threshold: ${anomalyDetector.getConfig().trendChangeThreshold}</p>
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'anomalyResults');
+        }
+
+        // Test threshold detection
+        function testThresholds() {
+            // Set custom thresholds
+            anomalyDetector.setThreshold('test_metric', {
+                min: 50,
+                max: 150,
+                critical: 30
+            });
+            
+            // Generate test data with threshold violations
+            const testValues = [25, 45, 75, 100, 125, 160, 180, 90, 110, 20];
+            const result = anomalyDetector.detectThresholdAnomalies(testValues, null, 'test_metric');
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Threshold Detection Test</h4>
+                    <p>Test Values: [${testValues.join(', ')}]</p>
+                    <p>Thresholds: Min=50, Max=150, Critical=30</p>
+                    <p>Detected Anomalies: ${result.anomalies.length}</p>
+                    
+                    ${result.anomalies.map(anomaly => `
+                        <div class="anomaly-item anomaly-${anomaly.severity}">
+                            <strong>Value ${anomaly.value}:</strong> ${anomaly.violation}<br>
+                            <small>Severity: ${anomaly.severity}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'anomalyResults');
+        }
+
+        // Test trend detection
+        function testTrendDetection() {
+            // Generate data with clear trend changes
+            const trendData = [];
+            
+            // Stable period
+            for (let i = 0; i < 10; i++) {
+                trendData.push(100 + Math.random() * 5);
+            }
+            
+            // Upward trend
+            for (let i = 0; i < 10; i++) {
+                trendData.push(100 + i * 3 + Math.random() * 5);
+            }
+            
+            // Sudden drop
+            for (let i = 0; i < 10; i++) {
+                trendData.push(80 - i * 2 + Math.random() * 5);
+            }
+            
+            const result = anomalyDetector.detectTrendAnomalies(trendData, null);
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Trend Change Detection Test</h4>
+                    <p>Data Points: ${trendData.length}</p>
+                    <p>Trend Changes Detected: ${result.anomalies.length}</p>
+                    
+                    ${result.anomalies.map(anomaly => `
+                        <div class="anomaly-item anomaly-${anomaly.severity}">
+                            <strong>Index ${anomaly.index}:</strong> ${anomaly.description}<br>
+                            <small>Before: ${anomaly.beforeTrend.toFixed(3)}, After: ${anomaly.afterTrend.toFixed(3)}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'anomalyResults');
+        }
+
+        // Subscribe to alerts
+        function subscribeToAlerts() {
+            // Clear existing subscriptions
+            alertSubscriptions = [];
+            
+            // Subscribe to different metrics
+            const metrics = ['financial_health_score', 'member_growth_rate', 'transaction_volume'];
+            
+            metrics.forEach(metric => {
+                anomalyDetector.subscribe(metric, (alert) => {
+                    alertSubscriptions.push(alert);
+                    displayAlert(alert);
+                });
+            });
+            
+            showResults('Subscribed to alerts for: ' + metrics.join(', '), 'alertsPanel');
+        }
+
+        // Simulate alerts
+        function simulateAlerts() {
+            // Generate data that will trigger alerts
+            const alertData = [
+                { metric: 'financial_health_score', values: [75, 70, 65, 25, 60, 65] }, // Critical drop
+                { metric: 'member_growth_rate', values: [0.05, 0.03, 0.02, -0.20, 0.01] }, // Negative growth
+                { metric: 'transaction_volume', values: [1000, 1100, 1200, 5000, 1150] } // Spike
+            ];
+            
+            alertData.forEach(({ metric, values }) => {
+                const result = anomalyDetector.detectAnomalies(values, metric);
+                // Alerts are automatically generated in detectAnomalies if anomalies are found
+            });
+        }
+
+        // Test critical alerts
+        function testCriticalAlerts() {
+            // Generate critical threshold violations
+            const criticalData = [15, 10, 5]; // Below critical threshold for financial_health_score
+            
+            anomalyDetector.detectAnomalies(criticalData, 'financial_health_score');
+            
+            showResults('Critical alert test completed. Check alerts panel for results.', 'alertsPanel');
+        }
+
+        // Clear alert history
+        function clearAlerts() {
+            alertSubscriptions = [];
+            
+            // Clear alert history in detector
+            const metrics = ['financial_health_score', 'member_growth_rate', 'transaction_volume'];
+            metrics.forEach(metric => {
+                anomalyDetector.clearAlertHistory(metric);
+            });
+            
+            document.getElementById('alertsPanel').innerHTML = '';
+            showResults('Alert history cleared', 'alertsPanel');
+        }
+
+        // Display alert
+        function displayAlert(alert) {
+            const alertHtml = `
+                <div class="alert-panel ${alert.severity === 'critical' ? 'alert-critical' : ''}">
+                    <div class="anomaly-header">
+                        <h4>🚨 ${alert.metric.replace('_', ' ').toUpperCase()} Alert</h4>
+                        <span class="severity-badge severity-${alert.severity}">${alert.severity}</span>
+                    </div>
+                    <p><strong>Message:</strong> ${alert.message}</p>
+                    <p><strong>Time:</strong> ${new Date(alert.timestamp).toLocaleString()}</p>
+                    <p><strong>Confidence:</strong> ${(alert.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Summary:</strong> ${alert.summary}</p>
+                </div>
+            `;
+            
+            const alertsPanel = document.getElementById('alertsPanel');
+            alertsPanel.innerHTML = alertHtml + alertsPanel.innerHTML;
+        }
+
+        // Test performance
+        function testPerformance() {
+            const sizes = [100, 500, 1000, 5000];
+            const results = [];
+            
+            sizes.forEach(size => {
+                // Generate test data
+                const perfData = Array.from({ length: size }, (_, i) => ({
+                    value: 100 + Math.sin(i / 10) * 20 + Math.random() * 10,
+                    timestamp: new Date(Date.now() - (size - i) * 86400000)
+                }));
+                
+                // Measure performance
+                const startTime = performance.now();
+                const result = anomalyDetector.detectAnomalies(perfData, 'test_metric');
+                const endTime = performance.now();
+                
+                results.push({
+                    size,
+                    time: endTime - startTime,
+                    anomalies: result.anomalies.length,
+                    confidence: result.confidence
+                });
+            });
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Performance Test Results</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 8px; border: 1px solid #dee2e6;">Data Size</th>
+                            <th style="padding: 8px; border: 1px solid #dee2e6;">Processing Time (ms)</th>
+                            <th style="padding: 8px; border: 1px solid #dee2e6;">Anomalies Found</th>
+                            <th style="padding: 8px; border: 1px solid #dee2e6;">Confidence</th>
+                        </tr>
+                        ${results.map(r => `
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #dee2e6;">${r.size}</td>
+                                <td style="padding: 8px; border: 1px solid #dee2e6;">${r.time.toFixed(2)}</td>
+                                <td style="padding: 8px; border: 1px solid #dee2e6;">${r.anomalies}</td>
+                                <td style="padding: 8px; border: 1px solid #dee2e6;">${(r.confidence * 100).toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'performanceResults');
+        }
+
+        // Test large dataset
+        function testLargeDataset() {
+            const largeSize = 10000;
+            
+            // Generate large dataset
+            const largeData = Array.from({ length: largeSize }, (_, i) => ({
+                value: 100 + Math.sin(i / 100) * 30 + Math.random() * 20,
+                timestamp: new Date(Date.now() - (largeSize - i) * 3600000) // Hourly data
+            }));
+            
+            // Add some anomalies
+            const anomalyIndices = [1000, 3000, 5000, 7000, 9000];
+            anomalyIndices.forEach(index => {
+                largeData[index].value *= 3; // Create outliers
+            });
+            
+            const startTime = performance.now();
+            const result = anomalyDetector.detectAnomalies(largeData, 'large_dataset_test');
+            const endTime = performance.now();
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Large Dataset Test (${largeSize} points)</h4>
+                    <p><strong>Processing Time:</strong> ${(endTime - startTime).toFixed(2)}ms</p>
+                    <p><strong>Anomalies Detected:</strong> ${result.anomalies.length}</p>
+                    <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Performance:</strong> ${(largeSize / (endTime - startTime) * 1000).toFixed(0)} points/second</p>
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'performanceResults');
+        }
+
+        // Test real-time detection
+        function testRealTimeDetection() {
+            let counter = 0;
+            const maxIterations = 20;
+            const interval = 500; // 500ms intervals
+            
+            const realTimeData = [];
+            
+            const intervalId = setInterval(() => {
+                // Generate new data point
+                const newValue = 100 + Math.sin(counter / 5) * 20 + Math.random() * 10;
+                
+                // Occasionally add anomalies
+                const anomalyValue = counter % 7 === 0 ? newValue * 2.5 : newValue;
+                
+                realTimeData.push({
+                    value: anomalyValue,
+                    timestamp: new Date()
+                });
+                
+                // Run detection on recent data
+                const recentData = realTimeData.slice(-15); // Last 15 points
+                const result = anomalyDetector.detectAnomalies(recentData, 'real_time_test');
+                
+                // Update display
+                const status = result.anomalies.length > 0 ? 'ANOMALY DETECTED' : 'Normal';
+                const statusClass = result.anomalies.length > 0 ? 'status-critical' : 'status-normal';
+                
+                const progressHtml = `
+                    <div class="anomaly-item">
+                        <h4>Real-time Detection Progress</h4>
+                        <p><span class="status-indicator ${statusClass}"></span><strong>Status:</strong> ${status}</p>
+                        <p><strong>Data Points:</strong> ${realTimeData.length}</p>
+                        <p><strong>Latest Value:</strong> ${anomalyValue.toFixed(2)}</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(counter / maxIterations) * 100}%"></div>
+                        </div>
+                        <p>Progress: ${counter}/${maxIterations}</p>
+                    </div>
+                `;
+                
+                showResults(progressHtml, 'performanceResults');
+                
+                counter++;
+                
+                if (counter >= maxIterations) {
+                    clearInterval(intervalId);
+                    
+                    const finalHtml = `
+                        <div class="anomaly-item">
+                            <h4>Real-time Detection Complete</h4>
+                            <p><strong>Total Data Points:</strong> ${realTimeData.length}</p>
+                            <p><strong>Total Anomalies:</strong> ${realTimeData.filter((_, i) => i % 7 === 0).length} expected</p>
+                            <p><strong>Test Duration:</strong> ${(maxIterations * interval / 1000).toFixed(1)} seconds</p>
+                        </div>
+                    `;
+                    
+                    showResults(finalHtml, 'performanceResults');
+                }
+            }, interval);
+        }
+
+        // Test integration
+        function testIntegration() {
+            const integrationTests = [
+                {
+                    name: 'Configuration Update',
+                    test: () => {
+                        const oldConfig = anomalyDetector.getConfig();
+                        anomalyDetector.updateConfig({ zScoreThreshold: 3.0 });
+                        const newConfig = anomalyDetector.getConfig();
+                        return newConfig.zScoreThreshold === 3.0 && oldConfig.zScoreThreshold !== 3.0;
+                    }
+                },
+                {
+                    name: 'Threshold Management',
+                    test: () => {
+                        anomalyDetector.setThreshold('integration_test', { min: 10, max: 90 });
+                        const testData = [5, 50, 95];
+                        const result = anomalyDetector.detectThresholdAnomalies(testData, null, 'integration_test');
+                        return result.anomalies.length === 2; // 5 and 95 should be anomalies
+                    }
+                },
+                {
+                    name: 'Alert Subscription',
+                    test: () => {
+                        let alertReceived = false;
+                        anomalyDetector.subscribe('integration_alert_test', () => {
+                            alertReceived = true;
+                        });
+                        
+                        // Generate data that should trigger alert
+                        const alertData = [10, 15, 200]; // 200 should be anomaly
+                        anomalyDetector.detectAnomalies(alertData, 'integration_alert_test');
+                        
+                        return alertReceived;
+                    }
+                },
+                {
+                    name: 'Multiple Method Consistency',
+                    test: () => {
+                        const consistentData = Array.from({ length: 20 }, () => 100 + Math.random() * 5);
+                        consistentData[10] = 200; // Clear outlier
+                        
+                        const result = anomalyDetector.detectAnomalies(consistentData, 'consistency_test');
+                        return result.anomalies.length > 0 && result.confidence > 0.5;
+                    }
+                }
+            ];
+            
+            const results = integrationTests.map(test => {
+                try {
+                    const passed = test.test();
+                    return { name: test.name, passed, error: null };
+                } catch (error) {
+                    return { name: test.name, passed: false, error: error.message };
+                }
+            });
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Integration Test Results</h4>
+                    ${results.map(result => `
+                        <div class="anomaly-item ${result.passed ? 'anomaly-normal' : 'anomaly-critical'}">
+                            <span class="status-indicator ${result.passed ? 'status-normal' : 'status-critical'}"></span>
+                            <strong>${result.name}:</strong> ${result.passed ? 'PASSED' : 'FAILED'}
+                            ${result.error ? `<br><small>Error: ${result.error}</small>` : ''}
+                        </div>
+                    `).join('')}
+                    <p><strong>Overall:</strong> ${results.filter(r => r.passed).length}/${results.length} tests passed</p>
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'integrationResults');
+        }
+
+        // Test error handling
+        function testErrorHandling() {
+            const errorTests = [
+                {
+                    name: 'Empty Data',
+                    test: () => {
+                        const result = anomalyDetector.detectAnomalies([], 'empty_test');
+                        return result.method === 'insufficient_data' && result.anomalies.length === 0;
+                    }
+                },
+                {
+                    name: 'Insufficient Data',
+                    test: () => {
+                        const smallData = [1, 2, 3]; // Less than minDataPoints
+                        const result = anomalyDetector.detectAnomalies(smallData, 'small_test');
+                        return result.method === 'insufficient_data';
+                    }
+                },
+                {
+                    name: 'Invalid Threshold',
+                    test: () => {
+                        try {
+                            anomalyDetector.setThreshold('invalid_test', null);
+                            return true; // Should handle gracefully
+                        } catch (error) {
+                            return false;
+                        }
+                    }
+                },
+                {
+                    name: 'Constant Data',
+                    test: () => {
+                        const constantData = Array(20).fill(100);
+                        const result = anomalyDetector.detectAnomalies(constantData, 'constant_test');
+                        return result.anomalies.length === 0; // No anomalies in constant data
+                    }
+                }
+            ];
+            
+            const results = errorTests.map(test => {
+                try {
+                    const passed = test.test();
+                    return { name: test.name, passed, error: null };
+                } catch (error) {
+                    return { name: test.name, passed: false, error: error.message };
+                }
+            });
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Error Handling Test Results</h4>
+                    ${results.map(result => `
+                        <div class="anomaly-item ${result.passed ? 'anomaly-normal' : 'anomaly-critical'}">
+                            <span class="status-indicator ${result.passed ? 'status-normal' : 'status-critical'}"></span>
+                            <strong>${result.name}:</strong> ${result.passed ? 'PASSED' : 'FAILED'}
+                            ${result.error ? `<br><small>Error: ${result.error}</small>` : ''}
+                        </div>
+                    `).join('')}
+                    <p><strong>Overall:</strong> ${results.filter(r => r.passed).length}/${results.length} tests passed</p>
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'integrationResults');
+        }
+
+        // Test edge cases
+        function testEdgeCases() {
+            const edgeTests = [
+                {
+                    name: 'Single Outlier',
+                    test: () => {
+                        const data = Array(19).fill(100);
+                        data.push(500); // Single extreme outlier
+                        const result = anomalyDetector.detectAnomalies(data, 'single_outlier_test');
+                        return result.anomalies.length === 1;
+                    }
+                },
+                {
+                    name: 'All Outliers',
+                    test: () => {
+                        const data = [1, 2, 3, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
+                        const result = anomalyDetector.detectAnomalies(data, 'all_outliers_test');
+                        return result.anomalies.length > 0;
+                    }
+                },
+                {
+                    name: 'Negative Values',
+                    test: () => {
+                        const data = [-100, -50, -25, 0, 25, 50, 100, -200];
+                        const result = anomalyDetector.detectAnomalies(data, 'negative_test');
+                        return result.anomalies.length >= 0; // Should handle negative values
+                    }
+                },
+                {
+                    name: 'Very Large Numbers',
+                    test: () => {
+                        const data = [1e6, 1.1e6, 0.9e6, 1.05e6, 5e6]; // Last one is outlier
+                        const result = anomalyDetector.detectAnomalies(data, 'large_numbers_test');
+                        return result.anomalies.length > 0;
+                    }
+                }
+            ];
+            
+            const results = edgeTests.map(test => {
+                try {
+                    const passed = test.test();
+                    return { name: test.name, passed, error: null };
+                } catch (error) {
+                    return { name: test.name, passed: false, error: error.message };
+                }
+            });
+            
+            const resultsHtml = `
+                <div class="anomaly-item">
+                    <h4>Edge Cases Test Results</h4>
+                    ${results.map(result => `
+                        <div class="anomaly-item ${result.passed ? 'anomaly-normal' : 'anomaly-critical'}">
+                            <span class="status-indicator ${result.passed ? 'status-normal' : 'status-critical'}"></span>
+                            <strong>${result.name}:</strong> ${result.passed ? 'PASSED' : 'FAILED'}
+                            ${result.error ? `<br><small>Error: ${result.error}</small>` : ''}
+                        </div>
+                    `).join('')}
+                    <p><strong>Overall:</strong> ${results.filter(r => r.passed).length}/${results.length} tests passed</p>
+                </div>
+            `;
+            
+            showResults(resultsHtml, 'integrationResults');
+        }
+
+        // Utility function to show results
+        function showResults(content, containerId) {
+            const container = document.getElementById(containerId);
+            if (typeof content === 'string') {
+                container.innerHTML = `<div class="results">${content}</div>`;
+            } else {
+                container.innerHTML = content;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeTest);
+    </script>
+</body>
+</html>

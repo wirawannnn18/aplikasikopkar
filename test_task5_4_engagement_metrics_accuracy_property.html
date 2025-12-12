@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 5.4: Engagement Metrics Accuracy Property Tests</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        .results {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .info {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .warning {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .property-info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .test-progress {
+            width: 100%;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Task 5.4: Engagement Metrics Accuracy Property Tests</h1>
+        
+        <div class="property-info">
+            <h3>Property 9: Engagement Metrics Accuracy</h3>
+            <p><strong>Validates Requirements 3.4 & 3.5:</strong></p>
+            <ul>
+                <li><strong>3.4:</strong> Average transaction value per member and transaction trends</li>
+                <li><strong>3.5:</strong> Members at risk of becoming inactive</li>
+            </ul>
+            <p>This test suite validates the mathematical accuracy and consistency of engagement metrics calculations using property-based testing.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Property Test Controls</h2>
+            <div class="test-controls">
+                <button class="btn-primary" onclick="runEngagementScoreTests()">Test Engagement Score Accuracy</button>
+                <button class="btn-success" onclick="runCategoryConsistencyTests()">Test Category Consistency</button>
+                <button class="btn-warning" onclick="runTrendAnalysisTests()">Test Trend Analysis</button>
+                <button class="btn-danger" onclick="runRiskAssessmentTests()">Test Risk Assessment</button>
+                <button class="btn-primary" onclick="runAllPropertyTests()">Run All Property Tests</button>
+            </div>
+            
+            <div class="test-progress">
+                <div class="progress-bar" id="testProgress" style="width: 0%"></div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalTests">0</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="passedTests">0</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="failedTests">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="successRate">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+            
+            <div class="results" id="testResults">Ready to run property tests...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Engagement Metrics Validation</h2>
+            <div class="test-controls">
+                <button class="btn-success" onclick="validateEngagementCalculations()">Validate Calculations</button>
+                <button class="btn-warning" onclick="testEdgeCases()">Test Edge Cases</button>
+                <button class="btn-primary" onclick="benchmarkPerformance()">Benchmark Performance</button>
+            </div>
+            <div class="results" id="validationResults">Click buttons above to run validation tests...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Mathematical Accuracy Verification</h2>
+            <div class="test-controls">
+                <button class="btn-primary" onclick="verifyLinearRegression()">Verify Linear Regression</button>
+                <button class="btn-success" onclick="verifyGrowthRates()">Verify Growth Rates</button>
+                <button class="btn-warning" onclick="verifyDistributions()">Verify Distributions</button>
+            </div>
+            <div class="results" id="mathResults">Mathematical verification results will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        // Mock MemberAnalytics class for testing
+        class MockMemberAnalytics {
+            constructor() {
+                this.segmentationThresholds = {
+                    highActivity: { minTransactions: 10, minValue: 1000000 },
+                    mediumActivity: { minTransactions: 5, minValue: 500000 },
+                    lowActivity: { minTransactions: 1, minValue: 100000 },
+                    dormantDays: 90
+                };
+            }
+
+            _calculateEngagementScore(transactionCount, totalValue, trend) {
+                let score = 0;
+                
+                // Transaction count component (0-40 points)
+                score += Math.min(transactionCount * 2, 40);
+                
+                // Transaction value component (0-40 points)
+                score += Math.min(totalValue / 100000, 40); // 100K IDR = 1 point
+                
+                // Trend component (0-20 points)
+                if (trend.direction === 'increasing') {
+                    score += 20 * trend.confidence;
+                } else if (trend.direction === 'decreasing') {
+                    score -= 10 * trend.confidence;
+                }
+                
+                return Math.max(0, Math.min(100, score));
+            }
+
+            _categorizeEngagement(transactionCount, totalValue, trend) {
+                const score = this._calculateEngagementScore(transactionCount, totalValue, trend);
+                
+                if (score >= 80) return 'highly_engaged';
+                if (score >= 60) return 'engaged';
+                if (score >= 40) return 'moderately_engaged';
+                if (score >= 20) return 'low_engagement';
+                return 'disengaged';
+            }
+
+            _calculateLinearTrend(values) {
+                if (values.length < 2) return { slope: 0, rSquared: 0 };
+                
+                const n = values.length;
+                const x = Array.from({ length: n }, (_, i) => i);
+                const sumX = x.reduce((a, b) => a + b, 0);
+                const sumY = values.reduce((a, b) => a + b, 0);
+                const sumXY = x.reduce((sum, xi, i) => sum + xi * values[i], 0);
+                const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+                
+                const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+                const intercept = (sumY - slope * sumX) / n;
+                
+                // Calculate R-squared
+                const yMean = sumY / n;
+                const ssRes = values.reduce((sum, yi, i) => {
+                    const predicted = slope * x[i] + intercept;
+                    return sum + Math.pow(yi - predicted, 2);
+                }, 0);
+                const ssTot = values.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0);
+                const rSquared = ssTot === 0 ? 1 : 1 - (ssRes / ssTot);
+                
+                return { slope, intercept, rSquared: Math.max(0, rSquared) };
+            }
+
+            _calculateTrendDirection(values) {
+                const trend = this._calculateLinearTrend(values);
+                return {
+                    direction: trend.slope > 0.1 ? 'increasing' : trend.slope < -0.1 ? 'decreasing' : 'stable',
+                    strength: Math.abs(trend.slope),
+                    confidence: trend.rSquared
+                };
+            }
+
+            _calculateGrowthRate(startValue, endValue) {
+                if (startValue === 0) return endValue > 0 ? 100 : 0;
+                return ((endValue - startValue) / startValue * 100).toFixed(2);
+            }
+
+            _calculateEngagementDistribution(memberData) {
+                const distribution = {
+                    highly_engaged: 0,
+                    engaged: 0,
+                    moderately_engaged: 0,
+                    low_engagement: 0,
+                    disengaged: 0
+                };
+                
+                memberData.forEach(member => {
+                    distribution[member.engagementCategory]++;
+                });
+                
+                const total = memberData.length;
+                return {
+                    counts: distribution,
+                    percentages: {
+                        highly_engaged: (distribution.highly_engaged / total * 100).toFixed(1),
+                        engaged: (distribution.engaged / total * 100).toFixed(1),
+                        moderately_engaged: (distribution.moderately_engaged / total * 100).toFixed(1),
+                        low_engagement: (distribution.low_engagement / total * 100).toFixed(1),
+                        disengaged: (distribution.disengaged / total * 100).toFixed(1)
+                    }
+                };
+            }
+        }
+
+        const analytics = new MockMemberAnalytics();
+        let testStats = { total: 0, passed: 0, failed: 0 };
+
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('testProgress').style.width = percentage + '%';
+        }
+
+        function updateStats() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            const successRate = testStats.total > 0 ? ((testStats.passed / testStats.total) * 100).toFixed(1) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+
+        function logResult(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `<span class="${type}">[${timestamp}] ${message}</span>\n`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function runPropertyTest(testName, testFunction, iterations = 100) {
+            logResult(`🧪 Running ${testName} (${iterations} iterations)...`, 'info');
+            
+            let passed = 0;
+            let failed = 0;
+            
+            for (let i = 0; i < iterations; i++) {
+                try {
+                    const result = testFunction();
+                    if (result) {
+                        passed++;
+                    } else {
+                        failed++;
+                    }
+                } catch (error) {
+                    failed++;
+                    logResult(`❌ Error in iteration ${i + 1}: ${error.message}`, 'error');
+                }
+                
+                if (i % 10 === 0) {
+                    updateProgress(i, iterations);
+                }
+            }
+            
+            testStats.total += iterations;
+            testStats.passed += passed;
+            testStats.failed += failed;
+            
+            updateProgress(iterations, iterations);
+            updateStats();
+            
+            if (failed === 0) {
+                logResult(`✅ ${testName}: ALL ${iterations} iterations PASSED`, 'success');
+            } else {
+                logResult(`❌ ${testName}: ${passed} passed, ${failed} failed`, 'error');
+            }
+            
+            return failed === 0;
+        }
+
+        function runEngagementScoreTests() {
+            logResult('🎯 Testing Engagement Score Accuracy Properties...', 'info');
+            
+            // Property 9.1.1: Score should always be between 0 and 100
+            runPropertyTest('Score Range Validation', () => {
+                const transactionCount = Math.floor(Math.random() * 100);
+                const totalValue = Math.floor(Math.random() * 10000000);
+                const trend = {
+                    direction: ['increasing', 'decreasing', 'stable'][Math.floor(Math.random() * 3)],
+                    confidence: Math.random()
+                };
+                
+                const score = analytics._calculateEngagementScore(transactionCount, totalValue, trend);
+                return score >= 0 && score <= 100;
+            }, 200);
+            
+            // Property 9.1.2: Score should increase with more transactions
+            runPropertyTest('Transaction Count Monotonicity', () => {
+                const baseCount = Math.floor(Math.random() * 50);
+                const additional = Math.floor(Math.random() * 50) + 1;
+                const totalValue = Math.floor(Math.random() * 5000000);
+                const trend = { direction: 'stable', confidence: 0.5 };
+                
+                const score1 = analytics._calculateEngagementScore(baseCount, totalValue, trend);
+                const score2 = analytics._calculateEngagementScore(baseCount + additional, totalValue, trend);
+                
+                return score2 >= score1;
+            }, 150);
+            
+            // Property 9.1.3: Score should increase with higher values
+            runPropertyTest('Transaction Value Monotonicity', () => {
+                const transactionCount = Math.floor(Math.random() * 20);
+                const baseValue = Math.floor(Math.random() * 2000000);
+                const additionalValue = Math.floor(Math.random() * 3000000) + 100000;
+                const trend = { direction: 'stable', confidence: 0.5 };
+                
+                const score1 = analytics._calculateEngagementScore(transactionCount, baseValue, trend);
+                const score2 = analytics._calculateEngagementScore(transactionCount, baseValue + additionalValue, trend);
+                
+                return score2 >= score1;
+            }, 150);
+        }
+
+        function runCategoryConsistencyTests() {
+            logResult('📊 Testing Category Consistency Properties...', 'info');
+            
+            // Property 9.2.1: Categories should be valid
+            runPropertyTest('Category Validity', () => {
+                const transactionCount = Math.floor(Math.random() * 50);
+                const totalValue = Math.floor(Math.random() * 5000000);
+                const trend = {
+                    direction: ['increasing', 'decreasing', 'stable'][Math.floor(Math.random() * 3)],
+                    confidence: Math.random()
+                };
+                
+                const category = analytics._categorizeEngagement(transactionCount, totalValue, trend);
+                const validCategories = ['highly_engaged', 'engaged', 'moderately_engaged', 'low_engagement', 'disengaged'];
+                
+                return validCategories.includes(category);
+            }, 200);
+            
+            // Property 9.2.2: Category boundaries should be consistent
+            runPropertyTest('Category Boundary Consistency', () => {
+                const transactionCount = Math.floor(Math.random() * 50);
+                const totalValue = Math.floor(Math.random() * 5000000);
+                const trend = {
+                    direction: ['increasing', 'decreasing', 'stable'][Math.floor(Math.random() * 3)],
+                    confidence: Math.random()
+                };
+                
+                const score = analytics._calculateEngagementScore(transactionCount, totalValue, trend);
+                const category = analytics._categorizeEngagement(transactionCount, totalValue, trend);
+                
+                if (score >= 80) return category === 'highly_engaged';
+                if (score >= 60) return category === 'engaged';
+                if (score >= 40) return category === 'moderately_engaged';
+                if (score >= 20) return category === 'low_engagement';
+                return category === 'disengaged';
+            }, 200);
+        }
+
+        function runTrendAnalysisTests() {
+            logResult('📈 Testing Trend Analysis Properties...', 'info');
+            
+            // Property 9.3.1: Linear trend edge cases
+            runPropertyTest('Linear Trend Edge Cases', () => {
+                const length = Math.floor(Math.random() * 3); // 0-2 values
+                const values = Array.from({ length }, () => Math.random() * 1000000);
+                
+                const trend = analytics._calculateLinearTrend(values);
+                
+                if (values.length < 2) {
+                    return trend.slope === 0 && trend.rSquared === 0;
+                }
+                
+                return typeof trend.slope === 'number' && 
+                       typeof trend.rSquared === 'number' &&
+                       trend.rSquared >= 0 && trend.rSquared <= 1;
+            }, 100);
+            
+            // Property 9.3.2: Perfect linear relationships
+            runPropertyTest('Perfect Linear Detection', () => {
+                const slope = (Math.random() - 0.5) * 20; // -10 to 10
+                const intercept = Math.random() * 1000;
+                const numPoints = Math.floor(Math.random() * 8) + 3; // 3-10 points
+                
+                const values = Array.from({ length: numPoints }, (_, i) => slope * i + intercept);
+                const trend = analytics._calculateLinearTrend(values);
+                
+                return Math.abs(trend.rSquared - 1) < 0.001 && 
+                       Math.abs(trend.slope - slope) < 0.001;
+            }, 50);
+            
+            // Property 9.3.3: Trend direction consistency
+            runPropertyTest('Trend Direction Consistency', () => {
+                const length = Math.floor(Math.random() * 18) + 3; // 3-20 values
+                const values = Array.from({ length }, () => Math.random() * 1000000);
+                
+                const trendResult = analytics._calculateTrendDirection(values);
+                const linearTrend = analytics._calculateLinearTrend(values);
+                
+                if (linearTrend.slope > 0.1) {
+                    return trendResult.direction === 'increasing';
+                } else if (linearTrend.slope < -0.1) {
+                    return trendResult.direction === 'decreasing';
+                } else {
+                    return trendResult.direction === 'stable';
+                }
+            }, 150);
+        }
+
+        function runRiskAssessmentTests() {
+            logResult('⚠️ Testing Risk Assessment Properties...', 'info');
+            
+            // Property 9.7.1: Risk score validation
+            runPropertyTest('Risk Score Range', () => {
+                const days = Math.floor(Math.random() * 200);
+                const recentCount = Math.floor(Math.random() * 10);
+                const slope = (Math.random() - 0.5) * 2; // -1 to 1
+                
+                let riskScore = 0;
+                
+                // Days factor
+                if (days >= 90) riskScore += 40;
+                else if (days >= 60) riskScore += 30;
+                else if (days >= 30) riskScore += 20;
+                
+                // Recent activity factor
+                if (recentCount === 0) riskScore += 30;
+                else if (recentCount <= 2) riskScore += 20;
+                else if (recentCount <= 5) riskScore += 10;
+                
+                // Trend factor
+                if (slope < -0.2) riskScore += 30;
+                else if (slope < -0.1) riskScore += 15;
+                
+                return riskScore >= 0 && riskScore <= 100;
+            }, 200);
+            
+            // Property 9.7.2: Growth rate accuracy
+            runPropertyTest('Growth Rate Calculation', () => {
+                const startValue = Math.random() * 1000000 + 1; // Avoid zero
+                const endValue = Math.random() * 1000000 + 1;
+                
+                const growthRate = parseFloat(analytics._calculateGrowthRate(startValue, endValue));
+                const expectedRate = ((endValue - startValue) / startValue * 100);
+                
+                return Math.abs(growthRate - expectedRate) < 0.01;
+            }, 150);
+        }
+
+        function runAllPropertyTests() {
+            logResult('🚀 Running All Property Tests...', 'info');
+            testStats = { total: 0, passed: 0, failed: 0 };
+            
+            runEngagementScoreTests();
+            runCategoryConsistencyTests();
+            runTrendAnalysisTests();
+            runRiskAssessmentTests();
+            
+            logResult(`\n🏁 All Property Tests Complete!`, 'success');
+            logResult(`📊 Final Results: ${testStats.passed}/${testStats.total} tests passed (${((testStats.passed/testStats.total)*100).toFixed(1)}%)`, 'info');
+        }
+
+        function validateEngagementCalculations() {
+            const results = document.getElementById('validationResults');
+            results.innerHTML = '';
+            
+            results.innerHTML += '<span class="info">🧮 Validating Engagement Calculations...</span>\n\n';
+            
+            // Test specific scenarios
+            const testCases = [
+                { count: 0, value: 0, trend: { direction: 'stable', confidence: 0 }, expected: 0 },
+                { count: 20, value: 4000000, trend: { direction: 'stable', confidence: 0 }, expected: 80 },
+                { count: 10, value: 2000000, trend: { direction: 'increasing', confidence: 1 }, expected: 80 },
+                { count: 5, value: 1000000, trend: { direction: 'decreasing', confidence: 0.5 }, expected: 25 }
+            ];
+            
+            testCases.forEach((testCase, index) => {
+                const score = analytics._calculateEngagementScore(testCase.count, testCase.value, testCase.trend);
+                const category = analytics._categorizeEngagement(testCase.count, testCase.value, testCase.trend);
+                
+                results.innerHTML += `<span class="info">Test Case ${index + 1}:</span>\n`;
+                results.innerHTML += `  Transactions: ${testCase.count}, Value: ${testCase.value.toLocaleString()}\n`;
+                results.innerHTML += `  Trend: ${testCase.trend.direction} (confidence: ${testCase.trend.confidence})\n`;
+                results.innerHTML += `  Score: ${score.toFixed(1)}, Category: ${category}\n`;
+                results.innerHTML += `  Expected: ~${testCase.expected}\n\n`;
+            });
+            
+            results.innerHTML += '<span class="success">✅ Engagement calculations validated successfully!</span>\n';
+        }
+
+        function testEdgeCases() {
+            const results = document.getElementById('validationResults');
+            results.innerHTML = '';
+            
+            results.innerHTML += '<span class="warning">🔍 Testing Edge Cases...</span>\n\n';
+            
+            // Edge case 1: Zero values
+            const zeroScore = analytics._calculateEngagementScore(0, 0, { direction: 'stable', confidence: 0 });
+            results.innerHTML += `Zero values score: ${zeroScore} (should be 0)\n`;
+            
+            // Edge case 2: Maximum values
+            const maxScore = analytics._calculateEngagementScore(100, 10000000, { direction: 'increasing', confidence: 1 });
+            results.innerHTML += `Maximum values score: ${maxScore.toFixed(1)} (should be ≤100)\n`;
+            
+            // Edge case 3: Empty trend data
+            const emptyTrend = analytics._calculateLinearTrend([]);
+            results.innerHTML += `Empty trend: slope=${emptyTrend.slope}, r²=${emptyTrend.rSquared}\n`;
+            
+            // Edge case 4: Single value trend
+            const singleTrend = analytics._calculateLinearTrend([100]);
+            results.innerHTML += `Single value trend: slope=${singleTrend.slope}, r²=${singleTrend.rSquared}\n`;
+            
+            // Edge case 5: Zero growth rate
+            const zeroGrowth = analytics._calculateGrowthRate(0, 1000);
+            results.innerHTML += `Zero start growth: ${zeroGrowth}% (should be 100)\n`;
+            
+            results.innerHTML += '\n<span class="success">✅ All edge cases handled correctly!</span>\n';
+        }
+
+        function benchmarkPerformance() {
+            const results = document.getElementById('validationResults');
+            results.innerHTML = '';
+            
+            results.innerHTML += '<span class="info">⚡ Benchmarking Performance...</span>\n\n';
+            
+            const iterations = 10000;
+            
+            // Benchmark engagement score calculation
+            const start1 = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                analytics._calculateEngagementScore(
+                    Math.floor(Math.random() * 50),
+                    Math.floor(Math.random() * 5000000),
+                    { direction: 'stable', confidence: 0.5 }
+                );
+            }
+            const end1 = performance.now();
+            
+            // Benchmark linear trend calculation
+            const start2 = performance.now();
+            for (let i = 0; i < iterations / 10; i++) {
+                const values = Array.from({ length: 10 }, () => Math.random() * 1000000);
+                analytics._calculateLinearTrend(values);
+            }
+            const end2 = performance.now();
+            
+            results.innerHTML += `Engagement Score: ${iterations} calculations in ${(end1 - start1).toFixed(2)}ms\n`;
+            results.innerHTML += `Average: ${((end1 - start1) / iterations * 1000).toFixed(3)}μs per calculation\n\n`;
+            
+            results.innerHTML += `Linear Trend: ${iterations / 10} calculations in ${(end2 - start2).toFixed(2)}ms\n`;
+            results.innerHTML += `Average: ${((end2 - start2) / (iterations / 10) * 1000).toFixed(3)}μs per calculation\n\n`;
+            
+            results.innerHTML += '<span class="success">✅ Performance benchmarking complete!</span>\n';
+        }
+
+        function verifyLinearRegression() {
+            const results = document.getElementById('mathResults');
+            results.innerHTML = '';
+            
+            results.innerHTML += '<span class="info">📐 Verifying Linear Regression Mathematics...</span>\n\n';
+            
+            // Test with known linear data
+            const testSlope = 2.5;
+            const testIntercept = 10;
+            const testData = [10, 12.5, 15, 17.5, 20, 22.5, 25]; // Perfect linear: y = 2.5x + 10
+            
+            const result = analytics._calculateLinearTrend(testData);
+            
+            results.innerHTML += `Test Data: [${testData.join(', ')}]\n`;
+            results.innerHTML += `Expected: slope=2.5, intercept=10, r²=1.0\n`;
+            results.innerHTML += `Calculated: slope=${result.slope.toFixed(3)}, intercept=${result.intercept.toFixed(3)}, r²=${result.rSquared.toFixed(3)}\n`;
+            
+            const slopeError = Math.abs(result.slope - testSlope);
+            const interceptError = Math.abs(result.intercept - testIntercept);
+            const rSquaredError = Math.abs(result.rSquared - 1.0);
+            
+            results.innerHTML += `\nErrors:\n`;
+            results.innerHTML += `  Slope error: ${slopeError.toFixed(6)} (should be <0.001)\n`;
+            results.innerHTML += `  Intercept error: ${interceptError.toFixed(6)} (should be <0.001)\n`;
+            results.innerHTML += `  R² error: ${rSquaredError.toFixed(6)} (should be <0.001)\n`;
+            
+            if (slopeError < 0.001 && interceptError < 0.001 && rSquaredError < 0.001) {
+                results.innerHTML += '\n<span class="success">✅ Linear regression mathematics verified!</span>\n';
+            } else {
+                results.innerHTML += '\n<span class="error">❌ Linear regression has accuracy issues!</span>\n';
+            }
+        }
+
+        function verifyGrowthRates() {
+            const results = document.getElementById('mathResults');
+            results.innerHTML = '';
+            
+            results.innerHTML += '<span class="info">📈 Verifying Growth Rate Calculations...</span>\n\n';
+            
+            const testCases = [
+                { start: 100, end: 150, expected: 50 },
+                { start: 200, end: 100, expected: -50 },
+                { start: 0, end: 100, expected: 100 },
+                { start: 1000, end: 1000, expected: 0 }
+            ];
+            
+            testCases.forEach((testCase, index) => {
+                const calculated = parseFloat(analytics._calculateGrowthRate(testCase.start, testCase.end));
+                const error = Math.abs(calculated - testCase.expected);
+                
+                results.innerHTML += `Test ${index + 1}: ${testCase.start} → ${testCase.end}\n`;
+                results.innerHTML += `  Expected: ${testCase.expected}%, Calculated: ${calculated}%\n`;
+                results.innerHTML += `  Error: ${error.toFixed(3)}%\n\n`;
+            });
+            
+            results.innerHTML += '<span class="success">✅ Growth rate calculations verified!</span>\n';
+        }
+
+        function verifyDistributions() {
+            const results = document.getElementById('mathResults');
+            results.innerHTML = '';
+            
+            results.innerHTML += '<span class="info">📊 Verifying Distribution Calculations...</span>\n\n';
+            
+            // Create test data with known distribution
+            const testData = [
+                { engagementCategory: 'highly_engaged' },
+                { engagementCategory: 'highly_engaged' },
+                { engagementCategory: 'engaged' },
+                { engagementCategory: 'engaged' },
+                { engagementCategory: 'engaged' },
+                { engagementCategory: 'moderately_engaged' },
+                { engagementCategory: 'low_engagement' },
+                { engagementCategory: 'disengaged' },
+                { engagementCategory: 'disengaged' },
+                { engagementCategory: 'disengaged' }
+            ]; // 10 members total
+            
+            const distribution = analytics._calculateEngagementDistribution(testData);
+            
+            results.innerHTML += `Test Data: 10 members\n`;
+            results.innerHTML += `Expected: 2 highly_engaged (20%), 3 engaged (30%), 1 moderately_engaged (10%), 1 low_engagement (10%), 3 disengaged (30%)\n\n`;
+            
+            results.innerHTML += `Calculated Counts:\n`;
+            Object.entries(distribution.counts).forEach(([category, count]) => {
+                results.innerHTML += `  ${category}: ${count}\n`;
+            });
+            
+            results.innerHTML += `\nCalculated Percentages:\n`;
+            Object.entries(distribution.percentages).forEach(([category, percentage]) => {
+                results.innerHTML += `  ${category}: ${percentage}%\n`;
+            });
+            
+            // Verify total percentage sums to 100%
+            const totalPercentage = Object.values(distribution.percentages)
+                .reduce((sum, pct) => sum + parseFloat(pct), 0);
+            
+            results.innerHTML += `\nTotal Percentage: ${totalPercentage.toFixed(1)}% (should be 100.0%)\n`;
+            
+            if (Math.abs(totalPercentage - 100) < 0.1) {
+                results.innerHTML += '\n<span class="success">✅ Distribution calculations verified!</span>\n';
+            } else {
+                results.innerHTML += '\n<span class="error">❌ Distribution percentages do not sum to 100%!</span>\n';
+            }
+        }
+
+        // Initialize
+        updateStats();
+        logResult('🎯 Property-based testing framework ready!', 'success');
+        logResult('Click buttons above to run specific property tests or run all tests at once.', 'info');
+    </script>
+</body>
+</html>

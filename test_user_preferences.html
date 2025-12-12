@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Preferences Test</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #007bff;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Theme variations */
+        .theme-light {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .theme-dark {
+            background-color: #1a1a1a;
+            color: #f8f9fa;
+        }
+        
+        .theme-dark .card,
+        .theme-dark .dashboard-widget {
+            background-color: #2d2d2d;
+            border-color: #444;
+            color: #f8f9fa;
+        }
+        
+        /* Font size variations */
+        .font-small {
+            font-size: 0.875rem;
+        }
+        
+        .font-medium {
+            font-size: 1rem;
+        }
+        
+        .font-large {
+            font-size: 1.125rem;
+        }
+        
+        /* Layout variations */
+        .compact-mode .dashboard-widget {
+            margin: 5px;
+            padding: 10px;
+        }
+        
+        .compact-mode .widget-header {
+            margin-bottom: 8px;
+        }
+        
+        /* Accessibility */
+        .high-contrast {
+            filter: contrast(150%);
+        }
+        
+        .large-text {
+            font-size: 1.2em !important;
+        }
+        
+        .large-text .dashboard-widget {
+            font-size: 1.1em;
+        }
+        
+        .keyboard-navigation *:focus {
+            outline: 3px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+        
+        /* Animations */
+        .no-animations * {
+            animation: none !important;
+            transition: none !important;
+        }
+        
+        /* Dashboard components */
+        .dashboard-header {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .theme-dark .dashboard-header {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        
+        .dashboard-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .theme-dark .dashboard-container {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        
+        .dashboard-widget {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            min-height: 120px;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: inline-block;
+            width: 250px;
+            vertical-align: top;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-dark .dashboard-widget {
+            background: #3d3d3d;
+            border-color: #555;
+        }
+        
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .theme-dark .widget-header {
+            border-bottom-color: #555;
+        }
+        
+        .widget-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            color: inherit;
+        }
+        
+        .widget-content {
+            text-align: center;
+            padding: 10px 0;
+        }
+        
+        .widget-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .widget-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .theme-dark .widget-label {
+            color: #ccc;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: #343a40;
+            color: white;
+            padding: 20px;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        
+        .preferences-demo {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .theme-dark .preferences-demo {
+            background: #1e3a5f;
+        }
+        
+        .test-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 200px;
+        }
+        
+        .theme-dark .test-controls {
+            background: #2d2d2d;
+            color: white;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            min-width: 300px;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1060;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        .notification-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .notification-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .notification-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .notification-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 10px;
+            opacity: 0.7;
+        }
+        
+        .notification-close:hover {
+            opacity: 1;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="theme-light font-medium">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <h5>Navigation</h5>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link text-white" href="#"><i class="fas fa-home"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white" href="#"><i class="fas fa-chart-bar"></i> Analytics</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white" href="#"><i class="fas fa-users"></i> Members</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white" href="#"><i class="fas fa-cog"></i> Settings</a>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="container-fluid" style="margin-left: 270px;">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div>
+                <h2>User Preferences Test</h2>
+                <p class="mb-0 text-muted">Test dashboard customization and user preferences</p>
+            </div>
+            <div class="d-flex gap-2">
+                <!-- Preferences button will be added here by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Current Settings Display -->
+        <div class="preferences-demo">
+            <h5><i class="fas fa-info-circle"></i> Current Preferences</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Theme:</strong>
+                    <div id="current-theme">Light</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>Font Size:</strong>
+                    <div id="current-font-size">Medium</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>Primary Color:</strong>
+                    <div id="current-primary-color">#007bff</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>Animations:</strong>
+                    <div id="current-animations">Enabled</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Widgets -->
+        <div class="dashboard-container">
+            <h4>Sample Dashboard Widgets</h4>
+            <div id="widgets-container">
+                <div class="dashboard-widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Total Members</h6>
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="widget-content">
+                        <div class="widget-value">1,247</div>
+                        <div class="widget-label">Active Members</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Monthly Revenue</h6>
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="widget-content">
+                        <div class="widget-value">Rp 2.5M</div>
+                        <div class="widget-label">This Month</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Total Savings</h6>
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="widget-content">
+                        <div class="widget-value">Rp 15.2M</div>
+                        <div class="widget-label">All Accounts</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Loan Portfolio</h6>
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                    <div class="widget-content">
+                        <div class="widget-value">Rp 8.7M</div>
+                        <div class="widget-label">Outstanding</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature Demonstration -->
+        <div class="dashboard-container">
+            <h4>Preference Features</h4>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-palette"></i> Theme System</h6>
+                            <p class="card-text">Switch between light, dark, and auto themes. Customize primary colors and font sizes.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-layout"></i> Layout Options</h6>
+                            <p class="card-text">Configure grid size, compact mode, and sidebar behavior for optimal workspace.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-universal-access"></i> Accessibility</h6>
+                            <p class="card-text">High contrast mode, large text, keyboard navigation, and screen reader support.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test Controls -->
+    <div class="test-controls">
+        <h6>Quick Tests</h6>
+        <div class="d-grid gap-2">
+            <button id="test-dark-theme" class="btn btn-sm btn-outline-secondary">Toggle Dark Theme</button>
+            <button id="test-large-font" class="btn btn-sm btn-outline-secondary">Toggle Large Font</button>
+            <button id="test-compact-mode" class="btn btn-sm btn-outline-secondary">Toggle Compact</button>
+            <button id="test-high-contrast" class="btn btn-sm btn-outline-secondary">Toggle Contrast</button>
+            <button id="test-animations" class="btn btn-sm btn-outline-secondary">Toggle Animations</button>
+            <button id="export-prefs" class="btn btn-sm btn-outline-info">Export Prefs</button>
+            <button id="reset-prefs" class="btn btn-sm btn-outline-warning">Reset All</button>
+        </div>
+    </div>
+    
+    <!-- Mock Dashboard Controller -->
+    <script>
+        class MockDashboardController {
+            constructor() {
+                this.customizer = {
+                    gridSize: 20
+                };
+                this.widgetManager = {
+                    defaultRefreshInterval: 300000
+                };
+            }
+        }
+    </script>
+    
+    <!-- User Preferences Manager -->
+    <script src="js/dashboard/UserPreferencesManager.js"></script>
+    
+    <script>
+        // Initialize preferences manager
+        const mockController = new MockDashboardController();
+        const preferencesManager = new UserPreferencesManager(mockController);
+        
+        // Update current settings display
+        function updateCurrentSettings() {
+            const prefs = preferencesManager.getAllPreferences();
+            
+            document.getElementById('current-theme').textContent = 
+                prefs.theme.colorScheme.charAt(0).toUpperCase() + prefs.theme.colorScheme.slice(1);
+            document.getElementById('current-font-size').textContent = 
+                prefs.theme.fontSize.charAt(0).toUpperCase() + prefs.theme.fontSize.slice(1);
+            document.getElementById('current-primary-color').textContent = prefs.theme.primaryColor;
+            document.getElementById('current-animations').textContent = 
+                prefs.theme.animations ? 'Enabled' : 'Disabled';
+        }
+        
+        // Test controls
+        document.getElementById('test-dark-theme').addEventListener('click', () => {
+            const current = preferencesManager.getPreference('theme.colorScheme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            preferencesManager.setPreference('theme.colorScheme', newTheme);
+            updateCurrentSettings();
+        });
+        
+        document.getElementById('test-large-font').addEventListener('click', () => {
+            const current = preferencesManager.getPreference('theme.fontSize');
+            const newSize = current === 'large' ? 'medium' : 'large';
+            preferencesManager.setPreference('theme.fontSize', newSize);
+            updateCurrentSettings();
+        });
+        
+        document.getElementById('test-compact-mode').addEventListener('click', () => {
+            const current = preferencesManager.getPreference('layout.compactMode');
+            preferencesManager.setPreference('layout.compactMode', !current);
+        });
+        
+        document.getElementById('test-high-contrast').addEventListener('click', () => {
+            const current = preferencesManager.getPreference('accessibility.highContrast');
+            preferencesManager.setPreference('accessibility.highContrast', !current);
+        });
+        
+        document.getElementById('test-animations').addEventListener('click', () => {
+            const current = preferencesManager.getPreference('theme.animations');
+            preferencesManager.setPreference('theme.animations', !current);
+            updateCurrentSettings();
+        });
+        
+        document.getElementById('export-prefs').addEventListener('click', () => {
+            preferencesManager.exportPreferences();
+        });
+        
+        document.getElementById('reset-prefs').addEventListener('click', () => {
+            if (confirm('Reset all preferences to default?')) {
+                preferencesManager.resetPreferences();
+                updateCurrentSettings();
+            }
+        });
+        
+        // File import for preferences
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                preferencesManager.importPreferences(file);
+                updateCurrentSettings();
+            }
+        });
+        document.body.appendChild(fileInput);
+        
+        // Add import button
+        const importBtn = document.createElement('button');
+        importBtn.className = 'btn btn-sm btn-outline-success';
+        importBtn.textContent = 'Import Prefs';
+        importBtn.onclick = () => fileInput.click();
+        document.querySelector('.test-controls .d-grid').appendChild(importBtn);
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 't':
+                        e.preventDefault();
+                        document.getElementById('test-dark-theme').click();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        document.getElementById('test-large-font').click();
+                        break;
+                    case 'c':
+                        e.preventDefault();
+                        document.getElementById('test-compact-mode').click();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        document.getElementById('test-high-contrast').click();
+                        break;
+                    case 'a':
+                        e.preventDefault();
+                        document.getElementById('test-animations').click();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        document.getElementById('preferences-btn').click();
+                        break;
+                }
+            }
+        });
+        
+        // Initialize display
+        updateCurrentSettings();
+        
+        // Test multiple preferences at once
+        function testBulkUpdate() {
+            preferencesManager.setMultiplePreferences({
+                'theme.colorScheme': 'dark',
+                'theme.fontSize': 'large',
+                'layout.compactMode': true,
+                'accessibility.highContrast': true
+            });
+            updateCurrentSettings();
+        }
+        
+        // Add bulk test button
+        const bulkBtn = document.createElement('button');
+        bulkBtn.className = 'btn btn-sm btn-outline-primary';
+        bulkBtn.textContent = 'Bulk Test';
+        bulkBtn.onclick = testBulkUpdate;
+        document.querySelector('.test-controls .d-grid').appendChild(bulkBtn);
+        
+        // Sidebar toggle
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.sidebar')) {
+                const sidebar = document.getElementById('sidebar');
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                preferencesManager.setPreference('layout.sidebarCollapsed', !isCollapsed);
+            }
+        });
+        
+        console.log('User Preferences Test initialized');
+        console.log('Keyboard shortcuts:');
+        console.log('- Ctrl+T: Toggle theme');
+        console.log('- Ctrl+F: Toggle font size');
+        console.log('- Ctrl+C: Toggle compact mode');
+        console.log('- Ctrl+H: Toggle high contrast');
+        console.log('- Ctrl+A: Toggle animations');
+        console.log('- Ctrl+P: Open preferences');
+        
+        // Test preference persistence
+        setTimeout(() => {
+            console.log('Current preferences:', preferencesManager.getAllPreferences());
+        }, 1000);
+    </script>
+</body>
+</html>

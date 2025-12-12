@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 3.5 - Trend Analysis & Forecasting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+        .test-success {
+            background-color: #d1e7dd;
+            border: 1px solid #badbcc;
+            color: #0f5132;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+        .trend-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .trend-increasing { background-color: #d1e7dd; color: #0f5132; }
+        .trend-decreasing { background-color: #f8d7da; color: #842029; }
+        .trend-stable { background-color: #fff3cd; color: #664d03; }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0d6efd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">
+            <i class="fas fa-chart-line me-2"></i>
+            Test Task 3.5 - Trend Analysis & Forecasting
+        </h1>
+        
+        <div class="alert alert-info">
+            <strong>Testing:</strong> Task 3.5 (Trend analysis and forecasting functions) dan Task 3.6 (Statistical calculation correctness)
+        </div>
+
+        <!-- Test 1: Financial Trends Analysis -->
+        <div class="test-section">
+            <h3>Test 1: Financial Trends Analysis</h3>
+            <p>Testing comprehensive financial trend analysis with historical data.</p>
+            <button id="test1Btn" class="btn btn-primary">Run Test</button>
+            <div id="test1Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Transaction Trends Analysis -->
+        <div class="test-section">
+            <h3>Test 2: Transaction Trends Analysis</h3>
+            <p>Testing transaction pattern analysis and seasonal trends.</p>
+            <button id="test2Btn" class="btn btn-primary">Run Test</button>
+            <div id="test2Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Statistical Analysis -->
+        <div class="test-section">
+            <h3>Test 3: Statistical Analysis</h3>
+            <p>Testing correlation, regression, and statistical measures.</p>
+            <button id="test3Btn" class="btn btn-primary">Run Test</button>
+            <div id="test3Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Anomaly Detection -->
+        <div class="test-section">
+            <h3>Test 4: Anomaly Detection</h3>
+            <p>Testing anomaly detection algorithms and outlier identification.</p>
+            <button id="test4Btn" class="btn btn-primary">Run Test</button>
+            <div id="test4Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 5: Forecasting -->
+        <div class="test-section">
+            <h3>Test 5: Forecasting</h3>
+            <p>Testing forecasting capabilities and prediction accuracy.</p>
+            <button id="test5Btn" class="btn btn-primary">Run Test</button>
+            <div id="test5Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 6: Transaction Averages & Distribution -->
+        <div class="test-section">
+            <h3>Test 6: Transaction Averages & Distribution</h3>
+            <p>Testing statistical distribution analysis and percentile calculations.</p>
+            <button id="test6Btn" class="btn btn-primary">Run Test</button>
+            <div id="test6Result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <button id="runAllBtn" class="btn btn-success btn-lg">Run All Tests</button>
+            <div id="allTestsResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="js/dashboard/AnalyticsEngine.js"></script>
+
+    <script>
+        // Test utilities
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result ${success ? 'test-success' : 'test-error'}`;
+            
+            let html = `<strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}`;
+            
+            if (data) {
+                html += `<div class="mt-3">${formatTestData(data)}</div>`;
+            }
+            
+            element.innerHTML = html;
+        }
+
+        function formatTestData(data) {
+            if (typeof data === 'object' && data !== null) {
+                return `<pre class="mt-2 mb-0" style="max-height: 400px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            return `<pre class="mt-2 mb-0">${data}</pre>`;
+        }
+
+        function showLoading(buttonId) {
+            const button = document.getElementById(buttonId);
+            button.disabled = true;
+            button.innerHTML = '<span class="loading me-2"></span>Running...';
+        }
+
+        function hideLoading(buttonId, originalText) {
+            const button = document.getElementById(buttonId);
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+
+        function getTrendIndicator(direction) {
+            const classes = {
+                'increasing': 'trend-increasing',
+                'decreasing': 'trend-decreasing',
+                'stable': 'trend-stable'
+            };
+            return `<span class="trend-indicator ${classes[direction] || 'trend-stable'}">${direction}</span>`;
+        }
+
+        // Sample data generators
+        function generateHistoricalFinancialData() {
+            const data = [];
+            const baseDate = new Date('2023-01-01');
+            
+            for (let i = 0; i < 12; i++) {
+                const date = new Date(baseDate);
+                date.setMonth(date.getMonth() + i);
+                
+                // Generate trending data with some noise
+                const trend = i * 0.1;
+                const noise = (Math.random() - 0.5) * 0.2;
+                
+                data.push({
+                    date: date.toISOString(),
+                    totalRevenue: Math.round((1000000 + trend * 100000 + noise * 50000) * 100) / 100,
+                    totalAssets: Math.round((10000000 + trend * 500000 + noise * 200000) * 100) / 100,
+                    memberCount: Math.round(500 + trend * 50 + noise * 20),
+                    totalExpenses: Math.round((800000 + trend * 80000 + noise * 40000) * 100) / 100
+                });
+            }
+            
+            return data;
+        }
+
+        function generateTransactionHistory() {
+            const transactions = [];
+            const baseDate = new Date('2023-01-01');
+            
+            for (let i = 0; i < 1000; i++) {
+                const date = new Date(baseDate);
+                date.setDate(date.getDate() + Math.floor(i / 3)); // ~3 transactions per day
+                date.setHours(Math.floor(Math.random() * 24));
+                date.setMinutes(Math.floor(Math.random() * 60));
+                
+                transactions.push({
+                    id: `TXN_${i}`,
+                    date: date.toISOString(),
+                    timestamp: date.toISOString(),
+                    amount: Math.round((Math.random() * 500000 + 10000) * 100) / 100,
+                    type: Math.random() > 0.5 ? 'deposit' : 'withdrawal'
+                });
+            }
+            
+            return transactions;
+        }
+
+        // Test 1: Financial Trends Analysis
+        document.getElementById('test1Btn').addEventListener('click', async function() {
+            showLoading('test1Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const historicalData = generateHistoricalFinancialData();
+                const trends = await engine.calculateFinancialTrends(historicalData);
+                
+                // Validate results
+                const isValid = 
+                    trends.trends && trends.correlations && trends.anomalies && trends.forecasts &&
+                    typeof trends.trends.revenue.slope === 'number' &&
+                    typeof trends.correlations.revenueAssets === 'number' &&
+                    Array.isArray(trends.forecasts.revenue);
+                
+                if (isValid) {
+                    const displayData = {
+                        trends: {
+                            revenue: `${getTrendIndicator(trends.trends.revenue.direction)} Slope: ${trends.trends.revenue.slope}, R²: ${trends.trends.revenue.rSquared}`,
+                            assets: `${getTrendIndicator(trends.trends.assets.direction)} Slope: ${trends.trends.assets.slope}, R²: ${trends.trends.assets.rSquared}`,
+                            members: `${getTrendIndicator(trends.trends.members.direction)} Slope: ${trends.trends.members.slope}, R²: ${trends.trends.members.rSquared}`
+                        },
+                        correlations: {
+                            revenueAssets: trends.correlations.revenueAssets,
+                            revenueMembers: trends.correlations.revenueMembers
+                        },
+                        anomalies: {
+                            revenueAnomalies: trends.anomalies.revenue.length,
+                            assetAnomalies: trends.anomalies.assets.length
+                        },
+                        forecasts: {
+                            revenueNext3: trends.forecasts.revenue.map(f => `Period ${f.period}: ${f.value.toLocaleString()} (${(f.confidence * 100).toFixed(1)}% confidence)`)
+                        },
+                        dataPoints: trends.dataPoints
+                    };
+                    
+                    showResult('test1Result', true, 'Financial trends analysis completed successfully', displayData);
+                } else {
+                    showResult('test1Result', false, 'Invalid financial trends result', trends);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test1Result', false, `Analysis error: ${error.message}`);
+            }
+            
+            hideLoading('test1Btn', 'Run Test');
+        });
+
+        // Test 2: Transaction Trends Analysis
+        document.getElementById('test2Btn').addEventListener('click', async function() {
+            showLoading('test2Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                const transactionHistory = generateTransactionHistory();
+                const trends = await engine.calculateTransactionTrends(transactionHistory);
+                
+                // Validate results
+                const isValid = 
+                    trends.trends && trends.patterns && trends.statistics &&
+                    typeof trends.trends.volume.slope === 'number' &&
+                    Array.isArray(trends.patterns.peakHours) &&
+                    typeof trends.statistics.totalTransactions === 'number';
+                
+                if (isValid) {
+                    const displayData = {
+                        trends: {
+                            volume: `${getTrendIndicator(trends.trends.volume.direction)} R²: ${trends.trends.volume.rSquared}`,
+                            value: `${getTrendIndicator(trends.trends.value.direction)} R²: ${trends.trends.value.rSquared}`
+                        },
+                        patterns: {
+                            peakHours: trends.patterns.peakHours.slice(0, 3).map(h => `${h.timeRange}: ${h.transactionCount} txns (${h.percentage}%)`),
+                            peakDays: trends.patterns.peakDays.slice(0, 3).map(d => `${d.dayName}: ${d.averageTransactions} avg txns`),
+                            peakQuarter: trends.patterns.seasonal.peakQuarter ? `${trends.patterns.seasonal.peakQuarter.quarter}: ${trends.patterns.seasonal.peakQuarter.averageVolume.toFixed(0)} avg` : 'N/A'
+                        },
+                        statistics: {
+                            totalTransactions: trends.statistics.totalTransactions,
+                            monthsAnalyzed: trends.statistics.monthsAnalyzed,
+                            avgMonthlyVolume: Math.round(trends.statistics.averageMonthlyVolume),
+                            avgMonthlyValue: trends.statistics.averageMonthlyValue.toLocaleString()
+                        },
+                        anomalies: {
+                            volumeAnomalies: trends.anomalies.volume.length,
+                            valueAnomalies: trends.anomalies.value.length
+                        }
+                    };
+                    
+                    showResult('test2Result', true, 'Transaction trends analysis completed successfully', displayData);
+                } else {
+                    showResult('test2Result', false, 'Invalid transaction trends result', trends);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test2Result', false, `Analysis error: ${error.message}`);
+            }
+            
+            hideLoading('test2Btn', 'Run Test');
+        });
+
+        // Test 3: Statistical Analysis
+        document.getElementById('test3Btn').addEventListener('click', async function() {
+            showLoading('test3Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                // Test various statistical functions
+                const testResults = {};
+                
+                // Test linear trend
+                const trendData = [10, 15, 20, 25, 30, 35];
+                const trend = engine.calculateLinearTrend(trendData);
+                testResults.linearTrend = {
+                    slope: trend.slope,
+                    intercept: trend.intercept,
+                    rSquared: trend.rSquared,
+                    expected: 'Should have positive slope ~5'
+                };
+                
+                // Test correlation
+                const x = [1, 2, 3, 4, 5];
+                const y = [2, 4, 6, 8, 10];
+                const correlation = engine.calculateCorrelation(x, y);
+                testResults.correlation = {
+                    value: correlation,
+                    expected: 'Should be close to 1 (perfect positive correlation)'
+                };
+                
+                // Test median calculation
+                const medianData = [1, 3, 5, 7, 9];
+                const median = engine.calculateMedian(medianData);
+                testResults.median = {
+                    value: median,
+                    expected: 'Should be 5 (middle value)'
+                };
+                
+                // Test percentiles
+                const sortedData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                const p25 = engine.calculatePercentile(sortedData, 25);
+                const p75 = engine.calculatePercentile(sortedData, 75);
+                testResults.percentiles = {
+                    p25: p25,
+                    p75: p75,
+                    expected: 'P25 ≈ 3.25, P75 ≈ 7.75'
+                };
+                
+                // Test standard deviation
+                const mean = 5;
+                const stdData = [3, 4, 5, 6, 7];
+                const stdDev = engine.calculateStandardDeviation(stdData, mean);
+                testResults.standardDeviation = {
+                    value: stdDev,
+                    expected: 'Should be ~1.58'
+                };
+                
+                const allValid = 
+                    Math.abs(trend.slope - 5) < 1 &&
+                    Math.abs(correlation - 1) < 0.1 &&
+                    median === 5 &&
+                    Math.abs(p25 - 3.25) < 0.5 &&
+                    Math.abs(stdDev - 1.58) < 0.5;
+                
+                if (allValid) {
+                    showResult('test3Result', true, 'Statistical analysis functions working correctly', testResults);
+                } else {
+                    showResult('test3Result', false, 'Some statistical calculations are inaccurate', testResults);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test3Result', false, `Statistical analysis error: ${error.message}`);
+            }
+            
+            hideLoading('test3Btn', 'Run Test');
+        });
+
+        // Test 4: Anomaly Detection
+        document.getElementById('test4Btn').addEventListener('click', async function() {
+            showLoading('test4Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                // Test data with clear outliers
+                const normalData = [10, 12, 11, 13, 10, 9, 11, 12, 10, 11];
+                const dataWithOutliers = [...normalData, 100, 5]; // Add clear outliers
+                
+                const anomalies = engine.detectAnomalies(dataWithOutliers, 2.0);
+                
+                // Test with uniform data (should have no anomalies)
+                const uniformData = Array(20).fill(50);
+                const uniformAnomalies = engine.detectAnomalies(uniformData, 2.0);
+                
+                const testResults = {
+                    normalDataAnomalies: {
+                        count: engine.detectAnomalies(normalData, 2.0).length,
+                        expected: 'Should be 0 or very few'
+                    },
+                    dataWithOutliersAnomalies: {
+                        count: anomalies.length,
+                        anomalies: anomalies.map(a => `Value: ${a.value}, Z-score: ${a.zScore}`),
+                        expected: 'Should detect 100 and possibly 5 as outliers'
+                    },
+                    uniformDataAnomalies: {
+                        count: uniformAnomalies.length,
+                        expected: 'Should be 0 (no variation)'
+                    }
+                };
+                
+                const isValid = 
+                    anomalies.length > 0 && // Should detect outliers
+                    anomalies.some(a => a.value === 100) && // Should detect 100 as outlier
+                    uniformAnomalies.length === 0; // Uniform data should have no anomalies
+                
+                if (isValid) {
+                    showResult('test4Result', true, 'Anomaly detection working correctly', testResults);
+                } else {
+                    showResult('test4Result', false, 'Anomaly detection not working as expected', testResults);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test4Result', false, `Anomaly detection error: ${error.message}`);
+            }
+            
+            hideLoading('test4Btn', 'Run Test');
+        });
+
+        // Test 5: Forecasting
+        document.getElementById('test5Btn').addEventListener('click', async function() {
+            showLoading('test5Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                // Test with increasing trend
+                const increasingData = [100, 110, 120, 130, 140, 150];
+                const increasingForecast = engine.generateForecast(increasingData, 3);
+                
+                // Test with stable data
+                const stableData = [100, 102, 98, 101, 99, 100];
+                const stableForecast = engine.generateForecast(stableData, 3);
+                
+                // Test with decreasing trend
+                const decreasingData = [150, 140, 130, 120, 110, 100];
+                const decreasingForecast = engine.generateForecast(decreasingData, 3);
+                
+                const testResults = {
+                    increasingTrend: {
+                        lastValue: increasingData[increasingData.length - 1],
+                        forecasts: increasingForecast.map(f => `Period ${f.period}: ${f.value} (${(f.confidence * 100).toFixed(1)}%)`),
+                        expected: 'Should predict values > 150'
+                    },
+                    stableTrend: {
+                        lastValue: stableData[stableData.length - 1],
+                        forecasts: stableForecast.map(f => `Period ${f.period}: ${f.value} (${(f.confidence * 100).toFixed(1)}%)`),
+                        expected: 'Should predict values around 100'
+                    },
+                    decreasingTrend: {
+                        lastValue: decreasingData[decreasingData.length - 1],
+                        forecasts: decreasingForecast.map(f => `Period ${f.period}: ${f.value} (${(f.confidence * 100).toFixed(1)}%)`),
+                        expected: 'Should predict values < 100'
+                    }
+                };
+                
+                const isValid = 
+                    increasingForecast.length === 3 &&
+                    stableForecast.length === 3 &&
+                    decreasingForecast.length === 3 &&
+                    increasingForecast[0].value > 150 && // Should predict higher values
+                    Math.abs(stableForecast[0].value - 100) < 20 && // Should predict around 100
+                    decreasingForecast[0].value < 100; // Should predict lower values
+                
+                if (isValid) {
+                    showResult('test5Result', true, 'Forecasting working correctly', testResults);
+                } else {
+                    showResult('test5Result', false, 'Forecasting not working as expected', testResults);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test5Result', false, `Forecasting error: ${error.message}`);
+            }
+            
+            hideLoading('test5Btn', 'Run Test');
+        });
+
+        // Test 6: Transaction Averages & Distribution
+        document.getElementById('test6Btn').addEventListener('click', async function() {
+            showLoading('test6Btn');
+            
+            try {
+                const engine = new AnalyticsEngine();
+                await engine.initialize();
+                
+                // Generate test transaction data
+                const transactions = [];
+                for (let i = 0; i < 1000; i++) {
+                    transactions.push({
+                        amount: Math.random() * 100000 + 1000, // 1K to 101K
+                        date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000)
+                    });
+                }
+                
+                const averages = await engine.calculateTransactionAverages(transactions);
+                
+                const isValid = 
+                    averages.averages && averages.distribution &&
+                    typeof averages.averages.mean === 'number' &&
+                    typeof averages.averages.median === 'number' &&
+                    averages.distribution.percentiles &&
+                    Array.isArray(averages.distribution.histogram);
+                
+                if (isValid) {
+                    const displayData = {
+                        averages: {
+                            mean: averages.averages.mean.toLocaleString(),
+                            median: averages.averages.median.toLocaleString(),
+                            mode: averages.averages.mode.toLocaleString(),
+                            count: averages.averages.count
+                        },
+                        distribution: {
+                            percentiles: {
+                                p25: averages.distribution.percentiles.p25.toLocaleString(),
+                                p50: averages.distribution.percentiles.p50.toLocaleString(),
+                                p75: averages.distribution.percentiles.p75.toLocaleString(),
+                                p95: averages.distribution.percentiles.p95.toLocaleString()
+                            },
+                            standardDeviation: averages.distribution.standardDeviation.toLocaleString(),
+                            skewness: averages.distribution.skewness,
+                            kurtosis: averages.distribution.kurtosis,
+                            range: {
+                                min: averages.distribution.range.min.toLocaleString(),
+                                max: averages.distribution.range.max.toLocaleString()
+                            }
+                        },
+                        histogram: {
+                            bins: averages.distribution.histogram.length,
+                            sampleBins: averages.distribution.histogram.slice(0, 3).map(bin => 
+                                `${bin.min.toLocaleString()}-${bin.max.toLocaleString()}: ${bin.count} (${bin.percentage}%)`
+                            )
+                        }
+                    };
+                    
+                    showResult('test6Result', true, 'Transaction averages and distribution analysis completed', displayData);
+                } else {
+                    showResult('test6Result', false, 'Invalid transaction averages result', averages);
+                }
+                
+                engine.destroy();
+                
+            } catch (error) {
+                showResult('test6Result', false, `Transaction averages error: ${error.message}`);
+            }
+            
+            hideLoading('test6Btn', 'Run Test');
+        });
+
+        // Run All Tests
+        document.getElementById('runAllBtn').addEventListener('click', async function() {
+            showLoading('runAllBtn');
+            
+            const tests = [
+                'test1Btn', 'test2Btn', 'test3Btn', 
+                'test4Btn', 'test5Btn', 'test6Btn'
+            ];
+            
+            let passedTests = 0;
+            const totalTests = tests.length;
+            
+            for (const testId of tests) {
+                try {
+                    // Trigger test
+                    document.getElementById(testId).click();
+                    
+                    // Wait for test to complete
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    // Check if test passed
+                    const resultId = testId.replace('Btn', 'Result');
+                    const resultElement = document.getElementById(resultId);
+                    
+                    if (resultElement.classList.contains('test-success')) {
+                        passedTests++;
+                    }
+                } catch (error) {
+                    console.error(`Test ${testId} failed:`, error);
+                }
+            }
+            
+            const allPassed = passedTests === totalTests;
+            
+            showResult('allTestsResult', allPassed, 
+                `Trend Analysis & Forecasting Tests: ${passedTests}/${totalTests} passed`, {
+                    passedTests,
+                    totalTests,
+                    successRate: `${Math.round((passedTests / totalTests) * 100)}%`,
+                    summary: allPassed ? 'All trend analysis and forecasting functions working correctly!' : 'Some functions need attention.'
+                });
+            
+            hideLoading('runAllBtn', 'Run All Tests');
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Trend Analysis & Forecasting Test Page loaded');
+            
+            // Check if AnalyticsEngine is available
+            if (typeof AnalyticsEngine === 'undefined') {
+                document.body.innerHTML = `
+                    <div class="container mt-4">
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> AnalyticsEngine class not found. 
+                            Please ensure js/dashboard/AnalyticsEngine.js is loaded correctly.
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

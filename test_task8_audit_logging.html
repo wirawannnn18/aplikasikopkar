@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 8: Audit Logging and Compliance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .audit-entry {
+            border-left: 4px solid #007bff;
+            margin-bottom: 10px;
+        }
+        .audit-entry.error {
+            border-left-color: #dc3545;
+        }
+        .audit-entry.warning {
+            border-left-color: #ffc107;
+        }
+        .audit-entry.success {
+            border-left-color: #28a745;
+        }
+        .json-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .filter-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test Task 8: Audit Logging and Compliance</h1>
+        <p class="text-muted">Testing comprehensive audit logging functionality</p>
+
+        <!-- Test Controls -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Generate Test Data</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-2" onclick="testUploadLogging()">Test Upload Logging</button>
+                        <button class="btn btn-info mb-2" onclick="testValidationLogging()">Test Validation Logging</button>
+                        <button class="btn btn-success mb-2" onclick="testDataChangeLogging()">Test Data Change Logging</button>
+                        <button class="btn btn-warning mb-2" onclick="testErrorLogging()">Test Error Logging</button>
+                        <button class="btn btn-secondary mb-2" onclick="testImportComplete()">Test Import Complete</button>
+                        <button class="btn btn-danger" onclick="clearAuditLog()">Clear Audit Log</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Export Functions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary mb-2" onclick="exportJSON()">Export as JSON</button>
+                        <button class="btn btn-outline-success mb-2" onclick="exportCSV()">Export as CSV</button>
+                        <button class="btn btn-outline-info mb-2" onclick="showStatistics()">Show Statistics</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h5>Filter Audit Trail</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="filterUser" class="form-label">User</label>
+                    <input type="text" class="form-control" id="filterUser" placeholder="Filter by user">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterAction" class="form-label">Action</label>
+                    <select class="form-control" id="filterAction">
+                        <option value="">All Actions</option>
+                        <option value="upload_start">Upload Start</option>
+                        <option value="validation_complete">Validation Complete</option>
+                        <option value="data_change">Data Change</option>
+                        <option value="import_complete">Import Complete</option>
+                        <option value="error">Error</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterSession" class="form-label">Session ID</label>
+                    <input type="text" class="form-control" id="filterSession" placeholder="Filter by session">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterLimit" class="form-label">Limit</label>
+                    <input type="number" class="form-control" id="filterLimit" value="50" min="1" max="1000">
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                    <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Display -->
+        <div id="statisticsDisplay" class="card mb-4" style="display: none;">
+            <div class="card-header">
+                <h5>Audit Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div id="statisticsContent"></div>
+            </div>
+        </div>
+
+        <!-- Audit Trail Display -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Audit Trail</h5>
+                <span id="auditCount" class="badge bg-primary">0 entries</span>
+            </div>
+            <div class="card-body">
+                <div id="auditTrail">
+                    <p class="text-muted">No audit entries yet. Use the test buttons above to generate audit data.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/upload-excel/AuditLogger.js"></script>
+    <script>
+        let auditLogger;
+        let currentSessionId;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            auditLogger = new AuditLogger();
+            // Set a test user
+            localStorage.setItem('current_user', 'test_admin');
+            refreshAuditDisplay();
+        });
+
+        function testUploadLogging() {
+            const fileName = `test_file_${Date.now()}.xlsx`;
+            const recordCount = Math.floor(Math.random() * 1000) + 1;
+            
+            currentSessionId = auditLogger.logUploadStart('test_admin', fileName, recordCount);
+            
+            showAlert(`Upload logged: ${fileName} with ${recordCount} records`, 'success');
+            refreshAuditDisplay();
+        }
+
+        function testValidationLogging() {
+            if (!currentSessionId) {
+                showAlert('Please start an upload first', 'warning');
+                return;
+            }
+
+            const validationResults = {
+                errors: [
+                    { field: 'kode', message: 'Duplicate code found', row: 5 },
+                    { field: 'harga_beli', message: 'Negative value not allowed', row: 12 }
+                ],
+                warnings: [
+                    { field: 'supplier', message: 'Supplier not found, will be created', row: 3 }
+                ]
+            };
+
+            auditLogger.logValidationResults(currentSessionId, validationResults);
+            
+            showAlert('Validation results logged', 'info');
+            refreshAuditDisplay();
+        }
+
+        function testDataChangeLogging() {
+            if (!currentSessionId) {
+                showAlert('Please start an upload first', 'warning');
+                return;
+            }
+
+            const oldData = {
+                kode: 'BRG001',
+                nama: 'Barang Lama',
+                kategori: 'kategori1',
+                satuan: 'pcs',
+                harga_beli: 10000,
+                stok: 50
+            };
+
+            const newData = {
+                kode: 'BRG001',
+                nama: 'Barang Baru',
+                kategori: 'kategori2',
+                satuan: 'pcs',
+                harga_beli: 15000,
+                stok: 75
+            };
+
+            auditLogger.logDataChanges(currentSessionId, oldData, newData);
+            
+            showAlert('Data change logged', 'success');
+            refreshAuditDisplay();
+        }
+
+        function testErrorLogging() {
+            if (!currentSessionId) {
+                showAlert('Please start an upload first', 'warning');
+                return;
+            }
+
+            const error = new Error('Test validation error');
+            error.name = 'ValidationError';
+            
+            const context = {
+                severity: 'error',
+                recoverable: true,
+                rowNumber: 15,
+                fieldName: 'harga_beli',
+                operation: 'validation'
+            };
+
+            auditLogger.logError(currentSessionId, error, context);
+            
+            showAlert('Error logged', 'danger');
+            refreshAuditDisplay();
+        }
+
+        function testImportComplete() {
+            if (!currentSessionId) {
+                showAlert('Please start an upload first', 'warning');
+                return;
+            }
+
+            const results = {
+                totalProcessed: 100,
+                created: 75,
+                updated: 20,
+                failed: 5,
+                duration: 2500
+            };
+
+            auditLogger.logImportComplete(currentSessionId, results);
+            
+            showAlert('Import completion logged', 'success');
+            refreshAuditDisplay();
+        }
+
+        function clearAuditLog() {
+            if (confirm('Are you sure you want to clear the audit log? This action cannot be undone.')) {
+                try {
+                    auditLogger.clearAuditLog(true);
+                    showAlert('Audit log cleared', 'warning');
+                    refreshAuditDisplay();
+                } catch (error) {
+                    showAlert('Error clearing audit log: ' + error.message, 'danger');
+                }
+            }
+        }
+
+        function exportJSON() {
+            try {
+                const jsonData = auditLogger.exportAuditLog('json');
+                downloadFile(jsonData, 'audit_log.json', 'application/json');
+                showAlert('JSON export completed', 'success');
+            } catch (error) {
+                showAlert('Export failed: ' + error.message, 'danger');
+            }
+        }
+
+        function exportCSV() {
+            try {
+                const csvData = auditLogger.exportAuditLog('csv');
+                downloadFile(csvData, 'audit_log.csv', 'text/csv');
+                showAlert('CSV export completed', 'success');
+            } catch (error) {
+                showAlert('Export failed: ' + error.message, 'danger');
+            }
+        }
+
+        function showStatistics() {
+            const stats = auditLogger.getAuditStatistics();
+            const statsDisplay = document.getElementById('statisticsDisplay');
+            const statsContent = document.getElementById('statisticsContent');
+            
+            statsContent.innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6>Total Entries</h6>
+                        <p class="h4 text-primary">${stats.totalEntries}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Unique Sessions</h6>
+                        <p class="h4 text-info">${stats.sessionCount}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Error Count</h6>
+                        <p class="h4 text-danger">${stats.errorCount}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6>Date Range</h6>
+                        <p class="small">${stats.dateRange.earliest ? new Date(stats.dateRange.earliest).toLocaleDateString() : 'N/A'} - ${stats.dateRange.latest ? new Date(stats.dateRange.latest).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>Actions</h6>
+                        <ul class="list-unstyled">
+                            ${Object.entries(stats.actionCounts).map(([action, count]) => 
+                                `<li><span class="badge bg-secondary me-2">${count}</span>${action}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Users</h6>
+                        <ul class="list-unstyled">
+                            ${Object.entries(stats.userCounts).map(([user, count]) => 
+                                `<li><span class="badge bg-info me-2">${count}</span>${user}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            statsDisplay.style.display = 'block';
+        }
+
+        function applyFilters() {
+            const filters = {
+                user: document.getElementById('filterUser').value,
+                action: document.getElementById('filterAction').value,
+                sessionId: document.getElementById('filterSession').value,
+                limit: parseInt(document.getElementById('filterLimit').value) || 50
+            };
+
+            // Remove empty filters
+            Object.keys(filters).forEach(key => {
+                if (!filters[key] && key !== 'limit') {
+                    delete filters[key];
+                }
+            });
+
+            refreshAuditDisplay(filters);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterUser').value = '';
+            document.getElementById('filterAction').value = '';
+            document.getElementById('filterSession').value = '';
+            document.getElementById('filterLimit').value = '50';
+            refreshAuditDisplay();
+        }
+
+        function refreshAuditDisplay(filters = {}) {
+            const auditTrail = auditLogger.getAuditTrail(filters);
+            const auditContainer = document.getElementById('auditTrail');
+            const auditCount = document.getElementById('auditCount');
+            
+            auditCount.textContent = `${auditTrail.length} entries`;
+
+            if (auditTrail.length === 0) {
+                auditContainer.innerHTML = '<p class="text-muted">No audit entries match the current filters.</p>';
+                return;
+            }
+
+            auditContainer.innerHTML = auditTrail.map(entry => {
+                const entryClass = getEntryClass(entry.action);
+                const timestamp = new Date(entry.timestamp).toLocaleString();
+                
+                return `
+                    <div class="audit-entry ${entryClass} p-3 mb-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">
+                                    <span class="badge bg-primary me-2">${entry.action}</span>
+                                    ${entry.user}
+                                </h6>
+                                <p class="mb-1 text-muted small">${timestamp} | Session: ${entry.sessionId}</p>
+                                ${entry.details ? `<p class="mb-2">${formatDetails(entry.details)}</p>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="showEntryDetails('${entry.id}')">
+                                Details
+                            </button>
+                        </div>
+                        <div id="details-${entry.id}" class="collapse">
+                            <hr>
+                            <div class="row">
+                                ${entry.oldData ? `
+                                    <div class="col-md-6">
+                                        <h6>Old Data</h6>
+                                        <div class="json-display">${JSON.stringify(entry.oldData, null, 2)}</div>
+                                    </div>
+                                ` : ''}
+                                ${entry.newData ? `
+                                    <div class="col-md-6">
+                                        <h6>New Data</h6>
+                                        <div class="json-display">${JSON.stringify(entry.newData, null, 2)}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="mt-2">
+                                <h6>Full Details</h6>
+                                <div class="json-display">${JSON.stringify(entry, null, 2)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getEntryClass(action) {
+            switch (action) {
+                case 'error': return 'error';
+                case 'validation_complete': return 'warning';
+                case 'import_complete': return 'success';
+                default: return '';
+            }
+        }
+
+        function formatDetails(details) {
+            if (details.errorMessage) {
+                return `<strong>Error:</strong> ${details.errorMessage}`;
+            }
+            if (details.fileName) {
+                return `<strong>File:</strong> ${details.fileName} (${details.recordCount} records)`;
+            }
+            if (details.changeType) {
+                return `<strong>Change:</strong> ${details.changeType} - ${details.recordId}`;
+            }
+            if (details.totalRecords !== undefined) {
+                return `<strong>Import:</strong> ${details.totalRecords} processed, ${details.successfulRecords} successful`;
+            }
+            return JSON.stringify(details);
+        }
+
+        function showEntryDetails(entryId) {
+            const detailsElement = document.getElementById(`details-${entryId}`);
+            if (detailsElement.classList.contains('show')) {
+                detailsElement.classList.remove('show');
+            } else {
+                detailsElement.classList.add('show');
+            }
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

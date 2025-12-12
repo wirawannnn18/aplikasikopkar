@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Member Analytics - Dashboard Analytics KPI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            border-left: 4px solid #28a745;
+            background-color: #d4edda;
+        }
+        .error {
+            border-left: 4px solid #dc3545;
+            background-color: #f8d7da;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .heatmap-container {
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .heatmap-cell {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin: 1px;
+            border-radius: 2px;
+        }
+        .segment-high { background-color: #28a745; }
+        .segment-medium { background-color: #ffc107; }
+        .segment-low { background-color: #fd7e14; }
+        .segment-inactive { background-color: #6c757d; }
+        .risk-low { background-color: #28a745; }
+        .risk-medium { background-color: #ffc107; }
+        .risk-high { background-color: #fd7e14; }
+        .risk-dormant { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Member Analytics - Dashboard Analytics KPI</h1>
+        <p>Testing member activity analysis, segmentation, and dormant member identification functionality.</p>
+        
+        <div class="controls">
+            <button onclick="testActivityHeatmap()">Test Activity Heatmap</button>
+            <button onclick="testMemberSegmentation()">Test Member Segmentation</button>
+            <button onclick="testDormantMembers()">Test Dormant Members</button>
+            <button onclick="testTopActiveMembers()">Test Top Active Members</button>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script src="js/dashboard/MemberAnalytics.js"></script>
+    <script>
+        // Mock data source for testing
+        class MockDataSource {
+            constructor() {
+                this.members = this.generateMockMembers();
+                this.transactions = this.generateMockTransactions();
+            }
+
+            generateMockMembers() {
+                const members = [];
+                const names = ['Ahmad Suharto', 'Siti Nurhaliza', 'Budi Santoso', 'Dewi Lestari', 'Eko Prasetyo', 
+                              'Fitri Handayani', 'Gunawan Wijaya', 'Hesti Purwanti', 'Indra Kusuma', 'Joko Widodo',
+                              'Kartika Sari', 'Lukman Hakim', 'Maya Sari', 'Nanda Pratama', 'Oki Setiana'];
+                
+                for (let i = 1; i <= 50; i++) {
+                    members.push({
+                        id: i,
+                        nama: names[Math.floor(Math.random() * names.length)] + ` ${i}`,
+                        status: Math.random() > 0.1 ? 'aktif' : 'keluar', // 90% active
+                        tanggal_daftar: new Date(2020 + Math.floor(Math.random() * 4), 
+                                               Math.floor(Math.random() * 12), 
+                                               Math.floor(Math.random() * 28) + 1).toISOString()
+                    });
+                }
+                return members;
+            }
+
+            generateMockTransactions() {
+                const transactions = [];
+                const activeMembers = this.members.filter(m => m.status === 'aktif');
+                
+                // Generate transactions for the last 6 months
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - 6);
+                
+                for (let i = 1; i <= 2000; i++) {
+                    const member = activeMembers[Math.floor(Math.random() * activeMembers.length)];
+                    const transactionDate = new Date(startDate.getTime() + Math.random() * (Date.now() - startDate.getTime()));
+                    
+                    transactions.push({
+                        id: i,
+                        member_id: member.id,
+                        tanggal: transactionDate.toISOString(),
+                        jumlah: Math.floor(Math.random() * 5000000) + 50000, // 50K - 5M IDR
+                        jenis: ['simpanan', 'pinjaman', 'pos'][Math.floor(Math.random() * 3)]
+                    });
+                }
+                
+                return transactions;
+            }
+
+            async getAllActiveMembers() {
+                return this.members.filter(m => m.status === 'aktif');
+            }
+
+            async getTransactionsByDateRange(startDate, endDate) {
+                return this.transactions.filter(t => {
+                    const transactionDate = new Date(t.tanggal);
+                    return transactionDate >= startDate && transactionDate <= endDate;
+                });
+            }
+
+            async getLastTransactionByMember(memberId) {
+                const memberTransactions = this.transactions
+                    .filter(t => t.member_id === memberId)
+                    .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+                
+                return memberTransactions.length > 0 ? memberTransactions[0] : null;
+            }
+        }
+
+        // Initialize analytics with mock data
+        const dataSource = new MockDataSource();
+        const analytics = new MemberAnalytics(dataSource);
+
+        function addResult(title, content, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            const section = document.createElement('div');
+            section.className = `test-section ${isSuccess ? 'success' : 'error'}`;
+            section.innerHTML = `
+                <h3>${title}</h3>
+                <div class="result">${content}</div>
+            `;
+            resultsDiv.appendChild(section);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        async function testActivityHeatmap() {
+            try {
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - 1); // Last month
+                const endDate = new Date();
+                
+                console.log('Testing activity heatmap...');
+                const heatmap = await analytics.generateActivityHeatmap(startDate, endDate);
+                
+                let result = `Activity Heatmap Analysis\n`;
+                result += `Period: ${heatmap.dateRange.start} to ${heatmap.dateRange.end}\n\n`;
+                result += `Summary:\n`;
+                result += `- Total Members: ${heatmap.summary.totalMembers}\n`;
+                result += `- Total Days: ${heatmap.summary.totalDays}\n`;
+                result += `- Total Transactions: ${heatmap.summary.totalTransactions}\n`;
+                result += `- Total Value: ${formatCurrency(heatmap.summary.totalValue)}\n`;
+                result += `- Avg Transactions/Day: ${heatmap.summary.avgTransactionsPerDay}\n`;
+                result += `- Activity Rate: ${heatmap.summary.activityRate}%\n\n`;
+                
+                result += `Sample Member Activity (First 5 members):\n`;
+                heatmap.data.slice(0, 5).forEach(member => {
+                    result += `\n${member.memberName} (ID: ${member.memberId}):\n`;
+                    const totalTransactions = member.dailyActivity.reduce((sum, day) => sum + day.transactionCount, 0);
+                    const totalValue = member.dailyActivity.reduce((sum, day) => sum + day.totalValue, 0);
+                    result += `  Total Transactions: ${totalTransactions}\n`;
+                    result += `  Total Value: ${formatCurrency(totalValue)}\n`;
+                    result += `  Avg Intensity: ${(member.dailyActivity.reduce((sum, day) => sum + day.intensity, 0) / member.dailyActivity.length).toFixed(1)}\n`;
+                });
+                
+                addResult('Activity Heatmap Test', result, true);
+            } catch (error) {
+                addResult('Activity Heatmap Test', `Error: ${error.message}\n${error.stack}`, false);
+            }
+        }
+
+        async function testMemberSegmentation() {
+            try {
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - 3); // Last 3 months
+                const endDate = new Date();
+                
+                console.log('Testing member segmentation...');
+                const segmentation = await analytics.segmentMembersByActivity(startDate, endDate);
+                
+                let result = `Member Segmentation Analysis\n`;
+                result += `Analysis Date: ${new Date(segmentation.analysisDate).toLocaleString('id-ID')}\n\n`;
+                
+                result += `Summary:\n`;
+                result += `- Total Members: ${segmentation.summary.totalMembers}\n`;
+                result += `- High Activity: ${segmentation.summary.highActivity} (${segmentation.summary.distributionPercentage.high}%)\n`;
+                result += `- Medium Activity: ${segmentation.summary.mediumActivity} (${segmentation.summary.distributionPercentage.medium}%)\n`;
+                result += `- Low Activity: ${segmentation.summary.lowActivity} (${segmentation.summary.distributionPercentage.low}%)\n`;
+                result += `- Inactive: ${segmentation.summary.inactive} (${segmentation.summary.distributionPercentage.inactive}%)\n\n`;
+                
+                // Show sample members from each segment
+                Object.entries(segmentation.segments).forEach(([segment, members]) => {
+                    if (members.length > 0) {
+                        result += `${segment.toUpperCase()} Activity Members (Sample):\n`;
+                        members.slice(0, 3).forEach(member => {
+                            result += `  ${member.nama}: ${member.transactionCount} transactions, ${formatCurrency(member.totalValue)}\n`;
+                        });
+                        result += `\n`;
+                    }
+                });
+                
+                addResult('Member Segmentation Test', result, true);
+            } catch (error) {
+                addResult('Member Segmentation Test', `Error: ${error.message}\n${error.stack}`, false);
+            }
+        }
+
+        async function testDormantMembers() {
+            try {
+                console.log('Testing dormant member identification...');
+                const dormantAnalysis = await analytics.identifyDormantMembers(90); // 90 days threshold
+                
+                let result = `Dormant Member Analysis\n`;
+                result += `Analysis Date: ${new Date(dormantAnalysis.analysisDate).toLocaleString('id-ID')}\n`;
+                result += `Threshold: ${dormantAnalysis.thresholdDays} days\n\n`;
+                
+                result += `Summary:\n`;
+                result += `- Total Members: ${dormantAnalysis.summary.totalMembers}\n`;
+                result += `- Active Members: ${dormantAnalysis.summary.activeCount}\n`;
+                result += `- At Risk Members: ${dormantAnalysis.summary.atRiskCount} (${dormantAnalysis.summary.atRiskPercentage}%)\n`;
+                result += `- Dormant Members: ${dormantAnalysis.summary.dormantCount} (${dormantAnalysis.summary.dormantPercentage}%)\n\n`;
+                
+                if (dormantAnalysis.dormantMembers.length > 0) {
+                    result += `Dormant Members (Top 5):\n`;
+                    dormantAnalysis.dormantMembers.slice(0, 5).forEach(member => {
+                        const lastTransaction = member.lastTransactionDate ? 
+                            new Date(member.lastTransactionDate).toLocaleDateString('id-ID') : 'Never';
+                        result += `  ${member.nama}: ${member.daysSinceLastActivity} days (Last: ${lastTransaction})\n`;
+                    });
+                    result += `\n`;
+                }
+                
+                if (dormantAnalysis.atRiskMembers.length > 0) {
+                    result += `At Risk Members (Top 5):\n`;
+                    dormantAnalysis.atRiskMembers.slice(0, 5).forEach(member => {
+                        const lastTransaction = member.lastTransactionDate ? 
+                            new Date(member.lastTransactionDate).toLocaleDateString('id-ID') : 'Never';
+                        result += `  ${member.nama}: ${member.daysSinceLastActivity} days (Risk: ${member.riskLevel})\n`;
+                    });
+                }
+                
+                addResult('Dormant Members Test', result, true);
+            } catch (error) {
+                addResult('Dormant Members Test', `Error: ${error.message}\n${error.stack}`, false);
+            }
+        }
+
+        async function testTopActiveMembers() {
+            try {
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - 3); // Last 3 months
+                const endDate = new Date();
+                
+                console.log('Testing top active members...');
+                const topMembers = await analytics.getTopActiveMembers(startDate, endDate, 10);
+                
+                let result = `Top Active Members Analysis\n`;
+                result += `Period: ${topMembers.period.start} to ${topMembers.period.end}\n`;
+                result += `Analysis Date: ${new Date(topMembers.analysisDate).toLocaleString('id-ID')}\n\n`;
+                
+                result += `Top by Transaction Count:\n`;
+                topMembers.byTransactionCount.forEach((member, index) => {
+                    result += `  ${index + 1}. ${member.nama}: ${member.transactionCount} transactions\n`;
+                });
+                
+                result += `\nTop by Total Value:\n`;
+                topMembers.byTotalValue.forEach((member, index) => {
+                    result += `  ${index + 1}. ${member.nama}: ${formatCurrency(member.totalValue)}\n`;
+                });
+                
+                result += `\nTop by Average Transaction Value:\n`;
+                topMembers.byAvgTransactionValue.forEach((member, index) => {
+                    result += `  ${index + 1}. ${member.nama}: ${formatCurrency(member.avgTransactionValue)}\n`;
+                });
+                
+                addResult('Top Active Members Test', result, true);
+            } catch (error) {
+                addResult('Top Active Members Test', `Error: ${error.message}\n${error.stack}`, false);
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            console.log('Running all member analytics tests...');
+            
+            await testActivityHeatmap();
+            await testMemberSegmentation();
+            await testDormantMembers();
+            await testTopActiveMembers();
+            
+            addResult('All Tests Complete', 'All member analytics tests have been executed successfully!', true);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Run initial test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Member Analytics test page loaded');
+            addResult('System Ready', 'Member Analytics testing system is ready. Click buttons above to run tests.', true);
+        });
+    </script>
+</body>
+</html>
