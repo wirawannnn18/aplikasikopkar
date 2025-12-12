@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnosis Login - Sistem Koperasi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="alert alert-info">
+            <h3><i class="bi bi-info-circle-fill me-2"></i>Diagnosis Masalah Login</h3>
+            <p>Tool ini akan membantu mendiagnosis dan memperbaiki masalah login Anda.</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="bi bi-search me-2"></i>Diagnosis Sistem</h4>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-3" onclick="runDiagnosis()">
+                            <i class="bi bi-play-circle me-2"></i>Jalankan Diagnosis
+                        </button>
+                        <div id="diagnosisResults"></div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-success text-white">
+                        <h4><i class="bi bi-tools me-2"></i>Perbaikan Otomatis</h4>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success mb-3" onclick="fixUserData()">
+                            <i class="bi bi-wrench me-2"></i>Perbaiki Data User
+                        </button>
+                        <div id="fixResults"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="bi bi-key me-2"></i>Kredensial Default</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>User yang Tersedia:</h6>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Password</th>
+                                    <th>Role</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-danger">
+                                    <td><strong>superadmin</strong></td>
+                                    <td><strong>super123</strong></td>
+                                    <td>Super Admin</td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td><strong>admin</strong></td>
+                                    <td><strong>admin123</strong></td>
+                                    <td>Administrator</td>
+                                </tr>
+                                <tr class="table-info">
+                                    <td><strong>keuangan</strong></td>
+                                    <td><strong>keuangan123</strong></td>
+                                    <td>Admin Keuangan</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>kasir</strong></td>
+                                    <td><strong>kasir123</strong></td>
+                                    <td>Kasir</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <small>
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                <strong>Catatan:</strong> Jika tidak bisa login dengan kredensial di atas, 
+                                jalankan diagnosis dan perbaikan otomatis.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="bi bi-question-circle me-2"></i>Quick Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info btn-sm w-100 mb-2" onclick="testLogin('superadmin', 'super123')">
+                            Test Login Super Admin
+                        </button>
+                        <button class="btn btn-warning btn-sm w-100 mb-2" onclick="testLogin('admin', 'admin123')">
+                            Test Login Administrator
+                        </button>
+                        <button class="btn btn-primary btn-sm w-100 mb-2" onclick="testLogin('keuangan', 'keuangan123')">
+                            Test Login Keuangan
+                        </button>
+                        <button class="btn btn-success btn-sm w-100" onclick="testLogin('kasir', 'kasir123')">
+                            Test Login Kasir
+                        </button>
+                        <div id="testResults" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h4><i class="bi bi-arrow-right me-2"></i>Langkah Selanjutnya</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Jika Sudah Berhasil:</h6>
+                        <button class="btn btn-primary" onclick="openMainApp()">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>Buka Aplikasi Utama
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Jika Masih Bermasalah:</h6>
+                        <button class="btn btn-danger" onclick="clearAllData()">
+                            <i class="bi bi-trash me-2"></i>Reset Semua Data (Hati-hati!)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                              type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const logEntry = `
+                <div class="${alertClass} alert-dismissible fade show" role="alert">
+                    <small class="text-muted">[${timestamp}]</small> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            return logEntry;
+        }
+
+        function runDiagnosis() {
+            const resultsDiv = document.getElementById('diagnosisResults');
+            let results = '<h5>Hasil Diagnosis:</h5>';
+            
+            try {
+                // Check localStorage availability
+                if (typeof(Storage) !== "undefined") {
+                    results += log('✅ LocalStorage tersedia', 'success');
+                } else {
+                    results += log('❌ LocalStorage tidak tersedia', 'error');
+                    resultsDiv.innerHTML = results;
+                    return;
+                }
+                
+                // Check users data
+                const usersData = localStorage.getItem('users');
+                if (usersData) {
+                    const users = JSON.parse(usersData);
+                    results += log(`✅ Data users ditemukan (${users.length} user)`, 'success');
+                    
+                    // Check each default user
+                    const expectedUsers = [
+                        { username: 'superadmin', password: 'super123', role: 'super_admin' },
+                        { username: 'admin', password: 'admin123', role: 'administrator' },
+                        { username: 'keuangan', password: 'keuangan123', role: 'keuangan' },
+                        { username: 'kasir', password: 'kasir123', role: 'kasir' }
+                    ];
+                    
+                    expectedUsers.forEach(expected => {
+                        const user = users.find(u => u.username === expected.username);
+                        if (user) {
+                            if (user.password === expected.password && user.role === expected.role) {
+                                results += log(`✅ User ${expected.username} OK`, 'success');
+                            } else {
+                                results += log(`⚠️ User ${expected.username} ada tapi data tidak sesuai`, 'warning');
+                                results += log(`   Expected: ${expected.password}/${expected.role}`, 'info');
+                                results += log(`   Actual: ${user.password}/${user.role}`, 'info');
+                            }
+                        } else {
+                            results += log(`❌ User ${expected.username} tidak ditemukan`, 'error');
+                        }
+                    });
+                } else {
+                    results += log('❌ Data users tidak ditemukan', 'error');
+                }
+                
+                // Check current user
+                const currentUserData = localStorage.getItem('currentUser');
+                if (currentUserData) {
+                    const currentUser = JSON.parse(currentUserData);
+                    results += log(`ℹ️ User sedang login: ${currentUser.username} (${currentUser.role})`, 'info');
+                } else {
+                    results += log('ℹ️ Tidak ada user yang sedang login', 'info');
+                }
+                
+                // Check other essential data
+                const essentialKeys = ['koperasi', 'anggota', 'coa', 'barang'];
+                essentialKeys.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        results += log(`✅ Data ${key} tersedia`, 'success');
+                    } else {
+                        results += log(`⚠️ Data ${key} tidak ditemukan`, 'warning');
+                    }
+                });
+                
+            } catch (error) {
+                results += log(`❌ Error saat diagnosis: ${error.message}`, 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        function fixUserData() {
+            const resultsDiv = document.getElementById('fixResults');
+            let results = '<h5>Hasil Perbaikan:</h5>';
+            
+            try {
+                // Create default users
+                const defaultUsers = [
+                    { id: 1, username: 'superadmin', password: 'super123', name: 'Super Administrator', role: 'super_admin', active: true },
+                    { id: 2, username: 'admin', password: 'admin123', name: 'Administrator', role: 'administrator', active: true },
+                    { id: 3, username: 'keuangan', password: 'keuangan123', name: 'Admin Keuangan', role: 'keuangan', active: true },
+                    { id: 4, username: 'kasir', password: 'kasir123', name: 'Kasir', role: 'kasir', active: true }
+                ];
+                
+                localStorage.setItem('users', JSON.stringify(defaultUsers));
+                results += log('✅ Data user default berhasil dibuat/diperbaiki', 'success');
+                
+                // Initialize other essential data
+                if (!localStorage.getItem('koperasi')) {
+                    localStorage.setItem('koperasi', JSON.stringify({
+                        nama: 'Koperasi Demo',
+                        alamat: '',
+                        telepon: '',
+                        modalAwal: 0
+                    }));
+                    results += log('✅ Data koperasi diinisialisasi', 'success');
+                }
+                
+                if (!localStorage.getItem('anggota')) {
+                    localStorage.setItem('anggota', JSON.stringify([]));
+                    results += log('✅ Data anggota diinisialisasi', 'success');
+                }
+                
+                if (!localStorage.getItem('coa')) {
+                    const defaultCOA = [
+                        { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 0 },
+                        { kode: '1-1100', nama: 'Bank', tipe: 'Aset', saldo: 0 },
+                        { kode: '2-1100', nama: 'Simpanan Pokok', tipe: 'Kewajiban', saldo: 0 },
+                        { kode: '3-1000', nama: 'Modal Koperasi', tipe: 'Modal', saldo: 0 }
+                    ];
+                    localStorage.setItem('coa', JSON.stringify(defaultCOA));
+                    results += log('✅ Data COA diinisialisasi', 'success');
+                }
+                
+                if (!localStorage.getItem('barang')) {
+                    localStorage.setItem('barang', JSON.stringify([]));
+                    results += log('✅ Data barang diinisialisasi', 'success');
+                }
+                
+                // Clear current user session
+                localStorage.removeItem('currentUser');
+                results += log('✅ Session user dibersihkan', 'success');
+                
+                results += log('🎉 Perbaikan selesai! Silakan coba login lagi.', 'success');
+                
+            } catch (error) {
+                results += log(`❌ Error saat perbaikan: ${error.message}`, 'error');
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+
+        function testLogin(username, password) {
+            const resultsDiv = document.getElementById('testResults');
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const user = users.find(u => u.username === username && u.password === password);
+                
+                if (user) {
+                    if (user.active !== false) {
+                        resultsDiv.innerHTML = log(`✅ Login ${username} berhasil!`, 'success');
+                        
+                        // Set as current user
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        
+                        setTimeout(() => {
+                            resultsDiv.innerHTML += log(`ℹ️ User ${username} telah diset sebagai current user`, 'info');
+                        }, 1000);
+                    } else {
+                        resultsDiv.innerHTML = log(`❌ User ${username} tidak aktif`, 'error');
+                    }
+                } else {
+                    resultsDiv.innerHTML = log(`❌ Login ${username} gagal - kredensial salah`, 'error');
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function openMainApp() {
+            const timestamp = new Date().getTime();
+            window.open(`index.html?v=${timestamp}`, '_blank');
+        }
+
+        function clearAllData() {
+            if (confirm('PERINGATAN: Ini akan menghapus SEMUA data aplikasi. Apakah Anda yakin?')) {
+                if (confirm('Konfirmasi sekali lagi: Semua data akan hilang dan tidak dapat dikembalikan!')) {
+                    localStorage.clear();
+                    alert('Semua data telah dihapus. Refresh halaman untuk memulai dari awal.');
+                    location.reload();
+                }
+            }
+        }
+
+        // Auto run diagnosis on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Login Diagnosis Tool loaded');
+            setTimeout(runDiagnosis, 500);
+        });
+    </script>
+</body>
+</html>
