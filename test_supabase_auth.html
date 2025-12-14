@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Authentication</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-shield-check me-2"></i>Test Supabase Authentication</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="authStatus" class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>Initializing Supabase connection...
+                        </div>
+                        
+                        <!-- Login Form -->
+                        <div id="loginSection">
+                            <h5><i class="bi bi-box-arrow-in-right me-2"></i>Login Test</h5>
+                            <form id="testLoginForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Email/Username</label>
+                                    <input type="text" class="form-control" id="testEmail" value="admin@koperasi.local" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="testPassword" value="Admin123!" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-play-circle me-1"></i>Test Login
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- User Creation Form -->
+                        <div id="createUserSection" class="mt-4">
+                            <h5><i class="bi bi-person-plus me-2"></i>Create Test User</h5>
+                            <form id="testCreateForm">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="createEmail" value="test@koperasi.local" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="createUsername" value="testuser" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Name</label>
+                                            <input type="text" class="form-control" id="createName" value="Test User" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Role</label>
+                                            <select class="form-select" id="createRole" required>
+                                                <option value="anggota">Anggota</option>
+                                                <option value="kasir">Kasir</option>
+                                                <option value="keuangan">Keuangan</option>
+                                                <option value="administrator">Administrator</option>
+                                                <option value="super_admin">Super Admin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="createPassword" value="TestPass123!" required>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-person-plus me-1"></i>Create User
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Migration Section -->
+                        <div id="migrationSection" class="mt-4">
+                            <h5><i class="bi bi-arrow-up-circle me-2"></i>Migration Test</h5>
+                            <button class="btn btn-warning" onclick="testMigration()">
+                                <i class="bi bi-database me-1"></i>Test Migration
+                            </button>
+                            <button class="btn btn-info ms-2" onclick="createDefaultAdmin()">
+                                <i class="bi bi-shield-lock me-1"></i>Create Default Admin
+                            </button>
+                        </div>
+                        
+                        <!-- Results -->
+                        <div id="testResults" class="mt-4">
+                            <h5><i class="bi bi-clipboard-data me-2"></i>Test Results</h5>
+                            <div id="resultsContent" class="border rounded p-3 bg-light">
+                                <p class="text-muted mb-0">Test results will appear here...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Current User Info -->
+                        <div id="userInfo" class="mt-4 d-none">
+                            <h5><i class="bi bi-person-circle me-2"></i>Current User</h5>
+                            <div id="userInfoContent" class="border rounded p-3 bg-success text-white">
+                            </div>
+                            <button class="btn btn-danger mt-2" onclick="testLogout()">
+                                <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/supabaseAuth.js"></script>
+    <script src="js/authMigration.js"></script>
+    
+    <script>
+        // Test functions
+        let testResults = [];
+        
+        function addResult(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push(`[${timestamp}] ${message}`);
+            updateResults();
+            
+            // Also update status
+            const statusDiv = document.getElementById('authStatus');
+            statusDiv.className = `alert alert-${type}`;
+            statusDiv.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>${message}`;
+        }
+        
+        function updateResults() {
+            const resultsDiv = document.getElementById('resultsContent');
+            resultsDiv.innerHTML = testResults.map(result => `<div class="mb-1">${result}</div>`).join('');
+        }
+        
+        // Test login
+        document.getElementById('testLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            addResult(`Attempting login with ${email}...`, 'info');
+            
+            try {
+                const result = await window.supabaseAuth.signInWithPassword(email, password);
+                
+                if (result.success) {
+                    addResult('Login successful!', 'success');
+                    showUserInfo(result.data.user);
+                } else {
+                    addResult(`Login failed: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                addResult(`Login error: ${error.message}`, 'danger');
+            }
+        });
+        
+        // Test user creation
+        document.getElementById('testCreateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userData = {
+                email: document.getElementById('createEmail').value,
+                username: document.getElementById('createUsername').value,
+                name: document.getElementById('createName').value,
+                role: document.getElementById('createRole').value,
+                password: document.getElementById('createPassword').value
+            };
+            
+            addResult(`Creating user ${userData.username}...`, 'info');
+            
+            try {
+                const result = await window.supabaseAuth.signUpUser(userData.email, userData.password, userData);
+                
+                if (result.success) {
+                    addResult('User created successfully!', 'success');
+                } else {
+                    addResult(`User creation failed: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                addResult(`User creation error: ${error.message}`, 'danger');
+            }
+        });
+        
+        // Test migration
+        async function testMigration() {
+            addResult('Starting migration test...', 'info');
+            
+            try {
+                const result = await window.authMigration.migrateUsersToSupabase();
+                
+                if (result.success) {
+                    addResult(`Migration completed: ${result.message}`, 'success');
+                } else {
+                    addResult(`Migration failed: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                addResult(`Migration error: ${error.message}`, 'danger');
+            }
+        }
+        
+        // Create default admin
+        async function createDefaultAdmin() {
+            addResult('Creating default admin...', 'info');
+            
+            try {
+                const result = await window.authMigration.createDefaultSuperAdmin();
+                
+                if (result.success) {
+                    addResult(`Admin created: ${result.message}`, 'success');
+                    if (result.credentials) {
+                        addResult(`Credentials - Email: ${result.credentials.email}, Password: ${result.credentials.password}`, 'warning');
+                    }
+                } else {
+                    addResult(`Admin creation failed: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                addResult(`Admin creation error: ${error.message}`, 'danger');
+            }
+        }
+        
+        // Test logout
+        async function testLogout() {
+            addResult('Logging out...', 'info');
+            
+            try {
+                const result = await window.supabaseAuth.signOut();
+                
+                if (result.success) {
+                    addResult('Logout successful!', 'success');
+                    hideUserInfo();
+                } else {
+                    addResult(`Logout failed: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                addResult(`Logout error: ${error.message}`, 'danger');
+            }
+        }
+        
+        // Show user info
+        function showUserInfo(user) {
+            const userInfoDiv = document.getElementById('userInfo');
+            const userInfoContent = document.getElementById('userInfoContent');
+            
+            userInfoContent.innerHTML = `
+                <h6><i class="bi bi-person-badge me-2"></i>User Information</h6>
+                <p class="mb-1"><strong>ID:</strong> ${user.id}</p>
+                <p class="mb-1"><strong>Email:</strong> ${user.email}</p>
+                <p class="mb-0"><strong>Created:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+            `;
+            
+            userInfoDiv.classList.remove('d-none');
+        }
+        
+        // Hide user info
+        function hideUserInfo() {
+            document.getElementById('userInfo').classList.add('d-none');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('Supabase authentication test page loaded', 'success');
+            
+            // Check if Supabase client is available
+            if (typeof window.supabase !== 'undefined') {
+                addResult('Supabase client loaded successfully', 'success');
+            } else {
+                addResult('Supabase client not found', 'danger');
+            }
+            
+            // Check if auth functions are available
+            if (typeof window.supabaseAuth !== 'undefined') {
+                addResult('Supabase auth functions loaded successfully', 'success');
+            } else {
+                addResult('Supabase auth functions not found', 'danger');
+            }
+        });
+    </script>
+</body>
+</html>
