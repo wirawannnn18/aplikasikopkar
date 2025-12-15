@@ -41,11 +41,11 @@ function initializeTransformasiBarang() {
         console.log('Transformasi Barang system initialized successfully');
         
         // Show success message
-        showAlert('Sistem transformasi barang berhasil dimuat', 'success');
+        showTransformationAlert('Sistem transformasi barang berhasil dimuat', 'success');
         
     } catch (error) {
         console.error('Error initializing Transformasi Barang:', error);
-        showAlert(`Terjadi kesalahan saat menginisialisasi sistem transformasi barang: ${error.message}`, 'danger');
+        showTransformationAlert(`Terjadi kesalahan saat menginisialisasi sistem transformasi barang: ${error.message}`, 'danger');
     }
 }
 
@@ -228,7 +228,7 @@ function loadProductsForTransformation() {
         
     } catch (error) {
         console.error('Error loading products:', error);
-        showAlert('Gagal memuat data barang. Silakan refresh halaman.', 'warning');
+        showTransformationAlert('Gagal memuat data barang. Silakan refresh halaman.', 'warning');
     }
 }
 
@@ -568,7 +568,7 @@ function processTransformation() {
         const notesInput = document.getElementById('transformationNotes');
         
         if (!sourceSelect || !targetSelect || !quantityInput || !ratioInput) {
-            showAlert('Form elements not found', 'danger');
+            showTransformationAlert('Form elements not found', 'danger');
             return;
         }
         
@@ -580,22 +580,22 @@ function processTransformation() {
         
         // Validation
         if (!sourceId || !targetId) {
-            showAlert('Pilih barang asal dan tujuan', 'warning');
+            showTransformationAlert('Pilih barang asal dan tujuan', 'warning');
             return;
         }
         
         if (sourceId === targetId) {
-            showAlert('Barang asal dan tujuan tidak boleh sama', 'warning');
+            showTransformationAlert('Barang asal dan tujuan tidak boleh sama', 'warning');
             return;
         }
         
         if (quantity <= 0) {
-            showAlert('Jumlah transformasi harus lebih dari 0', 'warning');
+            showTransformationAlert('Jumlah transformasi harus lebih dari 0', 'warning');
             return;
         }
         
         if (ratio <= 0) {
-            showAlert('Rasio konversi harus lebih dari 0', 'warning');
+            showTransformationAlert('Rasio konversi harus lebih dari 0', 'warning');
             return;
         }
         
@@ -605,13 +605,13 @@ function processTransformation() {
         const targetItem = barang.find(item => item.id == targetId);
         
         if (!sourceItem || !targetItem) {
-            showAlert('Barang tidak ditemukan', 'danger');
+            showTransformationAlert('Barang tidak ditemukan', 'danger');
             return;
         }
         
         // Check stock
         if (sourceItem.stok < quantity) {
-            showAlert(`Stok ${sourceItem.nama} tidak mencukupi. Tersedia: ${sourceItem.stok} ${sourceItem.satuan}`, 'warning');
+            showTransformationAlert(`Stok ${sourceItem.nama} tidak mencukupi. Tersedia: ${sourceItem.stok} ${sourceItem.satuan}`, 'warning');
             return;
         }
         
@@ -655,11 +655,11 @@ function processTransformation() {
         loadProductsForTransformation();
         loadRecentTransformations();
         
-        showAlert(`Transformasi berhasil! ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${resultQuantity} ${targetItem.satuan} ${targetItem.nama}`, 'success');
+        showTransformationAlert(`Transformasi berhasil! ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${resultQuantity} ${targetItem.satuan} ${targetItem.nama}`, 'success');
         
     } catch (error) {
         console.error('Error processing transformation:', error);
-        showAlert('Terjadi kesalahan saat memproses transformasi', 'danger');
+        showTransformationAlert('Terjadi kesalahan saat memproses transformasi', 'danger');
     }
 }
 
@@ -819,7 +819,7 @@ function processTransformationLegacy() {
         const quantityInput = document.getElementById('quantity');
         
         if (!sourceSelect || !targetSelect || !quantityInput) {
-            showAlert('Form elements tidak ditemukan', 'danger');
+            showTransformationAlert('Form elements tidak ditemukan', 'danger');
             return;
         }
         
@@ -829,17 +829,17 @@ function processTransformationLegacy() {
         
         // Basic validation
         if (!sourceId || !targetId) {
-            showAlert('Pilih item sumber dan target', 'warning');
+            showTransformationAlert('Pilih item sumber dan target', 'warning');
             return;
         }
         
         if (sourceId === targetId) {
-            showAlert('Item sumber dan target tidak boleh sama', 'warning');
+            showTransformationAlert('Item sumber dan target tidak boleh sama', 'warning');
             return;
         }
         
         if (quantity <= 0) {
-            showAlert('Jumlah harus lebih dari 0', 'warning');
+            showTransformationAlert('Jumlah harus lebih dari 0', 'warning');
             return;
         }
         
@@ -849,7 +849,7 @@ function processTransformationLegacy() {
         const targetItem = barang.find(item => (item.kode || item.id) === targetId);
         
         if (!sourceItem || !targetItem) {
-            showAlert('Item tidak ditemukan', 'danger');
+            showTransformationAlert('Item tidak ditemukan', 'danger');
             return;
         }
         
@@ -858,13 +858,13 @@ function processTransformationLegacy() {
         const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
         
         if (sourceBaseProduct !== targetBaseProduct) {
-            showAlert('Item harus dari produk yang sama untuk transformasi', 'warning');
+            showTransformationAlert('Item harus dari produk yang sama untuk transformasi', 'warning');
             return;
         }
         
         // Check stock
         if (sourceItem.stok < quantity) {
-            showAlert(`Stok ${sourceItem.nama} tidak mencukupi. Tersedia: ${sourceItem.stok} ${sourceItem.satuan}`, 'warning');
+            showTransformationAlert(`Stok ${sourceItem.nama} tidak mencukupi. Tersedia: ${sourceItem.stok} ${sourceItem.satuan}`, 'warning');
             return;
         }
         
@@ -929,7 +929,7 @@ function processTransformationLegacy() {
             loadRecentTransformations();
             updateStats();
             
-            showAlert(`Transformasi berhasil! ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}`, 'success');
+            showTransformationAlert(`Transformasi berhasil! ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}`, 'success');
             
         } finally {
             // Hide loading
@@ -940,7 +940,7 @@ function processTransformationLegacy() {
         
     } catch (error) {
         console.error('Error processing transformation:', error);
-        showAlert('Terjadi kesalahan saat memproses transformasi', 'danger');
+        showTransformationAlert('Terjadi kesalahan saat memproses transformasi', 'danger');
         
         // Hide loading on error
         const loadingIndicator = document.getElementById('loading-indicator');
@@ -1035,37 +1035,15 @@ function loadTransformationHistory() {
 }
 
 /**
- * Show alert message (matches HTML structure)
+ * Show alert message (uses global showAlert function from HTML)
  */
-function showAlert(message, type = 'info') {
-    const alertContainer = document.getElementById('alert-container');
-    if (!alertContainer) {
-        console.warn('Alert container not found');
+function showTransformationAlert(message, type = 'info') {
+    // Use the global showAlert function if available, otherwise fallback
+    if (typeof window.showAlert === 'function') {
+        window.showAlert(message, type);
+    } else {
+        console.warn('Global showAlert function not found, using fallback');
         alert(message); // Fallback to browser alert
-        return;
-    }
-    
-    const alertId = 'alert-' + Date.now();
-    const iconClass = type === 'success' ? 'check-circle' : 
-                     type === 'danger' ? 'exclamation-triangle' : 
-                     type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-    
-    alertContainer.innerHTML = `
-        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
-            <i class="bi bi-${iconClass} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    
-    // Auto-hide success messages after 5 seconds
-    if (type === 'success') {
-        setTimeout(() => {
-            const alertElement = document.getElementById(alertId);
-            if (alertElement) {
-                alertElement.remove();
-            }
-        }, 5000);
     }
 }
 
@@ -1097,4 +1075,4 @@ window.showTransformationHelp = showTransformationHelp;
 window.loadTransformationHistory = loadTransformationHistory;
 window.updateConversionInfo = updateConversionInfo;
 window.resetTransformationForm = resetTransformationForm;
-window.showAlert = showAlert;
+window.showTransformationAlert = showTransformationAlert;

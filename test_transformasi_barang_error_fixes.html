@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Error Fixes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Transformasi Barang Error Fixes</h2>
+        
+        <!-- Alert Container -->
+        <div id="alert-container"></div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test JavaScript Loading</h5>
+                    </div>
+                    <div class="card-body">
+                        <button id="test-loading" class="btn btn-primary">Test Script Loading</button>
+                        <div id="loading-results" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Initialization</h5>
+                    </div>
+                    <div class="card-body">
+                        <button id="test-init" class="btn btn-success">Test Initialization</button>
+                        <div id="init-results" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Console Output</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="console-output" class="bg-dark text-light p-3" style="height: 300px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    
+    <!-- Transformasi Barang Modules -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/DataModels.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/ErrorHandler.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+    <script src="js/transformasi-barang/UIController.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+
+    <!-- Transformasi Barang Initialization -->
+    <script src="js/transformasiBarangInit.js"></script>
+    
+    <script>
+        // Capture console output
+        const consoleOutput = document.getElementById('console-output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToConsole(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleOutput.textContent += `[${timestamp}] ${type}: ${message}\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            addToConsole('LOG', args.join(' '));
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            addToConsole('ERROR', args.join(' '));
+            originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            addToConsole('WARN', args.join(' '));
+            originalWarn.apply(console, args);
+        };
+
+        /**
+         * Show alert message
+         */
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alert-container');
+            const alertId = 'alert-' + Date.now();
+            const iconClass = type === 'success' ? 'check-circle' : 
+                             type === 'danger' ? 'exclamation-triangle' : 
+                             type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+            
+            alertContainer.innerHTML = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${iconClass} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    const alertElement = document.getElementById(alertId);
+                    if (alertElement) {
+                        alertElement.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Test script loading
+        document.getElementById('test-loading').addEventListener('click', function() {
+            const results = document.getElementById('loading-results');
+            const requiredClasses = [
+                'TransformationManager',
+                'UIController', 
+                'ValidationEngine',
+                'StockManager',
+                'AuditLogger',
+                'ErrorHandler',
+                'ConversionCalculator'
+            ];
+            
+            let html = '<h6>Script Loading Results:</h6><ul>';
+            let allLoaded = true;
+            
+            requiredClasses.forEach(className => {
+                const loaded = !!window[className];
+                html += `<li class="${loaded ? 'text-success' : 'text-danger'}">
+                    <i class="bi bi-${loaded ? 'check-circle' : 'x-circle'}"></i> 
+                    ${className}: ${loaded ? 'Loaded' : 'Missing'}
+                </li>`;
+                if (!loaded) allLoaded = false;
+            });
+            
+            html += '</ul>';
+            
+            if (allLoaded) {
+                html += '<div class="alert alert-success mt-2">✅ All required classes loaded successfully!</div>';
+                showAlert('All scripts loaded successfully', 'success');
+            } else {
+                html += '<div class="alert alert-danger mt-2">❌ Some required classes are missing!</div>';
+                showAlert('Some scripts failed to load', 'danger');
+            }
+            
+            results.innerHTML = html;
+        });
+
+        // Test initialization
+        document.getElementById('test-init').addEventListener('click', function() {
+            const results = document.getElementById('init-results');
+            
+            try {
+                console.log('Testing transformasi barang initialization...');
+                
+                if (typeof initializeTransformasiBarang === 'function') {
+                    initializeTransformasiBarang();
+                    results.innerHTML = '<div class="alert alert-success">✅ Initialization completed successfully!</div>';
+                    showAlert('Transformasi Barang initialized successfully', 'success');
+                } else {
+                    results.innerHTML = '<div class="alert alert-danger">❌ initializeTransformasiBarang function not found!</div>';
+                    showAlert('Initialization function not found', 'danger');
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                results.innerHTML = `<div class="alert alert-danger">❌ Initialization failed: ${error.message}</div>`;
+                showAlert(`Initialization failed: ${error.message}`, 'danger');
+            }
+        });
+
+        // Auto-test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, running automatic tests...');
+            
+            // Test script loading first
+            setTimeout(() => {
+                document.getElementById('test-loading').click();
+            }, 500);
+            
+            // Then test initialization
+            setTimeout(() => {
+                document.getElementById('test-init').click();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
