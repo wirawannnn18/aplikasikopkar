@@ -416,10 +416,28 @@
          * Initialize sample data if localStorage is empty
          */
         function initializeSampleDataIfNeeded() {
-            const existingData = localStorage.getItem('masterBarang') || localStorage.getItem('barang');
+            // Cek apakah ada data barang di localStorage
+            let hasData = false;
+            const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
             
-            if (!existingData) {
-                console.log('No existing data found, initializing sample data...');
+            for (const source of dataSources) {
+                try {
+                    const data = localStorage.getItem(source);
+                    if (data) {
+                        const parsedData = JSON.parse(data);
+                        if (Array.isArray(parsedData) && parsedData.length > 0) {
+                            hasData = true;
+                            console.log(`Data barang ditemukan di ${source}: ${parsedData.length} items`);
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Error checking data in ${source}:`, e);
+                }
+            }
+            
+            if (!hasData) {
+                console.log('Tidak ada data barang ditemukan, menginisialisasi data sample...');
                 
                 const sampleData = [
                     {
@@ -427,28 +445,54 @@
                         nama: 'Beras Premium (Kilogram)',
                         satuan: 'kg',
                         stok: 100,
-                        baseProduct: 'BRG001'
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
                     },
                     {
                         kode: 'BRG001-GR',
                         nama: 'Beras Premium (Gram)',
                         satuan: 'gram',
                         stok: 50000,
-                        baseProduct: 'BRG001'
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
                     },
                     {
                         kode: 'BRG002-LT',
                         nama: 'Minyak Goreng (Liter)',
                         satuan: 'liter',
                         stok: 50,
-                        baseProduct: 'BRG002'
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18000,
+                        hargaJual: 22000
                     },
                     {
                         kode: 'BRG002-ML',
                         nama: 'Minyak Goreng (Mililiter)',
                         satuan: 'ml',
                         stok: 25000,
-                        baseProduct: 'BRG002'
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18,
+                        hargaJual: 22
+                    },
+                    {
+                        kode: 'BRG003-DUS',
+                        nama: 'Air Mineral (Dus)',
+                        satuan: 'dus',
+                        stok: 20,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 48000,
+                        hargaJual: 60000
+                    },
+                    {
+                        kode: 'BRG003-BTL',
+                        nama: 'Air Mineral (Botol)',
+                        satuan: 'botol',
+                        stok: 480,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 2000,
+                        hargaJual: 2500
                     }
                 ];
 
@@ -466,15 +510,24 @@
                             { from: 'liter', to: 'ml', ratio: 1000 },
                             { from: 'ml', to: 'liter', ratio: 0.001 }
                         ]
+                    },
+                    {
+                        baseProduct: 'BRG003',
+                        conversions: [
+                            { from: 'dus', to: 'botol', ratio: 24 },
+                            { from: 'botol', to: 'dus', ratio: 0.041667 }
+                        ]
                     }
                 ];
 
+                // Simpan ke semua kemungkinan key localStorage
                 localStorage.setItem('masterBarang', JSON.stringify(sampleData));
                 localStorage.setItem('barang', JSON.stringify(sampleData));
                 localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
                 localStorage.setItem('currentUser', 'Test User');
                 
-                console.log('Sample data initialized successfully');
+                console.log('Data sample berhasil diinisialisasi dengan', sampleData.length, 'items');
+                showAlert('Data sample barang berhasil dimuat untuk testing', 'info');
             }
         }
 
@@ -952,24 +1005,146 @@
                     return;
                 }
                 
-                const barang = JSON.parse(localStorage.getItem('masterBarang') || localStorage.getItem('barang') || '[]');
+                // Coba ambil data dari berbagai sumber localStorage
+                let barang = [];
                 
-                sourceSelect.innerHTML = '<option value="">Pilih Item Sumber...</option>';
-                targetSelect.innerHTML = '<option value="">Pilih Item Target...</option>';
+                // Prioritas: masterBarang -> barang -> stokBarang -> produk
+                const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
                 
-                barang.forEach(item => {
-                    if (item.stok > 0) {
-                        const option = new Option(`${item.nama} (Stok: ${item.stok} ${item.satuan})`, item.kode || item.id);
-                        sourceSelect.add(option.cloneNode(true));
+                for (const source of dataSources) {
+                    try {
+                        const data = localStorage.getItem(source);
+                        if (data) {
+                            const parsedData = JSON.parse(data);
+                            if (Array.isArray(parsedData) && parsedData.length > 0) {
+                                barang = parsedData;
+                                console.log(`Data barang berhasil dimuat dari ${source}: ${barang.length} items`);
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`Error parsing data from ${source}:`, e);
                     }
+                }
+                
+                // Jika tidak ada data, buat data sample
+                if (barang.length === 0) {
+                    console.log('Tidak ada data barang ditemukan, membuat data sample...');
+                    barang = createSampleBarangData();
+                    // Simpan data sample ke localStorage
+                    localStorage.setItem('masterBarang', JSON.stringify(barang));
+                }
+                
+                // Clear existing options
+                sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+                targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+                
+                // Populate dropdowns
+                barang.forEach(item => {
+                    const itemId = item.kode || item.id || item.barcode;
+                    const itemName = item.nama || item.name || item.namaBarang;
+                    const itemUnit = item.satuan || item.unit || 'pcs';
+                    const itemStock = item.stok || item.stock || item.qty || 0;
                     
-                    const targetOption = new Option(`${item.nama} (Stok: ${item.stok || 0} ${item.satuan})`, item.kode || item.id);
-                    targetSelect.add(targetOption);
+                    if (itemId && itemName) {
+                        // Source dropdown - hanya item dengan stok > 0
+                        if (itemStock > 0) {
+                            const sourceOption = new Option(
+                                `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
+                                itemId
+                            );
+                            sourceSelect.add(sourceOption);
+                        }
+                        
+                        // Target dropdown - semua item
+                        const targetOption = new Option(
+                            `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
+                            itemId
+                        );
+                        targetSelect.add(targetOption);
+                    }
                 });
                 
-                console.log(`Loaded ${barang.length} products for transformation (fallback)`);
+                console.log(`Berhasil memuat ${barang.length} produk untuk transformasi`);
+                
+                // Update statistik
+                updateAvailableItemsCount(barang.length);
+                
             } catch (error) {
                 console.error('Error loading products (fallback):', error);
+                showAlert('Gagal memuat data barang. Silakan refresh halaman.', 'warning');
+            }
+        }
+        
+        /**
+         * Buat data sample barang untuk testing
+         */
+        function createSampleBarangData() {
+            return [
+                {
+                    kode: 'BRG001-KG',
+                    nama: 'Beras Premium (Kilogram)',
+                    satuan: 'kg',
+                    stok: 100,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12000,
+                    hargaJual: 15000
+                },
+                {
+                    kode: 'BRG001-GR',
+                    nama: 'Beras Premium (Gram)',
+                    satuan: 'gram',
+                    stok: 50000,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12,
+                    hargaJual: 15
+                },
+                {
+                    kode: 'BRG002-LT',
+                    nama: 'Minyak Goreng (Liter)',
+                    satuan: 'liter',
+                    stok: 50,
+                    baseProduct: 'BRG002',
+                    hargaBeli: 18000,
+                    hargaJual: 22000
+                },
+                {
+                    kode: 'BRG002-ML',
+                    nama: 'Minyak Goreng (Mililiter)',
+                    satuan: 'ml',
+                    stok: 25000,
+                    baseProduct: 'BRG002',
+                    hargaBeli: 18,
+                    hargaJual: 22
+                },
+                {
+                    kode: 'BRG003-DUS',
+                    nama: 'Air Mineral (Dus)',
+                    satuan: 'dus',
+                    stok: 20,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 48000,
+                    hargaJual: 60000
+                },
+                {
+                    kode: 'BRG003-BTL',
+                    nama: 'Air Mineral (Botol)',
+                    satuan: 'botol',
+                    stok: 480,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 2000,
+                    hargaJual: 2500
+                }
+            ];
+        }
+        
+        /**
+         * Update jumlah item tersedia di statistik
+         */
+        function updateAvailableItemsCount(count) {
+            const availableItemsElement = document.getElementById('available-items');
+            if (availableItemsElement) {
+                availableItemsElement.textContent = count;
             }
         }
         

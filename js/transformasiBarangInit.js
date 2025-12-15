@@ -154,32 +154,182 @@ function loadProductsForTransformation() {
             return;
         }
         
-        // Get master barang data
-        const barang = JSON.parse(localStorage.getItem('masterBarang') || localStorage.getItem('barang') || '[]');
+        // Coba ambil data dari berbagai sumber localStorage
+        let barang = [];
+        
+        // Prioritas: masterBarang -> barang -> stokBarang -> produk
+        const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
+        
+        for (const source of dataSources) {
+            try {
+                const data = localStorage.getItem(source);
+                if (data) {
+                    const parsedData = JSON.parse(data);
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        barang = parsedData;
+                        console.log(`Data barang berhasil dimuat dari ${source}: ${barang.length} items`);
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.warn(`Error parsing data from ${source}:`, e);
+            }
+        }
+        
+        // Jika tidak ada data, buat data sample dan simpan
+        if (barang.length === 0) {
+            console.log('Tidak ada data barang ditemukan, membuat data sample...');
+            barang = createSampleBarangData();
+            // Simpan data sample ke localStorage
+            localStorage.setItem('masterBarang', JSON.stringify(barang));
+            
+            // Juga buat conversion ratios sample
+            const conversionRatios = createSampleConversionRatios();
+            localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+        }
         
         // Clear existing options
-        sourceSelect.innerHTML = '<option value="">Pilih Item Sumber...</option>';
-        targetSelect.innerHTML = '<option value="">Pilih Item Target...</option>';
+        sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+        targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
         
         // Add products to dropdowns
         barang.forEach(item => {
-            if (item.stok > 0) { // Only show items with stock for source
-                const option = new Option(`${item.nama} (Stok: ${item.stok} ${item.satuan})`, item.kode || item.id);
-                sourceSelect.add(option.cloneNode(true));
-            }
+            const itemId = item.kode || item.id || item.barcode;
+            const itemName = item.nama || item.name || item.namaBarang;
+            const itemUnit = item.satuan || item.unit || 'pcs';
+            const itemStock = item.stok || item.stock || item.qty || 0;
             
-            // All products can be targets
-            const targetOption = new Option(`${item.nama} (Stok: ${item.stok || 0} ${item.satuan})`, item.kode || item.id);
-            targetSelect.add(targetOption);
+            if (itemId && itemName) {
+                // Source dropdown - hanya item dengan stok > 0
+                if (itemStock > 0) {
+                    const sourceOption = new Option(
+                        `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
+                        itemId
+                    );
+                    sourceSelect.add(sourceOption);
+                }
+                
+                // Target dropdown - semua item
+                const targetOption = new Option(
+                    `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
+                    itemId
+                );
+                targetSelect.add(targetOption);
+            }
         });
         
-        console.log(`Loaded ${barang.length} products for transformation`);
+        console.log(`Berhasil memuat ${barang.length} produk untuk transformasi`);
         
         // Enable the target select initially (will be managed by UIController)
         targetSelect.disabled = false;
         
+        // Update statistik
+        updateAvailableItemsCount(barang.length);
+        
     } catch (error) {
         console.error('Error loading products:', error);
+        showAlert('Gagal memuat data barang. Silakan refresh halaman.', 'warning');
+    }
+}
+
+/**
+ * Buat data sample barang untuk testing
+ */
+function createSampleBarangData() {
+    return [
+        {
+            kode: 'BRG001-KG',
+            nama: 'Beras Premium (Kilogram)',
+            satuan: 'kg',
+            stok: 100,
+            baseProduct: 'BRG001',
+            hargaBeli: 12000,
+            hargaJual: 15000
+        },
+        {
+            kode: 'BRG001-GR',
+            nama: 'Beras Premium (Gram)',
+            satuan: 'gram',
+            stok: 50000,
+            baseProduct: 'BRG001',
+            hargaBeli: 12,
+            hargaJual: 15
+        },
+        {
+            kode: 'BRG002-LT',
+            nama: 'Minyak Goreng (Liter)',
+            satuan: 'liter',
+            stok: 50,
+            baseProduct: 'BRG002',
+            hargaBeli: 18000,
+            hargaJual: 22000
+        },
+        {
+            kode: 'BRG002-ML',
+            nama: 'Minyak Goreng (Mililiter)',
+            satuan: 'ml',
+            stok: 25000,
+            baseProduct: 'BRG002',
+            hargaBeli: 18,
+            hargaJual: 22
+        },
+        {
+            kode: 'BRG003-DUS',
+            nama: 'Air Mineral (Dus)',
+            satuan: 'dus',
+            stok: 20,
+            baseProduct: 'BRG003',
+            hargaBeli: 48000,
+            hargaJual: 60000
+        },
+        {
+            kode: 'BRG003-BTL',
+            nama: 'Air Mineral (Botol)',
+            satuan: 'botol',
+            stok: 480,
+            baseProduct: 'BRG003',
+            hargaBeli: 2000,
+            hargaJual: 2500
+        }
+    ];
+}
+
+/**
+ * Buat conversion ratios sample
+ */
+function createSampleConversionRatios() {
+    return [
+        {
+            baseProduct: 'BRG001',
+            conversions: [
+                { from: 'kg', to: 'gram', ratio: 1000 },
+                { from: 'gram', to: 'kg', ratio: 0.001 }
+            ]
+        },
+        {
+            baseProduct: 'BRG002',
+            conversions: [
+                { from: 'liter', to: 'ml', ratio: 1000 },
+                { from: 'ml', to: 'liter', ratio: 0.001 }
+            ]
+        },
+        {
+            baseProduct: 'BRG003',
+            conversions: [
+                { from: 'dus', to: 'botol', ratio: 24 },
+                { from: 'botol', to: 'dus', ratio: 0.041667 }
+            ]
+        }
+    ];
+}
+
+/**
+ * Update jumlah item tersedia di statistik
+ */
+function updateAvailableItemsCount(count) {
+    const availableItemsElement = document.getElementById('available-items');
+    if (availableItemsElement) {
+        availableItemsElement.textContent = count;
     }
 }
 
@@ -550,6 +700,7 @@ function updateConversionInfo() {
         const targetSelect = document.getElementById('targetItem');
         const quantityInput = document.getElementById('quantity');
         const conversionInfo = document.getElementById('conversion-info');
+        const submitButton = document.getElementById('submit-transformation');
         
         if (!sourceSelect || !targetSelect || !quantityInput || !conversionInfo) {
             return;
@@ -561,6 +712,7 @@ function updateConversionInfo() {
         
         if (!sourceValue || !targetValue) {
             conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat rasio konversi</span>';
+            if (submitButton) submitButton.disabled = true;
             return;
         }
         
@@ -571,29 +723,64 @@ function updateConversionInfo() {
         
         if (!sourceItem || !targetItem) {
             conversionInfo.innerHTML = '<span class="text-danger">Item tidak ditemukan</span>';
+            if (submitButton) submitButton.disabled = true;
             return;
         }
         
-        // Simple conversion ratio (this should be enhanced with proper conversion rules)
-        const ratio = 1; // Default 1:1 ratio - should be configurable
+        // Cek apakah item dari produk yang sama
+        const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+        const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
+        
+        if (sourceBaseProduct !== targetBaseProduct) {
+            conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama untuk transformasi</span>';
+            if (submitButton) submitButton.disabled = true;
+            return;
+        }
+        
+        // Cari rasio konversi
+        let ratio = 1; // Default 1:1 ratio
+        const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+        
+        // Cari rasio untuk base product ini
+        const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+        if (productRatios && productRatios.conversions) {
+            const conversion = productRatios.conversions.find(c => 
+                c.from === sourceItem.satuan && c.to === targetItem.satuan
+            );
+            if (conversion) {
+                ratio = conversion.ratio;
+            }
+        }
+        
         const targetQuantity = quantity * ratio;
+        
+        // Cek stok mencukupi
+        const stockSufficient = sourceItem.stok >= quantity;
         
         conversionInfo.innerHTML = `
             <div class="small">
                 <div><strong>Rasio:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}</div>
-                ${quantity > 0 ? `<div><strong>Hasil:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity} ${targetItem.satuan}</div>` : ''}
+                ${quantity > 0 ? `<div><strong>Hasil:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity.toFixed(3)} ${targetItem.satuan}</div>` : ''}
+                <div class="mt-1">
+                    <span class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                        Stok ${sourceItem.nama}: ${sourceItem.stok} ${sourceItem.satuan}
+                    </span>
+                </div>
             </div>
         `;
         
         // Enable/disable submit button
-        const submitButton = document.getElementById('submit-transformation');
         if (submitButton) {
-            const canSubmit = sourceValue && targetValue && quantity > 0 && sourceItem.stok >= quantity;
+            const canSubmit = sourceValue && targetValue && quantity > 0 && stockSufficient && sourceValue !== targetValue;
             submitButton.disabled = !canSubmit;
         }
         
     } catch (error) {
         console.error('Error updating conversion info:', error);
+        const conversionInfo = document.getElementById('conversion-info');
+        if (conversionInfo) {
+            conversionInfo.innerHTML = '<span class="text-danger">Error memuat info konversi</span>';
+        }
     }
 }
 
@@ -666,50 +853,100 @@ function processTransformationLegacy() {
             return;
         }
         
+        // Cek apakah item dari produk yang sama
+        const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+        const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
+        
+        if (sourceBaseProduct !== targetBaseProduct) {
+            showAlert('Item harus dari produk yang sama untuk transformasi', 'warning');
+            return;
+        }
+        
         // Check stock
         if (sourceItem.stok < quantity) {
             showAlert(`Stok ${sourceItem.nama} tidak mencukupi. Tersedia: ${sourceItem.stok} ${sourceItem.satuan}`, 'warning');
             return;
         }
         
+        // Cari rasio konversi
+        let ratio = 1; // Default 1:1 ratio
+        const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+        
+        // Cari rasio untuk base product ini
+        const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+        if (productRatios && productRatios.conversions) {
+            const conversion = productRatios.conversions.find(c => 
+                c.from === sourceItem.satuan && c.to === targetItem.satuan
+            );
+            if (conversion) {
+                ratio = conversion.ratio;
+            }
+        }
+        
+        const targetQuantity = quantity * ratio;
+        
         // Confirm transformation
-        if (!confirm(`Konfirmasi transformasi:\n${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${quantity} ${targetItem.satuan} ${targetItem.nama}\n\nLanjutkan?`)) {
+        if (!confirm(`Konfirmasi transformasi:\n${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}\n\nRasio konversi: 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}\n\nLanjutkan?`)) {
             return;
         }
         
-        // Process transformation
-        sourceItem.stok -= quantity;
-        targetItem.stok = (targetItem.stok || 0) + quantity;
-        
-        // Save updated items
-        localStorage.setItem('masterBarang', JSON.stringify(barang));
-        if (localStorage.getItem('barang')) {
-            localStorage.setItem('barang', JSON.stringify(barang));
+        // Show loading
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
         }
         
-        // Log transformation
-        logTransformation({
-            sourceId: sourceId,
-            sourceName: sourceItem.nama,
-            targetId: targetId,
-            targetName: targetItem.nama,
-            quantity: quantity,
-            ratio: 1,
-            resultQuantity: quantity,
-            timestamp: new Date().toISOString(),
-            user: localStorage.getItem('currentUser') || 'Unknown'
-        });
-        
-        // Reset form and reload data
-        resetTransformationForm();
-        loadProductsForTransformation();
-        loadRecentTransformations();
-        
-        showAlert(`Transformasi berhasil! ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${quantity} ${targetItem.satuan} ${targetItem.nama}`, 'success');
+        try {
+            // Process transformation
+            sourceItem.stok -= quantity;
+            targetItem.stok = (targetItem.stok || 0) + targetQuantity;
+            
+            // Save updated items
+            localStorage.setItem('masterBarang', JSON.stringify(barang));
+            if (localStorage.getItem('barang')) {
+                localStorage.setItem('barang', JSON.stringify(barang));
+            }
+            
+            // Log transformation
+            logTransformation({
+                id: 'TRF-' + Date.now(),
+                sourceId: sourceId,
+                sourceName: sourceItem.nama,
+                targetId: targetId,
+                targetName: targetItem.nama,
+                quantity: quantity,
+                ratio: ratio,
+                resultQuantity: targetQuantity,
+                timestamp: new Date().toISOString(),
+                user: localStorage.getItem('currentUser') || 'Test User',
+                sourceUnit: sourceItem.satuan,
+                targetUnit: targetItem.satuan
+            });
+            
+            // Reset form and reload data
+            resetTransformationForm();
+            loadProductsForTransformation();
+            loadRecentTransformations();
+            updateStats();
+            
+            showAlert(`Transformasi berhasil! ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}`, 'success');
+            
+        } finally {
+            // Hide loading
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+        }
         
     } catch (error) {
         console.error('Error processing transformation:', error);
         showAlert('Terjadi kesalahan saat memproses transformasi', 'danger');
+        
+        // Hide loading on error
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
     }
 }
 

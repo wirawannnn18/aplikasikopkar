@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fix Transformasi Barang - Koneksi Stok</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-bug me-2"></i>Test Fix Transformasi Barang - Koneksi Stok</h2>
+                <p class="text-muted">Memverifikasi bahwa dropdown transformasi barang sudah terkoneksi dengan data stok barang</p>
+                
+                <!-- Alert Container -->
+                <div id="alert-container"></div>
+                
+                <!-- Test Results -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Hasil Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-results">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Menjalankan test...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Data Preview -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-database me-2"></i>Preview Data Barang</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="data-preview">
+                            <!-- Data akan dimuat di sini -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Test Dropdown -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-list me-2"></i>Test Dropdown Transformasi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Barang Asal</label>
+                                <select class="form-select" id="test-source-item">
+                                    <option value="">Pilih barang asal...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Barang Tujuan</label>
+                                <select class="form-select" id="test-target-item">
+                                    <option value="">Pilih barang tujuan...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Jumlah</label>
+                                <input type="number" class="form-control" id="test-quantity" min="1" placeholder="Masukkan jumlah...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Info Konversi</label>
+                                <div id="test-conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                                    <span class="text-muted">Pilih item untuk melihat rasio konversi</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary" id="test-transform-btn" disabled>
+                                <i class="bi bi-arrow-repeat me-1"></i>Test Transformasi
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadTestData()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reload Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="d-flex gap-2 mb-4">
+                    <button class="btn btn-success" onclick="runAllTests()">
+                        <i class="bi bi-play-circle me-1"></i>Jalankan Semua Test
+                    </button>
+                    <button class="btn btn-warning" onclick="clearLocalStorage()">
+                        <i class="bi bi-trash me-1"></i>Clear LocalStorage
+                    </button>
+                    <button class="btn btn-info" onclick="initializeSampleData()">
+                        <i class="bi bi-database-add me-1"></i>Initialize Sample Data
+                    </button>
+                    <a href="transformasi_barang.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-right me-1"></i>Buka Transformasi Barang
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Test results container
+        let testResults = [];
+        
+        /**
+         * Add test result
+         */
+        function addTestResult(name, status, message, details = null) {
+            testResults.push({
+                name,
+                status,
+                message,
+                details,
+                timestamp: new Date().toISOString()
+            });
+            updateTestResultsDisplay();
+        }
+        
+        /**
+         * Update test results display
+         */
+        function updateTestResultsDisplay() {
+            const container = document.getElementById('test-results');
+            
+            if (testResults.length === 0) {
+                container.innerHTML = '<p class="text-muted">Belum ada hasil test</p>';
+                return;
+            }
+            
+            const html = testResults.map(result => `
+                <div class="alert alert-${result.status === 'pass' ? 'success' : result.status === 'fail' ? 'danger' : 'warning'} mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${result.name}</strong>
+                            <p class="mb-0">${result.message}</p>
+                            ${result.details ? `<small class="text-muted">${result.details}</small>` : ''}
+                        </div>
+                        <span class="badge bg-${result.status === 'pass' ? 'success' : result.status === 'fail' ? 'danger' : 'warning'}">
+                            ${result.status.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        /**
+         * Show alert
+         */
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alert-container');
+            const alertId = 'alert-' + Date.now();
+            
+            alertContainer.innerHTML = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+        
+        /**
+         * Initialize sample data
+         */
+        function initializeSampleData() {
+            try {
+                const sampleData = [
+                    {
+                        kode: 'BRG001-KG',
+                        nama: 'Beras Premium (Kilogram)',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
+                    },
+                    {
+                        kode: 'BRG001-GR',
+                        nama: 'Beras Premium (Gram)',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
+                    },
+                    {
+                        kode: 'BRG002-LT',
+                        nama: 'Minyak Goreng (Liter)',
+                        satuan: 'liter',
+                        stok: 50,
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18000,
+                        hargaJual: 22000
+                    },
+                    {
+                        kode: 'BRG002-ML',
+                        nama: 'Minyak Goreng (Mililiter)',
+                        satuan: 'ml',
+                        stok: 25000,
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18,
+                        hargaJual: 22
+                    },
+                    {
+                        kode: 'BRG003-DUS',
+                        nama: 'Air Mineral (Dus)',
+                        satuan: 'dus',
+                        stok: 20,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 48000,
+                        hargaJual: 60000
+                    },
+                    {
+                        kode: 'BRG003-BTL',
+                        nama: 'Air Mineral (Botol)',
+                        satuan: 'botol',
+                        stok: 480,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 2000,
+                        hargaJual: 2500
+                    }
+                ];
+
+                const conversionRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG002',
+                        conversions: [
+                            { from: 'liter', to: 'ml', ratio: 1000 },
+                            { from: 'ml', to: 'liter', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG003',
+                        conversions: [
+                            { from: 'dus', to: 'botol', ratio: 24 },
+                            { from: 'botol', to: 'dus', ratio: 0.041667 }
+                        ]
+                    }
+                ];
+
+                localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+                localStorage.setItem('barang', JSON.stringify(sampleData));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                localStorage.setItem('currentUser', 'Test User');
+                
+                showAlert('Sample data berhasil diinisialisasi', 'success');
+                loadTestData();
+                
+            } catch (error) {
+                console.error('Error initializing sample data:', error);
+                showAlert('Gagal menginisialisasi sample data', 'danger');
+            }
+        }
+        
+        /**
+         * Clear localStorage
+         */
+        function clearLocalStorage() {
+            if (confirm('Apakah Anda yakin ingin menghapus semua data di localStorage?')) {
+                const keys = ['masterBarang', 'barang', 'stokBarang', 'produk', 'conversionRatios', 'transformationHistory'];
+                keys.forEach(key => localStorage.removeItem(key));
+                showAlert('LocalStorage berhasil dibersihkan', 'success');
+                loadTestData();
+            }
+        }
+        
+        /**
+         * Load test data
+         */
+        function loadTestData() {
+            try {
+                // Load data preview
+                loadDataPreview();
+                
+                // Load dropdown options
+                loadDropdownOptions();
+                
+                addTestResult('Data Loading', 'pass', 'Data berhasil dimuat untuk testing');
+                
+            } catch (error) {
+                console.error('Error loading test data:', error);
+                addTestResult('Data Loading', 'fail', 'Gagal memuat data: ' + error.message);
+            }
+        }
+        
+        /**
+         * Load data preview
+         */
+        function loadDataPreview() {
+            const container = document.getElementById('data-preview');
+            
+            // Cek semua sumber data
+            const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
+            let dataFound = false;
+            let dataInfo = [];
+            
+            dataSources.forEach(source => {
+                try {
+                    const data = localStorage.getItem(source);
+                    if (data) {
+                        const parsedData = JSON.parse(data);
+                        if (Array.isArray(parsedData)) {
+                            dataInfo.push({
+                                source,
+                                count: parsedData.length,
+                                sample: parsedData.slice(0, 2)
+                            });
+                            dataFound = true;
+                        }
+                    }
+                } catch (e) {
+                    dataInfo.push({
+                        source,
+                        error: e.message
+                    });
+                }
+            });
+            
+            if (!dataFound) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Tidak ada data barang ditemukan di localStorage
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = dataInfo.map(info => {
+                if (info.error) {
+                    return `
+                        <div class="alert alert-danger mb-2">
+                            <strong>${info.source}:</strong> Error - ${info.error}
+                        </div>
+                    `;
+                }
+                
+                if (info.count === 0) {
+                    return `
+                        <div class="alert alert-warning mb-2">
+                            <strong>${info.source}:</strong> Kosong
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <div class="alert alert-success mb-2">
+                        <strong>${info.source}:</strong> ${info.count} items
+                        ${info.sample ? `
+                            <details class="mt-2">
+                                <summary>Sample data</summary>
+                                <pre class="mt-2 small">${JSON.stringify(info.sample, null, 2)}</pre>
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        /**
+         * Load dropdown options
+         */
+        function loadDropdownOptions() {
+            const sourceSelect = document.getElementById('test-source-item');
+            const targetSelect = document.getElementById('test-target-item');
+            
+            // Clear existing options
+            sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+            targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+            
+            // Coba ambil data dari berbagai sumber
+            let barang = [];
+            const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
+            
+            for (const source of dataSources) {
+                try {
+                    const data = localStorage.getItem(source);
+                    if (data) {
+                        const parsedData = JSON.parse(data);
+                        if (Array.isArray(parsedData) && parsedData.length > 0) {
+                            barang = parsedData;
+                            console.log(`Data loaded from ${source}: ${barang.length} items`);
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Error parsing data from ${source}:`, e);
+                }
+            }
+            
+            if (barang.length === 0) {
+                addTestResult('Dropdown Loading', 'fail', 'Tidak ada data barang untuk dropdown');
+                return;
+            }
+            
+            // Populate dropdowns
+            barang.forEach(item => {
+                const itemId = item.kode || item.id || item.barcode;
+                const itemName = item.nama || item.name || item.namaBarang;
+                const itemUnit = item.satuan || item.unit || 'pcs';
+                const itemStock = item.stok || item.stock || item.qty || 0;
+                
+                if (itemId && itemName) {
+                    // Source dropdown - hanya item dengan stok > 0
+                    if (itemStock > 0) {
+                        const sourceOption = new Option(
+                            `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
+                            itemId
+                        );
+                        sourceSelect.add(sourceOption);
+                    }
+                    
+                    // Target dropdown - semua item
+                    const targetOption = new Option(
+                        `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
+                        itemId
+                    );
+                    targetSelect.add(targetOption);
+                }
+            });
+            
+            addTestResult('Dropdown Loading', 'pass', `Dropdown berhasil dimuat dengan ${barang.length} items`);
+        }
+        
+        /**
+         * Update conversion info
+         */
+        function updateConversionInfo() {
+            const sourceSelect = document.getElementById('test-source-item');
+            const targetSelect = document.getElementById('test-target-item');
+            const quantityInput = document.getElementById('test-quantity');
+            const conversionInfo = document.getElementById('test-conversion-info');
+            const transformBtn = document.getElementById('test-transform-btn');
+            
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat rasio konversi</span>';
+                transformBtn.disabled = true;
+                return;
+            }
+            
+            // Get item details
+            const barang = JSON.parse(localStorage.getItem('masterBarang') || localStorage.getItem('barang') || '[]');
+            const sourceItem = barang.find(item => (item.kode || item.id) === sourceValue);
+            const targetItem = barang.find(item => (item.kode || item.id) === targetValue);
+            
+            if (!sourceItem || !targetItem) {
+                conversionInfo.innerHTML = '<span class="text-danger">Item tidak ditemukan</span>';
+                transformBtn.disabled = true;
+                return;
+            }
+            
+            // Cek apakah item dari produk yang sama
+            const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+            const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
+            
+            if (sourceBaseProduct !== targetBaseProduct) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama untuk transformasi</span>';
+                transformBtn.disabled = true;
+                return;
+            }
+            
+            // Cari rasio konversi
+            let ratio = 1;
+            const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+            
+            const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+            if (productRatios && productRatios.conversions) {
+                const conversion = productRatios.conversions.find(c => 
+                    c.from === sourceItem.satuan && c.to === targetItem.satuan
+                );
+                if (conversion) {
+                    ratio = conversion.ratio;
+                }
+            }
+            
+            const targetQuantity = quantity * ratio;
+            const stockSufficient = sourceItem.stok >= quantity;
+            
+            conversionInfo.innerHTML = `
+                <div class="small">
+                    <div><strong>Rasio:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}</div>
+                    ${quantity > 0 ? `<div><strong>Hasil:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity.toFixed(3)} ${targetItem.satuan}</div>` : ''}
+                    <div class="mt-1">
+                        <span class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                            Stok ${sourceItem.nama}: ${sourceItem.stok} ${sourceItem.satuan}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            const canTransform = sourceValue && targetValue && quantity > 0 && stockSufficient && sourceValue !== targetValue;
+            transformBtn.disabled = !canTransform;
+        }
+        
+        /**
+         * Test transformation
+         */
+        function testTransformation() {
+            try {
+                const sourceSelect = document.getElementById('test-source-item');
+                const targetSelect = document.getElementById('test-target-item');
+                const quantityInput = document.getElementById('test-quantity');
+                
+                const sourceId = sourceSelect.value;
+                const targetId = targetSelect.value;
+                const quantity = parseFloat(quantityInput.value) || 0;
+                
+                if (!sourceId || !targetId || quantity <= 0) {
+                    addTestResult('Test Transformation', 'fail', 'Data input tidak lengkap');
+                    return;
+                }
+                
+                // Simulate transformation
+                const barang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const sourceItem = barang.find(item => item.kode === sourceId);
+                const targetItem = barang.find(item => item.kode === targetId);
+                
+                if (!sourceItem || !targetItem) {
+                    addTestResult('Test Transformation', 'fail', 'Item tidak ditemukan');
+                    return;
+                }
+                
+                // Get conversion ratio
+                let ratio = 1;
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+                const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+                
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceItem.satuan && c.to === targetItem.satuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+                
+                const targetQuantity = quantity * ratio;
+                
+                addTestResult('Test Transformation', 'pass', 
+                    `Simulasi transformasi berhasil: ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}`,
+                    `Rasio konversi: 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}`
+                );
+                
+            } catch (error) {
+                console.error('Error testing transformation:', error);
+                addTestResult('Test Transformation', 'fail', 'Error: ' + error.message);
+            }
+        }
+        
+        /**
+         * Run all tests
+         */
+        function runAllTests() {
+            testResults = [];
+            
+            // Test 1: Check localStorage data
+            const dataSources = ['masterBarang', 'barang', 'conversionRatios'];
+            let dataTests = 0;
+            
+            dataSources.forEach(source => {
+                try {
+                    const data = localStorage.getItem(source);
+                    if (data) {
+                        const parsedData = JSON.parse(data);
+                        if (Array.isArray(parsedData) || typeof parsedData === 'object') {
+                            addTestResult(`LocalStorage ${source}`, 'pass', `Data ${source} tersedia`);
+                            dataTests++;
+                        } else {
+                            addTestResult(`LocalStorage ${source}`, 'fail', `Data ${source} tidak valid`);
+                        }
+                    } else {
+                        addTestResult(`LocalStorage ${source}`, 'fail', `Data ${source} tidak ditemukan`);
+                    }
+                } catch (e) {
+                    addTestResult(`LocalStorage ${source}`, 'fail', `Error parsing ${source}: ${e.message}`);
+                }
+            });
+            
+            // Test 2: Check dropdown population
+            const sourceSelect = document.getElementById('test-source-item');
+            const targetSelect = document.getElementById('test-target-item');
+            
+            if (sourceSelect.options.length > 1) {
+                addTestResult('Source Dropdown', 'pass', `Source dropdown memiliki ${sourceSelect.options.length - 1} options`);
+            } else {
+                addTestResult('Source Dropdown', 'fail', 'Source dropdown kosong');
+            }
+            
+            if (targetSelect.options.length > 1) {
+                addTestResult('Target Dropdown', 'pass', `Target dropdown memiliki ${targetSelect.options.length - 1} options`);
+            } else {
+                addTestResult('Target Dropdown', 'fail', 'Target dropdown kosong');
+            }
+            
+            // Test 3: Check conversion ratios
+            try {
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                if (conversionRatios.length > 0) {
+                    addTestResult('Conversion Ratios', 'pass', `${conversionRatios.length} conversion ratios tersedia`);
+                } else {
+                    addTestResult('Conversion Ratios', 'fail', 'Tidak ada conversion ratios');
+                }
+            } catch (e) {
+                addTestResult('Conversion Ratios', 'fail', 'Error loading conversion ratios');
+            }
+            
+            // Summary
+            const passedTests = testResults.filter(r => r.status === 'pass').length;
+            const totalTests = testResults.length;
+            
+            if (passedTests === totalTests) {
+                showAlert(`Semua test berhasil! (${passedTests}/${totalTests})`, 'success');
+            } else {
+                showAlert(`${passedTests}/${totalTests} test berhasil`, 'warning');
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load initial data
+            loadTestData();
+            
+            // Setup event listeners
+            document.getElementById('test-source-item').addEventListener('change', updateConversionInfo);
+            document.getElementById('test-target-item').addEventListener('change', updateConversionInfo);
+            document.getElementById('test-quantity').addEventListener('input', updateConversionInfo);
+            document.getElementById('test-transform-btn').addEventListener('click', testTransformation);
+            
+            // Auto-run tests
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>
