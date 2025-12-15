@@ -659,5 +659,5 @@ if (typeof window !== 'undefined') {
     window.StockManager = StockManager;
 }
 
-// ES6 module export
-export default StockManager;
+// ES6 module export (commented out for browser compatibility)
+// export default StockManager;

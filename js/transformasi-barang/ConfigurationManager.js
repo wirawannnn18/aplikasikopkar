@@ -10,18 +10,30 @@
  * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
  */
 
-import { ValidationEngine } from './ValidationEngine.js';
-import { ErrorHandler } from './ErrorHandler.js';
+// import { ValidationEngine } from './ValidationEngine.js';
+// import { ErrorHandler } from './ErrorHandler.js';
 
-export class ConfigurationManager {
+class ConfigurationManager {
     constructor() {
-        this.validationEngine = new ValidationEngine();
-        this.errorHandler = new ErrorHandler();
+        this.validationEngine = null; // Will be initialized when ValidationEngine is available
+        this.errorHandler = null; // Will be initialized when ErrorHandler is available
         this.storageKey = 'transformasi_conversion_ratios';
         this.backupKey = 'transformasi_conversion_ratios_backup';
         
         // Initialize default ratios if none exist
         this.initializeDefaultRatios();
+    }
+
+    /**
+     * Initialize dependencies when they become available
+     */
+    initialize() {
+        if (typeof ValidationEngine !== 'undefined') {
+            this.validationEngine = new ValidationEngine();
+        }
+        if (typeof ErrorHandler !== 'undefined') {
+            this.errorHandler = new ErrorHandler();
+        }
     }
 
     /**
@@ -827,3 +839,11 @@ export class ConfigurationManager {
         this.saveRatiosToStorage(importedRatios);
     }
 }
+
+// Browser compatibility
+if (typeof window !== 'undefined') {
+    window.ConfigurationManager = ConfigurationManager;
+}
+
+// ES6 module export (commented out for browser compatibility)
+// export default ConfigurationManager;

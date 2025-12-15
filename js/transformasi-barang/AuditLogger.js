@@ -602,5 +602,5 @@ if (typeof window !== 'undefined') {
     window.AuditLogger = AuditLogger;
 }
 
-// ES6 module export
-export default AuditLogger;
+// ES6 module export (commented out for browser compatibility)
+// export default AuditLogger;

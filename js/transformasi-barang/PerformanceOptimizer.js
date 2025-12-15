@@ -449,5 +449,5 @@ if (typeof window !== 'undefined') {
     window.PerformanceOptimizer = PerformanceOptimizer;
 }
 
-// ES6 module export
-export default PerformanceOptimizer;
+// ES6 module export (commented out for browser compatibility)
+// export default PerformanceOptimizer;

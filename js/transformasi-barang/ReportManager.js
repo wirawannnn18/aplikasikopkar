@@ -960,5 +960,5 @@ if (typeof window !== 'undefined') {
     window.ReportManager = ReportManager;
 }
 
-// ES6 module export
-export default ReportManager;
+// ES6 module export (commented out for browser compatibility)
+// export default ReportManager;

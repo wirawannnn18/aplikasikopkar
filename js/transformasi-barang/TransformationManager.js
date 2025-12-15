@@ -458,5 +458,5 @@ if (typeof window !== 'undefined') {
     window.TransformationManager = TransformationManager;
 }
 
-// ES6 module export
-export default TransformationManager;
+// ES6 module export (commented out for browser compatibility)
+// export default TransformationManager;

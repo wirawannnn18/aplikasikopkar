@@ -880,5 +880,5 @@ if (typeof window !== 'undefined') {
     window.UIController = UIController;
 }
 
-// ES6 module export
-export default UIController;
+// ES6 module export (commented out for browser compatibility)
+// export default UIController;

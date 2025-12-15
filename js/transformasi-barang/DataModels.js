@@ -177,6 +177,6 @@ if (typeof window !== 'undefined') {
     window.ConversionRatio = ConversionRatio;
 }
 
-// ES6 exports
-export { TransformationItem, TransformationRecord, ConversionRatio };
-export default { TransformationItem, TransformationRecord, ConversionRatio };
+// ES6 exports (commented out for browser compatibility)
+// export { TransformationItem, TransformationRecord, ConversionRatio };
+// export default { TransformationItem, TransformationRecord, ConversionRatio };

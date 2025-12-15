@@ -651,6 +651,6 @@ if (typeof window !== 'undefined') {
     window.ValidationEngine = ValidationEngine;
 }
 
-// ES6 module export
-export { ValidationEngine };
-export default ValidationEngine;
+// ES6 module export (commented out for browser compatibility)
+// export { ValidationEngine };
+// export default ValidationEngine;

@@ -224,5 +224,5 @@ if (typeof window !== 'undefined') {
     window.ConversionCalculator = ConversionCalculator;
 }
 
-// ES6 module export
-export default ConversionCalculator;
+// ES6 module export (commented out for browser compatibility)
+// export default ConversionCalculator;

@@ -748,6 +748,6 @@ if (typeof window !== 'undefined') {
     window.ErrorHandler = ErrorHandler;
 }
 
-// ES6 module export
-export default ErrorHandler;
-export { ErrorHandler };
+// ES6 module export (commented out for browser compatibility)
+// export default ErrorHandler;
+// export { ErrorHandler };

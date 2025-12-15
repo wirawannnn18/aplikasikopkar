@@ -3,112 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Loading Transformasi Barang - Fix</title>
+    <title>Test Transformasi Barang Loading Fix</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        .test-section {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .test-result {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        .test-success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-        .test-error {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        .test-warning {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-        }
-        .loading-indicator {
-            display: none;
-        }
-        .loading-indicator.show {
-            display: block;
-        }
-    </style>
 </head>
 <body>
     <div class="container mt-4">
-        <div class="row">
-            <div class="col-12">
-                <h2><i class="bi bi-gear-fill me-2"></i>Test Loading Transformasi Barang - Fix</h2>
-                <p class="text-muted">Memastikan semua file JavaScript transformasi barang dimuat dengan benar</p>
-                
-                <!-- Loading Indicator -->
-                <div id="loadingIndicator" class="loading-indicator show">
-                    <div class="d-flex align-items-center">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        <span>Memuat dan menguji komponen transformasi barang...</span>
-                    </div>
-                </div>
-
-                <!-- Test Results Container -->
-                <div id="testResults" style="display: none;">
-                    <!-- File Loading Tests -->
-                    <div class="test-section">
-                        <h4><i class="bi bi-file-earmark-code me-2"></i>Test Loading File JavaScript</h4>
-                        <div id="fileLoadingTests"></div>
-                    </div>
-
-                    <!-- Component Initialization Tests -->
-                    <div class="test-section">
-                        <h4><i class="bi bi-cpu me-2"></i>Test Inisialisasi Komponen</h4>
-                        <div id="componentInitTests"></div>
-                    </div>
-
-                    <!-- Functionality Tests -->
-                    <div class="test-section">
-                        <h4><i class="bi bi-check-circle me-2"></i>Test Fungsionalitas Dasar</h4>
-                        <div id="functionalityTests"></div>
-                    </div>
-
-                    <!-- Integration Tests -->
-                    <div class="test-section">
-                        <h4><i class="bi bi-link-45deg me-2"></i>Test Integrasi</h4>
-                        <div id="integrationTests"></div>
-                    </div>
-
-                    <!-- Summary -->
-                    <div class="test-section">
-                        <h4><i class="bi bi-clipboard-data me-2"></i>Ringkasan Test</h4>
-                        <div id="testSummary"></div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="mt-4">
-                    <button id="runTestsBtn" class="btn btn-primary" onclick="runAllTests()">
-                        <i class="bi bi-play-fill me-2"></i>Jalankan Test
-                    </button>
-                    <button id="retryBtn" class="btn btn-warning" onclick="location.reload()" style="display: none;">
-                        <i class="bi bi-arrow-clockwise me-2"></i>Coba Lagi
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.location.href='transformasi_barang.html'">
-                        <i class="bi bi-arrow-right me-2"></i>Buka Transformasi Barang
-                    </button>
-                </div>
-            </div>
+        <h2>Test Transformasi Barang Loading</h2>
+        
+        <div id="loading-status" class="alert alert-info">
+            <i class="bi bi-hourglass-split me-2"></i>Checking file loading status...
+        </div>
+        
+        <div id="file-status" class="mt-3">
+            <!-- File loading status will be displayed here -->
+        </div>
+        
+        <div id="error-details" class="mt-3" style="display: none;">
+            <!-- Error details will be displayed here -->
+        </div>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="testTransformasiBarang()">
+                <i class="bi bi-play-fill me-1"></i>Test Transformasi Barang
+            </button>
+            <button class="btn btn-success" onclick="fixAndRedirect()">
+                <i class="bi bi-tools me-1"></i>Fix & Go to Transformasi Barang
+            </button>
         </div>
     </div>
 
-    <!-- Load Required Scripts -->
+    <!-- Load required scripts in correct order -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
     
-    <!-- Load Transformasi Barang Scripts -->
+    <!-- Transformasi Barang Modules -->
     <script src="js/transformasi-barang/types.js"></script>
     <script src="js/transformasi-barang/DataModels.js"></script>
     <script src="js/transformasi-barang/ValidationEngine.js"></script>
@@ -119,483 +49,198 @@
     <script src="js/transformasi-barang/TransformationManager.js"></script>
     <script src="js/transformasi-barang/UIController.js"></script>
     <script src="js/transformasi-barang/ReportManager.js"></script>
+    
+    <!-- Transformasi Barang Initialization -->
     <script src="js/transformasiBarangInit.js"></script>
-
+    
     <script>
-        // Test Results Storage
-        let testResults = {
-            fileLoading: [],
-            componentInit: [],
-            functionality: [],
-            integration: [],
-            summary: {
-                total: 0,
-                passed: 0,
-                failed: 0,
-                warnings: 0
-            }
+        let loadingErrors = [];
+        let loadedFiles = [];
+        
+        // Track script loading
+        document.addEventListener('DOMContentLoaded', function() {
+            checkFileLoadingStatus();
+        });
+        
+        // Override console.error to catch loading errors
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+            loadingErrors.push(args.join(' '));
+            originalConsoleError.apply(console, args);
         };
-
-        // Test Functions
-        function addTestResult(category, testName, status, message, details = null) {
-            const result = {
-                name: testName,
-                status: status, // 'success', 'error', 'warning'
-                message: message,
-                details: details,
-                timestamp: new Date().toISOString()
-            };
-            
-            testResults[category].push(result);
-            testResults.summary.total++;
-            
-            if (status === 'success') {
-                testResults.summary.passed++;
-            } else if (status === 'error') {
-                testResults.summary.failed++;
-            } else if (status === 'warning') {
-                testResults.summary.warnings++;
-            }
-        }
-
-        function displayTestResult(containerId, result) {
-            const container = document.getElementById(containerId);
-            const resultDiv = document.createElement('div');
-            resultDiv.className = `test-result test-${result.status}`;
-            
-            let html = `
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>${result.name}</strong>
-                        <div>${result.message}</div>
-            `;
-            
-            if (result.details) {
-                html += `<small class="text-muted">${result.details}</small>`;
-            }
-            
-            html += `
-                    </div>
-                    <div>
-                        <i class="bi bi-${result.status === 'success' ? 'check-circle-fill text-success' : 
-                                         result.status === 'error' ? 'x-circle-fill text-danger' : 
-                                         'exclamation-triangle-fill text-warning'}"></i>
-                    </div>
-                </div>
-            `;
-            
-            resultDiv.innerHTML = html;
-            container.appendChild(resultDiv);
-        }
-
-        // Test 1: File Loading Tests
-        function testFileLoading() {
-            console.log('Testing file loading...');
-            
+        
+        function checkFileLoadingStatus() {
             const requiredClasses = [
                 'TransformationManager',
-                'UIController',
+                'UIController', 
                 'ValidationEngine',
                 'StockManager',
                 'AuditLogger',
                 'ErrorHandler',
-                'ConversionCalculator'
+                'ConversionCalculator',
+                'DataModels'
             ];
+            
+            const statusContainer = document.getElementById('file-status');
+            const loadingStatus = document.getElementById('loading-status');
+            
+            let statusHTML = '<h5>File Loading Status:</h5><ul class="list-group">';
+            let allLoaded = true;
             
             requiredClasses.forEach(className => {
-                if (window[className]) {
-                    addTestResult('fileLoading', `${className} Class`, 'success', 
-                        `Kelas ${className} berhasil dimuat`);
-                } else {
-                    addTestResult('fileLoading', `${className} Class`, 'error', 
-                        `Kelas ${className} tidak ditemukan - file mungkin tidak dimuat`);
+                const isLoaded = window[className] !== undefined;
+                if (isLoaded) {
+                    loadedFiles.push(className);
                 }
+                allLoaded = allLoaded && isLoaded;
+                
+                statusHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${className}
+                        <span class="badge bg-${isLoaded ? 'success' : 'danger'}">
+                            ${isLoaded ? 'Loaded' : 'Missing'}
+                        </span>
+                    </li>
+                `;
             });
-
-            // Test initialization function
-            if (typeof window.initializeTransformasiBarang === 'function') {
-                addTestResult('fileLoading', 'Initialization Function', 'success', 
-                    'Fungsi inisialisasi tersedia');
+            
+            statusHTML += '</ul>';
+            statusContainer.innerHTML = statusHTML;
+            
+            if (allLoaded) {
+                loadingStatus.className = 'alert alert-success';
+                loadingStatus.innerHTML = '<i class="bi bi-check-circle me-2"></i>All files loaded successfully!';
             } else {
-                addTestResult('fileLoading', 'Initialization Function', 'error', 
-                    'Fungsi inisialisasi tidak ditemukan');
+                loadingStatus.className = 'alert alert-danger';
+                loadingStatus.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Some files failed to load!';
+                
+                if (loadingErrors.length > 0) {
+                    const errorContainer = document.getElementById('error-details');
+                    errorContainer.style.display = 'block';
+                    errorContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <h6>Loading Errors:</h6>
+                            <ul>
+                                ${loadingErrors.map(error => `<li><code>${error}</code></li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
             }
         }
-
-        // Test 2: Component Initialization Tests
-        function testComponentInitialization() {
-            console.log('Testing component initialization...');
-            
+        
+        function testTransformasiBarang() {
             try {
-                // Test ErrorHandler
-                const errorHandler = new ErrorHandler();
-                errorHandler.initialize();
-                addTestResult('componentInit', 'ErrorHandler', 'success', 
-                    'ErrorHandler berhasil diinisialisasi');
+                // Initialize sample data
+                initializeSampleData();
                 
-                // Test ValidationEngine
-                const validationEngine = new ValidationEngine();
-                validationEngine.initialize();
-                addTestResult('componentInit', 'ValidationEngine', 'success', 
-                    'ValidationEngine berhasil diinisialisasi');
-                
-                // Test ConversionCalculator
-                const calculator = new ConversionCalculator();
-                calculator.initialize();
-                addTestResult('componentInit', 'ConversionCalculator', 'success', 
-                    'ConversionCalculator berhasil diinisialisasi');
-                
-                // Test StockManager
-                const stockManager = new StockManager();
-                stockManager.initialize();
-                addTestResult('componentInit', 'StockManager', 'success', 
-                    'StockManager berhasil diinisialisasi');
-                
-                // Test AuditLogger
-                const auditLogger = new AuditLogger();
-                auditLogger.initialize();
-                addTestResult('componentInit', 'AuditLogger', 'success', 
-                    'AuditLogger berhasil diinisialisasi');
-                
-                // Test TransformationManager
-                const transformationManager = new TransformationManager();
-                transformationManager.initialize({
-                    validationEngine: validationEngine,
-                    calculator: calculator,
-                    stockManager: stockManager,
-                    auditLogger: auditLogger
-                });
-                addTestResult('componentInit', 'TransformationManager', 'success', 
-                    'TransformationManager berhasil diinisialisasi dengan dependencies');
-                
-                // Test UIController
-                const uiController = new UIController();
-                uiController.initialize(transformationManager, errorHandler);
-                addTestResult('componentInit', 'UIController', 'success', 
-                    'UIController berhasil diinisialisasi');
-                
+                // Test initialization
+                if (typeof initializeTransformasiBarang === 'function') {
+                    initializeTransformasiBarang();
+                    showAlert('Transformasi Barang initialized successfully!', 'success');
+                } else {
+                    showAlert('initializeTransformasiBarang function not found!', 'danger');
+                }
             } catch (error) {
-                addTestResult('componentInit', 'Component Initialization', 'error', 
-                    `Gagal menginisialisasi komponen: ${error.message}`, error.stack);
+                console.error('Test error:', error);
+                showAlert(`Test failed: ${error.message}`, 'danger');
             }
         }
-
-        // Test 3: Basic Functionality Tests
-        function testBasicFunctionality() {
-            console.log('Testing basic functionality...');
-            
-            try {
-                // Setup test data
-                setupTestData();
-                
-                // Test validation
-                const validationEngine = new ValidationEngine();
-                validationEngine.initialize();
-                
-                const testItem1 = {
-                    kode: 'TEST-001-DUS',
-                    nama: 'Test Product Dus',
-                    baseProduct: 'TEST-001',
-                    satuan: 'dus',
-                    stok: 10
-                };
-                
-                const testItem2 = {
-                    kode: 'TEST-001-PCS',
-                    nama: 'Test Product Pcs',
-                    baseProduct: 'TEST-001',
-                    satuan: 'pcs',
-                    stok: 0
-                };
-                
-                // Test product match validation
-                const matchResult = validationEngine.validateProductMatch(testItem1, testItem2);
-                if (matchResult.isValid) {
-                    addTestResult('functionality', 'Product Match Validation', 'success', 
-                        'Validasi kecocokan produk berfungsi dengan benar');
-                } else {
-                    addTestResult('functionality', 'Product Match Validation', 'warning', 
-                        'Validasi kecocokan produk mengembalikan hasil tidak valid', 
-                        matchResult.errors.join(', '));
-                }
-                
-                // Test stock validation
-                const stockResult = validationEngine.validateStockAvailability(testItem1, 5);
-                if (stockResult.isValid) {
-                    addTestResult('functionality', 'Stock Validation', 'success', 
-                        'Validasi stok berfungsi dengan benar');
-                } else {
-                    addTestResult('functionality', 'Stock Validation', 'error', 
-                        'Validasi stok gagal', stockResult.errors.join(', '));
-                }
-                
-                // Test calculation
-                const calculator = new ConversionCalculator();
-                calculator.initialize();
-                
-                const targetQty = calculator.calculateTargetQuantity(5, 12);
-                if (targetQty === 60) {
-                    addTestResult('functionality', 'Calculation', 'success', 
-                        'Perhitungan konversi berfungsi dengan benar');
-                } else {
-                    addTestResult('functionality', 'Calculation', 'error', 
-                        `Perhitungan salah: expected 60, got ${targetQty}`);
-                }
-                
-                // Test error handling
-                const errorHandler = new ErrorHandler();
-                errorHandler.initialize();
-                
-                const errorResponse = errorHandler.handleValidationError(new Error('Test error'));
-                if (errorResponse && errorResponse.success === false) {
-                    addTestResult('functionality', 'Error Handling', 'success', 
-                        'Error handling berfungsi dengan benar');
-                } else {
-                    addTestResult('functionality', 'Error Handling', 'error', 
-                        'Error handling tidak berfungsi dengan benar');
-                }
-                
-            } catch (error) {
-                addTestResult('functionality', 'Basic Functionality', 'error', 
-                    `Gagal menguji fungsionalitas dasar: ${error.message}`, error.stack);
-            }
-        }
-
-        // Test 4: Integration Tests
-        function testIntegration() {
-            console.log('Testing integration...');
-            
-            try {
-                // Test full initialization
-                if (typeof window.initializeTransformasiBarang === 'function') {
-                    // Don't actually call it to avoid conflicts, just test availability
-                    addTestResult('integration', 'Full System Initialization', 'success', 
-                        'Fungsi inisialisasi sistem lengkap tersedia');
-                } else {
-                    addTestResult('integration', 'Full System Initialization', 'error', 
-                        'Fungsi inisialisasi sistem tidak tersedia');
-                }
-                
-                // Test localStorage availability
-                try {
-                    localStorage.setItem('test', 'test');
-                    localStorage.removeItem('test');
-                    addTestResult('integration', 'LocalStorage', 'success', 
-                        'LocalStorage tersedia dan berfungsi');
-                } catch (storageError) {
-                    addTestResult('integration', 'LocalStorage', 'error', 
-                        'LocalStorage tidak tersedia atau tidak berfungsi');
-                }
-                
-                // Test DOM elements (basic check)
-                const testElements = ['body', 'head'];
-                let domReady = true;
-                testElements.forEach(elementName => {
-                    if (!document.querySelector(elementName)) {
-                        domReady = false;
-                    }
-                });
-                
-                if (domReady) {
-                    addTestResult('integration', 'DOM Ready', 'success', 
-                        'DOM siap untuk manipulasi');
-                } else {
-                    addTestResult('integration', 'DOM Ready', 'error', 
-                        'DOM belum siap');
-                }
-                
-                // Test Bootstrap availability
-                if (typeof bootstrap !== 'undefined') {
-                    addTestResult('integration', 'Bootstrap Framework', 'success', 
-                        'Bootstrap framework tersedia');
-                } else {
-                    addTestResult('integration', 'Bootstrap Framework', 'warning', 
-                        'Bootstrap framework tidak terdeteksi');
-                }
-                
-            } catch (error) {
-                addTestResult('integration', 'Integration Tests', 'error', 
-                    `Gagal menguji integrasi: ${error.message}`, error.stack);
-            }
-        }
-
-        // Setup test data
-        function setupTestData() {
-            // Setup minimal test data for transformasi barang
-            const testMasterBarang = [
+        
+        function initializeSampleData() {
+            const sampleData = [
                 {
-                    kode: 'TEST-001-DUS',
-                    nama: 'Test Product Dus',
-                    baseProduct: 'TEST-001',
-                    satuan: 'dus',
-                    stok: 10,
-                    kategori: 'test'
+                    kode: 'BRG001-KG',
+                    nama: 'Beras Premium (Kilogram)',
+                    satuan: 'kg',
+                    stok: 100,
+                    baseProduct: 'BRG001'
                 },
                 {
-                    kode: 'TEST-001-PCS',
-                    nama: 'Test Product Pcs',
-                    baseProduct: 'TEST-001',
-                    satuan: 'pcs',
-                    stok: 0,
-                    kategori: 'test'
+                    kode: 'BRG001-GR',
+                    nama: 'Beras Premium (Gram)',
+                    satuan: 'gram',
+                    stok: 50000,
+                    baseProduct: 'BRG001'
+                },
+                {
+                    kode: 'BRG002-LT',
+                    nama: 'Minyak Goreng (Liter)',
+                    satuan: 'liter',
+                    stok: 50,
+                    baseProduct: 'BRG002'
+                },
+                {
+                    kode: 'BRG002-ML',
+                    nama: 'Minyak Goreng (Mililiter)',
+                    satuan: 'ml',
+                    stok: 25000,
+                    baseProduct: 'BRG002'
                 }
             ];
-            
-            const testConversionRatios = [
+
+            const conversionRatios = [
                 {
-                    baseProduct: 'TEST-001',
+                    baseProduct: 'BRG001',
                     conversions: [
-                        {
-                            from: 'dus',
-                            to: 'pcs',
-                            ratio: 12
-                        },
-                        {
-                            from: 'pcs',
-                            to: 'dus',
-                            ratio: 0.0833
-                        }
+                        { from: 'kg', to: 'gram', ratio: 1000 },
+                        { from: 'gram', to: 'kg', ratio: 0.001 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG002',
+                    conversions: [
+                        { from: 'liter', to: 'ml', ratio: 1000 },
+                        { from: 'ml', to: 'liter', ratio: 0.001 }
                     ]
                 }
             ];
+
+            localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+            localStorage.setItem('barang', JSON.stringify(sampleData));
+            localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+            localStorage.setItem('currentUser', 'Test User');
             
+            console.log('Sample data initialized');
+        }
+        
+        function fixAndRedirect() {
             try {
-                localStorage.setItem('masterBarang', JSON.stringify(testMasterBarang));
-                localStorage.setItem('conversionRatios', JSON.stringify(testConversionRatios));
+                // Initialize sample data
+                initializeSampleData();
+                
+                // Set user data
+                window.currentUser = { name: 'Test User', role: 'kasir' };
+                
+                // Redirect to transformasi barang page
+                window.location.href = 'transformasi_barang.html';
             } catch (error) {
-                console.warn('Could not setup test data in localStorage:', error);
+                console.error('Fix error:', error);
+                showAlert(`Fix failed: ${error.message}`, 'danger');
             }
         }
-
-        // Display all test results
-        function displayAllResults() {
-            // Display file loading results
-            testResults.fileLoading.forEach(result => {
-                displayTestResult('fileLoadingTests', result);
-            });
-            
-            // Display component init results
-            testResults.componentInit.forEach(result => {
-                displayTestResult('componentInitTests', result);
-            });
-            
-            // Display functionality results
-            testResults.functionality.forEach(result => {
-                displayTestResult('functionalityTests', result);
-            });
-            
-            // Display integration results
-            testResults.integration.forEach(result => {
-                displayTestResult('integrationTests', result);
-            });
-            
-            // Display summary
-            const summaryContainer = document.getElementById('testSummary');
-            const summary = testResults.summary;
-            
-            let summaryClass = 'test-success';
-            if (summary.failed > 0) {
-                summaryClass = 'test-error';
-            } else if (summary.warnings > 0) {
-                summaryClass = 'test-warning';
-            }
-            
-            summaryContainer.innerHTML = `
-                <div class="test-result ${summaryClass}">
-                    <h5>Hasil Test Keseluruhan</h5>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <strong>Total Test:</strong> ${summary.total}
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Berhasil:</strong> <span class="text-success">${summary.passed}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Gagal:</strong> <span class="text-danger">${summary.failed}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Warning:</strong> <span class="text-warning">${summary.warnings}</span>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress">
-                            <div class="progress-bar bg-success" style="width: ${(summary.passed/summary.total)*100}%"></div>
-                            <div class="progress-bar bg-warning" style="width: ${(summary.warnings/summary.total)*100}%"></div>
-                            <div class="progress-bar bg-danger" style="width: ${(summary.failed/summary.total)*100}%"></div>
-                        </div>
-                    </div>
-                    ${summary.failed === 0 ? 
-                        '<div class="mt-2 text-success"><i class="bi bi-check-circle me-2"></i>Semua komponen transformasi barang siap digunakan!</div>' :
-                        '<div class="mt-2 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Ada masalah yang perlu diperbaiki sebelum menggunakan sistem.</div>'
-                    }
-                </div>
+        
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.createElement('div');
+            alertContainer.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+            alertContainer.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-        }
-
-        // Run all tests
-        function runAllTests() {
-            console.log('Starting comprehensive transformasi barang tests...');
             
-            // Reset results
-            testResults = {
-                fileLoading: [],
-                componentInit: [],
-                functionality: [],
-                integration: [],
-                summary: {
-                    total: 0,
-                    passed: 0,
-                    failed: 0,
-                    warnings: 0
-                }
-            };
+            document.querySelector('.container').appendChild(alertContainer);
             
-            // Clear previous results
-            ['fileLoadingTests', 'componentInitTests', 'functionalityTests', 'integrationTests', 'testSummary'].forEach(id => {
-                document.getElementById(id).innerHTML = '';
-            });
-            
-            // Show loading
-            document.getElementById('loadingIndicator').classList.add('show');
-            document.getElementById('testResults').style.display = 'none';
-            document.getElementById('runTestsBtn').disabled = true;
-            
-            // Run tests with delays to show progress
+            // Auto-hide after 5 seconds
             setTimeout(() => {
-                testFileLoading();
-                setTimeout(() => {
-                    testComponentInitialization();
-                    setTimeout(() => {
-                        testBasicFunctionality();
-                        setTimeout(() => {
-                            testIntegration();
-                            setTimeout(() => {
-                                // Display results
-                                displayAllResults();
-                                
-                                // Hide loading and show results
-                                document.getElementById('loadingIndicator').classList.remove('show');
-                                document.getElementById('testResults').style.display = 'block';
-                                document.getElementById('runTestsBtn').disabled = false;
-                                
-                                // Show retry button if there are failures
-                                if (testResults.summary.failed > 0) {
-                                    document.getElementById('retryBtn').style.display = 'inline-block';
-                                }
-                                
-                                console.log('All tests completed:', testResults.summary);
-                            }, 500);
-                        }, 500);
-                    }, 500);
-                }, 500);
-            }, 500);
+                if (alertContainer.parentNode) {
+                    alertContainer.remove();
+                }
+            }, 5000);
         }
-
-        // Auto-run tests when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, starting tests...');
-            setTimeout(runAllTests, 1000);
-        });
+        
+        // Check loading status after a short delay
+        setTimeout(checkFileLoadingStatus, 1000);
     </script>
 </body>
 </html>
