@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Upload Master Barang Excel - Import Functionality</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">🔧 Fix Upload Master Barang Excel - Import Functionality</h1>
+                
+                <!-- Status Card -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Diagnostic Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="diagnosticStatus">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-spinner fa-spin text-warning me-2"></i>
+                                <span>Running diagnostics...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Upload Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Test Upload Functionality</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-area mb-3" id="testUploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <h6>Test File Upload</h6>
+                            <p class="text-muted mb-2">Drag & drop CSV file atau klik untuk pilih</p>
+                            <input type="file" id="testFileInput" class="d-none" accept=".csv,.xlsx">
+                            <button class="btn btn-outline-primary btn-sm" onclick="document.getElementById('testFileInput').click()">
+                                Pilih File
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-success me-2" onclick="createTestCSV()">
+                                <i class="fas fa-file-csv me-1"></i>Create Test CSV
+                            </button>
+                            <button class="btn btn-warning me-2" onclick="testWithSampleData()">
+                                <i class="fas fa-play me-1"></i>Test with Sample Data
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearLog()">
+                                <i class="fas fa-trash me-1"></i>Clear Log
+                            </button>
+                        </div>
+                        
+                        <div class="log-output" id="testLog">
+                            <div class="text-muted">Test log will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Component Status -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Component Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="componentStatus">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Fixes -->
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Quick Fixes</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary me-2" onclick="fixMissingComponents()">
+                            <i class="fas fa-wrench me-1"></i>Fix Missing Components
+                        </button>
+                        <button class="btn btn-info me-2" onclick="reinitializeManagers()">
+                            <i class="fas fa-refresh me-1"></i>Reinitialize Managers
+                        </button>
+                        <button class="btn btn-warning me-2" onclick="testBasicFunctionality()">
+                            <i class="fas fa-test-tube me-1"></i>Test Basic Functions
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadWorkingVersion()">
+                            <i class="fas fa-download me-1"></i>Download Working Version
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include required components -->
+    <script src="js/upload-excel/types.js"></script>
+    <script src="js/upload-excel/ExcelUploadManager.js"></script>
+    <script src="js/upload-excel/ValidationEngine.js"></script>
+    <script src="js/upload-excel/DataProcessor.js"></script>
+    <script src="js/upload-excel/CategoryUnitManager.js"></script>
+    <script src="js/upload-excel/AuditLogger.js"></script>
+
+    <script>
+        let uploadManager;
+        let testLog = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            runDiagnostics();
+            setupTestUpload();
+        });
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            testLog.push(logEntry);
+            
+            const logElement = document.getElementById('testLog');
+            logElement.innerHTML = testLog.join('\n');
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLog() {
+            testLog = [];
+            document.getElementById('testLog').innerHTML = '<div class="text-muted">Test log cleared...</div>';
+        }
+
+        function runDiagnostics() {
+            const statusDiv = document.getElementById('diagnosticStatus');
+            const componentDiv = document.getElementById('componentStatus');
+            
+            let statusHtml = '';
+            let componentHtml = '';
+            
+            // Check if classes are available
+            const components = [
+                { name: 'ExcelUploadManager', class: window.ExcelUploadManager },
+                { name: 'ValidationEngine', class: window.ValidationEngine },
+                { name: 'DataProcessor', class: window.DataProcessor },
+                { name: 'CategoryUnitManager', class: window.CategoryUnitManager },
+                { name: 'AuditLogger', class: window.AuditLogger }
+            ];
+            
+            let allComponentsLoaded = true;
+            
+            components.forEach(comp => {
+                const isLoaded = typeof comp.class !== 'undefined';
+                allComponentsLoaded = allComponentsLoaded && isLoaded;
+                
+                const icon = isLoaded ? 'fas fa-check-circle text-success' : 'fas fa-times-circle text-danger';
+                const status = isLoaded ? 'Loaded' : 'Missing';
+                
+                componentHtml += `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="${icon} me-2"></i>
+                        <span>${comp.name}: ${status}</span>
+                    </div>
+                `;
+            });
+            
+            // Overall status
+            if (allComponentsLoaded) {
+                statusHtml = `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>All components loaded successfully</span>
+                    </div>
+                `;
+                
+                // Try to initialize
+                try {
+                    uploadManager = new ExcelUploadManager();
+                    statusHtml += `
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>ExcelUploadManager initialized successfully</span>
+                        </div>
+                    `;
+                    log('ExcelUploadManager initialized successfully', 'success');
+                } catch (error) {
+                    statusHtml += `
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <span>ExcelUploadManager initialization warning: ${error.message}</span>
+                        </div>
+                    `;
+                    log(`ExcelUploadManager initialization warning: ${error.message}`, 'warning');
+                }
+            } else {
+                statusHtml = `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                        <span>Some components are missing - this will cause import functionality to fail</span>
+                    </div>
+                `;
+                log('Some components are missing', 'error');
+            }
+            
+            statusDiv.innerHTML = statusHtml;
+            componentDiv.innerHTML = componentHtml;
+        }
+
+        function setupTestUpload() {
+            const uploadArea = document.getElementById('testUploadArea');
+            const fileInput = document.getElementById('testFileInput');
+            
+            // Setup drag & drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            uploadArea.addEventListener('dragover', () => {
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleTestFile(files[0]);
+                }
+            });
+            
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleTestFile(e.target.files[0]);
+                }
+            });
+        }
+
+        async function handleTestFile(file) {
+            log(`Testing file upload: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'info');
+            
+            if (!uploadManager) {
+                log('ExcelUploadManager not available - attempting to initialize', 'warning');
+                try {
+                    uploadManager = new ExcelUploadManager();
+                    log('ExcelUploadManager initialized', 'success');
+                } catch (error) {
+                    log(`Failed to initialize ExcelUploadManager: ${error.message}`, 'error');
+                    return;
+                }
+            }
+            
+            try {
+                // Test file upload with progress tracking
+                const session = await uploadManager.uploadFile(file, {
+                    onProgress: (progress) => {
+                        log(`Progress: ${progress.stage} - ${progress.progress}% - ${progress.message}`, 'info');
+                    },
+                    onValidation: (results) => {
+                        log(`Validation complete: ${results.errors.length} errors, ${results.warnings.length} warnings`, 'info');
+                    }
+                });
+                
+                log(`Upload session created: ${session.id}`, 'success');
+                log(`Status: ${session.status}, Records: ${session.recordCount}`, 'info');
+                
+                // Test data processing
+                const data = await uploadManager.processFileContent(file);
+                log(`Data processed: ${data.length} records`, 'success');
+                
+                // Test preview generation
+                const preview = await uploadManager.previewData(data);
+                log(`Preview generated: ${preview.data.length} rows, ${preview.summary.errorRows} errors`, 'success');
+                
+                // Show sample data
+                if (preview.data.length > 0) {
+                    const sample = preview.data[0];
+                    log(`Sample record: ${JSON.stringify(sample, null, 2)}`, 'info');
+                }
+                
+            } catch (error) {
+                log(`Upload test failed: ${error.message}`, 'error');
+                console.error('Upload test error:', error);
+            }
+        }
+
+        function createTestCSV() {
+            const csvContent = `kode,nama,kategori,satuan,harga_beli,stok,supplier
+TEST001,Test Barang 1,makanan,kg,10000,50,Test Supplier
+TEST002,Test Barang 2,minuman,botol,5000,100,Test Supplier 2
+TEST003,Test Barang 3,alat-tulis,pcs,2000,200,Test Supplier 3`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const file = new File([blob], 'test_data.csv', { type: 'text/csv' });
+            
+            log('Created test CSV file', 'success');
+            handleTestFile(file);
+        }
+
+        function testWithSampleData() {
+            log('Testing with sample data array', 'info');
+            
+            const sampleData = [
+                {
+                    kode: 'SAMPLE001',
+                    nama: 'Sample Barang 1',
+                    kategori: 'makanan',
+                    satuan: 'kg',
+                    harga_beli: 15000,
+                    stok: 25,
+                    supplier: 'Sample Supplier'
+                },
+                {
+                    kode: 'SAMPLE002',
+                    nama: 'Sample Barang 2',
+                    kategori: 'minuman',
+                    satuan: 'botol',
+                    harga_beli: 8000,
+                    stok: 75,
+                    supplier: 'Sample Supplier 2'
+                }
+            ];
+            
+            if (!uploadManager) {
+                try {
+                    uploadManager = new ExcelUploadManager();
+                    log('ExcelUploadManager initialized for sample test', 'success');
+                } catch (error) {
+                    log(`Failed to initialize ExcelUploadManager: ${error.message}`, 'error');
+                    return;
+                }
+            }
+            
+            try {
+                // Test preview generation with sample data
+                uploadManager.previewData(sampleData).then(preview => {
+                    log(`Sample data preview generated: ${preview.data.length} rows`, 'success');
+                    log(`Summary: ${preview.summary.totalRows} total, ${preview.summary.validRows} valid`, 'info');
+                    
+                    // Test validation
+                    if (preview.validationResults) {
+                        log(`Validation: ${preview.validationResults.errors.length} errors, ${preview.validationResults.warnings.length} warnings`, 'info');
+                    }
+                    
+                    // Show first record
+                    if (preview.data.length > 0) {
+                        log(`First record: ${JSON.stringify(preview.data[0], null, 2)}`, 'info');
+                    }
+                }).catch(error => {
+                    log(`Sample data test failed: ${error.message}`, 'error');
+                });
+                
+            } catch (error) {
+                log(`Sample data test error: ${error.message}`, 'error');
+            }
+        }
+
+        function fixMissingComponents() {
+            log('Attempting to fix missing components...', 'info');
+            
+            // Check which components are missing and provide fixes
+            const fixes = [];
+            
+            if (typeof ExcelUploadManager === 'undefined') {
+                fixes.push('ExcelUploadManager class is missing');
+            }
+            if (typeof ValidationEngine === 'undefined') {
+                fixes.push('ValidationEngine class is missing');
+            }
+            if (typeof DataProcessor === 'undefined') {
+                fixes.push('DataProcessor class is missing');
+            }
+            
+            if (fixes.length > 0) {
+                log(`Missing components detected: ${fixes.join(', ')}`, 'warning');
+                log('Please ensure all JavaScript files are loaded correctly', 'warning');
+                
+                // Try to create minimal implementations
+                createMinimalImplementations();
+            } else {
+                log('All components are available', 'success');
+            }
+        }
+
+        function createMinimalImplementations() {
+            log('Creating minimal component implementations...', 'info');
+            
+            // Create minimal DataProcessor if missing
+            if (typeof DataProcessor === 'undefined') {
+                window.DataProcessor = class DataProcessor {
+                    constructor() {
+                        log('Minimal DataProcessor created', 'info');
+                    }
+                    
+                    async parseFile(file) {
+                        log(`Parsing file: ${file.name}`, 'info');
+                        
+                        if (file.name.toLowerCase().endsWith('.csv')) {
+                            const text = await this.readFileAsText(file);
+                            return this.parseCSVSimple(text);
+                        } else {
+                            throw new Error('Only CSV files are supported in minimal mode');
+                        }
+                    }
+                    
+                    async parseCSVSimple(csvText) {
+                        const lines = csvText.split('\n').filter(line => line.trim());
+                        if (lines.length < 2) throw new Error('CSV must have header and data rows');
+                        
+                        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                        const data = [];
+                        
+                        for (let i = 1; i < lines.length; i++) {
+                            const values = lines[i].split(',');
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index] ? values[index].trim() : '';
+                            });
+                            data.push(row);
+                        }
+                        
+                        return data;
+                    }
+                    
+                    readFileAsText(file) {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = e => resolve(e.target.result);
+                            reader.onerror = e => reject(new Error('Failed to read file'));
+                            reader.readAsText(file);
+                        });
+                    }
+                };
+                log('Minimal DataProcessor implementation created', 'success');
+            }
+            
+            // Create minimal ValidationEngine if missing
+            if (typeof ValidationEngine === 'undefined') {
+                window.ValidationEngine = class ValidationEngine {
+                    constructor() {
+                        log('Minimal ValidationEngine created', 'info');
+                    }
+                    
+                    async validateFileFormat(file) {
+                        const isValid = file.size > 0 && file.size <= 5 * 1024 * 1024 && 
+                                       file.name.toLowerCase().endsWith('.csv');
+                        return {
+                            isValid,
+                            error: isValid ? null : 'Invalid file format or size'
+                        };
+                    }
+                    
+                    validateDataTypes(row, rowNumber) {
+                        const errors = [];
+                        const required = ['kode', 'nama', 'kategori', 'satuan', 'harga_beli', 'stok'];
+                        
+                        required.forEach(field => {
+                            if (!row[field] || row[field].toString().trim() === '') {
+                                errors.push({
+                                    type: 'business',
+                                    field,
+                                    row: rowNumber,
+                                    message: `Required field '${field}' is empty`,
+                                    severity: 'error'
+                                });
+                            }
+                        });
+                        
+                        return errors;
+                    }
+                    
+                    validateBusinessRules(row, rowNumber) {
+                        const errors = [];
+                        
+                        if (row.harga_beli && parseFloat(row.harga_beli) < 0) {
+                            errors.push({
+                                type: 'business',
+                                field: 'harga_beli',
+                                row: rowNumber,
+                                message: 'Harga beli cannot be negative',
+                                severity: 'error'
+                            });
+                        }
+                        
+                        if (row.stok && parseInt(row.stok) < 0) {
+                            errors.push({
+                                type: 'business',
+                                field: 'stok',
+                                row: rowNumber,
+                                message: 'Stok cannot be negative',
+                                severity: 'error'
+                            });
+                        }
+                        
+                        return errors;
+                    }
+                    
+                    validateDuplicates(data) {
+                        const errors = [];
+                        const codes = new Set();
+                        
+                        data.forEach((row, index) => {
+                            if (codes.has(row.kode)) {
+                                errors.push({
+                                    type: 'integrity',
+                                    field: 'kode',
+                                    row: index + 2,
+                                    message: `Duplicate code: ${row.kode}`,
+                                    severity: 'error'
+                                });
+                            } else {
+                                codes.add(row.kode);
+                            }
+                        });
+                        
+                        return errors;
+                    }
+                    
+                    async validateExistingData(data) {
+                        return []; // No warnings for minimal implementation
+                    }
+                };
+                log('Minimal ValidationEngine implementation created', 'success');
+            }
+            
+            // Try to reinitialize upload manager
+            reinitializeManagers();
+        }
+
+        function reinitializeManagers() {
+            try {
+                uploadManager = new ExcelUploadManager();
+                log('Upload manager reinitialized successfully', 'success');
+                
+                // Update status
+                const statusDiv = document.getElementById('diagnosticStatus');
+                statusDiv.innerHTML += `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>Upload manager reinitialized</span>
+                    </div>
+                `;
+            } catch (error) {
+                log(`Failed to reinitialize upload manager: ${error.message}`, 'error');
+            }
+        }
+
+        function testBasicFunctionality() {
+            log('Testing basic functionality...', 'info');
+            
+            if (!uploadManager) {
+                log('Upload manager not available', 'error');
+                return;
+            }
+            
+            // Test basic methods
+            try {
+                const sessionId = uploadManager.generateSessionId();
+                log(`Session ID generation: ${sessionId}`, 'success');
+            } catch (error) {
+                log(`Session ID generation failed: ${error.message}`, 'error');
+            }
+            
+            // Test file validation
+            try {
+                const testFile = new File(['test'], 'test.csv', { type: 'text/csv' });
+                uploadManager.validateDroppedFiles([testFile]);
+                log('File validation method works', 'success');
+            } catch (error) {
+                log(`File validation failed: ${error.message}`, 'error');
+            }
+        }
+
+        function downloadWorkingVersion() {
+            // Create a working version of the upload functionality
+            const workingHTML = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Master Barang Excel - Working Version</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1><i class="fas fa-file-excel me-2"></i>Upload Master Barang Excel</h1>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="upload-area p-4 border border-dashed text-center" style="cursor: pointer;">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                    <h5>Drag & Drop CSV file atau klik untuk pilih</h5>
+                    <input type="file" id="fileInput" class="d-none" accept=".csv">
+                </div>
+                
+                <div id="results" class="mt-4" style="display: none;">
+                    <h6>Preview Data:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="previewTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-success" onclick="importData()">Import Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let uploadedData = [];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.querySelector('.upload-area');
+            const fileInput = document.getElementById('fileInput');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFile);
+            
+            // Drag & drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '#f8f9fa';
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.backgroundColor = '';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '';
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile({ target: { files: e.dataTransfer.files } });
+                }
+            });
+        });
+        
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                alert('Please upload a CSV file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const data = parseCSV(csv);
+                showPreview(data);
+            };
+            reader.readAsText(file);
+        }
+        
+        function parseCSV(csv) {
+            const lines = csv.split('\\n').filter(line => line.trim());
+            if (lines.length < 2) return [];
+            
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                data.push(row);
+            }
+            
+            return data;
+        }
+        
+        function showPreview(data) {
+            uploadedData = data;
+            const resultsDiv = document.getElementById('results');
+            const table = document.getElementById('previewTable');
+            
+            if (data.length === 0) {
+                alert('No data found in file');
+                return;
+            }
+            
+            // Create table headers
+            const headers = Object.keys(data[0]);
+            table.querySelector('thead').innerHTML = '<tr>' + 
+                headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+            
+            // Create table body
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = data.slice(0, 10).map(row => 
+                '<tr>' + headers.map(h => '<td>' + (row[h] || '') + '</td>').join('') + '</tr>'
+            ).join('');
+            
+            resultsDiv.style.display = 'block';
+        }
+        
+        function importData() {
+            if (uploadedData.length === 0) {
+                alert('No data to import');
+                return;
+            }
+            
+            try {
+                // Get existing data
+                const existing = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                // Add new data
+                const newData = [...existing, ...uploadedData];
+                
+                // Save to localStorage
+                localStorage.setItem('masterBarang', JSON.stringify(newData));
+                
+                alert('Data imported successfully! ' + uploadedData.length + ' records added.');
+                
+                // Reset
+                uploadedData = [];
+                document.getElementById('results').style.display = 'none';
+                
+            } catch (error) {
+                alert('Import failed: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>`;
+            
+            const blob = new Blob([workingHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'upload_master_barang_excel_working.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('Working version downloaded', 'success');
+        }
+    </script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 // Note: currentUser is declared in js/app.js
 let loginAttempts = new Map(); // Track login attempts for rate limiting
 
-// Password security configuration
+// Password security configuration - Enhanced for Task 2.1
 const PASSWORD_CONFIG = {
     minLength: 8,
     maxLength: 128,
@@ -21,12 +21,39 @@ const PASSWORD_CONFIG = {
     historyLimit: 5, // Remember last 5 passwords
     maxHistory: 5, // Alias for backward compatibility
     saltRounds: 12,
+    
+    // Enhanced security settings
+    minScore: 70, // Minimum password strength score required
+    lockoutAttempts: 5, // Max failed attempts before lockout
+    lockoutDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
+    passwordExpiry: 90 * 24 * 60 * 60 * 1000, // 90 days in milliseconds
+    
+    // Common weak patterns to detect
+    weakPatterns: [
+        /(.)\1{2,}/g, // Repeated characters (aaa, 111)
+        /123|abc|qwe|password|admin|user|login|guest/i, // Common sequences
+        /^[a-z]+$/i, // Only letters
+        /^\d+$/, // Only numbers
+        /^[!@#$%^&*()_+-=\[\]{}|;:,.<>?]+$/ // Only special chars
+    ],
+    
     strengthLevels: {
-        WEAK: 1,
-        FAIR: 2,
-        GOOD: 3,
-        STRONG: 4,
-        VERY_STRONG: 5
+        VERY_WEAK: 1,
+        WEAK: 2,
+        FAIR: 3,
+        GOOD: 4,
+        STRONG: 5,
+        VERY_STRONG: 6
+    },
+    
+    // Password strength scoring weights
+    scoring: {
+        length: 25,      // 25 points for meeting length requirement
+        uppercase: 15,   // 15 points for uppercase letters
+        lowercase: 15,   // 15 points for lowercase letters
+        numbers: 15,     // 15 points for numbers
+        special: 15,     // 15 points for special characters
+        complexity: 15   // 15 points for additional complexity
     }
 };
 
@@ -2809,3 +2836,541 @@ function showTransformationHelp() {
         </ul>
     `, 'info', 10000);
 }
+
+// ============================================================================
+// ENHANCED PASSWORD SECURITY IMPROVEMENTS - TASK 2.1
+// ============================================================================
+
+/**
+ * Enhanced password strength validation - Task 2.1 Implementation
+ * @param {string} password - Password to validate
+ * @returns {Object} Enhanced validation result with detailed scoring
+ */
+function validatePasswordStrengthEnhanced(password) {
+    const result = {
+        isValid: false,
+        strength: 'very-weak',
+        strengthText: 'Sangat Lemah',
+        score: 0,
+        requirements: {
+            minLength: false,
+            hasUppercase: false,
+            hasLowercase: false,
+            hasNumbers: false,
+            hasSpecialChars: false,
+            noWeakPatterns: true,
+            noCommonWords: true
+        },
+        feedback: [],
+        details: {
+            lengthScore: 0,
+            complexityScore: 0,
+            patternPenalty: 0,
+            bonusScore: 0
+        }
+    };
+    
+    if (!password) {
+        result.feedback.push('Password is required');
+        return result;
+    }
+    
+    // Length validation and scoring
+    if (password.length < PASSWORD_CONFIG.minLength) {
+        result.feedback.push(`Password must be at least ${PASSWORD_CONFIG.minLength} characters long`);
+    } else {
+        result.requirements.minLength = true;
+        result.details.lengthScore = PASSWORD_CONFIG.scoring.length;
+        result.score += PASSWORD_CONFIG.scoring.length;
+        
+        // Bonus for longer passwords
+        if (password.length >= 12) {
+            result.details.bonusScore += 5;
+            result.score += 5;
+        }
+        if (password.length >= 16) {
+            result.details.bonusScore += 5;
+            result.score += 5;
+        }
+        if (password.length >= 20) {
+            result.details.bonusScore += 5;
+            result.score += 5;
+        }
+    }
+    
+    // Maximum length check
+    if (PASSWORD_CONFIG.maxLength && password.length > PASSWORD_CONFIG.maxLength) {
+        result.feedback.push(`Password must not exceed ${PASSWORD_CONFIG.maxLength} characters`);
+        return result;
+    }
+    
+    // Character type requirements
+    if (PASSWORD_CONFIG.requireUppercase) {
+        if (/[A-Z]/.test(password)) {
+            result.requirements.hasUppercase = true;
+            result.details.complexityScore += PASSWORD_CONFIG.scoring.uppercase;
+            result.score += PASSWORD_CONFIG.scoring.uppercase;
+        } else {
+            result.feedback.push('Password must contain at least one uppercase letter (A-Z)');
+        }
+    }
+    
+    if (PASSWORD_CONFIG.requireLowercase) {
+        if (/[a-z]/.test(password)) {
+            result.requirements.hasLowercase = true;
+            result.details.complexityScore += PASSWORD_CONFIG.scoring.lowercase;
+            result.score += PASSWORD_CONFIG.scoring.lowercase;
+        } else {
+            result.feedback.push('Password must contain at least one lowercase letter (a-z)');
+        }
+    }
+    
+    if (PASSWORD_CONFIG.requireNumbers) {
+        if (/\d/.test(password)) {
+            result.requirements.hasNumbers = true;
+            result.details.complexityScore += PASSWORD_CONFIG.scoring.numbers;
+            result.score += PASSWORD_CONFIG.scoring.numbers;
+        } else {
+            result.feedback.push('Password must contain at least one number (0-9)');
+        }
+    }
+    
+    if (PASSWORD_CONFIG.requireSpecialChars) {
+        const specialCharsRegex = new RegExp('[' + PASSWORD_CONFIG.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ']');
+        if (specialCharsRegex.test(password)) {
+            result.requirements.hasSpecialChars = true;
+            result.details.complexityScore += PASSWORD_CONFIG.scoring.special;
+            result.score += PASSWORD_CONFIG.scoring.special;
+        } else {
+            result.feedback.push(`Password must contain at least one special character (${PASSWORD_CONFIG.specialChars})`);
+        }
+    }
+    
+    // Advanced pattern detection
+    let patternPenalty = 0;
+    
+    // Check for repeated characters (aaa, 111, etc.)
+    if (/(.)\1{2,}/.test(password)) {
+        result.requirements.noWeakPatterns = false;
+        result.feedback.push('Avoid repeating the same character 3 or more times');
+        patternPenalty += 15;
+    }
+    
+    // Check for sequential patterns (123, abc, qwe)
+    if (/123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|qwe|wer|ert|rty|tyu|yui|uio|iop|asd|sdf|dfg|fgh|ghj|hjk|jkl|zxc|xcv|cvb|vbn|bnm/i.test(password)) {
+        result.requirements.noWeakPatterns = false;
+        result.feedback.push('Avoid sequential characters (123, abc, qwe, etc.)');
+        patternPenalty += 10;
+    }
+    
+    // Check for common weak passwords and patterns
+    const commonWords = ['password', 'admin', 'user', 'login', 'guest', 'root', 'test', 'demo', 'welcome', 'master', 'super'];
+    const lowerPassword = password.toLowerCase();
+    
+    for (const word of commonWords) {
+        if (lowerPassword.includes(word)) {
+            result.requirements.noCommonWords = false;
+            result.feedback.push(`Avoid using common words like "${word}"`);
+            patternPenalty += 20;
+            break;
+        }
+    }
+    
+    // Check for keyboard patterns
+    const keyboardPatterns = ['qwerty', 'asdfgh', 'zxcvbn', '1qaz2wsx', 'qazwsx'];
+    for (const pattern of keyboardPatterns) {
+        if (lowerPassword.includes(pattern)) {
+            result.requirements.noWeakPatterns = false;
+            result.feedback.push('Avoid keyboard patterns');
+            patternPenalty += 15;
+            break;
+        }
+    }
+    
+    // Apply pattern penalties
+    result.details.patternPenalty = patternPenalty;
+    result.score = Math.max(0, result.score - patternPenalty);
+    
+    // Complexity bonus for character diversity
+    const charTypes = [
+        /[a-z]/.test(password), // lowercase
+        /[A-Z]/.test(password), // uppercase  
+        /\d/.test(password),    // numbers
+        /[^a-zA-Z\d]/.test(password) // special chars
+    ].filter(Boolean).length;
+    
+    if (charTypes >= 4) {
+        result.details.complexityScore += PASSWORD_CONFIG.scoring.complexity;
+        result.score += PASSWORD_CONFIG.scoring.complexity;
+    }
+    
+    // Determine strength level based on enhanced scoring
+    if (result.score >= 95) {
+        result.strength = 'very-strong';
+        result.strengthText = 'Sangat Kuat';
+    } else if (result.score >= 80) {
+        result.strength = 'strong';
+        result.strengthText = 'Kuat';
+    } else if (result.score >= 65) {
+        result.strength = 'good';
+        result.strengthText = 'Baik';
+    } else if (result.score >= 45) {
+        result.strength = 'fair';
+        result.strengthText = 'Cukup';
+    } else if (result.score >= 25) {
+        result.strength = 'weak';
+        result.strengthText = 'Lemah';
+    } else {
+        result.strength = 'very-weak';
+        result.strengthText = 'Sangat Lemah';
+    }
+    
+    // Password is valid if it meets minimum score and has no critical issues
+    result.isValid = result.score >= PASSWORD_CONFIG.minScore && 
+                     result.requirements.minLength && 
+                     result.requirements.hasUppercase && 
+                     result.requirements.hasLowercase && 
+                     result.requirements.hasNumbers && 
+                     result.requirements.hasSpecialChars;
+    
+    return result;
+}
+
+/**
+ * Enhanced account lockout mechanism - Task 2.1
+ * @param {string} username - Username to check
+ * @returns {Object} Lockout status with details
+ */
+function getAccountLockoutStatus(username) {
+    const attempts = loginAttempts.get(username);
+    if (!attempts || attempts.length === 0) {
+        return {
+            isLocked: false,
+            attemptsRemaining: PASSWORD_CONFIG.lockoutAttempts,
+            lockoutTimeRemaining: 0,
+            nextAttemptAllowed: null
+        };
+    }
+    
+    const now = Date.now();
+    const lockoutDuration = PASSWORD_CONFIG.lockoutDuration;
+    
+    // Clean old attempts outside lockout window
+    const recentAttempts = attempts.filter(time => now - time < lockoutDuration);
+    loginAttempts.set(username, recentAttempts);
+    
+    const isLocked = recentAttempts.length >= PASSWORD_CONFIG.lockoutAttempts;
+    const attemptsRemaining = Math.max(0, PASSWORD_CONFIG.lockoutAttempts - recentAttempts.length);
+    
+    let lockoutTimeRemaining = 0;
+    let nextAttemptAllowed = null;
+    
+    if (isLocked && recentAttempts.length > 0) {
+        const oldestAttempt = Math.min(...recentAttempts);
+        const unlockTime = oldestAttempt + lockoutDuration;
+        lockoutTimeRemaining = Math.max(0, unlockTime - now);
+        nextAttemptAllowed = new Date(unlockTime);
+    }
+    
+    return {
+        isLocked,
+        attemptsRemaining,
+        lockoutTimeRemaining,
+        nextAttemptAllowed,
+        totalAttempts: recentAttempts.length
+    };
+}
+
+/**
+ * Enhanced password expiry check - Task 2.1
+ * @param {Object} user - User object
+ * @returns {Object} Password expiry status
+ */
+function checkPasswordExpiry(user) {
+    if (!user || !user.passwordChangedAt) {
+        return {
+            isExpired: false,
+            daysUntilExpiry: null,
+            shouldWarn: false,
+            message: null
+        };
+    }
+    
+    const passwordChangedDate = new Date(user.passwordChangedAt);
+    const now = new Date();
+    const daysSinceChange = Math.floor((now - passwordChangedDate) / (24 * 60 * 60 * 1000));
+    const maxDays = Math.floor(PASSWORD_CONFIG.passwordExpiry / (24 * 60 * 60 * 1000));
+    const daysUntilExpiry = maxDays - daysSinceChange;
+    
+    const isExpired = daysUntilExpiry <= 0;
+    const shouldWarn = daysUntilExpiry <= 7 && daysUntilExpiry > 0; // Warn 7 days before expiry
+    
+    let message = null;
+    if (isExpired) {
+        message = `Your password expired ${Math.abs(daysUntilExpiry)} days ago. Please change it immediately.`;
+    } else if (shouldWarn) {
+        message = `Your password will expire in ${daysUntilExpiry} days. Please consider changing it soon.`;
+    }
+    
+    return {
+        isExpired,
+        daysUntilExpiry,
+        shouldWarn,
+        message,
+        daysSinceChange,
+        maxDays
+    };
+}
+
+/**
+ * Enhanced password change with comprehensive validation - Task 2.1
+ * @param {number} userId - User ID
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Object} Enhanced result with detailed feedback
+ */
+function changePasswordEnhanced(userId, currentPassword, newPassword) {
+    try {
+        const users = getUsersFromStorage();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            return { 
+                success: false, 
+                message: 'User not found',
+                code: 'USER_NOT_FOUND'
+            };
+        }
+        
+        // Verify current password
+        if (!verifyPassword(currentPassword, user.password)) {
+            // Record failed attempt for audit
+            recordLoginAttempt(user.username, false);
+            return { 
+                success: false, 
+                message: 'Current password is incorrect',
+                code: 'INVALID_CURRENT_PASSWORD'
+            };
+        }
+        
+        // Enhanced password validation
+        const validation = validatePasswordStrengthEnhanced(newPassword);
+        if (!validation.isValid) {
+            return { 
+                success: false, 
+                message: 'New password does not meet security requirements',
+                feedback: validation.feedback,
+                details: validation.details,
+                code: 'WEAK_PASSWORD'
+            };
+        }
+        
+        // Check password history
+        if (isPasswordInHistory(userId, newPassword)) {
+            const historyLimit = PASSWORD_CONFIG.historyLimit || PASSWORD_CONFIG.maxHistory;
+            return { 
+                success: false, 
+                message: `Password was used recently. Please choose a different password. Last ${historyLimit} passwords cannot be reused.`,
+                code: 'PASSWORD_REUSED'
+            };
+        }
+        
+        // Check if new password is same as current
+        if (verifyPassword(newPassword, user.password)) {
+            return {
+                success: false,
+                message: 'New password must be different from current password',
+                code: 'SAME_PASSWORD'
+            };
+        }
+        
+        // Hash new password
+        const hashedPassword = hashPassword(newPassword);
+        
+        // Update user password
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        // Add old password to history before updating
+        if (user.password) {
+            addPasswordToHistory(userId, user.password);
+        }
+        
+        users[userIndex].password = hashedPassword;
+        users[userIndex].passwordChangedAt = new Date().toISOString();
+        users[userIndex].lastPasswordChange = new Date().toISOString(); // For compatibility
+        
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        // Clear any login attempts for this user
+        clearLoginAttempts(user.username);
+        
+        return { 
+            success: true, 
+            message: 'Password changed successfully',
+            code: 'SUCCESS',
+            passwordStrength: validation.strengthText,
+            score: validation.score
+        };
+        
+    } catch (error) {
+        console.error('Error changing password:', error);
+        return { 
+            success: false, 
+            message: 'An error occurred while changing password',
+            code: 'SYSTEM_ERROR',
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Enhanced login with improved security checks - Task 2.1
+ * @param {string} username - Username
+ * @param {string} password - Password
+ * @returns {Object} Enhanced login result
+ */
+function authenticateUserEnhanced(username, password) {
+    try {
+        // Input validation
+        if (!username || !password) {
+            return {
+                success: false,
+                message: 'Username and password are required',
+                code: 'MISSING_CREDENTIALS'
+            };
+        }
+        
+        // Check account lockout
+        const lockoutStatus = getAccountLockoutStatus(username);
+        if (lockoutStatus.isLocked) {
+            const minutes = Math.ceil(lockoutStatus.lockoutTimeRemaining / (60 * 1000));
+            return {
+                success: false,
+                message: `Account is locked. Try again in ${minutes} minutes.`,
+                code: 'ACCOUNT_LOCKED',
+                lockoutStatus
+            };
+        }
+        
+        // Find user
+        const users = getUsersFromStorage();
+        const user = users.find(u => u.username === username);
+        
+        if (!user) {
+            recordLoginAttempt(username, false);
+            return {
+                success: false,
+                message: 'Invalid username or password',
+                code: 'INVALID_CREDENTIALS'
+            };
+        }
+        
+        // Check if user is active
+        if (user.active === false) {
+            recordLoginAttempt(username, false);
+            return {
+                success: false,
+                message: 'Account is disabled. Contact administrator.',
+                code: 'ACCOUNT_DISABLED'
+            };
+        }
+        
+        // Verify password
+        let passwordValid = false;
+        
+        if (user.password.includes(':')) {
+            // New hashed password format
+            passwordValid = verifyPassword(password, user.password);
+        } else {
+            // Legacy plain text password - migrate to hashed
+            if (user.password === password) {
+                passwordValid = true;
+                // Migrate to hashed password
+                const hashedPassword = hashPassword(password);
+                const userIndex = users.findIndex(u => u.id === user.id);
+                if (userIndex !== -1) {
+                    users[userIndex].password = hashedPassword;
+                    users[userIndex].passwordChangedAt = new Date().toISOString();
+                    users[userIndex].passwordHistory = users[userIndex].passwordHistory || [];
+                    localStorage.setItem('users', JSON.stringify(users));
+                }
+            }
+        }
+        
+        if (!passwordValid) {
+            recordLoginAttempt(username, false);
+            return {
+                success: false,
+                message: 'Invalid username or password',
+                code: 'INVALID_CREDENTIALS'
+            };
+        }
+        
+        // Check password expiry
+        const expiryStatus = checkPasswordExpiry(user);
+        
+        // Successful login
+        clearLoginAttempts(username);
+        updateLastLogin(user.id);
+        
+        return {
+            success: true,
+            message: 'Login successful',
+            code: 'SUCCESS',
+            user: user,
+            passwordExpiry: expiryStatus
+        };
+        
+    } catch (error) {
+        console.error('Authentication error:', error);
+        return {
+            success: false,
+            message: 'System error during authentication',
+            code: 'SYSTEM_ERROR',
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Generate secure password suggestion - Task 2.1
+ * @param {number} length - Desired password length (default: 12)
+ * @returns {string} Generated secure password
+ */
+function generateSecurePassword(length = 12) {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    
+    // Ensure minimum requirements
+    let password = '';
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+    
+    // Fill remaining length
+    const allChars = lowercase + uppercase + numbers + special;
+    for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+// Override the original validatePasswordStrength function with enhanced version
+// This ensures backward compatibility while providing enhanced features
+const originalValidatePasswordStrength = validatePasswordStrength;
+validatePasswordStrength = validatePasswordStrengthEnhanced;
+
+// Enhanced rate limiting check
+const originalIsRateLimited = isRateLimited;
+isRateLimited = function(username) {
+    const lockoutStatus = getAccountLockoutStatus(username);
+    return lockoutStatus.isLocked;
+};
+
+console.log('✅ Task 2.1: Enhanced Password Security Features Loaded');
+console.log('📋 Features: Enhanced validation, account lockout, password expiry, secure generation');
