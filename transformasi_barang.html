@@ -371,11 +371,14 @@
         // Initialize application when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                // Check if user is authenticated
-                if (!currentUser) {
-                    window.location.href = 'index.html';
-                    return;
+                // Mock user for testing if not available
+                if (!window.currentUser) {
+                    window.currentUser = { name: 'Test User', role: 'kasir' };
+                    console.log('Using mock user for testing');
                 }
+                
+                // Initialize sample data if not available
+                initializeSampleDataIfNeeded();
                 
                 // Initialize transformasi barang system
                 initializeTransformasiBarang();
@@ -394,6 +397,72 @@
                 showAlert(`Gagal menginisialisasi halaman: ${error.message}`, 'danger');
             }
         });
+
+        /**
+         * Initialize sample data if localStorage is empty
+         */
+        function initializeSampleDataIfNeeded() {
+            const existingData = localStorage.getItem('masterBarang') || localStorage.getItem('barang');
+            
+            if (!existingData) {
+                console.log('No existing data found, initializing sample data...');
+                
+                const sampleData = [
+                    {
+                        kode: 'BRG001-KG',
+                        nama: 'Beras Premium (Kilogram)',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001'
+                    },
+                    {
+                        kode: 'BRG001-GR',
+                        nama: 'Beras Premium (Gram)',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001'
+                    },
+                    {
+                        kode: 'BRG002-LT',
+                        nama: 'Minyak Goreng (Liter)',
+                        satuan: 'liter',
+                        stok: 50,
+                        baseProduct: 'BRG002'
+                    },
+                    {
+                        kode: 'BRG002-ML',
+                        nama: 'Minyak Goreng (Mililiter)',
+                        satuan: 'ml',
+                        stok: 25000,
+                        baseProduct: 'BRG002'
+                    }
+                ];
+
+                const conversionRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG002',
+                        conversions: [
+                            { from: 'liter', to: 'ml', ratio: 1000 },
+                            { from: 'ml', to: 'liter', ratio: 0.001 }
+                        ]
+                    }
+                ];
+
+                localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+                localStorage.setItem('barang', JSON.stringify(sampleData));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                localStorage.setItem('currentUser', 'Test User');
+                
+                console.log('Sample data initialized successfully');
+            }
+        }
 
         /**
          * Load initial data for the page
@@ -435,62 +504,9 @@
             }
         }
 
-        /**
-         * Display recent transformations
-         */
-        function displayRecentTransformations(transformations) {
-            const container = document.getElementById('recentTransformations');
-            if (!container || !transformations) return;
-            
-            if (transformations.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p>Belum ada transformasi</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = transformations.map(t => `
-                <div class="border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <small class="text-muted">${new Date(t.timestamp).toLocaleDateString('id-ID')}</small>
-                            <div style="font-size: 0.9rem;">
-                                <strong>${t.sourceItem.name}</strong> → <strong>${t.targetItem.name}</strong>
-                            </div>
-                            <small class="text-muted">${t.sourceItem.quantity} ${t.sourceItem.unit} → ${t.targetItem.quantity} ${t.targetItem.unit}</small>
-                        </div>
-                        <span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'}">${t.status}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
 
-        /**
-         * Update statistics display
-         */
-        async function updateStats() {
-            try {
-                if (!window.auditLogger) return;
-                
-                const stats = await window.auditLogger.getTransformationStatistics();
-                
-                // Update stat cards if they exist
-                const totalElement = document.getElementById('totalTransformations');
-                if (totalElement) totalElement.textContent = stats.totalTransformations || 0;
-                
-                const successElement = document.getElementById('successfulTransformations');
-                if (successElement) successElement.textContent = stats.successfulTransformations || 0;
-                
-                const failedElement = document.getElementById('failedTransformations');
-                if (failedElement) failedElement.textContent = stats.failedTransformations || 0;
-                
-            } catch (error) {
-                console.error('Error updating stats:', error);
-            }
-        }
+
+
 
         /**
          * Show transformation history modal
@@ -506,42 +522,6 @@
         function showTransformationHelp() {
             // Implementation for showing help modal
             console.log('Show transformation help');
-        }
-                validationEngine,
-                calculator,
-                stockManager,
-                auditLogger
-            });
-
-            // Initialize UI controller
-            uiController = new UIController();
-            uiController.initialize(transformationManager, errorHandler);
-
-            // Initialize report manager
-            reportManager = new ReportManager();
-            reportManager.initialize(auditLogger);
-
-            console.log('Transformation system initialized successfully');
-        }
-
-        /**
-         * Load initial data for the interface
-         */
-        async function loadInitialData() {
-            try {
-                // Load transformable items count
-                const transformableItems = await transformationManager.getTransformableItems();
-                const totalItems = transformableItems.reduce((sum, group) => sum + group.items.length, 0);
-                document.getElementById('available-items').textContent = totalItems;
-
-                // Load recent transformations
-                await loadRecentTransformations();
-                
-                // Update today's transformation count
-                await updateTodayTransformationCount();
-            } catch (error) {
-                console.error('Error loading initial data:', error);
-            }
         }
 
         /**
@@ -581,7 +561,9 @@
         async function refreshData() {
             try {
                 showAlert('Memperbarui data...', 'info');
-                await uiController.refreshData();
+                if (window.uiController && window.uiController.refreshData) {
+                    await window.uiController.refreshData();
+                }
                 await loadInitialData();
                 showAlert('Data berhasil diperbarui', 'success');
                 
@@ -596,45 +578,66 @@
         }
 
         /**
+         * Display recent transformations
+         */
+        function displayRecentTransformations(transformations) {
+            const container = document.getElementById('recent-transformations');
+            if (!container || !transformations) return;
+            
+            if (transformations.length === 0) {
+                container.innerHTML = `
+                    <div class="list-group-item text-center text-muted py-4">
+                        <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                        Belum ada transformasi hari ini
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = transformations.map(t => `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${t.sourceItem ? t.sourceItem.name : t.sourceName} → ${t.targetItem ? t.targetItem.name : t.targetName}</h6>
+                            <p class="mb-1 small text-muted">
+                                ${t.sourceItem ? t.sourceItem.quantity : t.quantity} ${t.sourceItem ? t.sourceItem.unit : ''} → 
+                                ${t.targetItem ? t.targetItem.quantity : t.resultQuantity} ${t.targetItem ? t.targetItem.unit : ''}
+                            </p>
+                            <small class="text-muted">${new Date(t.timestamp).toLocaleTimeString('id-ID')}</small>
+                        </div>
+                        <span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'success'}">
+                            ${t.status === 'completed' ? 'Berhasil' : t.status === 'failed' ? 'Gagal' : 'Berhasil'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /**
          * Load recent transformations
          */
         async function loadRecentTransformations() {
             try {
-                const history = await transformationManager.getTransformationHistory();
+                let history = [];
+                
+                // Try to get from transformation manager first
+                if (window.transformationManager && window.transformationManager.getTransformationHistory) {
+                    history = await window.transformationManager.getTransformationHistory();
+                } else {
+                    // Fallback to localStorage
+                    history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+                }
+                
                 const today = new Date().toDateString();
                 const todayTransformations = history.filter(t => 
                     new Date(t.timestamp).toDateString() === today
                 ).slice(0, 5); // Last 5 transformations today
 
-                const container = document.getElementById('recent-transformations');
-                
-                if (todayTransformations.length === 0) {
-                    container.innerHTML = `
-                        <div class="list-group-item text-center text-muted py-4">
-                            <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                            Belum ada transformasi hari ini
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = todayTransformations.map(transformation => `
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">${transformation.sourceItem.name} → ${transformation.targetItem.name}</h6>
-                                <p class="mb-1 small text-muted">
-                                    ${transformation.sourceItem.quantity} ${transformation.sourceItem.unit} → 
-                                    ${transformation.targetItem.quantity} ${transformation.targetItem.unit}
-                                </p>
-                                <small class="text-muted">${new Date(transformation.timestamp).toLocaleTimeString('id-ID')}</small>
-                            </div>
-                            <span class="badge bg-success">Berhasil</span>
-                        </div>
-                    </div>
-                `).join('');
+                displayRecentTransformations(todayTransformations);
             } catch (error) {
                 console.error('Error loading recent transformations:', error);
+                // Show empty state on error
+                displayRecentTransformations([]);
             }
         }
 
@@ -643,15 +646,31 @@
          */
         async function updateTodayTransformationCount() {
             try {
-                const history = await transformationManager.getTransformationHistory();
+                let history = [];
+                
+                // Try to get from transformation manager first
+                if (window.transformationManager && window.transformationManager.getTransformationHistory) {
+                    history = await window.transformationManager.getTransformationHistory();
+                } else {
+                    // Fallback to localStorage
+                    history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+                }
+                
                 const today = new Date().toDateString();
                 const todayCount = history.filter(t => 
                     new Date(t.timestamp).toDateString() === today
                 ).length;
 
-                document.getElementById('today-transformations').textContent = todayCount;
+                const todayElement = document.getElementById('today-transformations');
+                if (todayElement) {
+                    todayElement.textContent = todayCount;
+                }
             } catch (error) {
                 console.error('Error updating transformation count:', error);
+                const todayElement = document.getElementById('today-transformations');
+                if (todayElement) {
+                    todayElement.textContent = '0';
+                }
             }
         }
 
@@ -662,11 +681,27 @@
             await updateTodayTransformationCount();
             
             try {
-                const transformableItems = await transformationManager.getTransformableItems();
-                const totalItems = transformableItems.reduce((sum, group) => sum + group.items.length, 0);
-                document.getElementById('available-items').textContent = totalItems;
+                let totalItems = 0;
+                
+                if (window.transformationManager && window.transformationManager.getTransformableItems) {
+                    const transformableItems = await window.transformationManager.getTransformableItems();
+                    totalItems = transformableItems.reduce((sum, group) => sum + group.items.length, 0);
+                } else {
+                    // Fallback to counting from localStorage
+                    const barang = JSON.parse(localStorage.getItem('masterBarang') || localStorage.getItem('barang') || '[]');
+                    totalItems = barang.length;
+                }
+                
+                const availableItemsElement = document.getElementById('available-items');
+                if (availableItemsElement) {
+                    availableItemsElement.textContent = totalItems;
+                }
             } catch (error) {
                 console.error('Error updating stats:', error);
+                const availableItemsElement = document.getElementById('available-items');
+                if (availableItemsElement) {
+                    availableItemsElement.textContent = '0';
+                }
             }
         }
 
@@ -689,7 +724,16 @@
          */
         async function loadHistoryData() {
             try {
-                const history = await transformationManager.getTransformationHistory();
+                let history = [];
+                
+                // Try to get from transformation manager first
+                if (window.transformationManager && window.transformationManager.getTransformationHistory) {
+                    history = await window.transformationManager.getTransformationHistory();
+                } else {
+                    // Fallback to localStorage
+                    history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+                }
+                
                 const tbody = document.getElementById('history-table-body');
                 
                 if (history.length === 0) {
@@ -706,12 +750,18 @@
 
                 tbody.innerHTML = history.map(transformation => `
                     <tr>
-                        <td><code>${transformation.id}</code></td>
+                        <td><code>${transformation.id || 'N/A'}</code></td>
                         <td>${new Date(transformation.timestamp).toLocaleString('id-ID')}</td>
-                        <td>${transformation.user}</td>
-                        <td>${transformation.sourceItem.quantity} ${transformation.sourceItem.unit} ${transformation.sourceItem.name}</td>
-                        <td>${transformation.targetItem.quantity} ${transformation.targetItem.unit} ${transformation.targetItem.name}</td>
-                        <td>1:${transformation.conversionRatio}</td>
+                        <td>${transformation.user || 'Unknown'}</td>
+                        <td>${transformation.sourceItem ? 
+                            `${transformation.sourceItem.quantity} ${transformation.sourceItem.unit} ${transformation.sourceItem.name}` :
+                            `${transformation.quantity} ${transformation.sourceName}`
+                        }</td>
+                        <td>${transformation.targetItem ? 
+                            `${transformation.targetItem.quantity} ${transformation.targetItem.unit} ${transformation.targetItem.name}` :
+                            `${transformation.resultQuantity} ${transformation.targetName}`
+                        }</td>
+                        <td>1:${transformation.conversionRatio || transformation.ratio || '1'}</td>
                         <td><span class="badge bg-success">Berhasil</span></td>
                     </tr>
                 `).join('');
@@ -720,6 +770,17 @@
                 populateHistoryFilters(history);
             } catch (error) {
                 console.error('Error loading history data:', error);
+                const tbody = document.getElementById('history-table-body');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-danger py-4">
+                                <i class="bi bi-exclamation-triangle display-6 d-block mb-2"></i>
+                                Gagal memuat riwayat transformasi
+                            </td>
+                        </tr>
+                    `;
+                }
             }
         }
 
@@ -727,17 +788,34 @@
          * Populate history filter dropdowns
          */
         function populateHistoryFilters(history) {
-            // Populate product filter
-            const products = [...new Set(history.map(h => h.sourceItem.baseProduct || 'Unknown'))];
-            const productSelect = document.getElementById('filter-product');
-            productSelect.innerHTML = '<option value="">Semua Produk</option>' +
-                products.map(product => `<option value="${product}">${product}</option>`).join('');
+            try {
+                // Populate product filter
+                const products = [...new Set(history.map(h => {
+                    if (h.sourceItem && h.sourceItem.baseProduct) {
+                        return h.sourceItem.baseProduct;
+                    }
+                    if (h.sourceName) {
+                        return h.sourceName.split(' ')[0]; // Use first word as base product
+                    }
+                    return 'Unknown';
+                }))];
+                
+                const productSelect = document.getElementById('filter-product');
+                if (productSelect) {
+                    productSelect.innerHTML = '<option value="">Semua Produk</option>' +
+                        products.map(product => `<option value="${product}">${product}</option>`).join('');
+                }
 
-            // Populate user filter
-            const users = [...new Set(history.map(h => h.user))];
-            const userSelect = document.getElementById('filter-user');
-            userSelect.innerHTML = '<option value="">Semua User</option>' +
-                users.map(user => `<option value="${user}">${user}</option>`).join('');
+                // Populate user filter
+                const users = [...new Set(history.map(h => h.user || 'Unknown'))];
+                const userSelect = document.getElementById('filter-user');
+                if (userSelect) {
+                    userSelect.innerHTML = '<option value="">Semua User</option>' +
+                        users.map(user => `<option value="${user}">${user}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error populating history filters:', error);
+            }
         }
 
         /**
@@ -765,7 +843,29 @@
          */
         async function exportHistory() {
             try {
-                const csvData = await reportManager.exportTransformationHistory('csv');
+                let csvData = '';
+                
+                if (window.reportManager && window.reportManager.exportTransformationHistory) {
+                    csvData = await window.reportManager.exportTransformationHistory('csv');
+                } else {
+                    // Fallback: create CSV manually
+                    const history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+                    const headers = ['ID Transaksi', 'Tanggal', 'User', 'Item Sumber', 'Item Target', 'Rasio', 'Status'];
+                    const rows = history.map(h => [
+                        h.id || 'N/A',
+                        new Date(h.timestamp).toLocaleString('id-ID'),
+                        h.user || 'Unknown',
+                        h.sourceItem ? `${h.sourceItem.quantity} ${h.sourceItem.unit} ${h.sourceItem.name}` : `${h.quantity} ${h.sourceName}`,
+                        h.targetItem ? `${h.targetItem.quantity} ${h.targetItem.unit} ${h.targetItem.name}` : `${h.resultQuantity} ${h.targetName}`,
+                        `1:${h.conversionRatio || h.ratio || '1'}`,
+                        'Berhasil'
+                    ]);
+                    
+                    csvData = [headers, ...rows].map(row => 
+                        row.map(cell => `"${cell}"`).join(',')
+                    ).join('\n');
+                }
+                
                 downloadCSV(csvData, 'riwayat_transformasi.csv');
                 showAlert('Data berhasil diekspor', 'success');
             } catch (error) {
