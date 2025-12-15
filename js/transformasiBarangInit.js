@@ -1048,9 +1048,68 @@ function showTransformationAlert(message, type = 'info') {
 }
 
 /**
+ * Show transformation history modal
+ */
+function showTransformationHistory() {
+    try {
+        console.log('Showing transformation history...');
+        
+        // Try to show history modal if available
+        const historyModal = document.getElementById('historyModal');
+        if (historyModal) {
+            const modal = new bootstrap.Modal(historyModal);
+            loadTransformationHistory();
+            modal.show();
+        } else {
+            // Fallback: show in alert or console
+            const history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+            if (history.length === 0) {
+                showTransformationAlert('Belum ada riwayat transformasi', 'info');
+            } else {
+                console.log('Transformation History:', history);
+                showTransformationAlert(`Ditemukan ${history.length} riwayat transformasi. Lihat console untuk detail.`, 'info');
+            }
+        }
+    } catch (error) {
+        console.error('Error showing transformation history:', error);
+        showTransformationAlert('Gagal menampilkan riwayat transformasi', 'danger');
+    }
+}
+
+/**
+ * Show transformation help modal
+ */
+function showTransformationHelp() {
+    try {
+        console.log('Showing transformation help...');
+        
+        const helpContent = `
+        PANDUAN TRANSFORMASI BARANG:
+        
+        1. Pilih Item Sumber - Item yang akan dikurangi stoknya
+        2. Pilih Item Target - Item yang akan ditambah stoknya
+        3. Masukkan Jumlah - Jumlah yang akan ditransformasi
+        4. Lihat Info Konversi - Sistem akan menampilkan rasio konversi
+        5. Klik Lakukan Transformasi - Proses transformasi
+        
+        CATATAN:
+        - Item sumber dan target harus dari produk yang sama
+        - Stok sumber harus mencukupi
+        - Rasio konversi otomatis dihitung berdasarkan konfigurasi
+        `;
+        
+        showTransformationAlert(helpContent, 'info');
+        
+    } catch (error) {
+        console.error('Error showing transformation help:', error);
+        showTransformationAlert('Gagal menampilkan bantuan', 'danger');
+    }
+}
+
+/**
  * Main processTransformation function (wrapper)
  */
-function processTransformation() {
+function processTransformationWrapper() {
     try {
         // Try to use advanced system first
         if (window.uiController && window.uiController._handleFormSubmission) {
@@ -1068,7 +1127,7 @@ function processTransformation() {
 
 // Make functions globally available
 window.initializeTransformasiBarang = initializeTransformasiBarang;
-window.processTransformation = processTransformation;
+window.processTransformation = processTransformationWrapper;
 window.processTransformationLegacy = processTransformationLegacy;
 window.showTransformationHistory = showTransformationHistory;
 window.showTransformationHelp = showTransformationHelp;
@@ -1076,3 +1135,6 @@ window.loadTransformationHistory = loadTransformationHistory;
 window.updateConversionInfo = updateConversionInfo;
 window.resetTransformationForm = resetTransformationForm;
 window.showTransformationAlert = showTransformationAlert;
+window.loadProductsForTransformation = loadProductsForTransformation;
+window.createSampleBarangData = createSampleBarangData;
+window.createSampleConversionRatios = createSampleConversionRatios;
