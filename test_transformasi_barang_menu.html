@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Menu Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2><i class="bi bi-gear me-2"></i>Test Menu Transformasi Barang</h2>
+        
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle me-2"></i>Status Test</h5>
+            <div id="testResults">
+                <p>Memulai test...</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="detailedResults"></div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <button class="btn btn-primary" onclick="runTests()">
+                <i class="bi bi-play-circle me-1"></i>Jalankan Test
+            </button>
+            <button class="btn btn-success" onclick="openMainApp()">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Buka Aplikasi Utama
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function runTests() {
+            const results = document.getElementById('testResults');
+            const detailed = document.getElementById('detailedResults');
+            
+            results.innerHTML = '<p><i class="bi bi-hourglass-split me-2"></i>Menjalankan test...</p>';
+            
+            let testResults = [];
+            
+            // Test 1: Check if auth.js contains transformasi-barang menu
+            fetch('js/auth.js')
+                .then(response => response.text())
+                .then(content => {
+                    const hasTransformasiMenu = content.includes('Transformasi Barang');
+                    const hasTransformasiPage = content.includes('transformasi-barang');
+                    const hasRenderFunction = content.includes('renderTransformasiBarang');
+                    
+                    testResults.push({
+                        test: 'Menu Transformasi Barang di auth.js',
+                        status: hasTransformasiMenu && hasTransformasiPage,
+                        details: `Menu: ${hasTransformasiMenu ? '✓' : '✗'}, Page: ${hasTransformasiPage ? '✓' : '✗'}, Function: ${hasRenderFunction ? '✓' : '✗'}`
+                    });
+                    
+                    // Test 2: Check if index.html loads transformasi scripts
+                    return fetch('index.html');
+                })
+                .then(response => response.text())
+                .then(content => {
+                    const hasTransformasiScripts = content.includes('transformasi-barang/');
+                    const hasInitScript = content.includes('transformasiBarangInit.js');
+                    
+                    testResults.push({
+                        test: 'Script Transformasi Barang di index.html',
+                        status: hasTransformasiScripts && hasInitScript,
+                        details: `Scripts: ${hasTransformasiScripts ? '✓' : '✗'}, Init: ${hasInitScript ? '✓' : '✗'}`
+                    });
+                    
+                    // Test 3: Check if transformasi files exist
+                    const filesToCheck = [
+                        'js/transformasiBarangInit.js',
+                        'js/transformasi-barang/TransformationManager.js',
+                        'js/transformasi-barang/UIController.js',
+                        'transformasi_barang.html'
+                    ];
+                    
+                    return Promise.all(filesToCheck.map(file => 
+                        fetch(file).then(r => ({file, exists: r.ok})).catch(() => ({file, exists: false}))
+                    ));
+                })
+                .then(fileResults => {
+                    const allFilesExist = fileResults.every(f => f.exists);
+                    
+                    testResults.push({
+                        test: 'File Transformasi Barang',
+                        status: allFilesExist,
+                        details: fileResults.map(f => `${f.file}: ${f.exists ? '✓' : '✗'}`).join('<br>')
+                    });
+                    
+                    // Display results
+                    displayResults(testResults);
+                })
+                .catch(error => {
+                    results.innerHTML = `<p class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Error: ${error.message}</p>`;
+                });
+        }
+        
+        function displayResults(testResults) {
+            const results = document.getElementById('testResults');
+            const detailed = document.getElementById('detailedResults');
+            
+            const allPassed = testResults.every(t => t.status);
+            
+            results.innerHTML = `
+                <p class="${allPassed ? 'text-success' : 'text-warning'}">
+                    <i class="bi bi-${allPassed ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                    ${allPassed ? 'Semua test berhasil! Menu Transformasi Barang siap digunakan.' : 'Beberapa test gagal. Periksa detail di bawah.'}
+                </p>
+            `;
+            
+            detailed.innerHTML = testResults.map(test => `
+                <div class="row mb-2">
+                    <div class="col-md-4">
+                        <strong>${test.test}</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge ${test.status ? 'bg-success' : 'bg-danger'}">
+                            ${test.status ? 'PASS' : 'FAIL'}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <small>${test.details}</small>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (allPassed) {
+                detailed.innerHTML += `
+                    <div class="alert alert-success mt-3">
+                        <h6><i class="bi bi-check-circle me-2"></i>Menu Transformasi Barang Berhasil Ditambahkan!</h6>
+                        <p class="mb-0">
+                            Menu "Transformasi Barang" sekarang tersedia di aplikasi untuk role Super Admin dan Administrator.
+                            Anda dapat mengaksesnya melalui sidebar menu setelah login.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+        
+        function openMainApp() {
+            window.open('index.html', '_blank');
+        }
+        
+        // Auto run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runTests, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -656,6 +656,7 @@ function renderMenu() {
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
             { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
             { icon: 'bi-file-excel', text: 'Upload Master Barang Excel', page: 'upload-master-barang-excel' },
+            { icon: 'bi-arrow-left-right', text: 'Transformasi Barang', page: 'transformasi-barang' },
             { icon: 'bi-truck', text: 'Supplier', page: 'supplier' },
             { icon: 'bi-bag-plus', text: 'Pembelian', page: 'pembelian' },
             { icon: 'bi-clipboard-data', text: 'Stok Opname', page: 'stokopname' },
@@ -687,6 +688,7 @@ function renderMenu() {
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
             { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
             { icon: 'bi-file-excel', text: 'Upload Master Barang Excel', page: 'upload-master-barang-excel' },
+            { icon: 'bi-arrow-left-right', text: 'Transformasi Barang', page: 'transformasi-barang' },
             { icon: 'bi-truck', text: 'Supplier', page: 'supplier' },
             { icon: 'bi-bag-plus', text: 'Pembelian', page: 'pembelian' },
             { icon: 'bi-clipboard-data', text: 'Stok Opname', page: 'stokopname' },
@@ -803,6 +805,9 @@ function renderPage(page) {
             break;
         case 'upload-master-barang-excel':
             renderUploadMasterBarangExcel();
+            break;
+        case 'transformasi-barang':
+            renderTransformasiBarang();
             break;
         case 'supplier':
             renderSupplier();
@@ -2521,4 +2526,286 @@ function processPasswordChange() {
         console.error('Error processing password change:', error);
         showAlert('An error occurred while changing password', 'danger');
     }
+}
+
+/**
+ * Render Transformasi Barang page
+ */
+function renderTransformasiBarang() {
+    const content = document.getElementById('mainContent');
+    
+    if (!content) {
+        console.error('Main content element not found');
+        return;
+    }
+    
+    // Check if transformasi barang functions are available
+    if (typeof window.TransformationManager === 'undefined') {
+        content.innerHTML = `
+            <div class="alert alert-warning">
+                <h4><i class="bi bi-exclamation-triangle me-2"></i>Fitur Transformasi Barang</h4>
+                <p>Sistem transformasi barang sedang dimuat. Pastikan semua file JavaScript transformasi barang sudah dimuat dengan benar.</p>
+                <p>File yang diperlukan:</p>
+                <ul>
+                    <li>js/transformasi-barang/TransformationManager.js</li>
+                    <li>js/transformasi-barang/UIController.js</li>
+                    <li>js/transformasi-barang/ValidationEngine.js</li>
+                    <li>js/transformasi-barang/StockManager.js</li>
+                </ul>
+                <button class="btn btn-primary" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh Halaman
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #2d6a4f; font-weight: 700;">
+                <i class="bi bi-arrow-left-right me-2"></i>Transformasi Barang
+            </h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-info btn-sm" onclick="showTransformationHistory()">
+                    <i class="bi bi-clock-history me-1"></i>Riwayat
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="showTransformationHelp()">
+                    <i class="bi bi-question-circle me-1"></i>Bantuan
+                </button>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card transformation-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-gear me-2"></i>Form Transformasi Barang
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="transformationForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="bi bi-box me-1"></i>Barang Asal
+                                        </label>
+                                        <select class="form-select" id="sourceProduct" required>
+                                            <option value="">Pilih barang asal...</option>
+                                        </select>
+                                        <div class="stock-info mt-2" id="sourceStockInfo" style="display: none;">
+                                            <small class="text-muted">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Stok tersedia: <span id="sourceStock">0</span> <span id="sourceUnit"></span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="bi bi-box-seam me-1"></i>Barang Tujuan
+                                        </label>
+                                        <select class="form-select" id="targetProduct" required>
+                                            <option value="">Pilih barang tujuan...</option>
+                                        </select>
+                                        <div class="stock-info mt-2" id="targetStockInfo" style="display: none;">
+                                            <small class="text-muted">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Stok saat ini: <span id="targetStock">0</span> <span id="targetUnit"></span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="bi bi-123 me-1"></i>Jumlah Transformasi
+                                        </label>
+                                        <input type="number" class="form-control" id="transformationQuantity" 
+                                               min="1" step="1" required placeholder="Masukkan jumlah...">
+                                        <small class="text-muted">Jumlah barang asal yang akan ditransformasi</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="bi bi-percent me-1"></i>Rasio Konversi
+                                        </label>
+                                        <input type="number" class="form-control" id="conversionRatio" 
+                                               min="0.01" step="0.01" required placeholder="Contoh: 1.5">
+                                        <small class="text-muted">Rasio konversi (1 unit asal = X unit tujuan)</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-chat-text me-1"></i>Keterangan
+                                </label>
+                                <textarea class="form-control" id="transformationNotes" rows="3" 
+                                          placeholder="Keterangan transformasi (opsional)..."></textarea>
+                            </div>
+                            
+                            <div class="preview-section" id="transformationPreview" style="display: none;">
+                                <h6><i class="bi bi-eye me-2"></i>Preview Transformasi</h6>
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <div class="text-center">
+                                            <h6 class="text-danger">Barang Asal</h6>
+                                            <div id="previewSource"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="conversion-arrow">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <div class="text-center">
+                                            <h6 class="text-success">Barang Tujuan</h6>
+                                            <div id="previewTarget"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex gap-2 mt-4">
+                                <button type="button" class="btn btn-transform" onclick="processTransformation()">
+                                    <i class="bi bi-gear me-1"></i>Proses Transformasi
+                                </button>
+                                <button type="reset" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Form
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-info-circle me-2"></i>Informasi Transformasi
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-lightbulb me-1"></i>Cara Kerja:</h6>
+                            <ol class="mb-0" style="font-size: 0.9rem;">
+                                <li>Pilih barang asal dan tujuan</li>
+                                <li>Masukkan jumlah dan rasio konversi</li>
+                                <li>Review preview transformasi</li>
+                                <li>Klik "Proses Transformasi"</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <h6><i class="bi bi-exclamation-triangle me-1"></i>Perhatian:</h6>
+                            <ul class="mb-0" style="font-size: 0.9rem;">
+                                <li>Pastikan stok barang asal mencukupi</li>
+                                <li>Transformasi tidak dapat dibatalkan</li>
+                                <li>Semua transaksi akan tercatat dalam audit log</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-clock me-2"></i>Transformasi Terbaru
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentTransformations">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-inbox"></i>
+                                <p class="mb-0">Belum ada transformasi</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Riwayat Transformasi -->
+        <div class="modal fade" id="historyModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-clock-history me-2"></i>Riwayat Transformasi Barang
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Barang Asal</th>
+                                        <th>Barang Tujuan</th>
+                                        <th>Jumlah</th>
+                                        <th>Rasio</th>
+                                        <th>User</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Initialize transformasi barang functionality
+    try {
+        if (typeof initializeTransformasiBarang === 'function') {
+            initializeTransformasiBarang();
+        } else {
+            console.warn('initializeTransformasiBarang function not found');
+        }
+    } catch (error) {
+        console.error('Error initializing transformasi barang:', error);
+    }
+}
+
+/**
+ * Show transformation history modal
+ */
+function showTransformationHistory() {
+    const modal = new bootstrap.Modal(document.getElementById('historyModal'));
+    modal.show();
+    
+    // Load history data
+    if (typeof loadTransformationHistory === 'function') {
+        loadTransformationHistory();
+    }
+}
+
+/**
+ * Show transformation help
+ */
+function showTransformationHelp() {
+    showAlert(`
+        <h6>Panduan Transformasi Barang:</h6>
+        <ul>
+            <li><strong>Barang Asal:</strong> Barang yang akan diubah/dikurangi stoknya</li>
+            <li><strong>Barang Tujuan:</strong> Barang yang akan bertambah stoknya</li>
+            <li><strong>Rasio Konversi:</strong> Perbandingan konversi (misal: 1 kg = 10 ons, maka rasio = 10)</li>
+            <li><strong>Audit Trail:</strong> Semua transformasi tercatat dalam sistem audit</li>
+        </ul>
+    `, 'info', 10000);
 }
