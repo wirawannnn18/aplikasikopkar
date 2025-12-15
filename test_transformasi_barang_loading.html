@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Loading Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .status-check {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .status-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Loading Sistem Transformasi Barang</h2>
+        <p class="text-muted">Halaman ini untuk memverifikasi bahwa semua file JavaScript transformasi barang dimuat dengan benar.</p>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Status Loading File JavaScript</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingStatus">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Memeriksa file JavaScript...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Status Inisialisasi Komponen</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="initializationStatus">
+                            <div class="text-muted">Menunggu pemeriksaan file...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Aksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <button id="retestBtn" class="btn btn-primary w-100 mb-2" onclick="runTests()">
+                            <i class="fas fa-redo"></i> Test Ulang
+                        </button>
+                        <button id="goToMainBtn" class="btn btn-success w-100" onclick="goToMainPage()" disabled>
+                            <i class="fas fa-arrow-right"></i> Ke Halaman Utama
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Ringkasan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="summary">
+                            <div class="text-muted">Belum ada hasil test</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    
+    <!-- Transformasi Barang Modules -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/DataModels.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/ErrorHandler.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+    <script src="js/transformasi-barang/UIController.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+    <script src="js/transformasiBarangInit.js"></script>
+
+    <script>
+        let testResults = {
+            filesLoaded: 0,
+            totalFiles: 0,
+            componentsInitialized: 0,
+            totalComponents: 0,
+            errors: []
+        };
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runTests, 1000); // Give time for all scripts to load
+        });
+
+        function runTests() {
+            testResults = {
+                filesLoaded: 0,
+                totalFiles: 0,
+                componentsInitialized: 0,
+                totalComponents: 0,
+                errors: []
+            };
+
+            checkFileLoading();
+            testComponentInitialization();
+            updateSummary();
+        }
+
+        function checkFileLoading() {
+            const loadingStatusDiv = document.getElementById('loadingStatus');
+            loadingStatusDiv.innerHTML = '';
+
+            const requiredClasses = [
+                { name: 'TransformationManager', file: 'TransformationManager.js' },
+                { name: 'UIController', file: 'UIController.js' },
+                { name: 'ValidationEngine', file: 'ValidationEngine.js' },
+                { name: 'StockManager', file: 'StockManager.js' },
+                { name: 'AuditLogger', file: 'AuditLogger.js' },
+                { name: 'ErrorHandler', file: 'ErrorHandler.js' },
+                { name: 'ConversionCalculator', file: 'ConversionCalculator.js' },
+                { name: 'TransformationItem', file: 'DataModels.js' },
+                { name: 'TransformationRecord', file: 'DataModels.js' }
+            ];
+
+            testResults.totalFiles = requiredClasses.length;
+
+            requiredClasses.forEach(classInfo => {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'status-check';
+
+                if (window[classInfo.name]) {
+                    statusDiv.className += ' status-success';
+                    statusDiv.innerHTML = `<i class="fas fa-check"></i> ${classInfo.file} - ${classInfo.name} ✓`;
+                    testResults.filesLoaded++;
+                } else {
+                    statusDiv.className += ' status-error';
+                    statusDiv.innerHTML = `<i class="fas fa-times"></i> ${classInfo.file} - ${classInfo.name} ✗`;
+                    testResults.errors.push(`${classInfo.name} tidak ditemukan`);
+                }
+
+                loadingStatusDiv.appendChild(statusDiv);
+            });
+
+            // Check initialization function
+            const initStatusDiv = document.createElement('div');
+            initStatusDiv.className = 'status-check';
+            
+            if (typeof initializeTransformasiBarang === 'function') {
+                initStatusDiv.className += ' status-success';
+                initStatusDiv.innerHTML = `<i class="fas fa-check"></i> transformasiBarangInit.js - initializeTransformasiBarang ✓`;
+                testResults.filesLoaded++;
+            } else {
+                initStatusDiv.className += ' status-error';
+                initStatusDiv.innerHTML = `<i class="fas fa-times"></i> transformasiBarangInit.js - initializeTransformasiBarang ✗`;
+                testResults.errors.push('Fungsi initializeTransformasiBarang tidak ditemukan');
+            }
+            
+            loadingStatusDiv.appendChild(initStatusDiv);
+            testResults.totalFiles++;
+        }
+
+        function testComponentInitialization() {
+            const initStatusDiv = document.getElementById('initializationStatus');
+            initStatusDiv.innerHTML = '';
+
+            const components = [
+                'ErrorHandler',
+                'ValidationEngine', 
+                'ConversionCalculator',
+                'StockManager',
+                'AuditLogger',
+                'TransformationManager',
+                'UIController'
+            ];
+
+            testResults.totalComponents = components.length;
+
+            try {
+                // Try to initialize components
+                initializeTransformasiBarang();
+
+                components.forEach(componentName => {
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'status-check';
+
+                    const instance = window[componentName.toLowerCase()] || window[componentName];
+                    
+                    if (instance && instance.initialized !== false) {
+                        statusDiv.className += ' status-success';
+                        statusDiv.innerHTML = `<i class="fas fa-check"></i> ${componentName} berhasil diinisialisasi ✓`;
+                        testResults.componentsInitialized++;
+                    } else {
+                        statusDiv.className += ' status-warning';
+                        statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${componentName} belum diinisialisasi ⚠`;
+                    }
+
+                    initStatusDiv.appendChild(statusDiv);
+                });
+
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'status-check status-error';
+                errorDiv.innerHTML = `<i class="fas fa-times"></i> Error saat inisialisasi: ${error.message}`;
+                initStatusDiv.appendChild(errorDiv);
+                testResults.errors.push(`Inisialisasi gagal: ${error.message}`);
+            }
+        }
+
+        function updateSummary() {
+            const summaryDiv = document.getElementById('summary');
+            const goToMainBtn = document.getElementById('goToMainBtn');
+
+            const filesSuccess = testResults.filesLoaded === testResults.totalFiles;
+            const componentsSuccess = testResults.componentsInitialized === testResults.totalComponents;
+            const allSuccess = filesSuccess && componentsSuccess && testResults.errors.length === 0;
+
+            let summaryHTML = `
+                <div class="mb-2">
+                    <strong>File JavaScript:</strong> ${testResults.filesLoaded}/${testResults.totalFiles} 
+                    ${filesSuccess ? '<span class="text-success">✓</span>' : '<span class="text-danger">✗</span>'}
+                </div>
+                <div class="mb-2">
+                    <strong>Komponen:</strong> ${testResults.componentsInitialized}/${testResults.totalComponents}
+                    ${componentsSuccess ? '<span class="text-success">✓</span>' : '<span class="text-danger">✗</span>'}
+                </div>
+            `;
+
+            if (testResults.errors.length > 0) {
+                summaryHTML += `
+                    <div class="mt-2">
+                        <strong class="text-danger">Error:</strong>
+                        <ul class="small mt-1 mb-0">
+                            ${testResults.errors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            if (allSuccess) {
+                summaryHTML += `
+                    <div class="alert alert-success mt-2 mb-0">
+                        <i class="fas fa-check-circle"></i> Semua komponen berhasil dimuat!
+                    </div>
+                `;
+                goToMainBtn.disabled = false;
+            } else {
+                summaryHTML += `
+                    <div class="alert alert-warning mt-2 mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Ada masalah dengan loading komponen
+                    </div>
+                `;
+                goToMainBtn.disabled = true;
+            }
+
+            summaryDiv.innerHTML = summaryHTML;
+        }
+
+        function goToMainPage() {
+            window.location.href = 'transformasi_barang.html';
+        }
+    </script>
+</body>
+</html>

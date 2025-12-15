@@ -364,40 +364,149 @@
     <script src="js/transformasi-barang/UIController.js"></script>
     <script src="js/transformasi-barang/ReportManager.js"></script>
 
+    <!-- Transformasi Barang Initialization -->
+    <script src="js/transformasiBarangInit.js"></script>
+    
     <script>
-        // Global variables
-        let transformationManager;
-        let uiController;
-        let reportManager;
-        let errorHandler;
-
         // Initialize application when DOM is loaded
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', function() {
             try {
-                await initializeTransformationSystem();
-                await loadInitialData();
-                setupEventListeners();
+                // Check if user is authenticated
+                if (!currentUser) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                // Initialize transformasi barang system
+                initializeTransformasiBarang();
+                
+                // Load initial data
+                loadInitialData();
+                
+                // Setup additional event listeners
+                setupAdditionalEventListeners();
+                
+                // Update statistics
                 updateStats();
+                
             } catch (error) {
-                console.error('Error initializing transformation system:', error);
-                showAlert('Gagal menginisialisasi sistem transformasi', 'danger');
+                console.error('Error initializing page:', error);
+                showAlert(`Gagal menginisialisasi halaman: ${error.message}`, 'danger');
             }
         });
 
         /**
-         * Initialize transformation system with all dependencies
+         * Load initial data for the page
          */
-        async function initializeTransformationSystem() {
-            // Initialize components
-            const validationEngine = new ValidationEngine();
-            const calculator = new ConversionCalculator();
-            const stockManager = new StockManager();
-            const auditLogger = new AuditLogger();
-            errorHandler = new ErrorHandler();
+        async function loadInitialData() {
+            try {
+                // Load transformable items if components are initialized
+                if (window.transformationManager) {
+                    const transformableItems = await window.transformationManager.getTransformableItems();
+                    console.log(`Loaded ${transformableItems.length} transformable items`);
+                }
+                
+                // Load recent transformations
+                if (window.auditLogger) {
+                    const recentHistory = await window.auditLogger.getTransformationHistory({ limit: 10 });
+                    displayRecentTransformations(recentHistory.data);
+                }
+                
+            } catch (error) {
+                console.error('Error loading initial data:', error);
+                // Don't throw error, just log it
+            }
+        }
+
+        /**
+         * Setup additional event listeners for the page
+         */
+        function setupAdditionalEventListeners() {
+            // History button
+            const historyBtn = document.getElementById('showHistoryBtn');
+            if (historyBtn) {
+                historyBtn.addEventListener('click', showTransformationHistory);
+            }
             
-            // Initialize transformation manager
-            transformationManager = new TransformationManager();
-            transformationManager.initialize({
+            // Help button  
+            const helpBtn = document.getElementById('showHelpBtn');
+            if (helpBtn) {
+                helpBtn.addEventListener('click', showTransformationHelp);
+            }
+        }
+
+        /**
+         * Display recent transformations
+         */
+        function displayRecentTransformations(transformations) {
+            const container = document.getElementById('recentTransformations');
+            if (!container || !transformations) return;
+            
+            if (transformations.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p>Belum ada transformasi</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = transformations.map(t => `
+                <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <small class="text-muted">${new Date(t.timestamp).toLocaleDateString('id-ID')}</small>
+                            <div style="font-size: 0.9rem;">
+                                <strong>${t.sourceItem.name}</strong> → <strong>${t.targetItem.name}</strong>
+                            </div>
+                            <small class="text-muted">${t.sourceItem.quantity} ${t.sourceItem.unit} → ${t.targetItem.quantity} ${t.targetItem.unit}</small>
+                        </div>
+                        <span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'}">${t.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Update statistics display
+         */
+        async function updateStats() {
+            try {
+                if (!window.auditLogger) return;
+                
+                const stats = await window.auditLogger.getTransformationStatistics();
+                
+                // Update stat cards if they exist
+                const totalElement = document.getElementById('totalTransformations');
+                if (totalElement) totalElement.textContent = stats.totalTransformations || 0;
+                
+                const successElement = document.getElementById('successfulTransformations');
+                if (successElement) successElement.textContent = stats.successfulTransformations || 0;
+                
+                const failedElement = document.getElementById('failedTransformations');
+                if (failedElement) failedElement.textContent = stats.failedTransformations || 0;
+                
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        /**
+         * Show transformation history modal
+         */
+        function showTransformationHistory() {
+            // Implementation for showing history modal
+            console.log('Show transformation history');
+        }
+
+        /**
+         * Show transformation help modal
+         */
+        function showTransformationHelp() {
+            // Implementation for showing help modal
+            console.log('Show transformation help');
+        }
                 validationEngine,
                 calculator,
                 stockManager,

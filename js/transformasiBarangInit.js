@@ -3,6 +3,15 @@
  * Initialize transformasi barang system when page loads
  */
 
+// Global instances untuk sistem transformasi barang
+let transformationManager = null;
+let uiController = null;
+let validationEngine = null;
+let stockManager = null;
+let auditLogger = null;
+let errorHandler = null;
+let calculator = null;
+
 /**
  * Initialize transformasi barang functionality
  */
@@ -10,20 +19,119 @@ function initializeTransformasiBarang() {
     try {
         console.log('Initializing Transformasi Barang system...');
         
-        // Load products for dropdowns
+        // Check if all required classes are available
+        if (!window.TransformationManager || !window.UIController || !window.ValidationEngine || 
+            !window.StockManager || !window.AuditLogger || !window.ErrorHandler || 
+            !window.ConversionCalculator) {
+            throw new Error('Tidak semua file JavaScript transformasi barang berhasil dimuat');
+        }
+        
+        // Initialize all components in correct order
+        initializeComponents();
+        
+        // Load products for dropdowns (legacy support)
         loadProductsForTransformation();
         
-        // Setup event listeners
+        // Setup event listeners (legacy support)
         setupTransformationEventListeners();
         
-        // Load recent transformations
+        // Load recent transformations (legacy support)
         loadRecentTransformations();
         
         console.log('Transformasi Barang system initialized successfully');
+        
+        // Show success message
+        showAlert('Sistem transformasi barang berhasil dimuat', 'success');
+        
     } catch (error) {
         console.error('Error initializing Transformasi Barang:', error);
-        showAlert('Terjadi kesalahan saat menginisialisasi sistem transformasi barang', 'warning');
+        showAlert(`Terjadi kesalahan saat menginisialisasi sistem transformasi barang: ${error.message}`, 'danger');
     }
+}
+
+/**
+ * Initialize all transformasi barang components
+ */
+function initializeComponents() {
+    try {
+        // 1. Initialize ErrorHandler first
+        errorHandler = new ErrorHandler();
+        errorHandler.initialize();
+        console.log('✓ ErrorHandler initialized');
+        
+        // 2. Initialize ValidationEngine
+        validationEngine = new ValidationEngine();
+        validationEngine.initialize();
+        console.log('✓ ValidationEngine initialized');
+        
+        // 3. Initialize ConversionCalculator
+        calculator = new ConversionCalculator();
+        calculator.initialize();
+        console.log('✓ ConversionCalculator initialized');
+        
+        // 4. Initialize StockManager
+        stockManager = new StockManager();
+        stockManager.initialize();
+        console.log('✓ StockManager initialized');
+        
+        // 5. Initialize AuditLogger
+        auditLogger = new AuditLogger();
+        auditLogger.initialize();
+        console.log('✓ AuditLogger initialized');
+        
+        // 6. Initialize TransformationManager with dependencies
+        transformationManager = new TransformationManager();
+        transformationManager.initialize({
+            validationEngine: validationEngine,
+            calculator: calculator,
+            stockManager: stockManager,
+            auditLogger: auditLogger
+        });
+        console.log('✓ TransformationManager initialized');
+        
+        // 7. Initialize UIController with dependencies
+        uiController = new UIController();
+        uiController.initialize(transformationManager, errorHandler);
+        console.log('✓ UIController initialized');
+        
+        // Make instances globally available
+        window.transformationManager = transformationManager;
+        window.uiController = uiController;
+        window.validationEngine = validationEngine;
+        window.stockManager = stockManager;
+        window.auditLogger = auditLogger;
+        window.errorHandler = errorHandler;
+        window.calculator = calculator;
+        
+        console.log('All transformasi barang components initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing components:', error);
+        throw error;
+    }
+}
+
+/**
+ * Check if all required files are loaded
+ */
+function checkRequiredFiles() {
+    const requiredClasses = [
+        'TransformationManager',
+        'UIController', 
+        'ValidationEngine',
+        'StockManager',
+        'AuditLogger',
+        'ErrorHandler',
+        'ConversionCalculator'
+    ];
+    
+    const missingClasses = requiredClasses.filter(className => !window[className]);
+    
+    if (missingClasses.length > 0) {
+        throw new Error(`File JavaScript yang diperlukan belum dimuat: ${missingClasses.join(', ')}`);
+    }
+    
+    return true;
 }
 
 /**

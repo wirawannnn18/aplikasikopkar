@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perbaikan Loading Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="fas fa-tools me-2"></i>Perbaikan Sistem Transformasi Barang</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Sistem akan memeriksa dan memperbaiki masalah loading file JavaScript transformasi barang.
+                        </div>
+                        
+                        <div id="progressContainer">
+                            <div class="progress mb-3">
+                                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div id="statusMessage" class="text-muted">Memulai pemeriksaan...</div>
+                        </div>
+                        
+                        <div id="resultsContainer" style="display: none;">
+                            <h5>Hasil Pemeriksaan:</h5>
+                            <div id="results"></div>
+                            
+                            <div class="mt-3">
+                                <button id="retryBtn" class="btn btn-warning me-2" onclick="runFix()">
+                                    <i class="fas fa-redo me-1"></i>Coba Lagi
+                                </button>
+                                <button id="testBtn" class="btn btn-info me-2" onclick="openTestPage()">
+                                    <i class="fas fa-vial me-1"></i>Test Loading
+                                </button>
+                                <button id="continueBtn" class="btn btn-success" onclick="openMainPage()" style="display: none;">
+                                    <i class="fas fa-arrow-right me-1"></i>Lanjut ke Transformasi Barang
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts in correct order -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    
+    <!-- Transformasi Barang Modules in dependency order -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/DataModels.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/ErrorHandler.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+    <script src="js/transformasi-barang/UIController.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+    <script src="js/transformasiBarangInit.js"></script>
+
+    <script>
+        let fixProgress = 0;
+        let fixResults = [];
+
+        // Start fix process when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runFix, 1000);
+        });
+
+        async function runFix() {
+            fixProgress = 0;
+            fixResults = [];
+            
+            document.getElementById('resultsContainer').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'block';
+            
+            updateProgress(0, 'Memulai perbaikan...');
+            
+            try {
+                // Step 1: Check file loading
+                await checkFileLoading();
+                updateProgress(30, 'Memeriksa file JavaScript...');
+                
+                // Step 2: Verify classes
+                await verifyClasses();
+                updateProgress(50, 'Memverifikasi kelas...');
+                
+                // Step 3: Test initialization
+                await testInitialization();
+                updateProgress(70, 'Menguji inisialisasi...');
+                
+                // Step 4: Create sample data if needed
+                await createSampleData();
+                updateProgress(90, 'Menyiapkan data sample...');
+                
+                // Step 5: Final verification
+                await finalVerification();
+                updateProgress(100, 'Selesai!');
+                
+                showResults();
+                
+            } catch (error) {
+                fixResults.push({
+                    type: 'error',
+                    message: `Error during fix: ${error.message}`,
+                    action: 'Refresh halaman dan coba lagi'
+                });
+                showResults();
+            }
+        }
+
+        function updateProgress(percent, message) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('statusMessage').textContent = message;
+        }
+
+        async function checkFileLoading() {
+            const requiredFiles = [
+                'js/transformasi-barang/types.js',
+                'js/transformasi-barang/DataModels.js', 
+                'js/transformasi-barang/ValidationEngine.js',
+                'js/transformasi-barang/ConversionCalculator.js',
+                'js/transformasi-barang/StockManager.js',
+                'js/transformasi-barang/AuditLogger.js',
+                'js/transformasi-barang/ErrorHandler.js',
+                'js/transformasi-barang/TransformationManager.js',
+                'js/transformasi-barang/UIController.js',
+                'js/transformasi-barang/ReportManager.js',
+                'js/transformasiBarangInit.js'
+            ];
+
+            let loadedFiles = 0;
+            
+            for (const file of requiredFiles) {
+                try {
+                    // Check if file exists by trying to fetch it
+                    const response = await fetch(file, { method: 'HEAD' });
+                    if (response.ok) {
+                        loadedFiles++;
+                        fixResults.push({
+                            type: 'success',
+                            message: `File ${file} berhasil dimuat`,
+                            action: null
+                        });
+                    } else {
+                        fixResults.push({
+                            type: 'error',
+                            message: `File ${file} tidak ditemukan (${response.status})`,
+                            action: 'Pastikan file ada di lokasi yang benar'
+                        });
+                    }
+                } catch (error) {
+                    fixResults.push({
+                        type: 'warning',
+                        message: `Tidak dapat memeriksa file ${file}`,
+                        action: 'Periksa koneksi dan path file'
+                    });
+                }
+            }
+
+            if (loadedFiles === requiredFiles.length) {
+                fixResults.push({
+                    type: 'success',
+                    message: `Semua ${requiredFiles.length} file JavaScript berhasil dimuat`,
+                    action: null
+                });
+            }
+        }
+
+        async function verifyClasses() {
+            const requiredClasses = [
+                'TransformationManager',
+                'UIController',
+                'ValidationEngine', 
+                'StockManager',
+                'AuditLogger',
+                'ErrorHandler',
+                'ConversionCalculator',
+                'TransformationItem',
+                'TransformationRecord'
+            ];
+
+            let availableClasses = 0;
+
+            for (const className of requiredClasses) {
+                if (window[className]) {
+                    availableClasses++;
+                    fixResults.push({
+                        type: 'success',
+                        message: `Kelas ${className} tersedia`,
+                        action: null
+                    });
+                } else {
+                    fixResults.push({
+                        type: 'error',
+                        message: `Kelas ${className} tidak ditemukan`,
+                        action: 'Periksa file JavaScript yang berisi kelas ini'
+                    });
+                }
+            }
+
+            // Check initialization function
+            if (typeof initializeTransformasiBarang === 'function') {
+                fixResults.push({
+                    type: 'success',
+                    message: 'Fungsi initializeTransformasiBarang tersedia',
+                    action: null
+                });
+            } else {
+                fixResults.push({
+                    type: 'error',
+                    message: 'Fungsi initializeTransformasiBarang tidak ditemukan',
+                    action: 'Periksa file transformasiBarangInit.js'
+                });
+            }
+        }
+
+        async function testInitialization() {
+            try {
+                // Try to initialize the system
+                if (typeof initializeTransformasiBarang === 'function') {
+                    initializeTransformasiBarang();
+                    
+                    // Check if global instances are created
+                    const instances = [
+                        'transformationManager',
+                        'uiController', 
+                        'validationEngine',
+                        'stockManager',
+                        'auditLogger',
+                        'errorHandler',
+                        'calculator'
+                    ];
+
+                    let initializedInstances = 0;
+                    
+                    for (const instanceName of instances) {
+                        if (window[instanceName]) {
+                            initializedInstances++;
+                            fixResults.push({
+                                type: 'success',
+                                message: `Instance ${instanceName} berhasil dibuat`,
+                                action: null
+                            });
+                        } else {
+                            fixResults.push({
+                                type: 'warning',
+                                message: `Instance ${instanceName} tidak ditemukan`,
+                                action: 'Periksa proses inisialisasi'
+                            });
+                        }
+                    }
+
+                    if (initializedInstances === instances.length) {
+                        fixResults.push({
+                            type: 'success',
+                            message: 'Semua komponen berhasil diinisialisasi',
+                            action: null
+                        });
+                    }
+                } else {
+                    throw new Error('Fungsi inisialisasi tidak tersedia');
+                }
+            } catch (error) {
+                fixResults.push({
+                    type: 'error',
+                    message: `Gagal menginisialisasi sistem: ${error.message}`,
+                    action: 'Periksa console untuk detail error'
+                });
+            }
+        }
+
+        async function createSampleData() {
+            try {
+                // Create sample master barang if not exists
+                let masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    masterBarang = [
+                        {
+                            kode: 'BRG001-DUS',
+                            nama: 'Sabun Mandi Dus',
+                            baseProduct: 'BRG001',
+                            kategori: 'Sabun',
+                            satuan: 'dus',
+                            stok: 10,
+                            hargaBeli: 50000
+                        },
+                        {
+                            kode: 'BRG001-PCS',
+                            nama: 'Sabun Mandi Pcs',
+                            baseProduct: 'BRG001',
+                            kategori: 'Sabun',
+                            satuan: 'pcs',
+                            stok: 120,
+                            hargaBeli: 5000
+                        }
+                    ];
+                    
+                    localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+                    
+                    fixResults.push({
+                        type: 'success',
+                        message: 'Data sample master barang dibuat',
+                        action: null
+                    });
+                }
+
+                // Create sample conversion ratios if not exists
+                let conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                
+                if (conversionRatios.length === 0) {
+                    conversionRatios = [
+                        {
+                            baseProduct: 'BRG001',
+                            conversions: [
+                                { from: 'dus', to: 'pcs', ratio: 12 },
+                                { from: 'pcs', to: 'dus', ratio: 1/12 }
+                            ]
+                        }
+                    ];
+                    
+                    localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                    
+                    fixResults.push({
+                        type: 'success',
+                        message: 'Data sample rasio konversi dibuat',
+                        action: null
+                    });
+                }
+
+            } catch (error) {
+                fixResults.push({
+                    type: 'warning',
+                    message: `Gagal membuat data sample: ${error.message}`,
+                    action: 'Data sample tidak wajib, sistem tetap dapat berjalan'
+                });
+            }
+        }
+
+        async function finalVerification() {
+            try {
+                // Test basic functionality
+                if (window.transformationManager) {
+                    const transformableItems = await window.transformationManager.getTransformableItems();
+                    fixResults.push({
+                        type: 'success',
+                        message: `Sistem dapat memuat ${transformableItems.length} item yang dapat ditransformasi`,
+                        action: null
+                    });
+                }
+
+                if (window.validationEngine) {
+                    const configValidation = window.validationEngine.validateSystemConfiguration();
+                    if (configValidation.isValid) {
+                        fixResults.push({
+                            type: 'success',
+                            message: 'Konfigurasi sistem valid',
+                            action: null
+                        });
+                    } else {
+                        fixResults.push({
+                            type: 'warning',
+                            message: `Konfigurasi sistem memiliki masalah: ${configValidation.errors.join(', ')}`,
+                            action: 'Periksa konfigurasi sistem'
+                        });
+                    }
+                }
+
+                // Final check
+                const criticalComponents = ['transformationManager', 'uiController', 'errorHandler'];
+                const allCriticalAvailable = criticalComponents.every(comp => window[comp]);
+                
+                if (allCriticalAvailable) {
+                    fixResults.push({
+                        type: 'success',
+                        message: '✅ Sistem transformasi barang siap digunakan!',
+                        action: null
+                    });
+                    document.getElementById('continueBtn').style.display = 'inline-block';
+                } else {
+                    fixResults.push({
+                        type: 'error',
+                        message: '❌ Sistem belum siap, ada komponen kritis yang belum dimuat',
+                        action: 'Coba refresh halaman atau periksa console untuk error'
+                    });
+                }
+
+            } catch (error) {
+                fixResults.push({
+                    type: 'error',
+                    message: `Error dalam verifikasi final: ${error.message}`,
+                    action: 'Periksa console untuk detail'
+                });
+            }
+        }
+
+        function showResults() {
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('resultsContainer').style.display = 'block';
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            fixResults.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `alert alert-${getAlertClass(result.type)} py-2`;
+                
+                let icon = '';
+                switch (result.type) {
+                    case 'success': icon = 'fas fa-check-circle'; break;
+                    case 'error': icon = 'fas fa-times-circle'; break;
+                    case 'warning': icon = 'fas fa-exclamation-triangle'; break;
+                }
+                
+                resultDiv.innerHTML = `
+                    <i class="${icon} me-2"></i>
+                    ${result.message}
+                    ${result.action ? `<br><small class="text-muted">Aksi: ${result.action}</small>` : ''}
+                `;
+                
+                resultsDiv.appendChild(resultDiv);
+            });
+        }
+
+        function getAlertClass(type) {
+            switch (type) {
+                case 'success': return 'success';
+                case 'error': return 'danger';
+                case 'warning': return 'warning';
+                default: return 'info';
+            }
+        }
+
+        function openTestPage() {
+            window.open('test_transformasi_barang_loading.html', '_blank');
+        }
+
+        function openMainPage() {
+            window.location.href = 'transformasi_barang.html';
+        }
+    </script>
+</body>
+</html>
