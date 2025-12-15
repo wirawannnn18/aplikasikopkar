@@ -109,8 +109,11 @@
                         <p class="text-muted mb-0">Konversi barang antar unit dengan mudah dan akurat</p>
                     </div>
                     <div>
-                        <button class="btn btn-outline-primary" onclick="refreshData()">
+                        <button class="btn btn-outline-primary me-2" onclick="refreshData()">
                             <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="reloadTransformationScripts()" title="Muat ulang sistem jika ada masalah">
+                            <i class="bi bi-bootstrap-reboot me-1"></i>Reload System
                         </button>
                     </div>
                 </div>
@@ -368,8 +371,24 @@
     <script src="js/transformasiBarangInit.js"></script>
     
     <script>
+        // Global flag to track initialization status
+        let systemInitialized = false;
+        let initializationAttempts = 0;
+        const maxInitializationAttempts = 3;
+
         // Initialize application when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, starting initialization...');
+            attemptSystemInitialization();
+        });
+
+        /**
+         * Attempt to initialize the system with retry logic
+         */
+        function attemptSystemInitialization() {
+            initializationAttempts++;
+            console.log(`Initialization attempt ${initializationAttempts}/${maxInitializationAttempts}`);
+            
             try {
                 // Mock user for testing if not available
                 if (!window.currentUser) {
@@ -380,17 +399,34 @@
                 // Initialize sample data if not available
                 initializeSampleDataIfNeeded();
                 
-                // Try to initialize transformasi barang system, but don't fail if it doesn't work
-                try {
-                    if (typeof initializeTransformasiBarang === 'function') {
-                        initializeTransformasiBarang();
+                // Check if all required classes are loaded
+                const requiredClasses = [
+                    'TransformationManager', 'UIController', 'ValidationEngine',
+                    'StockManager', 'AuditLogger', 'ErrorHandler', 'ConversionCalculator'
+                ];
+                
+                const missingClasses = requiredClasses.filter(className => typeof window[className] !== 'function');
+                
+                if (missingClasses.length > 0) {
+                    console.warn('Missing classes:', missingClasses);
+                    
+                    if (initializationAttempts < maxInitializationAttempts) {
+                        console.log('Retrying initialization in 1 second...');
+                        setTimeout(attemptSystemInitialization, 1000);
+                        return;
                     } else {
-                        console.log('Using fallback initialization');
-                        initializeFallbackSystem();
+                        throw new Error(`Tidak semua file JavaScript transformasi barang berhasil dimuat. Missing: ${missingClasses.join(', ')}`);
                     }
-                } catch (initError) {
-                    console.warn('Advanced system failed, using fallback:', initError);
-                    initializeFallbackSystem();
+                }
+                
+                // Try to initialize transformasi barang system
+                if (typeof initializeTransformasiBarang === 'function') {
+                    console.log('Initializing advanced transformation system...');
+                    initializeTransformasiBarang();
+                    systemInitialized = true;
+                    showAlert('Sistem transformasi barang berhasil dimuat', 'success');
+                } else {
+                    throw new Error('initializeTransformasiBarang function not available');
                 }
                 
                 // Load initial data
@@ -402,15 +438,24 @@
                 // Update statistics
                 updateStats();
                 
-                // Hide any loading messages and show success
+                // Hide any loading messages
                 hideLoadingMessages();
                 
+                console.log('System initialization completed successfully');
+                
             } catch (error) {
-                console.error('Error initializing page:', error);
-                showAlert(`Sistem dimuat dengan mode sederhana`, 'info');
-                initializeFallbackSystem();
+                console.error('Error initializing system:', error);
+                
+                if (initializationAttempts < maxInitializationAttempts) {
+                    console.log('Retrying initialization in 2 seconds...');
+                    setTimeout(attemptSystemInitialization, 2000);
+                } else {
+                    console.log('Max initialization attempts reached, using fallback system');
+                    showAlert(`${error.message}. Menggunakan sistem sederhana.`, 'warning');
+                    initializeFallbackSystem();
+                }
             }
-        });
+        }
 
         /**
          * Initialize sample data if localStorage is empty
@@ -983,13 +1028,108 @@
         function initializeFallbackSystem() {
             console.log('Initializing fallback transformation system...');
             
-            // Load products for dropdowns
-            loadProductsForTransformationFallback();
+            try {
+                // Load products for dropdowns
+                loadProductsForTransformationFallback();
+                
+                // Setup basic event listeners
+                setupFallbackEventListeners();
+                
+                // Create minimal system objects for compatibility
+                window.transformationManager = {
+                    getTransformableItems: () => Promise.resolve([]),
+                    processTransformation: (data) => Promise.resolve(data),
+                    getTransformationHistory: () => Promise.resolve([])
+                };
+                
+                window.uiController = {
+                    refreshData: () => Promise.resolve(),
+                    _handleFormSubmission: processTransformationFallback
+                };
+                
+                systemInitialized = true;
+                showAlert('Sistem transformasi barang dimuat (mode sederhana)', 'success');
+                
+                // Load initial data for fallback system
+                loadInitialData();
+                updateStats();
+                hideLoadingMessages();
+                
+            } catch (error) {
+                console.error('Error initializing fallback system:', error);
+                showAlert('Gagal menginisialisasi sistem transformasi barang', 'danger');
+            }
+        }
+
+        /**
+         * Reload transformation scripts
+         */
+        function reloadTransformationScripts() {
+            console.log('Attempting to reload transformation scripts...');
             
-            // Setup basic event listeners
-            setupFallbackEventListeners();
+            const scriptFiles = [
+                'js/transformasi-barang/types.js',
+                'js/transformasi-barang/DataModels.js',
+                'js/transformasi-barang/ValidationEngine.js',
+                'js/transformasi-barang/ConversionCalculator.js',
+                'js/transformasi-barang/StockManager.js',
+                'js/transformasi-barang/AuditLogger.js',
+                'js/transformasi-barang/ErrorHandler.js',
+                'js/transformasi-barang/TransformationManager.js',
+                'js/transformasi-barang/UIController.js',
+                'js/transformasi-barang/ReportManager.js',
+                'js/transformasiBarangInit.js'
+            ];
             
-            showAlert('Sistem transformasi barang dimuat (mode sederhana)', 'success');
+            // Load scripts sequentially
+            loadScriptsSequentially(scriptFiles)
+                .then(() => {
+                    console.log('All scripts loaded, attempting initialization...');
+                    setTimeout(() => {
+                        initializationAttempts = 0; // Reset attempts
+                        attemptSystemInitialization();
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error('Error loading scripts:', error);
+                    showAlert('Gagal memuat ulang script. Menggunakan sistem sederhana.', 'warning');
+                    initializeFallbackSystem();
+                });
+        }
+
+        /**
+         * Load scripts sequentially
+         */
+        function loadScriptsSequentially(scriptPaths) {
+            return scriptPaths.reduce((promise, scriptPath) => {
+                return promise.then(() => loadScript(scriptPath));
+            }, Promise.resolve());
+        }
+
+        /**
+         * Load a single script
+         */
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                // Check if script already exists
+                const existingScript = document.querySelector(`script[src="${src}"]`);
+                if (existingScript) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    console.log(`Loaded: ${src}`);
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.warn(`Failed to load: ${src}`);
+                    resolve(); // Don't reject, just continue
+                };
+                document.head.appendChild(script);
+            });
         }
         
         /**
