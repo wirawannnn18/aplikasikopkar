@@ -8,7 +8,7 @@ let transformationManager = null;
 let uiController = null;
 let validationEngine = null;
 let stockManager = null;
-let auditLogger = null;
+let auditLoggerInstance = null; // Renamed to avoid conflict
 let errorHandler = null;
 let calculator = null;
 
@@ -75,8 +75,8 @@ function initializeComponents() {
         console.log('✓ StockManager initialized');
         
         // 5. Initialize AuditLogger
-        auditLogger = new AuditLogger();
-        auditLogger.initialize();
+        auditLoggerInstance = new AuditLogger();
+        auditLoggerInstance.initialize();
         console.log('✓ AuditLogger initialized');
         
         // 6. Initialize TransformationManager with dependencies
@@ -85,7 +85,7 @@ function initializeComponents() {
             validationEngine: validationEngine,
             calculator: calculator,
             stockManager: stockManager,
-            auditLogger: auditLogger
+            auditLogger: auditLoggerInstance
         });
         console.log('✓ TransformationManager initialized');
         
@@ -99,7 +99,7 @@ function initializeComponents() {
         window.uiController = uiController;
         window.validationEngine = validationEngine;
         window.stockManager = stockManager;
-        window.auditLogger = auditLogger;
+        window.auditLogger = auditLoggerInstance;
         window.errorHandler = errorHandler;
         window.calculator = calculator;
         
@@ -1069,9 +1069,28 @@ function showAlert(message, type = 'info') {
     }
 }
 
+/**
+ * Main processTransformation function (wrapper)
+ */
+function processTransformation() {
+    try {
+        // Try to use advanced system first
+        if (window.uiController && window.uiController._handleFormSubmission) {
+            window.uiController._handleFormSubmission();
+        } else {
+            // Fallback to legacy system
+            processTransformationLegacy();
+        }
+    } catch (error) {
+        console.error('Error in processTransformation:', error);
+        // Fallback to legacy system on error
+        processTransformationLegacy();
+    }
+}
+
 // Make functions globally available
 window.initializeTransformasiBarang = initializeTransformasiBarang;
-window.processTransformation = processTransformationLegacy;
+window.processTransformation = processTransformation;
 window.processTransformationLegacy = processTransformationLegacy;
 window.showTransformationHistory = showTransformationHistory;
 window.showTransformationHelp = showTransformationHelp;
