@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ReportManager - Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .filters input, .filters select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test ReportManager - Transformasi Barang</h1>
+        <p class="info">Testing reporting dan export functionality untuk sistem transformasi barang</p>
+        
+        <div class="test-section">
+            <h3>Setup Test Data</h3>
+            <button onclick="setupTestData()">Generate Test Data</button>
+            <button onclick="clearTestData()">Clear Test Data</button>
+            <div id="setupOutput" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Search & Filter Functionality</h3>
+            <div class="filters">
+                <input type="text" id="searchTerm" placeholder="Search term">
+                <input type="date" id="dateFrom" placeholder="Date from">
+                <input type="date" id="dateTo" placeholder="Date to">
+                <select id="userFilter">
+                    <option value="">All Users</option>
+                    <option value="kasir01">kasir01</option>
+                    <option value="kasir02">kasir02</option>
+                    <option value="admin">admin</option>
+                </select>
+                <select id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="failed">Failed</option>
+                    <option value="pending">Pending</option>
+                </select>
+                <select id="productFilter">
+                    <option value="">All Products</option>
+                    <option value="AQUA">AQUA</option>
+                    <option value="INDOMIE">INDOMIE</option>
+                    <option value="TANGO">TANGO</option>
+                </select>
+            </div>
+            <button onclick="testSearchFilter()">Test Search & Filter</button>
+            <div id="searchOutput" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Export Functionality</h3>
+            <button onclick="testExportCSV()">Export CSV</button>
+            <button onclick="testExportJSON()">Export JSON</button>
+            <button onclick="testExportExcel()">Export Excel</button>
+            <div id="exportOutput" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Comprehensive Report</h3>
+            <button onclick="generateComprehensiveReport()">Generate Report</button>
+            <div class="stats" id="reportStats"></div>
+            <div id="reportOutput" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Summary Report</h3>
+            <button onclick="generateSummaryReport()">Generate Summary (7 days)</button>
+            <div id="summaryOutput" class="output"></div>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+
+    <script>
+        let reportManager;
+        let auditLogger;
+
+        // Initialize components
+        function initializeComponents() {
+            try {
+                auditLogger = new AuditLogger();
+                auditLogger.initialize();
+
+                reportManager = new ReportManager();
+                reportManager.initialize({ auditLogger });
+
+                log('setupOutput', 'Components initialized successfully', 'success');
+            } catch (error) {
+                log('setupOutput', `Error initializing components: ${error.message}`, 'error');
+            }
+        }
+
+        // Setup test data
+        async function setupTestData() {
+            try {
+                initializeComponents();
+
+                // Clear existing data
+                localStorage.removeItem('transformationLogs');
+
+                // Generate sample transformation data
+                const sampleTransformations = [
+                    {
+                        id: 'TRF-001',
+                        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                        user: 'kasir01',
+                        status: 'completed',
+                        sourceItem: {
+                            id: 'AQUA-DUS',
+                            name: 'Aqua 1L DUS',
+                            unit: 'dus',
+                            quantity: 2,
+                            stockBefore: 10,
+                            stockAfter: 8,
+                            baseProduct: 'AQUA'
+                        },
+                        targetItem: {
+                            id: 'AQUA-PCS',
+                            name: 'Aqua 1L PCS',
+                            unit: 'pcs',
+                            quantity: 24,
+                            stockBefore: 5,
+                            stockAfter: 29,
+                            baseProduct: 'AQUA'
+                        },
+                        conversionRatio: 12
+                    },
+                    {
+                        id: 'TRF-002',
+                        timestamp: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+                        user: 'kasir02',
+                        status: 'completed',
+                        sourceItem: {
+                            id: 'INDOMIE-DUS',
+                            name: 'Indomie Goreng DUS',
+                            unit: 'dus',
+                            quantity: 1,
+                            stockBefore: 5,
+                            stockAfter: 4,
+                            baseProduct: 'INDOMIE'
+                        },
+                        targetItem: {
+                            id: 'INDOMIE-PCS',
+                            name: 'Indomie Goreng PCS',
+                            unit: 'pcs',
+                            quantity: 40,
+                            stockBefore: 20,
+                            stockAfter: 60,
+                            baseProduct: 'INDOMIE'
+                        },
+                        conversionRatio: 40
+                    },
+                    {
+                        id: 'TRF-003',
+                        timestamp: new Date(Date.now() - 21600000).toISOString(), // 6 hours ago
+                        user: 'admin',
+                        status: 'failed',
+                        sourceItem: {
+                            id: 'TANGO-BOX',
+                            name: 'Tango Wafer BOX',
+                            unit: 'box',
+                            quantity: 3,
+                            stockBefore: 2,
+                            stockAfter: 2,
+                            baseProduct: 'TANGO'
+                        },
+                        targetItem: {
+                            id: 'TANGO-PCS',
+                            name: 'Tango Wafer PCS',
+                            unit: 'pcs',
+                            quantity: 0,
+                            stockBefore: 15,
+                            stockAfter: 15,
+                            baseProduct: 'TANGO'
+                        },
+                        conversionRatio: 24
+                    },
+                    {
+                        id: 'TRF-004',
+                        timestamp: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+                        user: 'kasir01',
+                        status: 'completed',
+                        sourceItem: {
+                            id: 'AQUA-PCS',
+                            name: 'Aqua 1L PCS',
+                            unit: 'pcs',
+                            quantity: 12,
+                            stockBefore: 29,
+                            stockAfter: 17,
+                            baseProduct: 'AQUA'
+                        },
+                        targetItem: {
+                            id: 'AQUA-DUS',
+                            name: 'Aqua 1L DUS',
+                            unit: 'dus',
+                            quantity: 1,
+                            stockBefore: 8,
+                            stockAfter: 9,
+                            baseProduct: 'AQUA'
+                        },
+                        conversionRatio: 0.0833
+                    },
+                    {
+                        id: 'TRF-005',
+                        timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                        user: 'kasir02',
+                        status: 'pending',
+                        sourceItem: {
+                            id: 'INDOMIE-PCS',
+                            name: 'Indomie Goreng PCS',
+                            unit: 'pcs',
+                            quantity: 40,
+                            stockBefore: 60,
+                            stockAfter: 20,
+                            baseProduct: 'INDOMIE'
+                        },
+                        targetItem: {
+                            id: 'INDOMIE-DUS',
+                            name: 'Indomie Goreng DUS',
+                            unit: 'dus',
+                            quantity: 1,
+                            stockBefore: 4,
+                            stockAfter: 5,
+                            baseProduct: 'INDOMIE'
+                        },
+                        conversionRatio: 0.025
+                    }
+                ];
+
+                // Log each transformation
+                for (const transformation of sampleTransformations) {
+                    await auditLogger.logTransformation(transformation);
+                }
+
+                log('setupOutput', `Successfully generated ${sampleTransformations.length} test transformations`, 'success');
+                
+                // Show summary
+                const history = await auditLogger.getTransformationHistory();
+                log('setupOutput', `Total transformations in system: ${history.data.length}`, 'info');
+
+            } catch (error) {
+                log('setupOutput', `Error setting up test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear test data
+        function clearTestData() {
+            try {
+                localStorage.removeItem('transformationLogs');
+                log('setupOutput', 'Test data cleared successfully', 'success');
+            } catch (error) {
+                log('setupOutput', `Error clearing test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Test search and filter functionality
+        async function testSearchFilter() {
+            try {
+                if (!reportManager) {
+                    initializeComponents();
+                }
+
+                const searchCriteria = {
+                    searchTerm: document.getElementById('searchTerm').value,
+                    dateFrom: document.getElementById('dateFrom').value ? new Date(document.getElementById('dateFrom').value).toISOString() : undefined,
+                    dateTo: document.getElementById('dateTo').value ? new Date(document.getElementById('dateTo').value).toISOString() : undefined,
+                    user: document.getElementById('userFilter').value,
+                    status: document.getElementById('statusFilter').value,
+                    product: document.getElementById('productFilter').value
+                };
+
+                // Remove empty filters
+                Object.keys(searchCriteria).forEach(key => {
+                    if (!searchCriteria[key]) {
+                        delete searchCriteria[key];
+                    }
+                });
+
+                const searchResult = await reportManager.searchTransformationHistory(searchCriteria);
+
+                let output = `Search Results:\n`;
+                output += `Total found: ${searchResult.metadata.totalCount}\n`;
+                output += `Showing: ${searchResult.data.length} records\n\n`;
+
+                searchResult.data.forEach((record, index) => {
+                    output += `${index + 1}. ${record.transformationId || record.id}\n`;
+                    output += `   User: ${record.user} | Status: ${record.status}\n`;
+                    output += `   ${record.enhancedMetadata.transformationSummary}\n`;
+                    output += `   Time: ${record.enhancedMetadata.timeAgo}\n`;
+                    output += `   Product: ${record.metadata?.baseProduct}\n\n`;
+                });
+
+                log('searchOutput', output, 'success');
+
+            } catch (error) {
+                log('searchOutput', `Error testing search filter: ${error.message}`, 'error');
+            }
+        }
+
+        // Test CSV export
+        async function testExportCSV() {
+            try {
+                if (!reportManager) {
+                    initializeComponents();
+                }
+
+                const exportResult = await reportManager.exportTransformationData({}, 'csv');
+                
+                let output = `CSV Export Test:\n`;
+                output += `Filename: ${exportResult.metadata.filename}\n`;
+                output += `MIME Type: ${exportResult.metadata.mimeType}\n`;
+                output += `Record Count: ${exportResult.metadata.recordCount}\n\n`;
+                output += `CSV Preview (first 500 chars):\n`;
+                output += exportResult.data.substring(0, 500);
+                if (exportResult.data.length > 500) {
+                    output += '\n... (truncated)';
+                }
+
+                log('exportOutput', output, 'success');
+
+                // Create download link
+                const blob = new Blob([exportResult.data], { type: exportResult.metadata.mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportResult.metadata.filename;
+                a.textContent = 'Download CSV';
+                a.style.display = 'block';
+                a.style.marginTop = '10px';
+                document.getElementById('exportOutput').appendChild(a);
+
+            } catch (error) {
+                log('exportOutput', `Error testing CSV export: ${error.message}`, 'error');
+            }
+        }
+
+        // Test JSON export
+        async function testExportJSON() {
+            try {
+                if (!reportManager) {
+                    initializeComponents();
+                }
+
+                const exportResult = await reportManager.exportTransformationData({}, 'json');
+                
+                let output = `JSON Export Test:\n`;
+                output += `Filename: ${exportResult.metadata.filename}\n`;
+                output += `MIME Type: ${exportResult.metadata.mimeType}\n`;
+                output += `Record Count: ${exportResult.metadata.recordCount}\n\n`;
+                
+                // Pretty print JSON preview
+                const jsonData = JSON.parse(exportResult.data);
+                output += `JSON Preview:\n`;
+                output += JSON.stringify(jsonData, null, 2).substring(0, 800);
+                if (exportResult.data.length > 800) {
+                    output += '\n... (truncated)';
+                }
+
+                log('exportOutput', output, 'success');
+
+                // Create download link
+                const blob = new Blob([exportResult.data], { type: exportResult.metadata.mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportResult.metadata.filename;
+                a.textContent = 'Download JSON';
+                a.style.display = 'block';
+                a.style.marginTop = '10px';
+                document.getElementById('exportOutput').appendChild(a);
+
+            } catch (error) {
+                log('exportOutput', `Error testing JSON export: ${error.message}`, 'error');
+            }
+        }
+
+        // Test Excel export
+        async function testExportExcel() {
+            try {
+                if (!reportManager) {
+                    initializeComponents();
+                }
+
+                const exportResult = await reportManager.exportTransformationData({}, 'excel');
+                
+                let output = `Excel Export Test:\n`;
+                output += `Filename: ${exportResult.metadata.filename}\n`;
+                output += `MIME Type: ${exportResult.metadata.mimeType}\n`;
+                output += `Record Count: ${exportResult.metadata.recordCount}\n\n`;
+                output += `Excel HTML Preview (first 500 chars):\n`;
+                output += exportResult.data.substring(0, 500);
+                if (exportResult.data.length > 500) {
+                    output += '\n... (truncated)';
+                }
+
+                log('exportOutput', output, 'success');
+
+                // Create download link
+                const blob = new Blob([exportResult.data], { type: exportResult.metadata.mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportResult.metadata.filename;
+                a.textContent = 'Download Excel';
+                a.style.display = 'block';
+                a.style.marginTop = '10px';
+                document.getElementById('exportOutput').appendChild(a);
+
+            } catch (error) {
+                log('exportOutput', `Error testing Excel export: ${error.message}`, 'error');
+            }
+        }
+
+        // Generate comprehensive report
+        async function generateComprehensiveReport() {
+            try {
+                if (!reportManager) {
+                    initializeComponents();
+                }
+
+                const report = await reportManager.generateComprehensiveReport({
+                    includeCharts: true
+                });
+
+                // Display stats
+                const statsContainer = document.getElementById('reportStats');
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${report.basicStatistics.total}</div>
+                        <div class="stat-label">Total Transformations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.basicStatistics.successful}</div>
+                        <div class="stat-label">Successful</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.basicStatistics.failed}</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.basicStatistics.successRate}%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.basicStatistics.uniqueProducts}</div>
+                        <div class="stat-label">Unique Products</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.basicStatistics.uniqueUsers}</div>
+                        <div class="stat-label">Unique Users</div>
+                    </div>
+                `;
+
+                // Display detailed report
+                let output = `Comprehensive Report Generated:\n\n`;
+                
+                output += `=== BASIC STATISTICS ===\n`;
+                output += `Total: ${report.basicStatistics.total}\n`;
+                output += `Successful: ${report.basicStatistics.successful}\n`;
+                output += `Failed: ${report.basicStatistics.failed}\n`;
+                output += `Success Rate: ${report.basicStatistics.successRate}%\n\n`;
+
+                output += `=== PRODUCT ANALYSIS ===\n`;
+                report.productAnalysis.products.forEach(product => {
+                    output += `${product.product}: ${product.totalTransformations} transformations (${product.successRate}% success)\n`;
+                });
+                output += '\n';
+
+                output += `=== USER ANALYSIS ===\n`;
+                report.userAnalysis.users.forEach(user => {
+                    output += `${user.user}: ${user.totalTransformations} transformations (${user.successRate}% success)\n`;
+                });
+                output += '\n';
+
+                output += `=== TREND ANALYSIS ===\n`;
+                output += `Trend: ${report.trendAnalysis.trend}\n`;
+                output += `Analysis: ${report.trendAnalysis.analysis}\n\n`;
+
+                if (report.chartData) {
+                    output += `=== CHART DATA ===\n`;
+                    output += `Labels: ${report.chartData.labels.join(', ')}\n`;
+                    output += `Datasets: ${report.chartData.datasets.length} datasets available\n`;
+                }
+
+                log('reportOutput', output, 'success');
+
+            } catch (error) {
+                log('reportOutput', `Error generating comprehensive report: ${error.message}`, 'error');
+            }
+        }
+
+        // Generate summary report
+        async function generateSummaryReport() {
+            try {
+                if (!reportManager) {
+                    initializeComponents();
+                }
+
+                const summary = await reportManager.generateSummaryReport(7);
+
+                let output = `Summary Report (Last 7 Days):\n\n`;
+                
+                output += `=== TOTALS ===\n`;
+                output += `Transformations: ${summary.totals.transformations}\n`;
+                output += `Successful: ${summary.totals.successful}\n`;
+                output += `Failed: ${summary.totals.failed}\n`;
+                output += `Unique Products: ${summary.totals.uniqueProducts}\n`;
+                output += `Unique Users: ${summary.totals.uniqueUsers}\n\n`;
+
+                output += `=== TRENDS ===\n`;
+                output += `Daily Average: ${summary.trends.dailyAverage.toFixed(2)}\n`;
+                output += `Success Rate: ${summary.trends.successRate}%\n\n`;
+
+                output += `=== TOP PRODUCTS ===\n`;
+                summary.topProducts.forEach((product, index) => {
+                    output += `${index + 1}. ${product.product}: ${product.count} transformations\n`;
+                });
+                output += '\n';
+
+                output += `=== TOP USERS ===\n`;
+                summary.topUsers.forEach((user, index) => {
+                    output += `${index + 1}. ${user.user}: ${user.count} transformations\n`;
+                });
+                output += '\n';
+
+                output += `=== RECENT ACTIVITY ===\n`;
+                summary.recentActivity.forEach((activity, index) => {
+                    output += `${index + 1}. ${activity.summary} by ${activity.user} (${activity.status})\n`;
+                });
+
+                log('summaryOutput', output, 'success');
+
+            } catch (error) {
+                log('summaryOutput', `Error generating summary report: ${error.message}`, 'error');
+            }
+        }
+
+        // Utility function for logging
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML = `<span class="${className}">[${timestamp}] ${message}</span>`;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date range (last 7 days)
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>

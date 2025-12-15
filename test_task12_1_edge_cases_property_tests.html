@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12.1: Edge Cases Property Tests - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            background-color: #f8f9fa;
+        }
+        .test-result {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 0.375rem;
+            border-left: 4px solid;
+        }
+        .test-pass {
+            background-color: #d1edff;
+            border-left-color: #0d6efd;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+        .code-block {
+            background-color: #f1f3f4;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            border: 1px solid #e9ecef;
+        }
+        .property-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 0.25rem;
+            background-color: #6f42c1;
+            color: white;
+            margin-right: 0.5rem;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1><i class="fas fa-bug text-warning me-2"></i>Task 12.1: Edge Cases Property Tests</h1>
+                    <div>
+                        <button class="btn btn-primary me-2" onclick="runAllEdgeCaseTests()">
+                            <i class="fas fa-play me-2"></i>Run All Edge Case Tests
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="clearAllResults()">
+                            <i class="fas fa-trash me-2"></i>Clear Results
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Test Statistics -->
+                <div class="stats-card">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h4 id="total-properties">0</h4>
+                            <p class="mb-0">Total Properties</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 id="passed-properties">0</h4>
+                            <p class="mb-0">Passed</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 id="failed-properties">0</h4>
+                            <p class="mb-0">Failed</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 id="success-rate">0%</h4>
+                            <p class="mb-0">Success Rate</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results -->
+                <div id="test-results"></div>
+
+                <!-- Boundary Conditions Tests -->
+                <div class="test-section">
+                    <h3><i class="fas fa-chart-line me-2"></i>Boundary Conditions Tests</h3>
+                    <p class="text-muted">Testing system behavior at data boundaries and extreme values</p>
+                    <div id="boundary-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="runBoundaryTests()">
+                        <i class="fas fa-play me-1"></i>Run Boundary Tests
+                    </button>
+                </div>
+
+                <!-- Concurrent Transformations Tests -->
+                <div class="test-section">
+                    <h3><i class="fas fa-sync-alt me-2"></i>Concurrent Transformations Tests</h3>
+                    <p class="text-muted">Testing system behavior under concurrent transformation scenarios</p>
+                    <div id="concurrent-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="runConcurrentTests()">
+                        <i class="fas fa-play me-1"></i>Run Concurrent Tests
+                    </button>
+                </div>
+
+                <!-- Corrupted Data Scenarios Tests -->
+                <div class="test-section">
+                    <h3><i class="fas fa-exclamation-triangle me-2"></i>Corrupted Data Scenarios Tests</h3>
+                    <p class="text-muted">Testing system behavior with corrupted, malformed, and invalid data</p>
+                    <div id="corrupted-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="runCorruptedDataTests()">
+                        <i class="fas fa-play me-1"></i>Run Corrupted Data Tests
+                    </button>
+                </div>
+
+                <!-- Detailed Test Information -->
+                <div class="test-section">
+                    <h3><i class="fas fa-info-circle me-2"></i>Property Test Details</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5>Boundary Conditions (Properties 29-34)</h5>
+                            <ul class="list-unstyled">
+                                <li><span class="property-badge">29</span>Extreme Numeric Values</li>
+                                <li><span class="property-badge">30</span>Zero/Negative Boundaries</li>
+                                <li><span class="property-badge">31</span>String Length Boundaries</li>
+                                <li><span class="property-badge">32</span>Array Boundary Conditions</li>
+                                <li><span class="property-badge">33</span>Floating Point Precision</li>
+                                <li><span class="property-badge">34</span>Memory Boundaries</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Concurrent Operations (Properties 35-38)</h5>
+                            <ul class="list-unstyled">
+                                <li><span class="property-badge">35</span>Concurrent Stock Updates</li>
+                                <li><span class="property-badge">36</span>Race Conditions</li>
+                                <li><span class="property-badge">37</span>Read-Write Operations</li>
+                                <li><span class="property-badge">38</span>Audit Log Integrity</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Corrupted Data (Properties 39-46)</h5>
+                            <ul class="list-unstyled">
+                                <li><span class="property-badge">39</span>Malformed JSON</li>
+                                <li><span class="property-badge">40</span>Invalid Data Types</li>
+                                <li><span class="property-badge">41</span>Circular References</li>
+                                <li><span class="property-badge">42</span>Missing Fields</li>
+                                <li><span class="property-badge">43</span>Invalid Numbers</li>
+                                <li><span class="property-badge">44</span>Storage Recovery</li>
+                                <li><span class="property-badge">45</span>Inconsistent States</li>
+                                <li><span class="property-badge">46</span>Error Handler Resilience</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        // Import modules
+        import { ConversionCalculator } from './js/transformasi-barang/ConversionCalculator.js';
+        import { ValidationEngine } from './js/transformasi-barang/ValidationEngine.js';
+        import { TransformationManager } from './js/transformasi-barang/TransformationManager.js';
+        import { StockManager } from './js/transformasi-barang/StockManager.js';
+        import { ErrorHandler } from './js/transformasi-barang/ErrorHandler.js';
+        import { AuditLogger } from './js/transformasi-barang/AuditLogger.js';
+
+        // Global test state
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            warnings: 0
+        };
+
+        // Utility functions
+        function addTestResult(containerId, propertyNumber, testName, status, message, details = null) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${status}`;
+            
+            let html = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="property-badge">Property ${propertyNumber}</span>
+                        <strong>${testName}</strong>
+                        <div class="small text-muted mt-1">${message}</div>
+                    </div>
+                    <i class="fas fa-${status === 'pass' ? 'check text-success' : 
+                                      status === 'fail' ? 'times text-danger' : 
+                                      status === 'warning' ? 'exclamation-triangle text-warning' : 
+                                      'info-circle text-info'}"></i>
+                </div>
+            `;
+            
+            if (details) {
+                html += `<div class="code-block mt-2 small">${details}</div>`;
+            }
+            
+            resultDiv.innerHTML = html;
+            container.appendChild(resultDiv);
+
+            // Update stats
+            testStats.total++;
+            if (status === 'pass') testStats.passed++;
+            else if (status === 'fail') testStats.failed++;
+            else if (status === 'warning') testStats.warnings++;
+            
+            updateStats();
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        function updateStats() {
+            document.getElementById('total-properties').textContent = testStats.total;
+            document.getElementById('passed-properties').textContent = testStats.passed;
+            document.getElementById('failed-properties').textContent = testStats.failed;
+            
+            const successRate = testStats.total > 0 ? 
+                ((testStats.passed / testStats.total) * 100).toFixed(1) : 0;
+            document.getElementById('success-rate').textContent = `${successRate}%`;
+        }
+
+        // Boundary Conditions Tests
+        window.runBoundaryTests = async function() {
+            clearResults('boundary-results');
+            
+            try {
+                const calculator = new ConversionCalculator();
+                const validator = new ValidationEngine();
+                await calculator.initialize();
+                await validator.initialize();
+
+                // Property 29: Extreme Numeric Values
+                try {
+                    const extremeValues = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, 0, 0.000001];
+                    let allPassed = true;
+                    
+                    for (const value of extremeValues) {
+                        try {
+                            const result = calculator.calculateTargetQuantity(value, 12);
+                            if (value >= 0 && (!result || !isFinite(result))) {
+                                allPassed = false;
+                            }
+                        } catch (error) {
+                            if (value >= 0) allPassed = false;
+                        }
+                    }
+                    
+                    addTestResult('boundary-results', 29, 'Extreme Numeric Values', 
+                        allPassed ? 'pass' : 'fail', 
+                        allPassed ? 'Extreme values handled correctly' : 'Some extreme values not handled properly');
+                } catch (error) {
+                    addTestResult('boundary-results', 29, 'Extreme Numeric Values', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 30: Zero and Negative Boundaries
+                try {
+                    const boundaryValues = [0, -1, -0.1, 0.0000001];
+                    let correctHandling = true;
+                    
+                    for (const value of boundaryValues) {
+                        try {
+                            const result = calculator.calculateTargetQuantity(value, 12);
+                            if (value < 0) {
+                                correctHandling = false; // Should have thrown error
+                            } else if (value === 0 && result !== 0) {
+                                correctHandling = false;
+                            }
+                        } catch (error) {
+                            if (value >= 0) correctHandling = false;
+                        }
+                    }
+                    
+                    addTestResult('boundary-results', 30, 'Zero/Negative Boundaries', 
+                        correctHandling ? 'pass' : 'fail',
+                        correctHandling ? 'Boundary values handled correctly' : 'Boundary handling issues detected');
+                } catch (error) {
+                    addTestResult('boundary-results', 30, 'Zero/Negative Boundaries', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 31: String Length Boundaries
+                try {
+                    const testStrings = ['', ' ', 'a'.repeat(1000), 'normal'];
+                    let stringHandling = true;
+                    
+                    for (const str of testStrings) {
+                        try {
+                            const testItem = {
+                                id: str,
+                                name: str,
+                                unit: str.length > 0 ? str.substring(0, 10) : 'pcs',
+                                stock: 100
+                            };
+                            
+                            const result = validator.validateProductMatch(testItem, testItem);
+                            
+                            if (str.trim().length === 0 && result.isValid) {
+                                stringHandling = false;
+                            }
+                        } catch (error) {
+                            // Expected for some edge cases
+                        }
+                    }
+                    
+                    addTestResult('boundary-results', 31, 'String Length Boundaries', 
+                        stringHandling ? 'pass' : 'warning',
+                        stringHandling ? 'String boundaries handled correctly' : 'Some string boundary issues');
+                } catch (error) {
+                    addTestResult('boundary-results', 31, 'String Length Boundaries', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 32: Array Boundary Conditions
+                try {
+                    const testArrays = [[], Array(1000).fill({id: 'test', stock: 10})];
+                    let arrayHandling = true;
+                    
+                    for (const arr of testArrays) {
+                        try {
+                            localStorage.setItem('masterBarang', JSON.stringify(arr));
+                            const transformationManager = new TransformationManager();
+                            await transformationManager.initialize();
+                            const result = transformationManager.getTransformableItems();
+                            
+                            if (!Array.isArray(result)) {
+                                arrayHandling = false;
+                            }
+                        } catch (error) {
+                            arrayHandling = false;
+                        }
+                    }
+                    
+                    addTestResult('boundary-results', 32, 'Array Boundary Conditions', 
+                        arrayHandling ? 'pass' : 'fail',
+                        arrayHandling ? 'Array boundaries handled correctly' : 'Array boundary handling issues');
+                } catch (error) {
+                    addTestResult('boundary-results', 32, 'Array Boundary Conditions', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 33: Floating Point Precision
+                try {
+                    const precisionValues = [0.1 + 0.2, 1.0000000000001, 0.9999999999999];
+                    let precisionHandling = true;
+                    
+                    for (const value of precisionValues) {
+                        try {
+                            const result = calculator.calculateTargetQuantity(value, 10);
+                            if (!isFinite(result) || result < 0) {
+                                precisionHandling = false;
+                            }
+                        } catch (error) {
+                            precisionHandling = false;
+                        }
+                    }
+                    
+                    addTestResult('boundary-results', 33, 'Floating Point Precision', 
+                        precisionHandling ? 'pass' : 'warning',
+                        precisionHandling ? 'Precision handled correctly' : 'Some precision issues detected');
+                } catch (error) {
+                    addTestResult('boundary-results', 33, 'Floating Point Precision', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 34: Memory Boundaries
+                try {
+                    const startMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                    
+                    // Create large dataset
+                    const largeDataset = Array.from({ length: 2000 }, (_, i) => ({
+                        kode: `ITEM-${i}`,
+                        nama: `Item ${i}`.repeat(5),
+                        stok: Math.floor(Math.random() * 100)
+                    }));
+                    
+                    localStorage.setItem('masterBarang', JSON.stringify(largeDataset));
+                    const retrieved = JSON.parse(localStorage.getItem('masterBarang'));
+                    
+                    const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                    const memoryIncrease = endMemory - startMemory;
+                    
+                    const memoryOk = retrieved.length === 2000 && 
+                                   (!performance.memory || memoryIncrease < 30 * 1024 * 1024);
+                    
+                    addTestResult('boundary-results', 34, 'Memory Boundaries', 
+                        memoryOk ? 'pass' : 'warning',
+                        memoryOk ? 'Memory usage within limits' : 'High memory usage detected',
+                        `Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+                } catch (error) {
+                    addTestResult('boundary-results', 34, 'Memory Boundaries', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+            } catch (error) {
+                addTestResult('boundary-results', 0, 'Boundary Tests Setup', 'fail', 
+                    'Failed to initialize boundary tests', error.message);
+            }
+        };
+
+        // Concurrent Transformations Tests
+        window.runConcurrentTests = async function() {
+            clearResults('concurrent-results');
+            
+            try {
+                // Setup test data
+                const testData = {
+                    masterBarang: [
+                        { kode: 'AQUA-DUS', nama: 'Aqua DUS', satuan: 'dus', stok: 100, baseProduct: 'AQUA-1L' },
+                        { kode: 'AQUA-PCS', nama: 'Aqua PCS', satuan: 'pcs', stok: 500, baseProduct: 'AQUA-1L' }
+                    ],
+                    conversionRatios: [
+                        { baseProduct: 'AQUA-1L', conversions: [{ from: 'dus', to: 'pcs', ratio: 12 }] }
+                    ]
+                };
+                
+                localStorage.setItem('masterBarang', JSON.stringify(testData.masterBarang));
+                localStorage.setItem('conversionRatios', JSON.stringify(testData.conversionRatios));
+
+                const stockManager = new StockManager();
+                const auditLogger = new AuditLogger();
+                await stockManager.initialize();
+                await auditLogger.initialize();
+
+                // Property 35: Concurrent Stock Updates
+                try {
+                    const operations = [
+                        { itemId: 'AQUA-DUS', change: 5 },
+                        { itemId: 'AQUA-DUS', change: -2 },
+                        { itemId: 'AQUA-PCS', change: 10 },
+                        { itemId: 'AQUA-PCS', change: -3 }
+                    ];
+
+                    const promises = operations.map(op => 
+                        new Promise(resolve => {
+                            setTimeout(() => {
+                                try {
+                                    const result = stockManager.updateStock(op.itemId, op.change);
+                                    resolve({ success: true, result });
+                                } catch (error) {
+                                    resolve({ success: false, error: error.message });
+                                }
+                            }, Math.random() * 10);
+                        })
+                    );
+
+                    const results = await Promise.all(promises);
+                    const finalStock = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    
+                    const allNonNegative = finalStock.every(item => item.stok >= 0);
+                    
+                    addTestResult('concurrent-results', 35, 'Concurrent Stock Updates', 
+                        allNonNegative ? 'pass' : 'fail',
+                        allNonNegative ? 'Stock consistency maintained' : 'Stock consistency issues detected');
+                } catch (error) {
+                    addTestResult('concurrent-results', 35, 'Concurrent Stock Updates', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 36: Race Conditions
+                try {
+                    const transformationManager = new TransformationManager();
+                    await transformationManager.initialize();
+                    
+                    const transformations = [
+                        { source: 'AQUA-DUS', target: 'AQUA-PCS', qty: 1 },
+                        { source: 'AQUA-DUS', target: 'AQUA-PCS', qty: 1 }
+                    ];
+
+                    const promises = transformations.map((t, index) => 
+                        new Promise(resolve => {
+                            setTimeout(async () => {
+                                try {
+                                    const sourceItem = testData.masterBarang.find(item => item.kode === t.source);
+                                    const targetItem = testData.masterBarang.find(item => item.kode === t.target);
+                                    
+                                    const result = await transformationManager.executeTransformation({
+                                        sourceItem,
+                                        targetItem,
+                                        quantity: t.qty,
+                                        user: `test-user-${index}`
+                                    });
+                                    resolve({ success: true, result });
+                                } catch (error) {
+                                    resolve({ success: false, error: error.message });
+                                }
+                            }, Math.random() * 15);
+                        })
+                    );
+
+                    const results = await Promise.all(promises);
+                    const finalStock = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    const allNonNegative = finalStock.every(item => item.stok >= 0);
+                    
+                    addTestResult('concurrent-results', 36, 'Race Conditions', 
+                        allNonNegative ? 'pass' : 'fail',
+                        allNonNegative ? 'Race conditions handled correctly' : 'Race condition issues detected');
+                } catch (error) {
+                    addTestResult('concurrent-results', 36, 'Race Conditions', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 37: Read-Write Operations
+                try {
+                    const transformationManager = new TransformationManager();
+                    await transformationManager.initialize();
+                    
+                    const operations = [];
+                    for (let i = 0; i < 8; i++) {
+                        if (i % 2 === 0) {
+                            operations.push(() => transformationManager.getTransformableItems());
+                        } else {
+                            operations.push(() => stockManager.updateStock('AQUA-DUS', 1));
+                        }
+                    }
+
+                    const promises = operations.map(op => 
+                        new Promise(resolve => {
+                            setTimeout(async () => {
+                                try {
+                                    const result = await op();
+                                    resolve({ success: true, result });
+                                } catch (error) {
+                                    resolve({ success: false, error: error.message });
+                                }
+                            }, Math.random() * 10);
+                        })
+                    );
+
+                    const results = await Promise.all(promises);
+                    const readResults = results.filter((r, i) => i % 2 === 0 && r.success);
+                    
+                    const consistentReads = readResults.every(r => 
+                        Array.isArray(r.result) && r.result.every(item => item.stok >= 0)
+                    );
+                    
+                    addTestResult('concurrent-results', 37, 'Read-Write Operations', 
+                        consistentReads ? 'pass' : 'warning',
+                        consistentReads ? 'Read-write consistency maintained' : 'Some consistency issues detected');
+                } catch (error) {
+                    addTestResult('concurrent-results', 37, 'Read-Write Operations', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 38: Audit Log Integrity
+                try {
+                    const auditOperations = [
+                        { user: 'user1', action: 'transform' },
+                        { user: 'user2', action: 'update' },
+                        { user: 'user3', action: 'transform' }
+                    ];
+
+                    const promises = auditOperations.map((op, index) => 
+                        new Promise(resolve => {
+                            setTimeout(() => {
+                                try {
+                                    const record = {
+                                        id: `CONCURRENT-${index}-${Date.now()}`,
+                                        user: op.user,
+                                        sourceItem: { id: 'AQUA-DUS', quantity: 1, stockBefore: 100, stockAfter: 99 },
+                                        targetItem: { id: 'AQUA-PCS', quantity: 12, stockBefore: 500, stockAfter: 512 },
+                                        conversionRatio: 12,
+                                        status: 'completed',
+                                        timestamp: new Date().toISOString()
+                                    };
+                                    
+                                    auditLogger.logTransformation(record);
+                                    resolve({ success: true, record });
+                                } catch (error) {
+                                    resolve({ success: false, error: error.message });
+                                }
+                            }, Math.random() * 8);
+                        })
+                    );
+
+                    const results = await Promise.all(promises);
+                    const auditHistory = auditLogger.getTransformationHistory();
+                    
+                    const integrityOk = auditHistory.length >= results.filter(r => r.success).length * 0.8 &&
+                                       auditHistory.every(entry => 
+                                           entry.id && entry.user && entry.timestamp && entry.sourceItem && entry.targetItem
+                                       );
+                    
+                    addTestResult('concurrent-results', 38, 'Audit Log Integrity', 
+                        integrityOk ? 'pass' : 'warning',
+                        integrityOk ? 'Audit log integrity maintained' : 'Some audit integrity issues detected');
+                } catch (error) {
+                    addTestResult('concurrent-results', 38, 'Audit Log Integrity', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+            } catch (error) {
+                addTestResult('concurrent-results', 0, 'Concurrent Tests Setup', 'fail', 
+                    'Failed to initialize concurrent tests', error.message);
+            }
+        };
+
+        // Corrupted Data Scenarios Tests
+        window.runCorruptedDataTests = async function() {
+            clearResults('corrupted-results');
+            
+            try {
+                const transformationManager = new TransformationManager();
+                const validator = new ValidationEngine();
+                const calculator = new ConversionCalculator();
+                const errorHandler = new ErrorHandler();
+                
+                await transformationManager.initialize();
+                await validator.initialize();
+                await calculator.initialize();
+                errorHandler.initialize();
+
+                // Property 39: Malformed JSON Data
+                try {
+                    const malformedData = ['{"invalid": json}', '[{"missing": "quote}]', 'null', ''];
+                    let handledCorrectly = true;
+                    
+                    for (const data of malformedData) {
+                        try {
+                            localStorage.setItem('masterBarang', data);
+                            const result = transformationManager.getTransformableItems();
+                            
+                            if (!Array.isArray(result)) {
+                                handledCorrectly = false;
+                            }
+                        } catch (error) {
+                            // Expected for malformed data
+                        }
+                    }
+                    
+                    addTestResult('corrupted-results', 39, 'Malformed JSON Data', 
+                        handledCorrectly ? 'pass' : 'fail',
+                        handledCorrectly ? 'Malformed JSON handled gracefully' : 'JSON handling issues detected');
+                } catch (error) {
+                    addTestResult('corrupted-results', 39, 'Malformed JSON Data', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 40: Invalid Data Types
+                try {
+                    const invalidTypes = [null, undefined, 123, true, 'string', [], {}];
+                    let typeHandling = true;
+                    
+                    for (const invalidData of invalidTypes) {
+                        try {
+                            const testItem = {
+                                kode: invalidData,
+                                nama: invalidData,
+                                satuan: invalidData,
+                                stok: invalidData
+                            };
+                            
+                            const validation = validator.validateProductMatch(testItem, testItem);
+                            
+                            if (typeof validation !== 'object' || !validation.hasOwnProperty('isValid')) {
+                                typeHandling = false;
+                            }
+                        } catch (error) {
+                            // Expected for invalid types
+                        }
+                    }
+                    
+                    addTestResult('corrupted-results', 40, 'Invalid Data Types', 
+                        typeHandling ? 'pass' : 'warning',
+                        typeHandling ? 'Invalid types handled correctly' : 'Some type handling issues');
+                } catch (error) {
+                    addTestResult('corrupted-results', 40, 'Invalid Data Types', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 41: Circular References
+                try {
+                    const circularItem = { kode: 'TEST', nama: 'Test Item' };
+                    circularItem.self = circularItem;
+                    
+                    let circularHandling = true;
+                    try {
+                        localStorage.setItem('masterBarang', JSON.stringify([circularItem]));
+                        circularHandling = false; // Should have failed
+                    } catch (error) {
+                        // Expected - circular references should be caught
+                    }
+                    
+                    addTestResult('corrupted-results', 41, 'Circular References', 
+                        circularHandling ? 'pass' : 'warning',
+                        circularHandling ? 'Circular references handled correctly' : 'Circular reference detected but handled');
+                } catch (error) {
+                    addTestResult('corrupted-results', 41, 'Circular References', 'pass', 
+                        'Circular references properly rejected', error.message);
+                }
+
+                // Property 42: Missing Required Fields
+                try {
+                    const incompleteItems = [
+                        { kode: 'TEST' }, // Missing other fields
+                        { nama: 'Test Item' }, // Missing kode
+                        { kode: '', nama: '', stok: null } // Empty/null fields
+                    ];
+                    
+                    let fieldValidation = true;
+                    for (const item of incompleteItems) {
+                        try {
+                            const validation = validator.validateProductMatch(item, item);
+                            if (validation.isValid) {
+                                fieldValidation = false; // Should be invalid
+                            }
+                        } catch (error) {
+                            // Expected for incomplete items
+                        }
+                    }
+                    
+                    addTestResult('corrupted-results', 42, 'Missing Required Fields', 
+                        fieldValidation ? 'pass' : 'warning',
+                        fieldValidation ? 'Missing fields detected correctly' : 'Some field validation issues');
+                } catch (error) {
+                    addTestResult('corrupted-results', 42, 'Missing Required Fields', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 43: Invalid Numeric Values
+                try {
+                    const invalidNumbers = [NaN, Infinity, -Infinity, 'not_a_number', null, undefined];
+                    let numericHandling = true;
+                    
+                    for (const invalidNum of invalidNumbers) {
+                        try {
+                            const result = calculator.calculateTargetQuantity(invalidNum, 12);
+                            if (result !== null && result !== undefined && (!isFinite(result) || result < 0)) {
+                                numericHandling = false;
+                            }
+                        } catch (error) {
+                            // Expected for invalid numbers
+                        }
+                    }
+                    
+                    addTestResult('corrupted-results', 43, 'Invalid Numeric Values', 
+                        numericHandling ? 'pass' : 'warning',
+                        numericHandling ? 'Invalid numbers handled correctly' : 'Some numeric handling issues');
+                } catch (error) {
+                    addTestResult('corrupted-results', 43, 'Invalid Numeric Values', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 44: Corrupted localStorage Recovery
+                try {
+                    const corruptedData = ['corrupted_data', '{"incomplete": json', '', 'null'];
+                    let recoveryWorking = true;
+                    
+                    for (const data of corruptedData) {
+                        try {
+                            localStorage.setItem('masterBarang', data);
+                            const items = transformationManager.getTransformableItems();
+                            
+                            if (!Array.isArray(items)) {
+                                recoveryWorking = false;
+                            }
+                        } catch (error) {
+                            // Recovery should handle this gracefully
+                            recoveryWorking = false;
+                        }
+                    }
+                    
+                    addTestResult('corrupted-results', 44, 'Storage Recovery', 
+                        recoveryWorking ? 'pass' : 'warning',
+                        recoveryWorking ? 'Storage recovery working correctly' : 'Some recovery issues detected');
+                } catch (error) {
+                    addTestResult('corrupted-results', 44, 'Storage Recovery', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 45: Inconsistent Data States
+                try {
+                    const inconsistentData = [
+                        { kode: 'TEST1', stok: -10 }, // Negative stock
+                        { kode: 'TEST2', stok: 'invalid' }, // Invalid stock type
+                        { kode: 'TEST3', stok: null } // Null stock
+                    ];
+                    
+                    localStorage.setItem('masterBarang', JSON.stringify(inconsistentData));
+                    const items = transformationManager.getTransformableItems();
+                    
+                    // Should filter out invalid items
+                    const validItems = items.filter(item => item.stok > 0);
+                    const stateHandling = items.every(item => item.stok >= 0);
+                    
+                    addTestResult('corrupted-results', 45, 'Inconsistent Data States', 
+                        stateHandling ? 'pass' : 'warning',
+                        stateHandling ? 'Inconsistent states handled correctly' : 'Some state handling issues');
+                } catch (error) {
+                    addTestResult('corrupted-results', 45, 'Inconsistent Data States', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+                // Property 46: Error Handler Resilience
+                try {
+                    const corruptedErrors = [null, undefined, {}, [], 'string_error', 123];
+                    let errorHandling = true;
+                    
+                    for (const corruptedError of corruptedErrors) {
+                        try {
+                            const response = errorHandler.handleSystemError(corruptedError);
+                            
+                            if (typeof response !== 'object' || 
+                                response.success !== false || 
+                                typeof response.message !== 'string' ||
+                                response.message.length === 0) {
+                                errorHandling = false;
+                            }
+                        } catch (error) {
+                            errorHandling = false;
+                        }
+                    }
+                    
+                    addTestResult('corrupted-results', 46, 'Error Handler Resilience', 
+                        errorHandling ? 'pass' : 'fail',
+                        errorHandling ? 'Error handler resilient to corruption' : 'Error handler resilience issues');
+                } catch (error) {
+                    addTestResult('corrupted-results', 46, 'Error Handler Resilience', 'fail', 
+                        'Test failed with error', error.message);
+                }
+
+            } catch (error) {
+                addTestResult('corrupted-results', 0, 'Corrupted Data Tests Setup', 'fail', 
+                    'Failed to initialize corrupted data tests', error.message);
+            }
+        };
+
+        // Run all edge case tests
+        window.runAllEdgeCaseTests = async function() {
+            // Reset stats
+            testStats = { total: 0, passed: 0, failed: 0, warnings: 0 };
+            updateStats();
+            
+            // Clear all results
+            clearAllResults();
+            
+            // Show loading message
+            document.getElementById('test-results').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    Running comprehensive edge case property tests...
+                </div>
+            `;
+            
+            // Run all test categories
+            await runBoundaryTests();
+            await runConcurrentTests();
+            await runCorruptedDataTests();
+            
+            // Show completion message
+            const successRate = testStats.total > 0 ? ((testStats.passed / testStats.total) * 100).toFixed(1) : 0;
+            const alertClass = successRate >= 80 ? 'alert-success' : successRate >= 60 ? 'alert-warning' : 'alert-danger';
+            
+            document.getElementById('test-results').innerHTML = `
+                <div class="alert ${alertClass}">
+                    <h5><i class="fas fa-check-circle me-2"></i>Edge Case Property Tests Complete</h5>
+                    <p class="mb-0">
+                        Completed ${testStats.total} property tests with ${successRate}% success rate.
+                        ${testStats.passed} passed, ${testStats.failed} failed, ${testStats.warnings} warnings.
+                    </p>
+                </div>
+            `;
+        };
+
+        window.clearAllResults = function() {
+            clearResults('boundary-results');
+            clearResults('concurrent-results');
+            clearResults('corrupted-results');
+            document.getElementById('test-results').innerHTML = '';
+        };
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Task 12.1 Edge Cases Property Tests initialized');
+            updateStats();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 5: TransformationManager Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Test Task 5: TransformationManager Implementation</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Transformable Items</h2>
+        <div id="transformableResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Conversion Options</h2>
+        <div id="conversionResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Transformation Preview</h2>
+        <div id="previewResults"></div>
+    </div>
+
+    <script type="module">
+        import TransformationManager from './js/transformasi-barang/TransformationManager.js';
+        import ValidationEngine from './js/transformasi-barang/ValidationEngine.js';
+        import ConversionCalculator from './js/transformasi-barang/ConversionCalculator.js';
+        import StockManager from './js/transformasi-barang/StockManager.js';
+        import AuditLogger from './js/transformasi-barang/AuditLogger.js';
+
+        const testResults = document.getElementById('testResults');
+        const transformableResults = document.getElementById('transformableResults');
+        const conversionResults = document.getElementById('conversionResults');
+        const previewResults = document.getElementById('previewResults');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            testResults.appendChild(div);
+        }
+
+        function logPre(content, title = '', containerId = 'transformableResults') {
+            const container = document.getElementById(containerId);
+            
+            if (title) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'info';
+                titleDiv.textContent = title;
+                container.appendChild(titleDiv);
+            }
+            
+            const pre = document.createElement('pre');
+            pre.textContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : content;
+            container.appendChild(pre);
+        }
+
+        async function runTests() {
+            try {
+                log('Starting TransformationManager tests...', 'info');
+                
+                // Clear localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Setup test data
+                const masterBarang = [
+                    {
+                        kode: 'SABUN_DUS',
+                        nama: 'Sabun Mandi',
+                        satuan: 'DUS',
+                        stok: 10,
+                        baseProduct: 'SABUN_MANDI'
+                    },
+                    {
+                        kode: 'SABUN_PCS',
+                        nama: 'Sabun Mandi',
+                        satuan: 'PCS',
+                        stok: 50,
+                        baseProduct: 'SABUN_MANDI'
+                    },
+                    {
+                        kode: 'PASTA_LUSIN',
+                        nama: 'Pasta Gigi',
+                        satuan: 'LUSIN',
+                        stok: 5,
+                        baseProduct: 'PASTA_GIGI'
+                    },
+                    {
+                        kode: 'PASTA_PCS',
+                        nama: 'Pasta Gigi',
+                        satuan: 'PCS',
+                        stok: 20,
+                        baseProduct: 'PASTA_GIGI'
+                    },
+                    {
+                        kode: 'SHAMPOO_PCS',
+                        nama: 'Shampoo',
+                        satuan: 'PCS',
+                        stok: 30,
+                        baseProduct: 'SHAMPOO'
+                    }
+                ];
+
+                const conversionRatios = [
+                    {
+                        baseProduct: 'SABUN_MANDI',
+                        conversions: [
+                            { from: 'DUS', to: 'PCS', ratio: 12 },
+                            { from: 'PCS', to: 'DUS', ratio: 1/12 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'PASTA_GIGI',
+                        conversions: [
+                            { from: 'LUSIN', to: 'PCS', ratio: 12 },
+                            { from: 'PCS', to: 'LUSIN', ratio: 1/12 }
+                        ]
+                    }
+                ];
+
+                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                log('✓ Test data setup completed', 'success');
+
+                // Initialize all dependencies
+                const validationEngine = new ValidationEngine();
+                validationEngine.initialize();
+                
+                const calculator = new ConversionCalculator();
+                calculator.initialize();
+                
+                const stockManager = new StockManager();
+                stockManager.initialize();
+                
+                const auditLogger = new AuditLogger();
+                auditLogger.initialize();
+                
+                const transformationManager = new TransformationManager();
+                transformationManager.initialize({
+                    validationEngine,
+                    calculator,
+                    stockManager,
+                    auditLogger
+                });
+                log('✓ TransformationManager initialized successfully', 'success');
+
+                // Test 1: Get transformable items
+                const transformableItems = await transformationManager.getTransformableItems();
+                log(`✓ Retrieved ${transformableItems.length} transformable item groups`, 'success');
+                logPre(transformableItems, 'Transformable Items:', 'transformableResults');
+
+                // Verify transformable items
+                expect(transformableItems.length).toBe(2); // SABUN_MANDI and PASTA_GIGI
+                transformableItems.forEach(group => {
+                    expect(group.items.length).toBeGreaterThan(1);
+                    log(`✓ Group ${group.baseProduct} has ${group.items.length} units`, 'success');
+                });
+
+                // Test 2: Get conversion options for each base product
+                for (const group of transformableItems) {
+                    const conversionOptions = await transformationManager.getConversionOptions(group.baseProduct);
+                    log(`✓ Retrieved ${conversionOptions.length} conversion options for ${group.baseProduct}`, 'success');
+                    logPre(conversionOptions, `Conversion Options for ${group.baseProduct}:`, 'conversionResults');
+
+                    // Verify conversion options
+                    conversionOptions.forEach(option => {
+                        expect(option.from).toBeDefined();
+                        expect(option.to).toBeDefined();
+                        expect(option.ratio).toBeDefined();
+                        expect(typeof option.available).toBe('boolean');
+                        log(`✓ Conversion ${option.from.unit} → ${option.to.unit} (ratio: ${option.ratio}, available: ${option.available})`, 'success');
+                    });
+                }
+
+                // Test 3: Get transformation preview
+                const preview = await transformationManager.getTransformationPreview('SABUN_DUS', 'SABUN_PCS', 2);
+                log('✓ Transformation preview generated successfully', 'success');
+                logPre(preview, 'Transformation Preview (2 DUS → PCS):', 'previewResults');
+
+                // Verify preview
+                expect(preview.sourceItem.currentStock).toBe(10);
+                expect(preview.sourceItem.transformQuantity).toBe(2);
+                expect(preview.sourceItem.resultingStock).toBe(8);
+                expect(preview.targetItem.transformQuantity).toBe(24); // 2 * 12
+                expect(preview.targetItem.resultingStock).toBe(74); // 50 + 24
+                expect(preview.conversionRatio).toBe(12);
+                log('✓ Preview calculations verified', 'success');
+
+                // Test 4: Validate transformation
+                const validationResult = await transformationManager.validateTransformation('SABUN_DUS', 'SABUN_PCS', 2);
+                log(`✓ Transformation validation: ${validationResult.isValid ? 'VALID' : 'INVALID'}`, validationResult.isValid ? 'success' : 'error');
+                
+                if (!validationResult.isValid) {
+                    validationResult.errors.forEach(error => {
+                        log(`  Error: ${error}`, 'error');
+                    });
+                }
+
+                // Test 5: Execute transformation (if valid)
+                if (validationResult.isValid) {
+                    const transformationRecord = await transformationManager.executeTransformation({
+                        sourceItemId: 'SABUN_DUS',
+                        targetItemId: 'SABUN_PCS',
+                        quantity: 2,
+                        user: 'test_user'
+                    });
+                    
+                    log(`✓ Transformation executed successfully: ${transformationRecord.id}`, 'success');
+                    logPre(transformationRecord, 'Transformation Record:', 'previewResults');
+
+                    // Verify stock was updated
+                    const updatedMasterBarang = JSON.parse(localStorage.getItem('masterBarang'));
+                    const updatedSourceItem = updatedMasterBarang.find(item => item.kode === 'SABUN_DUS');
+                    const updatedTargetItem = updatedMasterBarang.find(item => item.kode === 'SABUN_PCS');
+                    
+                    expect(updatedSourceItem.stok).toBe(8); // 10 - 2
+                    expect(updatedTargetItem.stok).toBe(74); // 50 + 24
+                    log('✓ Stock levels updated correctly', 'success');
+                }
+
+                // Test 6: Get transformation history
+                const history = await transformationManager.getTransformationHistory();
+                log(`✓ Retrieved transformation history with ${history.length} records`, 'success');
+
+                // Test 7: Test invalid transformation
+                try {
+                    const invalidValidation = await transformationManager.validateTransformation('SABUN_DUS', 'PASTA_PCS', 1);
+                    if (!invalidValidation.isValid) {
+                        log('✓ Invalid transformation correctly rejected', 'success');
+                        invalidValidation.errors.forEach(error => {
+                            log(`  Expected error: ${error}`, 'warning');
+                        });
+                    }
+                } catch (error) {
+                    log(`✓ Invalid transformation handling: ${error.message}`, 'success');
+                }
+
+                // Test 8: Test insufficient stock
+                try {
+                    const insufficientStockValidation = await transformationManager.validateTransformation('SABUN_DUS', 'SABUN_PCS', 100);
+                    if (!insufficientStockValidation.isValid) {
+                        log('✓ Insufficient stock correctly detected', 'success');
+                        insufficientStockValidation.errors.forEach(error => {
+                            log(`  Expected error: ${error}`, 'warning');
+                        });
+                    }
+                } catch (error) {
+                    log(`✓ Insufficient stock handling: ${error.message}`, 'success');
+                }
+
+                log('All TransformationManager tests completed successfully!', 'success');
+
+            } catch (error) {
+                log(`✗ Test failed: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            }
+        }
+
+        // Simple expect function for testing
+        function expect(actual) {
+            return {
+                toBe: (expected) => {
+                    if (actual !== expected) {
+                        throw new Error(`Expected ${expected}, but got ${actual}`);
+                    }
+                },
+                toBeGreaterThan: (expected) => {
+                    if (actual <= expected) {
+                        throw new Error(`Expected ${actual} to be greater than ${expected}`);
+                    }
+                },
+                toBeDefined: () => {
+                    if (actual === undefined || actual === null) {
+                        throw new Error(`Expected value to be defined, but got ${actual}`);
+                    }
+                }
+            };
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

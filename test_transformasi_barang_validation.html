@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Validation - Sistem Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .validation-result {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .validation-result.valid {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .validation-result.invalid {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .data-models-test {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Validation - Sistem Transformasi Barang</h1>
+        <p>Halaman ini untuk testing data models dan validation engine sistem transformasi barang.</p>
+    </div>
+
+    <div class="container">
+        <h2>📊 Data Models Testing</h2>
+        <div class="data-models-test">
+            <div class="test-section">
+                <h3>TransformationItem</h3>
+                <button onclick="testTransformationItem()">Test TransformationItem</button>
+                <div id="transformation-item-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>TransformationRecord</h3>
+                <button onclick="testTransformationRecord()">Test TransformationRecord</button>
+                <div id="transformation-record-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>ConversionRatio</h3>
+                <button onclick="testConversionRatio()">Test ConversionRatio</button>
+                <div id="conversion-ratio-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>MasterBarangExtension</h3>
+                <button onclick="testMasterBarangExtension()">Test MasterBarangExtension</button>
+                <div id="master-barang-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔧 ValidationEngine Testing</h2>
+        
+        <div class="test-section">
+            <h3>1. Product Match Validation</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <h4>Source Item</h4>
+                    <div class="form-group">
+                        <label>Base Product:</label>
+                        <input type="text" id="source-base-product" value="AQUA-1L">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit:</label>
+                        <select id="source-unit">
+                            <option value="dus">DUS</option>
+                            <option value="pcs">PCS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama:</label>
+                        <input type="text" id="source-name" value="Aqua 1L DUS">
+                    </div>
+                </div>
+                <div>
+                    <h4>Target Item</h4>
+                    <div class="form-group">
+                        <label>Base Product:</label>
+                        <input type="text" id="target-base-product" value="AQUA-1L">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit:</label>
+                        <select id="target-unit">
+                            <option value="dus">DUS</option>
+                            <option value="pcs" selected>PCS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama:</label>
+                        <input type="text" id="target-name" value="Aqua 1L PCS">
+                    </div>
+                </div>
+            </div>
+            <button onclick="testProductMatch()">Test Product Match</button>
+            <div id="product-match-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Stock Availability Validation</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Current Stock:</label>
+                    <input type="number" id="current-stock" value="10" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Required Quantity:</label>
+                    <input type="number" id="required-quantity" value="5" min="1">
+                </div>
+            </div>
+            <button onclick="testStockAvailability()">Test Stock Availability</button>
+            <div id="stock-availability-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Conversion Ratio Validation</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Source Unit:</label>
+                    <select id="ratio-source-unit">
+                        <option value="dus">DUS</option>
+                        <option value="pcs">PCS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Target Unit:</label>
+                    <select id="ratio-target-unit">
+                        <option value="dus">DUS</option>
+                        <option value="pcs" selected>PCS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Base Product:</label>
+                    <input type="text" id="ratio-base-product" value="AQUA-1L">
+                </div>
+            </div>
+            <button onclick="testConversionRatioValidation()">Test Conversion Ratio</button>
+            <div id="conversion-ratio-validation-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Complete Transformation Request</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Source Item ID:</label>
+                    <select id="request-source-id">
+                        <option value="AQUA-DUS">AQUA-DUS</option>
+                        <option value="AQUA-PCS">AQUA-PCS</option>
+                        <option value="COCA-DUS">COCA-DUS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Target Item ID:</label>
+                    <select id="request-target-id">
+                        <option value="AQUA-DUS">AQUA-DUS</option>
+                        <option value="AQUA-PCS" selected>AQUA-PCS</option>
+                        <option value="COCA-DUS">COCA-DUS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Source Quantity:</label>
+                    <input type="number" id="request-quantity" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>User:</label>
+                    <input type="text" id="request-user" value="kasir01">
+                </div>
+            </div>
+            <button onclick="testCompleteRequest()">Test Complete Request</button>
+            <div id="complete-request-result"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📈 Test Results Summary</h2>
+        <div id="test-summary" class="test-section info">
+            <h3>Overall Status</h3>
+            <p>Jalankan test untuk melihat hasil...</p>
+        </div>
+    </div>
+
+    <!-- Load komponen -->
+    <script type="module">
+        import { 
+            TransformationItem, 
+            TransformationRecord, 
+            ConversionRule, 
+            ConversionRatio, 
+            MasterBarangExtension 
+        } from './js/transformasi-barang/DataModels.js';
+        
+        import ValidationEngine from './js/transformasi-barang/ValidationEngine.js';
+
+        // Make available globally for testing
+        window.TransformationItem = TransformationItem;
+        window.TransformationRecord = TransformationRecord;
+        window.ConversionRule = ConversionRule;
+        window.ConversionRatio = ConversionRatio;
+        window.MasterBarangExtension = MasterBarangExtension;
+        window.ValidationEngine = ValidationEngine;
+
+        // Initialize validation engine
+        window.validationEngine = new ValidationEngine();
+        
+        // Setup mock data
+        setupMockData();
+        window.validationEngine.initialize();
+        
+        console.log('Validation testing components loaded successfully');
+    </script>
+
+    <script>
+        let testResults = {
+            dataModels: 0,
+            validation: 0,
+            total: 0
+        };
+
+        function setupMockData() {
+            // Mock master barang data
+            const mockMasterBarang = [
+                {
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'dus',
+                    stok: 10,
+                    hargaBeli: 12000
+                },
+                {
+                    kode: 'AQUA-PCS',
+                    nama: 'Aqua 1L PCS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'pcs',
+                    stok: 5,
+                    hargaBeli: 1000
+                },
+                {
+                    kode: 'COCA-DUS',
+                    nama: 'Coca Cola 1L DUS',
+                    baseProduct: 'COCA-1L',
+                    kategori: 'minuman',
+                    satuan: 'dus',
+                    stok: 8,
+                    hargaBeli: 15000
+                }
+            ];
+
+            // Mock conversion ratios
+            const mockConversionRatios = [
+                {
+                    baseProduct: 'AQUA-1L',
+                    conversions: [
+                        { from: 'dus', to: 'pcs', ratio: 12 },
+                        { from: 'pcs', to: 'dus', ratio: 0.0833 }
+                    ]
+                },
+                {
+                    baseProduct: 'COCA-1L',
+                    conversions: [
+                        { from: 'dus', to: 'pcs', ratio: 24 }
+                    ]
+                }
+            ];
+
+            localStorage.setItem('masterBarang', JSON.stringify(mockMasterBarang));
+            localStorage.setItem('conversionRatios', JSON.stringify(mockConversionRatios));
+        }
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}\n`;
+            
+            element.style.display = 'block';
+            element.textContent += logMessage;
+            element.scrollTop = element.scrollHeight;
+
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showValidationResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '';
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `validation-result ${result.isValid ? 'valid' : 'invalid'}`;
+            
+            let content = `<strong>Status:</strong> ${result.isValid ? '✅ Valid' : '❌ Invalid'}<br>`;
+            
+            if (result.errors && result.errors.length > 0) {
+                content += `<strong>Errors:</strong><ul>`;
+                result.errors.forEach(error => {
+                    content += `<li>${error}</li>`;
+                });
+                content += `</ul>`;
+            }
+            
+            if (result.warnings && result.warnings.length > 0) {
+                content += `<strong>Warnings:</strong><ul>`;
+                result.warnings.forEach(warning => {
+                    content += `<li>${warning}</li>`;
+                });
+                content += `</ul>`;
+            }
+            
+            resultDiv.innerHTML = content;
+            element.appendChild(resultDiv);
+        }
+
+        // Data Models Tests
+        function testTransformationItem() {
+            try {
+                log('transformation-item-result', 'Testing TransformationItem...');
+                
+                // Test valid creation
+                const validData = {
+                    id: 'AQUA-DUS',
+                    name: 'Aqua 1L DUS',
+                    unit: 'dus',
+                    quantity: 1,
+                    stockBefore: 10,
+                    stockAfter: 9,
+                    baseProduct: 'AQUA-1L'
+                };
+                
+                const item = new TransformationItem(validData);
+                log('transformation-item-result', '✅ Valid TransformationItem created successfully');
+                
+                // Test serialization
+                const json = item.toJSON();
+                const restored = TransformationItem.fromJSON(json);
+                if (restored.id === item.id && restored.quantity === item.quantity) {
+                    log('transformation-item-result', '✅ Serialization/deserialization works correctly');
+                }
+                
+                // Test validation
+                try {
+                    new TransformationItem({ id: '', name: 'Test' });
+                    log('transformation-item-result', '❌ Validation should have failed');
+                } catch (error) {
+                    log('transformation-item-result', '✅ Validation correctly rejects invalid data');
+                }
+                
+                testResults.dataModels++;
+                log('transformation-item-result', '🎉 TransformationItem tests completed!');
+            } catch (error) {
+                log('transformation-item-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testTransformationRecord() {
+            try {
+                log('transformation-record-result', 'Testing TransformationRecord...');
+                
+                const sourceItem = new TransformationItem({
+                    id: 'AQUA-DUS', name: 'Aqua 1L DUS', unit: 'dus',
+                    quantity: 1, stockBefore: 10, stockAfter: 9
+                });
+                
+                const targetItem = new TransformationItem({
+                    id: 'AQUA-PCS', name: 'Aqua 1L PCS', unit: 'pcs',
+                    quantity: 12, stockBefore: 5, stockAfter: 17
+                });
+                
+                const record = new TransformationRecord({
+                    user: 'kasir01',
+                    sourceItem,
+                    targetItem,
+                    conversionRatio: 12,
+                    status: 'completed'
+                });
+                
+                log('transformation-record-result', '✅ Valid TransformationRecord created');
+                log('transformation-record-result', `ID: ${record.id}`);
+                
+                // Test validation
+                try {
+                    new TransformationRecord({
+                        user: '',
+                        sourceItem,
+                        targetItem,
+                        conversionRatio: 12
+                    });
+                    log('transformation-record-result', '❌ Validation should have failed');
+                } catch (error) {
+                    log('transformation-record-result', '✅ Validation correctly rejects invalid user');
+                }
+                
+                testResults.dataModels++;
+                log('transformation-record-result', '🎉 TransformationRecord tests completed!');
+            } catch (error) {
+                log('transformation-record-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testConversionRatio() {
+            try {
+                log('conversion-ratio-result', 'Testing ConversionRatio...');
+                
+                const ratio = new ConversionRatio({
+                    baseProduct: 'AQUA-1L',
+                    conversions: [
+                        { from: 'dus', to: 'pcs', ratio: 12 },
+                        { from: 'pcs', to: 'dus', ratio: 0.0833 }
+                    ]
+                });
+                
+                log('conversion-ratio-result', '✅ Valid ConversionRatio created');
+                
+                // Test getRatio
+                const ratioValue = ratio.getRatio('dus', 'pcs');
+                if (ratioValue === 12) {
+                    log('conversion-ratio-result', '✅ getRatio works correctly');
+                }
+                
+                // Test addConversionRule
+                const newRule = new ConversionRule({
+                    from: 'karton',
+                    to: 'dus',
+                    ratio: 2
+                });
+                
+                ratio.addConversionRule(newRule);
+                log('conversion-ratio-result', '✅ addConversionRule works correctly');
+                
+                // Test duplicate prevention
+                try {
+                    ratio.addConversionRule(newRule);
+                    log('conversion-ratio-result', '❌ Should prevent duplicate rules');
+                } catch (error) {
+                    log('conversion-ratio-result', '✅ Correctly prevents duplicate rules');
+                }
+                
+                testResults.dataModels++;
+                log('conversion-ratio-result', '🎉 ConversionRatio tests completed!');
+            } catch (error) {
+                log('conversion-ratio-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testMasterBarangExtension() {
+            try {
+                log('master-barang-result', 'Testing MasterBarangExtension...');
+                
+                const item = new MasterBarangExtension({
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'dus',
+                    stok: 10,
+                    hargaBeli: 12000,
+                    hargaJual: 13000
+                });
+                
+                log('master-barang-result', '✅ Valid MasterBarangExtension created');
+                log('master-barang-result', `Is transformable: ${item.isTransformable()}`);
+                
+                // Test updateStok
+                item.updateStok(15);
+                if (item.stok === 15) {
+                    log('master-barang-result', '✅ updateStok works correctly');
+                }
+                
+                // Test fromMasterBarang
+                const masterBarang = {
+                    kode: 'TEST-001',
+                    nama: 'Test Item',
+                    kategori: 'test',
+                    satuan: 'pcs',
+                    stok: 10,
+                    hargaBeli: 1000
+                };
+                
+                const extended = MasterBarangExtension.fromMasterBarang(masterBarang, 'TEST-BASE');
+                if (extended.baseProduct === 'TEST-BASE') {
+                    log('master-barang-result', '✅ fromMasterBarang works correctly');
+                }
+                
+                testResults.dataModels++;
+                log('master-barang-result', '🎉 MasterBarangExtension tests completed!');
+            } catch (error) {
+                log('master-barang-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Validation Engine Tests
+        function testProductMatch() {
+            const sourceItem = {
+                baseProduct: document.getElementById('source-base-product').value,
+                satuan: document.getElementById('source-unit').value,
+                nama: document.getElementById('source-name').value
+            };
+            
+            const targetItem = {
+                baseProduct: document.getElementById('target-base-product').value,
+                satuan: document.getElementById('target-unit').value,
+                nama: document.getElementById('target-name').value
+            };
+            
+            const result = validationEngine.validateProductMatch(sourceItem, targetItem);
+            showValidationResult('product-match-result', result);
+            
+            if (result.isValid) testResults.validation++;
+        }
+
+        function testStockAvailability() {
+            const sourceItem = {
+                nama: 'Test Item',
+                satuan: 'dus',
+                stok: parseInt(document.getElementById('current-stock').value)
+            };
+            
+            const quantity = parseInt(document.getElementById('required-quantity').value);
+            
+            const result = validationEngine.validateStockAvailability(sourceItem, quantity);
+            showValidationResult('stock-availability-result', result);
+            
+            if (result.isValid) testResults.validation++;
+        }
+
+        function testConversionRatioValidation() {
+            const sourceUnit = document.getElementById('ratio-source-unit').value;
+            const targetUnit = document.getElementById('ratio-target-unit').value;
+            const baseProduct = document.getElementById('ratio-base-product').value;
+            
+            const result = validationEngine.validateConversionRatio(sourceUnit, targetUnit, baseProduct);
+            showValidationResult('conversion-ratio-validation-result', result);
+            
+            if (result.isValid) testResults.validation++;
+        }
+
+        async function testCompleteRequest() {
+            const request = {
+                sourceItemId: document.getElementById('request-source-id').value,
+                targetItemId: document.getElementById('request-target-id').value,
+                sourceQuantity: parseInt(document.getElementById('request-quantity').value),
+                user: document.getElementById('request-user').value
+            };
+            
+            const result = await validationEngine.validateTransformationRequest(request);
+            showValidationResult('complete-request-result', result);
+            
+            if (result.isValid) testResults.validation++;
+        }
+
+        // Update test summary
+        function updateTestSummary() {
+            const summaryDiv = document.getElementById('test-summary');
+            testResults.total = testResults.dataModels + testResults.validation;
+            
+            if (testResults.total > 0) {
+                summaryDiv.className = 'test-section success';
+                summaryDiv.innerHTML = `
+                    <h3>Test Results Summary</h3>
+                    <p>✅ Data Models Tests: ${testResults.dataModels}/4</p>
+                    <p>✅ Validation Tests: ${testResults.validation}</p>
+                    <p><strong>Total Successful Tests: ${testResults.total}</strong></p>
+                `;
+            }
+        }
+
+        // Update summary every 2 seconds
+        setInterval(updateTestSummary, 2000);
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Validation test page loaded successfully');
+        });
+    </script>
+</body>
+</html>

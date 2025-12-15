@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 2 - ValidationEngine Complete</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .info {
+            color: #17a2b8;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Task 2 - ValidationEngine Complete</h1>
+        <p>Test untuk memverifikasi implementasi Task 2: ValidationEngine dan business rules</p>
+
+        <div class="test-section">
+            <h3>📋 Test Controls</h3>
+            <button onclick="runAllTests()">🚀 Run All Tests</button>
+            <button onclick="testProductValidation()">🔍 Test Product Validation</button>
+            <button onclick="testStockValidation()">📦 Test Stock Validation</button>
+            <button onclick="testConversionRatio()">⚖️ Test Conversion Ratio</button>
+            <button onclick="testBusinessRules()">📋 Test Business Rules</button>
+            <button onclick="testSystemConfiguration()">⚙️ Test System Config</button>
+            <button onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+
+        <div id="testResults"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addTestResult(testName, success, message, details = null) {
+            const result = {
+                testName,
+                success,
+                message,
+                details,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            testResults.push(result);
+            displayResults();
+        }
+
+        function displayResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = '';
+
+            testResults.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.success ? 'success' : 'error'}`;
+                
+                let html = `
+                    <strong>${result.success ? '✅' : '❌'} ${result.testName}</strong>
+                    <br>
+                    <small>${result.timestamp}</small>
+                    <br>
+                    ${result.message}
+                `;
+                
+                if (result.details) {
+                    html += `<pre>${JSON.stringify(result.details, null, 2)}</pre>`;
+                }
+                
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+        }
+
+        function clearResults() {
+            testResults = [];
+            displayResults();
+        }
+
+        function setupTestData() {
+            // Setup sample master barang data
+            const sampleMasterBarang = [
+                {
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    baseProduct: 'AQUA-1L',
+                    satuan: 'dus',
+                    stok: 10,
+                    kategori: 'minuman'
+                },
+                {
+                    kode: 'AQUA-PCS',
+                    nama: 'Aqua 1L PCS',
+                    baseProduct: 'AQUA-1L',
+                    satuan: 'pcs',
+                    stok: 50,
+                    kategori: 'minuman'
+                },
+                {
+                    kode: 'INDOMIE-KARTON',
+                    nama: 'Indomie Ayam Bawang Karton',
+                    baseProduct: 'INDOMIE-AB',
+                    satuan: 'karton',
+                    stok: 5,
+                    kategori: 'makanan'
+                },
+                {
+                    kode: 'INDOMIE-PCS',
+                    nama: 'Indomie Ayam Bawang PCS',
+                    baseProduct: 'INDOMIE-AB',
+                    satuan: 'pcs',
+                    stok: 200,
+                    kategori: 'makanan'
+                }
+            ];
+            
+            localStorage.setItem('masterBarang', JSON.stringify(sampleMasterBarang));
+            
+            // Setup sample conversion ratios
+            const sampleRatios = [
+                {
+                    baseProduct: 'AQUA-1L',
+                    conversions: [
+                        { from: 'dus', to: 'pcs', ratio: 12 },
+                        { from: 'pcs', to: 'dus', ratio: 1/12 }
+                    ]
+                },
+                {
+                    baseProduct: 'INDOMIE-AB',
+                    conversions: [
+                        { from: 'karton', to: 'pcs', ratio: 40 },
+                        { from: 'pcs', to: 'karton', ratio: 1/40 }
+                    ]
+                }
+            ];
+            
+            localStorage.setItem('conversionRatios', JSON.stringify(sampleRatios));
+        }
+
+        function testProductValidation() {
+            try {
+                setupTestData();
+                const validator = new ValidationEngine();
+                validator.initialize();
+
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang'));
+                const aquaDus = masterBarang.find(item => item.kode === 'AQUA-DUS');
+                const aquaPcs = masterBarang.find(item => item.kode === 'AQUA-PCS');
+                const indomieKarton = masterBarang.find(item => item.kode === 'INDOMIE-KARTON');
+
+                // Test 1: Same baseProduct, different units (should be valid)
+                const result1 = validator.validateProductMatch(aquaDus, aquaPcs);
+                addTestResult('Product Match - Same Base Product', result1.isValid, 
+                    `AQUA DUS -> PCS: ${result1.isValid ? 'Valid' : 'Invalid'}`, {
+                        errors: result1.errors,
+                        warnings: result1.warnings
+                    });
+
+                // Test 2: Different baseProduct (should be invalid)
+                const result2 = validator.validateProductMatch(aquaDus, indomieKarton);
+                addTestResult('Product Match - Different Base Product', !result2.isValid, 
+                    `AQUA -> INDOMIE: ${result2.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result2.errors,
+                        warnings: result2.warnings
+                    });
+
+                // Test 3: Same unit (should be invalid)
+                const result3 = validator.validateProductMatch(aquaDus, aquaDus);
+                addTestResult('Product Match - Same Unit', !result3.isValid, 
+                    `Same unit transformation: ${result3.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result3.errors,
+                        warnings: result3.warnings
+                    });
+
+                // Test 4: Null items (should be invalid)
+                const result4 = validator.validateProductMatch(null, aquaPcs);
+                addTestResult('Product Match - Null Item', !result4.isValid, 
+                    `Null item validation: ${result4.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result4.errors,
+                        warnings: result4.warnings
+                    });
+
+            } catch (error) {
+                addTestResult('Product Validation Test', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testStockValidation() {
+            try {
+                setupTestData();
+                const validator = new ValidationEngine();
+                validator.initialize();
+
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang'));
+                const aquaDus = masterBarang.find(item => item.kode === 'AQUA-DUS');
+
+                // Test 1: Sufficient stock (should be valid)
+                const result1 = validator.validateStockAvailability(aquaDus, 5);
+                addTestResult('Stock Validation - Sufficient Stock', result1.isValid, 
+                    `5 dari ${aquaDus.stok} tersedia: ${result1.isValid ? 'Valid' : 'Invalid'}`, {
+                        errors: result1.errors,
+                        warnings: result1.warnings
+                    });
+
+                // Test 2: Insufficient stock (should be invalid)
+                const result2 = validator.validateStockAvailability(aquaDus, 15);
+                addTestResult('Stock Validation - Insufficient Stock', !result2.isValid, 
+                    `15 dari ${aquaDus.stok} tersedia: ${result2.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result2.errors,
+                        warnings: result2.warnings
+                    });
+
+                // Test 3: Exact stock (should be valid with warning)
+                const result3 = validator.validateStockAvailability(aquaDus, aquaDus.stok);
+                addTestResult('Stock Validation - Exact Stock', result3.isValid, 
+                    `Exact stock (${aquaDus.stok}): Valid with ${result3.warnings.length} warnings`, {
+                        errors: result3.errors,
+                        warnings: result3.warnings
+                    });
+
+                // Test 4: Zero quantity (should be invalid)
+                const result4 = validator.validateStockAvailability(aquaDus, 0);
+                addTestResult('Stock Validation - Zero Quantity', !result4.isValid, 
+                    `Zero quantity: ${result4.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result4.errors,
+                        warnings: result4.warnings
+                    });
+
+                // Test 5: Zero stock item
+                const zeroStockItem = { ...aquaDus, stok: 0 };
+                const result5 = validator.validateStockAvailability(zeroStockItem, 1);
+                addTestResult('Stock Validation - Zero Stock', !result5.isValid, 
+                    `Zero stock item: ${result5.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result5.errors,
+                        warnings: result5.warnings
+                    });
+
+            } catch (error) {
+                addTestResult('Stock Validation Test', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testConversionRatio() {
+            try {
+                setupTestData();
+                const validator = new ValidationEngine();
+                validator.initialize();
+
+                // Test 1: Valid conversion ratio
+                const result1 = validator.validateConversionRatio('dus', 'pcs', 'AQUA-1L');
+                addTestResult('Conversion Ratio - Valid Ratio', result1.isValid, 
+                    `DUS -> PCS for AQUA-1L: ${result1.isValid ? 'Valid' : 'Invalid'}`, {
+                        errors: result1.errors,
+                        warnings: result1.warnings
+                    });
+
+                // Test 2: Non-existent ratio
+                const result2 = validator.validateConversionRatio('dus', 'kg', 'AQUA-1L');
+                addTestResult('Conversion Ratio - Non-existent Ratio', !result2.isValid, 
+                    `DUS -> KG for AQUA-1L: ${result2.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result2.errors,
+                        warnings: result2.warnings
+                    });
+
+                // Test 3: Non-existent product
+                const result3 = validator.validateConversionRatio('dus', 'pcs', 'NON-EXISTENT');
+                addTestResult('Conversion Ratio - Non-existent Product', !result3.isValid, 
+                    `DUS -> PCS for NON-EXISTENT: ${result3.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result3.errors,
+                        warnings: result3.warnings
+                    });
+
+                // Test 4: Same units
+                const result4 = validator.validateConversionRatio('dus', 'dus', 'AQUA-1L');
+                addTestResult('Conversion Ratio - Same Units', !result4.isValid, 
+                    `DUS -> DUS: ${result4.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result4.errors,
+                        warnings: result4.warnings
+                    });
+
+                // Test 5: Invalid parameters
+                const result5 = validator.validateConversionRatio('', 'pcs', 'AQUA-1L');
+                addTestResult('Conversion Ratio - Invalid Parameters', !result5.isValid, 
+                    `Empty source unit: ${result5.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: result5.errors,
+                        warnings: result5.warnings
+                    });
+
+            } catch (error) {
+                addTestResult('Conversion Ratio Test', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testBusinessRules() {
+            try {
+                setupTestData();
+                const validator = new ValidationEngine();
+                validator.initialize();
+
+                // Test 1: Valid transformation request
+                const validRequest = {
+                    sourceItemId: 'AQUA-DUS',
+                    targetItemId: 'AQUA-PCS',
+                    sourceQuantity: 2,
+                    user: 'kasir01'
+                };
+
+                validator.validateTransformationRequest(validRequest).then(result1 => {
+                    addTestResult('Business Rules - Valid Request', result1.isValid, 
+                        `Valid transformation request: ${result1.isValid ? 'Valid' : 'Invalid'}`, {
+                            errors: result1.errors,
+                            warnings: result1.warnings
+                        });
+                });
+
+                // Test 2: Invalid request (insufficient stock)
+                const invalidRequest = {
+                    sourceItemId: 'AQUA-DUS',
+                    targetItemId: 'AQUA-PCS',
+                    sourceQuantity: 15, // More than available (10)
+                    user: 'kasir01'
+                };
+
+                validator.validateTransformationRequest(invalidRequest).then(result2 => {
+                    addTestResult('Business Rules - Insufficient Stock', !result2.isValid, 
+                        `Insufficient stock request: ${result2.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                            errors: result2.errors,
+                            warnings: result2.warnings
+                        });
+                });
+
+                // Test 3: Invalid request (different products)
+                const differentProductRequest = {
+                    sourceItemId: 'AQUA-DUS',
+                    targetItemId: 'INDOMIE-PCS',
+                    sourceQuantity: 2,
+                    user: 'kasir01'
+                };
+
+                validator.validateTransformationRequest(differentProductRequest).then(result3 => {
+                    addTestResult('Business Rules - Different Products', !result3.isValid, 
+                        `Different products request: ${result3.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                            errors: result3.errors,
+                            warnings: result3.warnings
+                        });
+                });
+
+                // Test 4: Invalid input data
+                const invalidInputRequest = {
+                    sourceItemId: '',
+                    targetItemId: 'AQUA-PCS',
+                    sourceQuantity: -1,
+                    user: ''
+                };
+
+                validator.validateTransformationRequest(invalidInputRequest).then(result4 => {
+                    addTestResult('Business Rules - Invalid Input', !result4.isValid, 
+                        `Invalid input request: ${result4.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                            errors: result4.errors,
+                            warnings: result4.warnings
+                        });
+                });
+
+            } catch (error) {
+                addTestResult('Business Rules Test', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testSystemConfiguration() {
+            try {
+                setupTestData();
+                const validator = new ValidationEngine();
+                validator.initialize();
+
+                // Test system configuration
+                const configResult = validator.validateSystemConfiguration();
+                addTestResult('System Configuration', configResult.isValid, 
+                    `System config: ${configResult.isValid ? 'Valid' : 'Invalid'}`, {
+                        errors: configResult.errors,
+                        warnings: configResult.warnings
+                    });
+
+                // Test with missing master barang
+                localStorage.removeItem('masterBarang');
+                const configResult2 = validator.validateSystemConfiguration();
+                addTestResult('System Config - Missing Master Barang', !configResult2.isValid, 
+                    `Missing master barang: ${configResult2.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: configResult2.errors,
+                        warnings: configResult2.warnings
+                    });
+
+                // Test with missing conversion ratios
+                setupTestData(); // Restore master barang
+                localStorage.removeItem('conversionRatios');
+                const configResult3 = validator.validateSystemConfiguration();
+                addTestResult('System Config - Missing Ratios', !configResult3.isValid, 
+                    `Missing conversion ratios: ${configResult3.isValid ? 'Valid' : 'Invalid (Expected)'}`, {
+                        errors: configResult3.errors,
+                        warnings: configResult3.warnings
+                    });
+
+                // Restore data for other tests
+                setupTestData();
+
+            } catch (error) {
+                addTestResult('System Configuration Test', false, 'Error: ' + error.message);
+            }
+        }
+
+        function runAllTests() {
+            clearResults();
+            
+            addTestResult('Test Suite Started', true, 'Memulai semua tests untuk Task 2 ValidationEngine');
+            
+            setTimeout(() => testProductValidation(), 100);
+            setTimeout(() => testStockValidation(), 200);
+            setTimeout(() => testConversionRatio(), 300);
+            setTimeout(() => testBusinessRules(), 400);
+            setTimeout(() => testSystemConfiguration(), 500);
+            
+            setTimeout(() => {
+                const totalTests = testResults.length - 1; // Exclude start message
+                const passedTests = testResults.filter(r => r.success).length - 1;
+                
+                addTestResult('Test Suite Completed', passedTests === totalTests, 
+                    `${passedTests}/${totalTests} tests passed`, {
+                        totalTests: totalTests,
+                        passedTests: passedTests,
+                        failedTests: totalTests - passedTests
+                    });
+            }, 1000);
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test StockManager - Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test StockManager - Sistem Transformasi Barang</h1>
+        <p>Test ini memverifikasi implementasi StockManager dan data persistence.</p>
+        
+        <div class="test-section">
+            <h3>1. Test Basic Functionality</h3>
+            <button onclick="testBasicFunctionality()">Run Basic Tests</button>
+            <div id="basicResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Test Stock Updates</h3>
+            <button onclick="testStockUpdates()">Run Stock Update Tests</button>
+            <div id="stockUpdateResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test Atomic Operations</h3>
+            <button onclick="testAtomicOperations()">Run Atomic Operation Tests</button>
+            <div id="atomicResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Test Stock Validation</h3>
+            <button onclick="testStockValidation()">Run Validation Tests</button>
+            <div id="validationResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Test Error Handling</h3>
+            <button onclick="testErrorHandling()">Run Error Handling Tests</button>
+            <div id="errorResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. Test Backup and Restore</h3>
+            <button onclick="testBackupRestore()">Run Backup/Restore Tests</button>
+            <div id="backupResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>7. Run All Tests</h3>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <div id="allTestsResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Import StockManager -->
+    <script type="module">
+        import StockManager from './js/transformasi-barang/StockManager.js';
+        window.StockManager = StockManager;
+    </script>
+
+    <script>
+        let stockManager;
+
+        // Setup sample data
+        function setupSampleData() {
+            const sampleMasterBarang = [
+                {
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    kategori: 'minuman',
+                    satuan: 'dus',
+                    stok: 10,
+                    hargaBeli: 12000
+                },
+                {
+                    kode: 'AQUA-PCS',
+                    nama: 'Aqua 1L PCS',
+                    kategori: 'minuman',
+                    satuan: 'pcs',
+                    stok: 50,
+                    hargaBeli: 1000
+                },
+                {
+                    kode: 'BERAS-KG',
+                    nama: 'Beras Premium',
+                    kategori: 'sembako',
+                    satuan: 'kg',
+                    stok: 100,
+                    hargaBeli: 15000
+                }
+            ];
+            
+            localStorage.setItem('masterBarang', JSON.stringify(sampleMasterBarang));
+            stockManager = new StockManager();
+            stockManager.initialize();
+        }
+
+        async function testBasicFunctionality() {
+            const resultDiv = document.getElementById('basicResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                setupSampleData();
+                
+                let results = [];
+                
+                // Test initialization
+                results.push(`✓ StockManager initialized: ${stockManager.initialized}`);
+                
+                // Test get stock balance
+                const balance = await stockManager.getStockBalance('AQUA-DUS');
+                results.push(`✓ Stock balance for AQUA-DUS: ${balance}`);
+                
+                // Test stock sufficiency check
+                const sufficient = await stockManager.isStockSufficient('AQUA-DUS', 5);
+                results.push(`✓ Stock sufficient for 5 units: ${sufficient}`);
+                
+                const insufficient = await stockManager.isStockSufficient('AQUA-DUS', 15);
+                results.push(`✓ Stock sufficient for 15 units: ${insufficient}`);
+                
+                // Test get items with stock
+                const itemsWithStock = await stockManager.getItemsWithStock();
+                results.push(`✓ Items with stock count: ${itemsWithStock.length}`);
+                
+                resultDiv.innerHTML = `<div class="success">Basic Functionality Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Basic Functionality Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testStockUpdates() {
+            const resultDiv = document.getElementById('stockUpdateResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                setupSampleData();
+                
+                let results = [];
+                
+                // Test stock update
+                const originalBalance = await stockManager.getStockBalance('AQUA-DUS');
+                results.push(`Original balance: ${originalBalance}`);
+                
+                const updateResult = await stockManager.updateStock('AQUA-DUS', 'dus', -2);
+                results.push(`Update result: ${JSON.stringify(updateResult, null, 2)}`);
+                
+                const newBalance = await stockManager.getStockBalance('AQUA-DUS');
+                results.push(`New balance: ${newBalance}`);
+                results.push(`Balance change correct: ${newBalance === originalBalance - 2}`);
+                
+                // Test bulk stock balance
+                const bulkBalance = await stockManager.getBulkStockBalance(['AQUA-DUS', 'AQUA-PCS', 'BERAS-KG']);
+                results.push(`Bulk balance: ${JSON.stringify(bulkBalance, null, 2)}`);
+                
+                resultDiv.innerHTML = `<div class="success">Stock Update Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Stock Update Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testAtomicOperations() {
+            const resultDiv = document.getElementById('atomicResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                setupSampleData();
+                
+                let results = [];
+                
+                // Record original balances
+                const originalSourceBalance = await stockManager.getStockBalance('AQUA-DUS');
+                const originalTargetBalance = await stockManager.getStockBalance('AQUA-PCS');
+                results.push(`Original source balance: ${originalSourceBalance}`);
+                results.push(`Original target balance: ${originalTargetBalance}`);
+                
+                // Perform atomic transformation
+                const sourceUpdate = { itemId: 'AQUA-DUS', quantityChange: -1 };
+                const targetUpdate = { itemId: 'AQUA-PCS', quantityChange: 12 };
+                
+                const atomicResult = await stockManager.atomicTransformationUpdate(sourceUpdate, targetUpdate);
+                results.push(`Atomic update success: ${atomicResult.success}`);
+                results.push(`Source new stock: ${atomicResult.sourceUpdate.newStock}`);
+                results.push(`Target new stock: ${atomicResult.targetUpdate.newStock}`);
+                
+                // Verify balances
+                const newSourceBalance = await stockManager.getStockBalance('AQUA-DUS');
+                const newTargetBalance = await stockManager.getStockBalance('AQUA-PCS');
+                results.push(`Verified source balance: ${newSourceBalance}`);
+                results.push(`Verified target balance: ${newTargetBalance}`);
+                
+                // Test rollback
+                const rollbackSuccess = await stockManager.rollbackStockChanges(atomicResult.rollbackData);
+                results.push(`Rollback success: ${rollbackSuccess}`);
+                
+                // Verify rollback
+                const restoredSourceBalance = await stockManager.getStockBalance('AQUA-DUS');
+                const restoredTargetBalance = await stockManager.getStockBalance('AQUA-PCS');
+                results.push(`Restored source balance: ${restoredSourceBalance}`);
+                results.push(`Restored target balance: ${restoredTargetBalance}`);
+                results.push(`Rollback correct: ${restoredSourceBalance === originalSourceBalance && restoredTargetBalance === originalTargetBalance}`);
+                
+                resultDiv.innerHTML = `<div class="success">Atomic Operation Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Atomic Operation Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testStockValidation() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                setupSampleData();
+                
+                let results = [];
+                
+                // Update stocks to known values
+                await stockManager.updateStock('AQUA-DUS', 'dus', -1); // 10 -> 9
+                await stockManager.updateStock('AQUA-PCS', 'pcs', 12);  // 50 -> 62
+                
+                // Create transformation record
+                const transformationRecord = {
+                    sourceItem: {
+                        id: 'AQUA-DUS',
+                        quantity: 1,
+                        stockBefore: 10,
+                        stockAfter: 9
+                    },
+                    targetItem: {
+                        id: 'AQUA-PCS',
+                        quantity: 12,
+                        stockBefore: 50,
+                        stockAfter: 62
+                    },
+                    conversionRatio: 12
+                };
+                
+                const isConsistent = await stockManager.validateStockConsistency(transformationRecord);
+                results.push(`Stock consistency validation: ${isConsistent}`);
+                
+                // Test with inconsistent record
+                const inconsistentRecord = {
+                    sourceItem: {
+                        id: 'AQUA-DUS',
+                        quantity: 1,
+                        stockBefore: 10,
+                        stockAfter: 8 // Wrong value
+                    },
+                    targetItem: {
+                        id: 'AQUA-PCS',
+                        quantity: 12,
+                        stockBefore: 50,
+                        stockAfter: 62
+                    },
+                    conversionRatio: 12
+                };
+                
+                const isInconsistent = await stockManager.validateStockConsistency(inconsistentRecord);
+                results.push(`Inconsistent record validation: ${isInconsistent}`);
+                
+                resultDiv.innerHTML = `<div class="success">Stock Validation Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Stock Validation Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testErrorHandling() {
+            const resultDiv = document.getElementById('errorResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                setupSampleData();
+                
+                let results = [];
+                
+                // Test invalid item ID
+                try {
+                    await stockManager.getStockBalance('INVALID-ID');
+                    results.push('✗ Should have thrown error for invalid ID');
+                } catch (error) {
+                    results.push(`✓ Correctly threw error for invalid ID: ${error.message}`);
+                }
+                
+                // Test negative stock prevention
+                try {
+                    await stockManager.updateStock('AQUA-DUS', 'dus', -15);
+                    results.push('✗ Should have prevented negative stock');
+                } catch (error) {
+                    results.push(`✓ Correctly prevented negative stock: ${error.message}`);
+                }
+                
+                // Test invalid parameters
+                try {
+                    await stockManager.updateStock('', 'pcs', 5);
+                    results.push('✗ Should have thrown error for empty ID');
+                } catch (error) {
+                    results.push(`✓ Correctly threw error for empty ID: ${error.message}`);
+                }
+                
+                try {
+                    await stockManager.updateStock('AQUA-DUS', 'pcs', 'invalid');
+                    results.push('✗ Should have thrown error for invalid quantity');
+                } catch (error) {
+                    results.push(`✓ Correctly threw error for invalid quantity: ${error.message}`);
+                }
+                
+                // Test corrupted data handling
+                localStorage.setItem('masterBarang', 'invalid json');
+                const corruptedStockManager = new StockManager();
+                corruptedStockManager.initialize();
+                
+                const items = await corruptedStockManager.getItemsWithStock();
+                results.push(`✓ Handled corrupted data gracefully, returned ${items.length} items`);
+                
+                resultDiv.innerHTML = `<div class="success">Error Handling Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Error Handling Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testBackupRestore() {
+            const resultDiv = document.getElementById('backupResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                setupSampleData();
+                
+                let results = [];
+                
+                // Create backup
+                const backup = await stockManager.createStockBackup();
+                results.push(`✓ Backup created with ${backup.stockData.length} items`);
+                results.push(`Backup timestamp: ${backup.timestamp}`);
+                
+                // Modify stocks
+                await stockManager.updateStock('AQUA-DUS', 'dus', -5);
+                await stockManager.updateStock('AQUA-PCS', 'pcs', -20);
+                
+                const modifiedAquaDus = await stockManager.getStockBalance('AQUA-DUS');
+                const modifiedAquaPcs = await stockManager.getStockBalance('AQUA-PCS');
+                results.push(`Modified AQUA-DUS: ${modifiedAquaDus}`);
+                results.push(`Modified AQUA-PCS: ${modifiedAquaPcs}`);
+                
+                // Restore from backup
+                const restoreSuccess = await stockManager.restoreStockFromBackup(backup);
+                results.push(`✓ Restore success: ${restoreSuccess}`);
+                
+                // Verify restoration
+                const restoredAquaDus = await stockManager.getStockBalance('AQUA-DUS');
+                const restoredAquaPcs = await stockManager.getStockBalance('AQUA-PCS');
+                results.push(`Restored AQUA-DUS: ${restoredAquaDus}`);
+                results.push(`Restored AQUA-PCS: ${restoredAquaPcs}`);
+                
+                // Get statistics
+                const stats = await stockManager.getStockStatistics();
+                results.push(`Stock statistics: ${JSON.stringify(stats, null, 2)}`);
+                
+                resultDiv.innerHTML = `<div class="success">Backup/Restore Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Backup/Restore Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function runAllTests() {
+            const resultDiv = document.getElementById('allTestsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">Running all tests...</div>';
+            
+            const tests = [
+                { name: 'Basic Functionality', func: testBasicFunctionality },
+                { name: 'Stock Updates', func: testStockUpdates },
+                { name: 'Atomic Operations', func: testAtomicOperations },
+                { name: 'Stock Validation', func: testStockValidation },
+                { name: 'Error Handling', func: testErrorHandling },
+                { name: 'Backup/Restore', func: testBackupRestore }
+            ];
+            
+            let results = [];
+            let passedCount = 0;
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    results.push(`✓ ${test.name}: PASSED`);
+                    passedCount++;
+                } catch (error) {
+                    results.push(`✗ ${test.name}: FAILED - ${error.message}`);
+                }
+            }
+            
+            const summary = `Test Summary: ${passedCount}/${tests.length} tests passed`;
+            const status = passedCount === tests.length ? 'success' : 'error';
+            
+            resultDiv.innerHTML = `<div class="${status}">${summary}</div><pre>${results.join('\n')}</pre>`;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            console.log('StockManager test page loaded');
+        });
+    </script>
+</body>
+</html>

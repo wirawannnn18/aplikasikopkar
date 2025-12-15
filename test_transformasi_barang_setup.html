@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Setup - Sistem Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .component-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-initialized {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-not-initialized {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Setup - Sistem Transformasi Barang</h1>
+        <p>Halaman ini untuk testing setup dan inisialisasi komponen sistem transformasi barang.</p>
+    </div>
+
+    <div class="container">
+        <h2>📋 Status Komponen</h2>
+        <div class="test-section info">
+            <h3>Status Inisialisasi</h3>
+            <div id="component-status">
+                <div>TransformationManager <span id="status-tm" class="component-status status-not-initialized">Not Initialized</span></div>
+                <div>ValidationEngine <span id="status-ve" class="component-status status-not-initialized">Not Initialized</span></div>
+                <div>ConversionCalculator <span id="status-cc" class="component-status status-not-initialized">Not Initialized</span></div>
+                <div>StockManager <span id="status-sm" class="component-status status-not-initialized">Not Initialized</span></div>
+                <div>AuditLogger <span id="status-al" class="component-status status-not-initialized">Not Initialized</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🚀 Test Actions</h2>
+        
+        <div class="test-section">
+            <h3>1. Load Components</h3>
+            <button onclick="loadComponents()">Load All Components</button>
+            <div id="load-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Initialize Components</h3>
+            <button onclick="initializeComponents()" id="init-btn" disabled>Initialize All Components</button>
+            <div id="init-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test Basic Functionality</h3>
+            <button onclick="testBasicFunctionality()" id="test-btn" disabled>Run Basic Tests</button>
+            <div id="test-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Test Error Handling</h3>
+            <button onclick="testErrorHandling()" id="error-btn" disabled>Test Error Scenarios</button>
+            <div id="error-result" class="log-output" style="margin-top: 10px; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Test Results</h2>
+        <div id="overall-results" class="test-section info">
+            <h3>Overall Status</h3>
+            <p>Jalankan test untuk melihat hasil...</p>
+        </div>
+    </div>
+
+    <!-- Load komponen -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+
+    <script>
+        // Global variables untuk komponen
+        let transformationManager;
+        let validationEngine;
+        let conversionCalculator;
+        let stockManager;
+        let auditLogger;
+        let componentsLoaded = false;
+
+        // Setup localStorage mock data untuk testing
+        function setupMockData() {
+            // Mock master barang data
+            const mockMasterBarang = [
+                {
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'dus',
+                    stok: 10,
+                    hargaBeli: 12000
+                },
+                {
+                    kode: 'AQUA-PCS',
+                    nama: 'Aqua 1L PCS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'pcs',
+                    stok: 5,
+                    hargaBeli: 1000
+                }
+            ];
+
+            // Mock conversion ratios
+            const mockConversionRatios = [
+                {
+                    baseProduct: 'AQUA-1L',
+                    conversions: [
+                        { from: 'dus', to: 'pcs', ratio: 12 },
+                        { from: 'pcs', to: 'dus', ratio: 0.0833 }
+                    ]
+                }
+            ];
+
+            localStorage.setItem('masterBarang', JSON.stringify(mockMasterBarang));
+            localStorage.setItem('conversionRatios', JSON.stringify(mockConversionRatios));
+            localStorage.setItem('transformationLogs', JSON.stringify([]));
+        }
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}\n`;
+            
+            element.style.display = 'block';
+            element.textContent += logMessage;
+            element.scrollTop = element.scrollHeight;
+
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateComponentStatus(componentId, status) {
+            const statusElement = document.getElementById(componentId);
+            if (status) {
+                statusElement.textContent = 'Initialized';
+                statusElement.className = 'component-status status-initialized';
+            } else {
+                statusElement.textContent = 'Not Initialized';
+                statusElement.className = 'component-status status-not-initialized';
+            }
+        }
+
+        function loadComponents() {
+            try {
+                log('load-result', 'Loading components...');
+                
+                // Setup mock data
+                setupMockData();
+                log('load-result', 'Mock data setup complete');
+
+                // Create component instances
+                transformationManager = new TransformationManager();
+                validationEngine = new ValidationEngine();
+                conversionCalculator = new ConversionCalculator();
+                stockManager = new StockManager();
+                auditLogger = new AuditLogger();
+
+                log('load-result', 'All components created successfully');
+                componentsLoaded = true;
+
+                // Enable next button
+                document.getElementById('init-btn').disabled = false;
+                
+                log('load-result', '✅ Component loading completed');
+            } catch (error) {
+                log('load-result', `❌ Error loading components: ${error.message}`, 'error');
+            }
+        }
+
+        function initializeComponents() {
+            if (!componentsLoaded) {
+                log('init-result', '❌ Components not loaded yet');
+                return;
+            }
+
+            try {
+                log('init-result', 'Initializing components...');
+
+                // Initialize individual components
+                validationEngine.initialize();
+                updateComponentStatus('status-ve', true);
+                log('init-result', '✅ ValidationEngine initialized');
+
+                conversionCalculator.initialize();
+                updateComponentStatus('status-cc', true);
+                log('init-result', '✅ ConversionCalculator initialized');
+
+                stockManager.initialize();
+                updateComponentStatus('status-sm', true);
+                log('init-result', '✅ StockManager initialized');
+
+                auditLogger.initialize();
+                updateComponentStatus('status-al', true);
+                log('init-result', '✅ AuditLogger initialized');
+
+                // Initialize TransformationManager with dependencies
+                transformationManager.initialize({
+                    validationEngine,
+                    calculator: conversionCalculator,
+                    stockManager,
+                    auditLogger
+                });
+                updateComponentStatus('status-tm', true);
+                log('init-result', '✅ TransformationManager initialized');
+
+                // Enable test buttons
+                document.getElementById('test-btn').disabled = false;
+                document.getElementById('error-btn').disabled = false;
+
+                log('init-result', '🎉 All components initialized successfully!');
+            } catch (error) {
+                log('init-result', `❌ Error initializing components: ${error.message}`, 'error');
+            }
+        }
+
+        function testBasicFunctionality() {
+            try {
+                log('test-result', 'Running basic functionality tests...');
+
+                // Test ValidationEngine
+                const validData = {
+                    sourceItemId: 'AQUA-DUS',
+                    targetItemId: 'AQUA-PCS',
+                    sourceQuantity: 1,
+                    user: 'kasir01'
+                };
+
+                const validationResult = validationEngine.validateInputData(validData);
+                if (validationResult.isValid) {
+                    log('test-result', '✅ ValidationEngine: Valid data accepted');
+                } else {
+                    log('test-result', `❌ ValidationEngine: Valid data rejected - ${validationResult.errors.join(', ')}`);
+                }
+
+                // Test invalid data
+                const invalidData = {
+                    sourceItemId: '',
+                    targetItemId: null,
+                    sourceQuantity: -1,
+                    user: ''
+                };
+
+                const invalidResult = validationEngine.validateInputData(invalidData);
+                if (!invalidResult.isValid) {
+                    log('test-result', '✅ ValidationEngine: Invalid data properly rejected');
+                } else {
+                    log('test-result', '❌ ValidationEngine: Invalid data incorrectly accepted');
+                }
+
+                // Test ConversionCalculator
+                const targetQty = 12;
+                const ratio = 12;
+                const sourceQty = conversionCalculator.calculateSourceQuantity(targetQty, ratio);
+                if (sourceQty === 1) {
+                    log('test-result', '✅ ConversionCalculator: Reverse calculation correct');
+                } else {
+                    log('test-result', `❌ ConversionCalculator: Reverse calculation incorrect (got ${sourceQty}, expected 1)`);
+                }
+
+                // Test AuditLogger
+                auditLogger.logEvent('info', 'Test message', { test: true })
+                    .then(result => {
+                        if (result) {
+                            log('test-result', '✅ AuditLogger: Event logging successful');
+                        } else {
+                            log('test-result', '❌ AuditLogger: Event logging failed');
+                        }
+                    })
+                    .catch(error => {
+                        log('test-result', `❌ AuditLogger: Event logging error - ${error.message}`);
+                    });
+
+                log('test-result', '🎉 Basic functionality tests completed!');
+            } catch (error) {
+                log('test-result', `❌ Error in basic functionality tests: ${error.message}`, 'error');
+            }
+        }
+
+        function testErrorHandling() {
+            try {
+                log('error-result', 'Testing error handling scenarios...');
+
+                // Test uninitialized components
+                const uninitializedTM = new TransformationManager();
+                uninitializedTM.getTransformableItems()
+                    .then(() => {
+                        log('error-result', '❌ Uninitialized TransformationManager should throw error');
+                    })
+                    .catch(error => {
+                        if (error.message.includes('belum diinisialisasi')) {
+                            log('error-result', '✅ Uninitialized TransformationManager properly throws error');
+                        } else {
+                            log('error-result', `❌ Wrong error message: ${error.message}`);
+                        }
+                    });
+
+                // Test ValidationEngine with null data
+                try {
+                    const result = validationEngine.validateInputData(null);
+                    if (!result.isValid && result.errors.includes('Data transformasi tidak boleh kosong')) {
+                        log('error-result', '✅ ValidationEngine: Null data properly rejected');
+                    } else {
+                        log('error-result', '❌ ValidationEngine: Null data not properly handled');
+                    }
+                } catch (error) {
+                    log('error-result', `❌ ValidationEngine: Unexpected error with null data - ${error.message}`);
+                }
+
+                // Test ConversionCalculator with invalid ratios
+                try {
+                    conversionCalculator.calculateSourceQuantity(10, 0);
+                    log('error-result', '❌ ConversionCalculator should reject zero ratio');
+                } catch (error) {
+                    if (error.message.includes('positif')) {
+                        log('error-result', '✅ ConversionCalculator: Zero ratio properly rejected');
+                    } else {
+                        log('error-result', `❌ ConversionCalculator: Wrong error for zero ratio - ${error.message}`);
+                    }
+                }
+
+                log('error-result', '🎉 Error handling tests completed!');
+            } catch (error) {
+                log('error-result', `❌ Error in error handling tests: ${error.message}`, 'error');
+            }
+        }
+
+        // Update overall results
+        function updateOverallResults() {
+            const resultsDiv = document.getElementById('overall-results');
+            const allInitialized = transformationManager && transformationManager.initialized &&
+                                 validationEngine && validationEngine.initialized &&
+                                 conversionCalculator && conversionCalculator.initialized &&
+                                 stockManager && stockManager.initialized &&
+                                 auditLogger && auditLogger.initialized;
+
+            if (allInitialized) {
+                resultsDiv.className = 'test-section success';
+                resultsDiv.innerHTML = '<h3>Overall Status</h3><p>✅ Semua komponen berhasil diinisialisasi dan siap digunakan!</p>';
+            } else if (componentsLoaded) {
+                resultsDiv.className = 'test-section warning';
+                resultsDiv.innerHTML = '<h3>Overall Status</h3><p>⚠️ Komponen dimuat tapi belum semua diinisialisasi.</p>';
+            } else {
+                resultsDiv.className = 'test-section info';
+                resultsDiv.innerHTML = '<h3>Overall Status</h3><p>ℹ️ Jalankan test untuk melihat hasil...</p>';
+            }
+        }
+
+        // Update results every second
+        setInterval(updateOverallResults, 1000);
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded. Ready to test Transformasi Barang setup.');
+        });
+    </script>
+</body>
+</html>

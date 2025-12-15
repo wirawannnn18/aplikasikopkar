@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test ReportManager - Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Test ReportManager - Transformasi Barang</h1>
+        <p class="info">Testing basic functionality of ReportManager</p>
+        
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearOutput()">Clear Output</button>
+        
+        <div id="output" class="output"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+
+    <script>
+        let reportManager;
+        let auditLogger;
+
+        function log(message, type = 'info') {
+            const element = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        async function runAllTests() {
+            clearOutput();
+            log('Starting ReportManager tests...', 'info');
+
+            try {
+                // Test 1: Initialize components
+                log('\n=== Test 1: Initialize Components ===', 'info');
+                auditLogger = new AuditLogger();
+                auditLogger.initialize();
+                
+                reportManager = new ReportManager();
+                reportManager.initialize({ auditLogger });
+                log('✓ Components initialized successfully', 'success');
+
+                // Test 2: Setup test data
+                log('\n=== Test 2: Setup Test Data ===', 'info');
+                await setupTestData();
+                log('✓ Test data setup completed', 'success');
+
+                // Test 3: Test export functionality
+                log('\n=== Test 3: Export Functionality ===', 'info');
+                await testExportFunctionality();
+
+                // Test 4: Test search functionality
+                log('\n=== Test 4: Search Functionality ===', 'info');
+                await testSearchFunctionality();
+
+                // Test 5: Test reporting functionality
+                log('\n=== Test 5: Reporting Functionality ===', 'info');
+                await testReportingFunctionality();
+
+                log('\n=== All Tests Completed Successfully! ===', 'success');
+
+            } catch (error) {
+                log(`\n❌ Test failed: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            }
+        }
+
+        async function setupTestData() {
+            // Clear existing data
+            localStorage.removeItem('transformationLogs');
+
+            // Create sample transformations
+            const sampleTransformations = [
+                {
+                    id: 'TRF-001',
+                    timestamp: new Date(Date.now() - 86400000).toISOString(),
+                    user: 'kasir01',
+                    status: 'completed',
+                    sourceItem: {
+                        id: 'AQUA-DUS',
+                        name: 'Aqua 1L DUS',
+                        unit: 'dus',
+                        quantity: 2,
+                        stockBefore: 10,
+                        stockAfter: 8,
+                        baseProduct: 'AQUA'
+                    },
+                    targetItem: {
+                        id: 'AQUA-PCS',
+                        name: 'Aqua 1L PCS',
+                        unit: 'pcs',
+                        quantity: 24,
+                        stockBefore: 5,
+                        stockAfter: 29,
+                        baseProduct: 'AQUA'
+                    },
+                    conversionRatio: 12
+                },
+                {
+                    id: 'TRF-002',
+                    timestamp: new Date(Date.now() - 43200000).toISOString(),
+                    user: 'kasir02',
+                    status: 'completed',
+                    sourceItem: {
+                        id: 'INDOMIE-DUS',
+                        name: 'Indomie Goreng DUS',
+                        unit: 'dus',
+                        quantity: 1,
+                        stockBefore: 5,
+                        stockAfter: 4,
+                        baseProduct: 'INDOMIE'
+                    },
+                    targetItem: {
+                        id: 'INDOMIE-PCS',
+                        name: 'Indomie Goreng PCS',
+                        unit: 'pcs',
+                        quantity: 40,
+                        stockBefore: 20,
+                        stockAfter: 60,
+                        baseProduct: 'INDOMIE'
+                    },
+                    conversionRatio: 40
+                },
+                {
+                    id: 'TRF-003',
+                    timestamp: new Date(Date.now() - 21600000).toISOString(),
+                    user: 'admin',
+                    status: 'failed',
+                    sourceItem: {
+                        id: 'TANGO-BOX',
+                        name: 'Tango Wafer BOX',
+                        unit: 'box',
+                        quantity: 3,
+                        stockBefore: 2,
+                        stockAfter: 2,
+                        baseProduct: 'TANGO'
+                    },
+                    targetItem: {
+                        id: 'TANGO-PCS',
+                        name: 'Tango Wafer PCS',
+                        unit: 'pcs',
+                        quantity: 0,
+                        stockBefore: 15,
+                        stockAfter: 15,
+                        baseProduct: 'TANGO'
+                    },
+                    conversionRatio: 24
+                }
+            ];
+
+            // Log each transformation
+            for (const transformation of sampleTransformations) {
+                await auditLogger.logTransformation(transformation);
+            }
+
+            log(`Generated ${sampleTransformations.length} test transformations`);
+        }
+
+        async function testExportFunctionality() {
+            // Test CSV export
+            log('Testing CSV export...');
+            const csvResult = await reportManager.exportTransformationData({}, 'csv');
+            log(`✓ CSV export: ${csvResult.metadata.recordCount} records, ${csvResult.data.length} chars`);
+
+            // Test JSON export
+            log('Testing JSON export...');
+            const jsonResult = await reportManager.exportTransformationData({}, 'json');
+            const jsonData = JSON.parse(jsonResult.data);
+            log(`✓ JSON export: ${jsonData.transformations.length} transformations`);
+
+            // Test Excel export
+            log('Testing Excel export...');
+            const excelResult = await reportManager.exportTransformationData({}, 'excel');
+            log(`✓ Excel export: ${excelResult.metadata.recordCount} records`);
+
+            // Verify export data completeness (Property 19)
+            log('Verifying export data completeness...');
+            if (jsonData.exportInfo && jsonData.transformations) {
+                jsonData.transformations.forEach(t => {
+                    if (!t.sourceItem || !t.targetItem || !t.user || !t.status) {
+                        throw new Error('Export data incomplete');
+                    }
+                });
+                log('✓ Property 19: Export Data Completeness - PASSED');
+            }
+        }
+
+        async function testSearchFunctionality() {
+            // Test basic search
+            log('Testing basic search...');
+            const searchResult = await reportManager.searchTransformationHistory({});
+            log(`✓ Basic search: ${searchResult.data.length} results`);
+
+            // Test user filter
+            log('Testing user filter...');
+            const userFilterResult = await reportManager.searchTransformationHistory({
+                user: 'kasir01'
+            });
+            log(`✓ User filter: ${userFilterResult.data.length} results for kasir01`);
+
+            // Test status filter
+            log('Testing status filter...');
+            const statusFilterResult = await reportManager.searchTransformationHistory({
+                status: 'completed'
+            });
+            log(`✓ Status filter: ${statusFilterResult.data.length} completed transformations`);
+
+            // Test product filter
+            log('Testing product filter...');
+            const productFilterResult = await reportManager.searchTransformationHistory({
+                product: 'AQUA'
+            });
+            log(`✓ Product filter: ${productFilterResult.data.length} AQUA transformations`);
+
+            // Verify search filter functionality (Property 20)
+            log('Verifying search filter functionality...');
+            userFilterResult.data.forEach(result => {
+                if (!result.user.toLowerCase().includes('kasir01')) {
+                    throw new Error('User filter not working correctly');
+                }
+            });
+            statusFilterResult.data.forEach(result => {
+                if (result.status !== 'completed') {
+                    throw new Error('Status filter not working correctly');
+                }
+            });
+            log('✓ Property 20: Search Filter Functionality - PASSED');
+        }
+
+        async function testReportingFunctionality() {
+            // Test comprehensive report
+            log('Testing comprehensive report...');
+            const comprehensiveReport = await reportManager.generateComprehensiveReport({});
+            log(`✓ Comprehensive report: ${comprehensiveReport.basicStatistics.total} total transformations`);
+            log(`  - Success rate: ${comprehensiveReport.basicStatistics.successRate}%`);
+            log(`  - Unique products: ${comprehensiveReport.basicStatistics.uniqueProducts}`);
+            log(`  - Unique users: ${comprehensiveReport.basicStatistics.uniqueUsers}`);
+
+            // Test summary report
+            log('Testing summary report...');
+            const summaryReport = await reportManager.generateSummaryReport(7);
+            log(`✓ Summary report (7 days): ${summaryReport.totals.transformations} transformations`);
+            log(`  - Daily average: ${summaryReport.trends.dailyAverage.toFixed(2)}`);
+
+            // Verify historical data completeness (Property 18)
+            log('Verifying historical data completeness...');
+            const historyResult = await reportManager.searchTransformationHistory({});
+            historyResult.data.forEach(record => {
+                if (!record.sourceItem.hasOwnProperty('stockBefore') || 
+                    !record.sourceItem.hasOwnProperty('stockAfter') ||
+                    !record.targetItem.hasOwnProperty('stockBefore') || 
+                    !record.targetItem.hasOwnProperty('stockAfter')) {
+                    throw new Error('Historical data incomplete');
+                }
+                if (!record.enhancedMetadata || !record.enhancedMetadata.stockImpact) {
+                    throw new Error('Enhanced metadata missing');
+                }
+            });
+            log('✓ Property 18: Historical Data Completeness - PASSED');
+        }
+    </script>
+</body>
+</html>

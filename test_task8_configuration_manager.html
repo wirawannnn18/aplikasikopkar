@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Configuration Manager - Task 8</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        
+        .ratio-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .ratio-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        
+        .form-group {
+            margin: 10px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .impact-list {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .impact-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .impact-item:last-child {
+            border-bottom: none;
+        }
+        
+        .severity-high { color: #dc3545; font-weight: bold; }
+        .severity-medium { color: #fd7e14; }
+        .severity-low { color: #28a745; }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Configuration Manager - Task 8</h1>
+        <p>Testing admin configuration management untuk rasio konversi transformasi barang</p>
+        
+        <div class="test-section info">
+            <h3>📋 Test Status</h3>
+            <div id="testStatus">Initializing tests...</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🏗️ Setup & Initialization</h2>
+        
+        <div class="test-section">
+            <h3>Initialize Test Data</h3>
+            <button onclick="initializeTestData()">Initialize Master Barang & Ratios</button>
+            <button onclick="clearAllData()" class="danger">Clear All Data</button>
+            <div id="initResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Configuration Display (Requirement 5.1)</h2>
+        
+        <div class="test-section">
+            <h3>Display All Ratio Configurations</h3>
+            <button onclick="displayAllConfigurations()">Load All Configurations</button>
+            <div id="configDisplay"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ Ratio Management (Requirements 5.2, 5.3, 5.4)</h2>
+        
+        <div class="test-section">
+            <h3>Add/Update Conversion Ratio</h3>
+            <div class="form-group">
+                <label>Base Product:</label>
+                <input type="text" id="baseProduct" value="AQUA-1L" placeholder="e.g., AQUA-1L">
+            </div>
+            <div class="form-group">
+                <label>From Unit:</label>
+                <input type="text" id="fromUnit" value="dus" placeholder="e.g., dus">
+            </div>
+            <div class="form-group">
+                <label>To Unit:</label>
+                <input type="text" id="toUnit" value="pcs" placeholder="e.g., pcs">
+            </div>
+            <div class="form-group">
+                <label>Ratio:</label>
+                <input type="number" id="ratio" value="12" step="0.000001" placeholder="e.g., 12">
+            </div>
+            <button onclick="setRatio()">Set Ratio</button>
+            <button onclick="setRatio(true)">Force Set (Skip Warnings)</button>
+            <div id="setRatioResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Remove Conversion Ratio</h3>
+            <div class="form-group">
+                <label>Base Product:</label>
+                <input type="text" id="removeBaseProduct" value="AQUA-1L">
+            </div>
+            <div class="form-group">
+                <label>From Unit:</label>
+                <input type="text" id="removeFromUnit" value="pcs">
+            </div>
+            <div class="form-group">
+                <label>To Unit:</label>
+                <input type="text" id="removeToUnit" value="dus">
+            </div>
+            <button onclick="removeRatio()">Remove Ratio</button>
+            <button onclick="removeRatio(true)">Force Remove</button>
+            <div id="removeRatioResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔍 Validation & Health Check (Requirement 5.5)</h2>
+        
+        <div class="test-section">
+            <h3>Configuration Health Check</h3>
+            <button onclick="validateConfiguration()">Run Health Check</button>
+            <button onclick="corruptData()" class="danger">Simulate Data Corruption</button>
+            <div id="validationResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>💾 Import/Export Configuration</h2>
+        
+        <div class="test-section">
+            <h3>Export Configuration</h3>
+            <button onclick="exportConfiguration()">Export Configuration</button>
+            <div id="exportResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Import Configuration</h3>
+            <div class="form-group">
+                <label>Import Data (JSON):</label>
+                <textarea id="importData" rows="10" placeholder="Paste exported configuration JSON here..."></textarea>
+            </div>
+            <button onclick="importConfiguration()">Import (Replace)</button>
+            <button onclick="importConfiguration(true)">Import (Merge)</button>
+            <div id="importResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🧪 Property-Based Tests</h2>
+        
+        <div class="test-section">
+            <h3>Run Property Tests</h3>
+            <button onclick="runPropertyTests()">Run All Property Tests</button>
+            <div id="propertyTestResults"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { ConfigurationManager } from './js/transformasi-barang/ConfigurationManager.js';
+        
+        // Global variables
+        window.configManager = new ConfigurationManager();
+        
+        // Initialize test data
+        window.initializeTestData = function() {
+            try {
+                // Clear existing data
+                localStorage.removeItem('masterBarang');
+                localStorage.removeItem('transformasi_conversion_ratios');
+                
+                // Create test master barang data
+                const masterBarang = [
+                    {
+                        kode: 'AQUA-DUS',
+                        nama: 'Aqua 1L DUS',
+                        baseProduct: 'AQUA-1L',
+                        kategori: 'minuman',
+                        satuan: 'dus',
+                        stok: 10,
+                        hargaBeli: 12000
+                    },
+                    {
+                        kode: 'AQUA-PCS',
+                        nama: 'Aqua 1L PCS',
+                        baseProduct: 'AQUA-1L',
+                        kategori: 'minuman',
+                        satuan: 'pcs',
+                        stok: 50,
+                        hargaBeli: 1000
+                    },
+                    {
+                        kode: 'INDOMIE-KARTON',
+                        nama: 'Indomie Ayam Bawang Karton',
+                        baseProduct: 'INDOMIE-AB',
+                        kategori: 'makanan',
+                        satuan: 'karton',
+                        stok: 5,
+                        hargaBeli: 60000
+                    },
+                    {
+                        kode: 'INDOMIE-PCS',
+                        nama: 'Indomie Ayam Bawang PCS',
+                        baseProduct: 'INDOMIE-AB',
+                        kategori: 'makanan',
+                        satuan: 'pcs',
+                        stok: 120,
+                        hargaBeli: 2500
+                    }
+                ];
+                
+                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+                
+                // Initialize default ratios
+                configManager.initializeDefaultRatios();
+                
+                document.getElementById('initResult').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Test data initialized successfully!</strong><br>
+                        - Created ${masterBarang.length} master barang items<br>
+                        - Initialized default conversion ratios<br>
+                        - Ready for testing
+                    </div>
+                `;
+                
+                updateTestStatus('Test data initialized');
+                
+            } catch (error) {
+                document.getElementById('initResult').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error initializing test data:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Clear all data
+        window.clearAllData = function() {
+            if (confirm('Are you sure you want to clear all test data?')) {
+                localStorage.removeItem('masterBarang');
+                localStorage.removeItem('transformasi_conversion_ratios');
+                localStorage.removeItem('transformasi_conversion_ratios_backup');
+                localStorage.removeItem('transformasi_audit_logs');
+                
+                document.getElementById('initResult').innerHTML = `
+                    <div class="warning">
+                        <strong>🗑️ All test data cleared</strong>
+                    </div>
+                `;
+                
+                updateTestStatus('Data cleared');
+            }
+        };
+        
+        // Display all configurations
+        window.displayAllConfigurations = function() {
+            try {
+                const result = configManager.getAllRatioConfigurations();
+                
+                if (result.success) {
+                    let html = '<div class="success"><strong>✅ Configuration loaded successfully</strong></div>';
+                    
+                    if (result.data.length === 0) {
+                        html += '<div class="info">No configurations found. Initialize test data first.</div>';
+                    } else {
+                        html += '<div class="ratio-grid">';
+                        
+                        result.data.forEach(config => {
+                            html += `
+                                <div class="ratio-card">
+                                    <h4>${config.baseProduct}</h4>
+                                    <strong>Items:</strong><br>
+                                    ${config.items.map(item => 
+                                        `${item.nama} (${item.satuan}) - Stok: ${item.stok}`
+                                    ).join('<br>')}
+                                    
+                                    <br><br><strong>Conversion Ratios:</strong><br>
+                                    ${config.ratios.conversions.length === 0 ? 
+                                        '<em>No ratios configured</em>' :
+                                        config.ratios.conversions.map(conv => 
+                                            `${conv.from} → ${conv.to}: ${conv.ratio}`
+                                        ).join('<br>')
+                                    }
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div>';
+                    }
+                    
+                    document.getElementById('configDisplay').innerHTML = html;
+                } else {
+                    document.getElementById('configDisplay').innerHTML = `
+                        <div class="error">
+                            <strong>❌ Error loading configurations:</strong><br>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                document.getElementById('configDisplay').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Set conversion ratio
+        window.setRatio = function(force = false) {
+            try {
+                const baseProduct = document.getElementById('baseProduct').value;
+                const fromUnit = document.getElementById('fromUnit').value;
+                const toUnit = document.getElementById('toUnit').value;
+                const ratio = parseFloat(document.getElementById('ratio').value);
+                
+                const result = configManager.setConversionRatio(
+                    baseProduct, 
+                    fromUnit, 
+                    toUnit, 
+                    ratio, 
+                    { force: force, user: 'test_admin' }
+                );
+                
+                let html = '';
+                
+                if (result.success) {
+                    html = `
+                        <div class="success">
+                            <strong>✅ ${result.message}</strong><br>
+                            Timestamp: ${result.timestamp}
+                        </div>
+                    `;
+                    
+                    if (result.impacts && result.impacts.length > 0) {
+                        html += '<div class="impact-list"><strong>Impacts:</strong>';
+                        result.impacts.forEach(impact => {
+                            html += `
+                                <div class="impact-item severity-${impact.severity}">
+                                    ${impact.description}
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                } else if (result.requiresConfirmation) {
+                    html = `
+                        <div class="warning">
+                            <strong>⚠️ ${result.warning}</strong>
+                        </div>
+                        <div class="impact-list">
+                            ${result.impacts.map(impact => `
+                                <div class="impact-item severity-${impact.severity}">
+                                    ${impact.description}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="setRatio(true)">Confirm and Proceed</button>
+                    `;
+                    
+                } else {
+                    html = `
+                        <div class="error">
+                            <strong>❌ Error:</strong> ${result.error}
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('setRatioResult').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('setRatioResult').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Remove conversion ratio
+        window.removeRatio = function(force = false) {
+            try {
+                const baseProduct = document.getElementById('removeBaseProduct').value;
+                const fromUnit = document.getElementById('removeFromUnit').value;
+                const toUnit = document.getElementById('removeToUnit').value;
+                
+                const result = configManager.removeConversionRatio(
+                    baseProduct, 
+                    fromUnit, 
+                    toUnit, 
+                    { force: force, user: 'test_admin' }
+                );
+                
+                let html = '';
+                
+                if (result.success) {
+                    html = `
+                        <div class="success">
+                            <strong>✅ ${result.message}</strong>
+                        </div>
+                    `;
+                    
+                    if (result.impacts && result.impacts.length > 0) {
+                        html += '<div class="impact-list"><strong>Impacts:</strong>';
+                        result.impacts.forEach(impact => {
+                            html += `
+                                <div class="impact-item severity-${impact.severity}">
+                                    ${impact.description}
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                } else if (result.requiresConfirmation) {
+                    html = `
+                        <div class="warning">
+                            <strong>⚠️ ${result.warning}</strong>
+                        </div>
+                        <div class="impact-list">
+                            ${result.impacts.map(impact => `
+                                <div class="impact-item severity-${impact.severity}">
+                                    ${impact.description}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="removeRatio(true)">Confirm and Proceed</button>
+                    `;
+                    
+                } else {
+                    html = `
+                        <div class="error">
+                            <strong>❌ Error:</strong> ${result.error}
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('removeRatioResult').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('removeRatioResult').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Validate configuration
+        window.validateConfiguration = function() {
+            try {
+                const result = configManager.validateAndRepairConfiguration();
+                
+                let html = '';
+                
+                if (result.success) {
+                    if (result.isHealthy) {
+                        html = `
+                            <div class="success">
+                                <strong>✅ Configuration is healthy!</strong><br>
+                                No issues found. Timestamp: ${result.timestamp}
+                            </div>
+                        `;
+                    } else {
+                        html = `
+                            <div class="warning">
+                                <strong>⚠️ Configuration issues found:</strong>
+                            </div>
+                            <div class="impact-list">
+                                <strong>Issues:</strong><br>
+                                ${result.issues.map(issue => `<div class="impact-item">${issue}</div>`).join('')}
+                            </div>
+                        `;
+                        
+                        if (result.repairs.length > 0) {
+                            html += `
+                                <div class="impact-list">
+                                    <strong>Repairs Applied:</strong><br>
+                                    ${result.repairs.map(repair => `<div class="impact-item">${repair}</div>`).join('')}
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    html = `
+                        <div class="error">
+                            <strong>❌ Validation failed:</strong> ${result.error}
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('validationResult').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('validationResult').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Simulate data corruption
+        window.corruptData = function() {
+            if (confirm('This will corrupt the configuration data for testing. Continue?')) {
+                try {
+                    // Corrupt the data
+                    localStorage.setItem('transformasi_conversion_ratios', 'invalid_json_data');
+                    
+                    document.getElementById('validationResult').innerHTML = `
+                        <div class="warning">
+                            <strong>💥 Data corrupted for testing</strong><br>
+                            Run health check to see how the system handles it.
+                        </div>
+                    `;
+                    
+                } catch (error) {
+                    document.getElementById('validationResult').innerHTML = `
+                        <div class="error">
+                            <strong>❌ Error corrupting data:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }
+        };
+        
+        // Export configuration
+        window.exportConfiguration = function() {
+            try {
+                const result = configManager.exportConfiguration();
+                
+                if (result.success) {
+                    const dataStr = JSON.stringify(result.data, null, 2);
+                    
+                    document.getElementById('exportResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Configuration exported successfully!</strong><br>
+                            Filename: ${result.filename}<br>
+                            <button onclick="downloadExport('${result.filename}', \`${dataStr.replace(/`/g, '\\`')}\`)">Download File</button>
+                        </div>
+                        <pre>${dataStr}</pre>
+                    `;
+                } else {
+                    document.getElementById('exportResult').innerHTML = `
+                        <div class="error">
+                            <strong>❌ Export failed:</strong> ${result.error}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                document.getElementById('exportResult').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Download export file
+        window.downloadExport = function(filename, data) {
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+        
+        // Import configuration
+        window.importConfiguration = function(merge = false) {
+            try {
+                const importDataStr = document.getElementById('importData').value;
+                
+                if (!importDataStr.trim()) {
+                    document.getElementById('importResult').innerHTML = `
+                        <div class="error">
+                            <strong>❌ Please provide import data</strong>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const importData = JSON.parse(importDataStr);
+                const result = configManager.importConfiguration(importData, { merge: merge });
+                
+                if (result.success) {
+                    document.getElementById('importResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${result.message}</strong><br>
+                            Imported: ${result.imported.products} products, ${result.imported.ratios} ratios
+                        </div>
+                    `;
+                } else {
+                    let html = `
+                        <div class="error">
+                            <strong>❌ Import failed:</strong> ${result.error}
+                        </div>
+                    `;
+                    
+                    if (result.issues) {
+                        html += `
+                            <div class="impact-list">
+                                <strong>Issues:</strong><br>
+                                ${result.issues.map(issue => `<div class="impact-item">${issue}</div>`).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    document.getElementById('importResult').innerHTML = html;
+                }
+                
+            } catch (error) {
+                document.getElementById('importResult').innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        // Run property tests
+        window.runPropertyTests = function() {
+            document.getElementById('propertyTestResults').innerHTML = `
+                <div class="info">
+                    <strong>🧪 Running property-based tests...</strong>
+                </div>
+            `;
+            
+            const tests = [
+                testConfigurationDisplayCompleteness,
+                testRatioValidationRules,
+                testConfigurationChangeImpactWarning,
+                testImmediateConfigurationApplication,
+                testCorruptedDataErrorHandling
+            ];
+            
+            let results = [];
+            
+            tests.forEach((test, index) => {
+                try {
+                    const result = test();
+                    results.push({
+                        name: test.name,
+                        success: result.success,
+                        message: result.message,
+                        iterations: result.iterations || 1
+                    });
+                } catch (error) {
+                    results.push({
+                        name: test.name,
+                        success: false,
+                        message: error.message,
+                        iterations: 0
+                    });
+                }
+            });
+            
+            let html = '<div class="test-section">';
+            results.forEach(result => {
+                const statusClass = result.success ? 'success' : 'error';
+                const statusIcon = result.success ? '✅' : '❌';
+                
+                html += `
+                    <div class="${statusClass}">
+                        <strong>${statusIcon} ${result.name}</strong><br>
+                        ${result.message}
+                        ${result.iterations > 1 ? `<br><em>Iterations: ${result.iterations}</em>` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            document.getElementById('propertyTestResults').innerHTML = html;
+        };
+        
+        // Property Test 21: Configuration Display Completeness
+        function testConfigurationDisplayCompleteness() {
+            // Property: For any admin access to ratio configuration, 
+            // all products with their unit relationships and ratios should be displayed
+            
+            let iterations = 0;
+            const maxIterations = 50;
+            
+            for (let i = 0; i < maxIterations; i++) {
+                iterations++;
+                
+                // Get all configurations
+                const result = configManager.getAllRatioConfigurations();
+                
+                if (!result.success) {
+                    throw new Error(`Configuration display failed: ${result.error}`);
+                }
+                
+                // Verify all products are displayed
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const baseProducts = [...new Set(masterBarang.map(item => 
+                    item.baseProduct || item.kode.split('-')[0]
+                ))];
+                
+                const displayedProducts = result.data.map(config => config.baseProduct);
+                
+                // Check that all base products with multiple units are displayed
+                baseProducts.forEach(baseProduct => {
+                    const productItems = masterBarang.filter(item => 
+                        (item.baseProduct || item.kode.split('-')[0]) === baseProduct
+                    );
+                    
+                    const units = [...new Set(productItems.map(item => item.satuan))];
+                    
+                    if (units.length > 1) {
+                        // Should be displayed
+                        if (!displayedProducts.includes(baseProduct)) {
+                            throw new Error(`Base product ${baseProduct} with multiple units not displayed`);
+                        }
+                        
+                        // Find the configuration
+                        const config = result.data.find(c => c.baseProduct === baseProduct);
+                        
+                        // Verify all items are included
+                        const configUnits = config.items.map(item => item.satuan);
+                        units.forEach(unit => {
+                            if (!configUnits.includes(unit)) {
+                                throw new Error(`Unit ${unit} for ${baseProduct} not displayed`);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            return {
+                success: true,
+                message: 'Property 21: Configuration Display Completeness - All products with unit relationships correctly displayed',
+                iterations: iterations
+            };
+        }
+        
+        // Property Test 22: Ratio Validation Rules
+        function testRatioValidationRules() {
+            // Property: For any new transformation ratio setup, 
+            // the system should validate mathematical consistency and positive values
+            
+            let iterations = 0;
+            const maxIterations = 100;
+            
+            const testCases = [
+                { baseProduct: '', fromUnit: 'dus', toUnit: 'pcs', ratio: 12, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: '', toUnit: 'pcs', ratio: 12, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: '', ratio: 12, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'dus', ratio: 12, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'pcs', ratio: 0, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'pcs', ratio: -5, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'pcs', ratio: Infinity, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'pcs', ratio: NaN, shouldFail: true },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'pcs', ratio: 12, shouldFail: false },
+                { baseProduct: 'TEST', fromUnit: 'dus', toUnit: 'pcs', ratio: 0.5, shouldFail: false }
+            ];
+            
+            testCases.forEach(testCase => {
+                iterations++;
+                
+                const result = configManager.setConversionRatio(
+                    testCase.baseProduct,
+                    testCase.fromUnit,
+                    testCase.toUnit,
+                    testCase.ratio,
+                    { force: true }
+                );
+                
+                if (testCase.shouldFail) {
+                    if (result.success) {
+                        throw new Error(`Expected validation to fail for invalid input: ${JSON.stringify(testCase)}`);
+                    }
+                } else {
+                    if (!result.success && result.type === 'validation') {
+                        throw new Error(`Valid input rejected: ${JSON.stringify(testCase)} - ${result.error}`);
+                    }
+                }
+            });
+            
+            return {
+                success: true,
+                message: 'Property 22: Ratio Validation Rules - Mathematical consistency and positive values correctly validated',
+                iterations: iterations
+            };
+        }
+        
+        // Property Test 23: Configuration Change Impact Warning
+        function testConfigurationChangeImpactWarning() {
+            // Property: For any ratio update, 
+            // the system should warn about potential impacts on existing calculations
+            
+            let iterations = 0;
+            
+            // Set up initial ratio
+            configManager.setConversionRatio('TEST-IMPACT', 'dus', 'pcs', 12, { force: true });
+            configManager.setConversionRatio('TEST-IMPACT', 'pcs', 'dus', 1/12, { force: true });
+            iterations += 2;
+            
+            // Test updating existing ratio - should show impact warning
+            const updateResult = configManager.setConversionRatio('TEST-IMPACT', 'dus', 'pcs', 24);
+            iterations++;
+            
+            if (updateResult.success) {
+                throw new Error('Expected impact warning when updating existing ratio');
+            }
+            
+            if (!updateResult.requiresConfirmation) {
+                throw new Error('Expected requiresConfirmation flag for ratio update');
+            }
+            
+            if (!updateResult.impacts || updateResult.impacts.length === 0) {
+                throw new Error('Expected impact analysis for ratio update');
+            }
+            
+            // Test setting inconsistent reverse ratio - should show consistency warning
+            const inconsistentResult = configManager.setConversionRatio('TEST-IMPACT', 'dus', 'pcs', 10);
+            iterations++;
+            
+            if (inconsistentResult.success || !inconsistentResult.requiresConfirmation) {
+                throw new Error('Expected consistency warning for inconsistent ratios');
+            }
+            
+            const hasConsistencyWarning = inconsistentResult.impacts.some(impact => 
+                impact.type === 'consistency_warning'
+            );
+            
+            if (!hasConsistencyWarning) {
+                throw new Error('Expected consistency warning in impacts');
+            }
+            
+            return {
+                success: true,
+                message: 'Property 23: Configuration Change Impact Warning - Impact warnings correctly displayed',
+                iterations: iterations
+            };
+        }
+        
+        // Property Test 24: Immediate Configuration Application
+        function testImmediateConfigurationApplication() {
+            // Property: For any saved ratio configuration, 
+            // changes should apply immediately to all future transformations
+            
+            let iterations = 0;
+            
+            // Set a new ratio
+            const setResult = configManager.setConversionRatio('TEST-IMMEDIATE', 'box', 'unit', 6, { force: true });
+            iterations++;
+            
+            if (!setResult.success) {
+                throw new Error(`Failed to set ratio: ${setResult.error}`);
+            }
+            
+            // Immediately try to get the ratio - should be available
+            const getResult = configManager.getConversionRatio('TEST-IMMEDIATE', 'box', 'unit');
+            iterations++;
+            
+            if (!getResult.success) {
+                throw new Error('Ratio not immediately available after setting');
+            }
+            
+            if (getResult.ratio !== 6) {
+                throw new Error(`Expected ratio 6, got ${getResult.ratio}`);
+            }
+            
+            // Update the ratio
+            const updateResult = configManager.setConversionRatio('TEST-IMMEDIATE', 'box', 'unit', 8, { force: true });
+            iterations++;
+            
+            if (!updateResult.success) {
+                throw new Error(`Failed to update ratio: ${updateResult.error}`);
+            }
+            
+            // Check that the update is immediately available
+            const getUpdatedResult = configManager.getConversionRatio('TEST-IMMEDIATE', 'box', 'unit');
+            iterations++;
+            
+            if (!getUpdatedResult.success) {
+                throw new Error('Updated ratio not immediately available');
+            }
+            
+            if (getUpdatedResult.ratio !== 8) {
+                throw new Error(`Expected updated ratio 8, got ${getUpdatedResult.ratio}`);
+            }
+            
+            return {
+                success: true,
+                message: 'Property 24: Immediate Configuration Application - Changes apply immediately',
+                iterations: iterations
+            };
+        }
+        
+        // Property Test 25: Corrupted Data Error Handling
+        function testCorruptedDataErrorHandling() {
+            // Property: For any corrupted or missing ratio data, 
+            // the system should prevent transformations and alert administrators
+            
+            let iterations = 0;
+            
+            // Save current state
+            const originalData = localStorage.getItem('transformasi_conversion_ratios');
+            
+            try {
+                // Test with corrupted JSON
+                localStorage.setItem('transformasi_conversion_ratios', 'invalid_json');
+                iterations++;
+                
+                const corruptedResult = configManager.getAllRatioConfigurations();
+                
+                // Should handle gracefully and return empty or default data
+                if (!corruptedResult.success && corruptedResult.error.includes('corrupted')) {
+                    // Good - system detected corruption
+                } else if (corruptedResult.success && corruptedResult.data.length === 0) {
+                    // Also acceptable - system recovered with empty data
+                } else {
+                    throw new Error('System did not handle corrupted data properly');
+                }
+                
+                // Test validation with corrupted data
+                const validationResult = configManager.validateAndRepairConfiguration();
+                iterations++;
+                
+                if (validationResult.success && validationResult.issues.length === 0) {
+                    throw new Error('Validation should detect corrupted data');
+                }
+                
+                // Test with missing data
+                localStorage.removeItem('transformasi_conversion_ratios');
+                iterations++;
+                
+                const missingResult = configManager.getAllRatioConfigurations();
+                
+                // Should handle missing data gracefully
+                if (!missingResult.success) {
+                    throw new Error('System should handle missing data gracefully');
+                }
+                
+                return {
+                    success: true,
+                    message: 'Property 25: Corrupted Data Error Handling - System correctly handles corrupted/missing data',
+                    iterations: iterations
+                };
+                
+            } finally {
+                // Restore original data
+                if (originalData) {
+                    localStorage.setItem('transformasi_conversion_ratios', originalData);
+                } else {
+                    localStorage.removeItem('transformasi_conversion_ratios');
+                }
+            }
+        }
+        
+        // Update test status
+        function updateTestStatus(status) {
+            document.getElementById('testStatus').innerHTML = `
+                <strong>Status:</strong> ${status} | 
+                <strong>Time:</strong> ${new Date().toLocaleTimeString()}
+            `;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTestStatus('Ready for testing');
+        });
+        
+    </script>
+</body>
+</html>

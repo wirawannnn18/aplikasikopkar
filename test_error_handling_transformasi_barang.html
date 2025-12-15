@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Error Handling - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        .test-button {
+            margin: 0.25rem;
+        }
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-bug me-2"></i>
+                    Test Error Handling - Transformasi Barang
+                </h1>
+                
+                <!-- Error Display Containers -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>Error Messages</h5>
+                        <div id="error-container"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Success Messages</h5>
+                        <div id="success-container"></div>
+                    </div>
+                </div>
+
+                <!-- Validation Error Tests -->
+                <div class="test-section">
+                    <h4><i class="fas fa-exclamation-triangle text-warning me-2"></i>Validation Error Tests</h4>
+                    <p class="text-muted">Test berbagai jenis validation error dan response handling</p>
+                    
+                    <button class="btn btn-outline-warning test-button" onclick="testValidationError('missing_field')">
+                        Missing Field Error
+                    </button>
+                    <button class="btn btn-outline-warning test-button" onclick="testValidationError('invalid_quantity')">
+                        Invalid Quantity Error
+                    </button>
+                    <button class="btn btn-outline-warning test-button" onclick="testValidationError('product_mismatch')">
+                        Product Mismatch Error
+                    </button>
+                    <button class="btn btn-outline-warning test-button" onclick="testValidationError('multiple_errors')">
+                        Multiple Validation Errors
+                    </button>
+                </div>
+
+                <!-- System Error Tests -->
+                <div class="test-section">
+                    <h4><i class="fas fa-cog text-danger me-2"></i>System Error Tests</h4>
+                    <p class="text-muted">Test system-level error handling dan recovery</p>
+                    
+                    <button class="btn btn-outline-danger test-button" onclick="testSystemError('localStorage')">
+                        LocalStorage Error
+                    </button>
+                    <button class="btn btn-outline-danger test-button" onclick="testSystemError('json_parse')">
+                        JSON Parse Error
+                    </button>
+                    <button class="btn btn-outline-danger test-button" onclick="testSystemError('network')">
+                        Network Error
+                    </button>
+                    <button class="btn btn-outline-danger test-button" onclick="testSystemError('generic')">
+                        Generic System Error
+                    </button>
+                </div>
+
+                <!-- Business Logic Error Tests -->
+                <div class="test-section">
+                    <h4><i class="fas fa-business-time text-info me-2"></i>Business Logic Error Tests</h4>
+                    <p class="text-muted">Test business rule violations dan handling</p>
+                    
+                    <button class="btn btn-outline-info test-button" onclick="testBusinessLogicError('insufficient_stock')">
+                        Insufficient Stock
+                    </button>
+                    <button class="btn btn-outline-info test-button" onclick="testBusinessLogicError('missing_ratio')">
+                        Missing Conversion Ratio
+                    </button>
+                    <button class="btn btn-outline-info test-button" onclick="testBusinessLogicError('negative_stock')">
+                        Negative Stock Result
+                    </button>
+                    <button class="btn btn-outline-info test-button" onclick="testBusinessLogicError('product_category')">
+                        Product Category Mismatch
+                    </button>
+                </div>
+
+                <!-- Calculation Error Tests -->
+                <div class="test-section">
+                    <h4><i class="fas fa-calculator text-secondary me-2"></i>Calculation Error Tests</h4>
+                    <p class="text-muted">Test calculation error handling</p>
+                    
+                    <button class="btn btn-outline-secondary test-button" onclick="testCalculationError('whole_number')">
+                        Non-Whole Number Result
+                    </button>
+                    <button class="btn btn-outline-secondary test-button" onclick="testCalculationError('overflow')">
+                        Number Overflow
+                    </button>
+                    <button class="btn btn-outline-secondary test-button" onclick="testCalculationError('division_zero')">
+                        Division by Zero
+                    </button>
+                </div>
+
+                <!-- Success Message Tests -->
+                <div class="test-section">
+                    <h4><i class="fas fa-check-circle text-success me-2"></i>Success Message Tests</h4>
+                    <p class="text-muted">Test success message display</p>
+                    
+                    <button class="btn btn-outline-success test-button" onclick="testSuccessMessage('simple')">
+                        Simple Success
+                    </button>
+                    <button class="btn btn-outline-success test-button" onclick="testSuccessMessage('with_details')">
+                        Success with Details
+                    </button>
+                </div>
+
+                <!-- Error Statistics -->
+                <div class="test-section">
+                    <h4><i class="fas fa-chart-bar me-2"></i>Error Statistics & Log</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Statistics</h6>
+                            <div id="error-stats" class="mb-3"></div>
+                            <button class="btn btn-sm btn-primary" onclick="updateErrorStats()">
+                                <i class="fas fa-sync me-1"></i>Update Stats
+                            </button>
+                            <button class="btn btn-sm btn-warning" onclick="clearErrorLog()">
+                                <i class="fas fa-trash me-1"></i>Clear Log
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Recent Error Log</h6>
+                            <div id="error-log" class="log-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test All Button -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary btn-lg" onclick="runAllTests()">
+                        <i class="fas fa-play me-2"></i>Run All Tests
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/transformasi-barang/ErrorHandler.js"></script>
+    
+    <script>
+        // Initialize ErrorHandler
+        const errorHandler = new ErrorHandler();
+        errorHandler.initialize();
+
+        // Test Validation Errors
+        function testValidationError(type) {
+            let error;
+            let context = { testType: 'validation', errorType: type };
+
+            switch (type) {
+                case 'missing_field':
+                    error = {
+                        errors: ['Source Item ID harus berupa string yang valid', 'Target Item ID harus berupa string yang valid']
+                    };
+                    break;
+                case 'invalid_quantity':
+                    error = new Error('Source Quantity harus berupa angka positif');
+                    break;
+                case 'product_mismatch':
+                    error = 'Item tidak dapat ditransformasi: AQUA-1L ≠ COCA-COLA-1L';
+                    break;
+                case 'multiple_errors':
+                    error = {
+                        errors: [
+                            'Stok tidak mencukupi',
+                            'Quantity harus berupa angka positif',
+                            'Produk tidak ditemukan'
+                        ]
+                    };
+                    break;
+            }
+
+            const result = errorHandler.handleValidationError(error, context);
+            errorHandler.displayErrorMessage(result, 'error-container');
+            updateErrorStats();
+        }
+
+        // Test System Errors
+        function testSystemError(type) {
+            let error;
+            let context = { testType: 'system', errorType: type };
+
+            switch (type) {
+                case 'localStorage':
+                    error = new Error('localStorage is not available in this browser');
+                    break;
+                case 'json_parse':
+                    error = new Error('JSON.parse: unexpected character at line 1 column 1');
+                    break;
+                case 'network':
+                    error = new Error('network error: failed to fetch data from server');
+                    break;
+                case 'generic':
+                    error = new Error('An unexpected system error occurred');
+                    break;
+            }
+
+            const result = errorHandler.handleSystemError(error, context);
+            errorHandler.displayErrorMessage(result, 'error-container');
+            updateErrorStats();
+        }
+
+        // Test Business Logic Errors
+        function testBusinessLogicError(type) {
+            let error;
+            let context = { testType: 'business_logic', errorType: type };
+
+            switch (type) {
+                case 'insufficient_stock':
+                    error = new Error('Stok tidak mencukupi. Tersedia: 5 dus, Dibutuhkan: 10 dus');
+                    context.availableStock = 5;
+                    context.requestedQuantity = 10;
+                    break;
+                case 'missing_ratio':
+                    error = new Error('Rasio konversi dari dus ke pcs tidak ditemukan untuk produk AQUA-1L');
+                    context.sourceUnit = 'dus';
+                    context.targetUnit = 'pcs';
+                    context.baseProduct = 'AQUA-1L';
+                    break;
+                case 'negative_stock':
+                    error = new Error('Transformasi akan menghasilkan stok negatif');
+                    break;
+                case 'product_category':
+                    error = new Error('Kategori produk berbeda antara source dan target');
+                    break;
+            }
+
+            const result = errorHandler.handleBusinessLogicError(error, context);
+            errorHandler.displayErrorMessage(result, 'error-container');
+            updateErrorStats();
+        }
+
+        // Test Calculation Errors
+        function testCalculationError(type) {
+            let error;
+            let context = { testType: 'calculation', errorType: type };
+
+            switch (type) {
+                case 'whole_number':
+                    error = new Error('Hasil transformasi harus berupa bilangan bulat');
+                    break;
+                case 'overflow':
+                    error = new Error('Angka terlalu besar untuk diproses');
+                    break;
+                case 'division_zero':
+                    error = new Error('Terjadi kesalahan dalam perhitungan pembagian dengan nol');
+                    break;
+            }
+
+            const result = errorHandler.handleCalculationError(error, context);
+            errorHandler.displayErrorMessage(result, 'error-container');
+            updateErrorStats();
+        }
+
+        // Test Success Messages
+        function testSuccessMessage(type) {
+            switch (type) {
+                case 'simple':
+                    errorHandler.displaySuccessMessage(
+                        'Transformasi berhasil dilakukan!',
+                        'success-container'
+                    );
+                    break;
+                case 'with_details':
+                    errorHandler.displaySuccessMessage(
+                        'Transformasi 2 dus Aqua menjadi 24 pcs berhasil dilakukan!',
+                        'success-container',
+                        {
+                            'Source Item': '2 dus Aqua (Stok: 8 → 6)',
+                            'Target Item': '24 pcs Aqua (Stok: 10 → 34)',
+                            'Conversion Ratio': '1 dus = 12 pcs',
+                            'User': 'kasir01',
+                            'Timestamp': new Date().toLocaleString('id-ID')
+                        }
+                    );
+                    break;
+            }
+        }
+
+        // Update Error Statistics
+        function updateErrorStats() {
+            const stats = errorHandler.getErrorStatistics();
+            const statsContainer = document.getElementById('error-stats');
+            
+            let html = `
+                <div class="row">
+                    <div class="col-6">
+                        <div class="card card-body text-center">
+                            <h5 class="card-title">${stats.total}</h5>
+                            <p class="card-text small">Total Errors</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card card-body text-center">
+                            <h5 class="card-title">${stats.recent}</h5>
+                            <p class="card-text small">Recent (1h)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">By Category:</small>
+                    <ul class="list-unstyled small">
+            `;
+            
+            Object.entries(stats.byCategory).forEach(([category, count]) => {
+                if (count > 0) {
+                    html += `<li><strong>${category}:</strong> ${count}</li>`;
+                }
+            });
+            
+            html += `</ul></div>`;
+            statsContainer.innerHTML = html;
+
+            // Update error log
+            updateErrorLog();
+        }
+
+        // Update Error Log Display
+        function updateErrorLog() {
+            const logs = errorHandler.getErrorLog(10); // Get last 10 errors
+            const logContainer = document.getElementById('error-log');
+            
+            if (logs.length === 0) {
+                logContainer.innerHTML = '<em class="text-muted">No errors logged yet</em>';
+                return;
+            }
+
+            let html = '';
+            logs.reverse().forEach((log, index) => {
+                const time = new Date(log.timestamp).toLocaleTimeString('id-ID');
+                html += `
+                    <div class="mb-2 pb-2 ${index < logs.length - 1 ? 'border-bottom' : ''}">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-${getCategoryColor(log.category)}">${log.category.toUpperCase()}</strong>
+                            <small class="text-muted">${time}</small>
+                        </div>
+                        <div class="small">${log.originalError.message || log.originalError.toString()}</div>
+                        ${log.context.testType ? `<div class="small text-muted">Test: ${log.context.testType}/${log.context.errorType}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            logContainer.innerHTML = html;
+        }
+
+        // Get category color for display
+        function getCategoryColor(category) {
+            const colors = {
+                'validation': 'warning',
+                'system': 'danger',
+                'business_logic': 'info',
+                'calculation': 'secondary'
+            };
+            return colors[category] || 'dark';
+        }
+
+        // Clear Error Log
+        function clearErrorLog() {
+            errorHandler.clearErrorLog();
+            updateErrorStats();
+        }
+
+        // Run All Tests
+        function runAllTests() {
+            const tests = [
+                () => testValidationError('missing_field'),
+                () => testValidationError('invalid_quantity'),
+                () => testValidationError('product_mismatch'),
+                () => testSystemError('localStorage'),
+                () => testSystemError('json_parse'),
+                () => testBusinessLogicError('insufficient_stock'),
+                () => testBusinessLogicError('missing_ratio'),
+                () => testCalculationError('whole_number'),
+                () => testSuccessMessage('with_details')
+            ];
+
+            let index = 0;
+            const runNext = () => {
+                if (index < tests.length) {
+                    tests[index]();
+                    index++;
+                    setTimeout(runNext, 1000); // 1 second delay between tests
+                }
+            };
+
+            // Clear containers first
+            document.getElementById('error-container').innerHTML = '';
+            document.getElementById('success-container').innerHTML = '';
+            
+            runNext();
+        }
+
+        // Initialize display
+        updateErrorStats();
+
+        // Test initialization
+        console.log('ErrorHandler Test Page Loaded');
+        console.log('ErrorHandler initialized:', errorHandler.initialized);
+    </script>
+</body>
+</html>

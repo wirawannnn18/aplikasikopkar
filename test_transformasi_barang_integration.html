@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Transformasi Barang Integration</h2>
+        <div id="test-results"></div>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="runTests()">Run Integration Tests</button>
+            <button class="btn btn-success" onclick="testUIComponents()">Test UI Components</button>
+            <button class="btn btn-info" onclick="testDataIntegration()">Test Data Integration</button>
+        </div>
+    </div>
+
+    <!-- Include all transformation modules -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/DataModels.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/ErrorHandler.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+    <script src="js/transformasi-barang/UIController.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addTestResult(testName, passed, message) {
+            testResults.push({
+                name: testName,
+                passed: passed,
+                message: message
+            });
+            updateTestDisplay();
+        }
+
+        function updateTestDisplay() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results (${testResults.filter(t => t.passed).length}/${testResults.length} passed)</h5>
+                    </div>
+                    <div class="card-body">
+                        ${testResults.map(test => `
+                            <div class="alert alert-${test.passed ? 'success' : 'danger'} py-2">
+                                <i class="bi bi-${test.passed ? 'check-circle' : 'x-circle'} me-2"></i>
+                                <strong>${test.name}:</strong> ${test.message}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function runTests() {
+            testResults = [];
+            
+            try {
+                // Test 1: Module Loading
+                addTestResult(
+                    'Module Loading',
+                    typeof TransformationManager !== 'undefined' && 
+                    typeof UIController !== 'undefined' &&
+                    typeof ValidationEngine !== 'undefined',
+                    'All required modules loaded successfully'
+                );
+
+                // Test 2: Component Initialization
+                const validationEngine = new ValidationEngine();
+                const calculator = new ConversionCalculator();
+                const stockManager = new StockManager();
+                const auditLogger = new AuditLogger();
+                const errorHandler = new ErrorHandler();
+                
+                const transformationManager = new TransformationManager();
+                transformationManager.initialize({
+                    validationEngine,
+                    calculator,
+                    stockManager,
+                    auditLogger
+                });
+
+                addTestResult(
+                    'Component Initialization',
+                    transformationManager.initialized === true,
+                    'TransformationManager initialized successfully'
+                );
+
+                // Test 3: Sample Data Setup
+                setupSampleData();
+                addTestResult(
+                    'Sample Data Setup',
+                    true,
+                    'Sample master barang data created'
+                );
+
+                // Test 4: Get Transformable Items
+                const transformableItems = await transformationManager.getTransformableItems();
+                addTestResult(
+                    'Get Transformable Items',
+                    Array.isArray(transformableItems),
+                    `Found ${transformableItems.length} transformable item groups`
+                );
+
+                // Test 5: UI Controller Integration
+                const uiController = new UIController();
+                // Create mock DOM elements for testing
+                createMockDOMElements();
+                
+                uiController.initialize(transformationManager, errorHandler);
+                addTestResult(
+                    'UI Controller Integration',
+                    uiController.initialized === true,
+                    'UIController initialized with TransformationManager'
+                );
+
+                // Test 6: Validation Test
+                if (transformableItems.length > 0) {
+                    const firstGroup = transformableItems[0];
+                    if (firstGroup.items.length >= 2) {
+                        const sourceItem = firstGroup.items[0];
+                        const targetItem = firstGroup.items[1];
+                        
+                        const validationResult = await transformationManager.validateTransformation(
+                            sourceItem.id,
+                            targetItem.id,
+                            1
+                        );
+                        
+                        addTestResult(
+                            'Transformation Validation',
+                            typeof validationResult === 'object',
+                            `Validation completed: ${validationResult.isValid ? 'Valid' : 'Invalid'}`
+                        );
+                    }
+                }
+
+                // Test 7: Report Manager
+                const reportManager = new ReportManager();
+                reportManager.initialize(auditLogger);
+                addTestResult(
+                    'Report Manager',
+                    typeof reportManager.exportTransformationHistory === 'function',
+                    'ReportManager initialized successfully'
+                );
+
+            } catch (error) {
+                addTestResult(
+                    'Integration Test Error',
+                    false,
+                    `Error: ${error.message}`
+                );
+            }
+        }
+
+        function testUIComponents() {
+            testResults = [];
+            
+            // Test UI component availability
+            const requiredElements = [
+                'sourceItem',
+                'targetItem', 
+                'quantity',
+                'preview-container',
+                'submit-transformation',
+                'reset-form'
+            ];
+
+            requiredElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                addTestResult(
+                    `UI Element: ${elementId}`,
+                    element !== null,
+                    element ? 'Element found' : 'Element missing'
+                );
+            });
+        }
+
+        function testDataIntegration() {
+            testResults = [];
+            
+            // Test localStorage integration
+            const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+            addTestResult(
+                'Master Barang Data',
+                Array.isArray(masterBarang),
+                `Found ${masterBarang.length} items in master barang`
+            );
+
+            // Test conversion ratios
+            const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '{}');
+            addTestResult(
+                'Conversion Ratios',
+                typeof conversionRatios === 'object',
+                `Found ${Object.keys(conversionRatios).length} conversion ratio configurations`
+            );
+
+            // Test transformation history
+            const transformationHistory = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+            addTestResult(
+                'Transformation History',
+                Array.isArray(transformationHistory),
+                `Found ${transformationHistory.length} historical transformations`
+            );
+        }
+
+        function setupSampleData() {
+            // Create sample master barang data
+            const sampleMasterBarang = [
+                {
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'dus',
+                    stok: 10,
+                    hargaBeli: 12000,
+                    hargaJual: 15000
+                },
+                {
+                    kode: 'AQUA-PCS',
+                    nama: 'Aqua 1L PCS',
+                    baseProduct: 'AQUA-1L',
+                    kategori: 'minuman',
+                    satuan: 'pcs',
+                    stok: 50,
+                    hargaBeli: 1000,
+                    hargaJual: 1250
+                },
+                {
+                    kode: 'INDOMIE-KARTON',
+                    nama: 'Indomie Ayam Bawang KARTON',
+                    baseProduct: 'INDOMIE-AB',
+                    kategori: 'makanan',
+                    satuan: 'karton',
+                    stok: 5,
+                    hargaBeli: 36000,
+                    hargaJual: 45000
+                },
+                {
+                    kode: 'INDOMIE-PCS',
+                    nama: 'Indomie Ayam Bawang PCS',
+                    baseProduct: 'INDOMIE-AB',
+                    kategori: 'makanan',
+                    satuan: 'pcs',
+                    stok: 120,
+                    hargaBeli: 3000,
+                    hargaJual: 3750
+                }
+            ];
+
+            // Create sample conversion ratios
+            const sampleConversionRatios = {
+                'AQUA-1L': {
+                    'dus-to-pcs': 12,
+                    'pcs-to-dus': 1/12
+                },
+                'INDOMIE-AB': {
+                    'karton-to-pcs': 12,
+                    'pcs-to-karton': 1/12
+                }
+            };
+
+            // Save to localStorage
+            localStorage.setItem('masterBarang', JSON.stringify(sampleMasterBarang));
+            localStorage.setItem('conversionRatios', JSON.stringify(sampleConversionRatios));
+            localStorage.setItem('transformationHistory', JSON.stringify([]));
+        }
+
+        function createMockDOMElements() {
+            // Create mock DOM elements for UI testing
+            const mockElements = [
+                { id: 'sourceItem', tag: 'select' },
+                { id: 'targetItem', tag: 'select' },
+                { id: 'quantity', tag: 'input' },
+                { id: 'preview-container', tag: 'div' },
+                { id: 'submit-transformation', tag: 'button' },
+                { id: 'reset-form', tag: 'button' },
+                { id: 'loading-indicator', tag: 'div' }
+            ];
+
+            mockElements.forEach(({ id, tag }) => {
+                if (!document.getElementById(id)) {
+                    const element = document.createElement(tag);
+                    element.id = id;
+                    element.style.display = 'none';
+                    document.body.appendChild(element);
+                }
+            });
+        }
+
+        // Initialize sample data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setupSampleData();
+        });
+    </script>
+</body>
+</html>

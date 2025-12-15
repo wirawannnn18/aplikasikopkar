@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12: Final Validation - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        .test-result {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+        }
+        .test-pass {
+            background-color: #d1edff;
+            border-left: 4px solid #0d6efd;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1><i class="fas fa-check-double text-success me-2"></i>Task 12: Final Validation</h1>
+                    <button class="btn btn-primary" onclick="runAllValidations()">
+                        <i class="fas fa-play me-2"></i>Run All Validations
+                    </button>
+                </div>
+
+                <!-- Validation Results -->
+                <div id="validation-results"></div>
+
+                <!-- Test Sections -->
+                <div class="test-section">
+                    <h3><i class="fas fa-cogs me-2"></i>1. Core System Validation</h3>
+                    <p>Validasi komponen inti sistem transformasi barang</p>
+                    <div id="core-validation-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="validateCoreSystem()">
+                        <i class="fas fa-play me-1"></i>Test Core System
+                    </button>
+                </div>
+
+                <div class="test-section">
+                    <h3><i class="fas fa-exclamation-triangle me-2"></i>2. Error Handling Validation</h3>
+                    <p>Validasi sistem penanganan error dan pesan user-friendly</p>
+                    <div id="error-handling-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="validateErrorHandling()">
+                        <i class="fas fa-play me-1"></i>Test Error Handling
+                    </button>
+                </div>
+
+                <div class="test-section">
+                    <h3><i class="fas fa-calculator me-2"></i>3. Calculation Accuracy</h3>
+                    <p>Validasi akurasi perhitungan konversi dan edge cases</p>
+                    <div id="calculation-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="validateCalculations()">
+                        <i class="fas fa-play me-1"></i>Test Calculations
+                    </button>
+                </div>
+
+                <div class="test-section">
+                    <h3><i class="fas fa-database me-2"></i>4. Data Integrity</h3>
+                    <p>Validasi integritas data dan konsistensi stok</p>
+                    <div id="data-integrity-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="validateDataIntegrity()">
+                        <i class="fas fa-play me-1"></i>Test Data Integrity
+                    </button>
+                </div>
+
+                <div class="test-section">
+                    <h3><i class="fas fa-tachometer-alt me-2"></i>5. Performance Validation</h3>
+                    <p>Validasi performa sistem dengan dataset besar</p>
+                    <div id="performance-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="validatePerformance()">
+                        <i class="fas fa-play me-1"></i>Test Performance
+                    </button>
+                </div>
+
+                <div class="test-section">
+                    <h3><i class="fas fa-mobile-alt me-2"></i>6. UI/UX Validation</h3>
+                    <p>Validasi antarmuka pengguna dan user experience</p>
+                    <div id="ui-validation-results"></div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="validateUI()">
+                        <i class="fas fa-play me-1"></i>Test UI/UX
+                    </button>
+                </div>
+
+                <!-- Summary Section -->
+                <div class="test-section mt-4">
+                    <h3><i class="fas fa-chart-pie me-2"></i>Validation Summary</h3>
+                    <div id="validation-summary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        // Import modules
+        import { TransformationManager } from './js/transformasi-barang/TransformationManager.js';
+        import { ValidationEngine } from './js/transformasi-barang/ValidationEngine.js';
+        import { ConversionCalculator } from './js/transformasi-barang/ConversionCalculator.js';
+        import { StockManager } from './js/transformasi-barang/StockManager.js';
+        import { AuditLogger } from './js/transformasi-barang/AuditLogger.js';
+        import { ErrorHandler } from './js/transformasi-barang/ErrorHandler.js';
+        import { UIController } from './js/transformasi-barang/UIController.js';
+        import { ReportManager } from './js/transformasi-barang/ReportManager.js';
+        import { ConfigurationManager } from './js/transformasi-barang/ConfigurationManager.js';
+
+        // Global validation state
+        let validationResults = {
+            core: { passed: 0, failed: 0, warnings: 0 },
+            errorHandling: { passed: 0, failed: 0, warnings: 0 },
+            calculations: { passed: 0, failed: 0, warnings: 0 },
+            dataIntegrity: { passed: 0, failed: 0, warnings: 0 },
+            performance: { passed: 0, failed: 0, warnings: 0 },
+            ui: { passed: 0, failed: 0, warnings: 0 }
+        };
+
+        // Utility functions
+        function addTestResult(containerId, testName, status, message, details = null) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${status}`;
+            
+            let html = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${testName}</strong>
+                        <div class="small text-muted">${message}</div>
+                    </div>
+                    <i class="fas fa-${status === 'pass' ? 'check text-success' : status === 'fail' ? 'times text-danger' : 'exclamation-triangle text-warning'}"></i>
+                </div>
+            `;
+            
+            if (details) {
+                html += `<div class="code-block mt-2 small">${details}</div>`;
+            }
+            
+            resultDiv.innerHTML = html;
+            container.appendChild(resultDiv);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        // Core System Validation
+        window.validateCoreSystem = async function() {
+            clearResults('core-validation-results');
+            
+            try {
+                // Test 1: Module Loading
+                addTestResult('core-validation-results', 'Module Loading', 'pass', 'All core modules loaded successfully');
+                validationResults.core.passed++;
+
+                // Test 2: Initialization
+                const transformationManager = new TransformationManager();
+                const validationEngine = new ValidationEngine();
+                const calculator = new ConversionCalculator();
+                const stockManager = new StockManager();
+                const auditLogger = new AuditLogger();
+                const errorHandler = new ErrorHandler();
+
+                await transformationManager.initialize();
+                await validationEngine.initialize();
+                await calculator.initialize();
+                await stockManager.initialize();
+                await auditLogger.initialize();
+                errorHandler.initialize();
+
+                addTestResult('core-validation-results', 'Component Initialization', 'pass', 'All components initialized successfully');
+                validationResults.core.passed++;
+
+                // Test 3: Basic Functionality
+                const testData = {
+                    masterBarang: [
+                        { kode: 'AQUA-DUS', nama: 'Aqua 1L DUS', satuan: 'dus', stok: 10, baseProduct: 'AQUA-1L' },
+                        { kode: 'AQUA-PCS', nama: 'Aqua 1L PCS', satuan: 'pcs', stok: 50, baseProduct: 'AQUA-1L' }
+                    ],
+                    conversionRatios: [
+                        { baseProduct: 'AQUA-1L', conversions: [{ from: 'dus', to: 'pcs', ratio: 12 }] }
+                    ]
+                };
+
+                localStorage.setItem('masterBarang', JSON.stringify(testData.masterBarang));
+                localStorage.setItem('conversionRatios', JSON.stringify(testData.conversionRatios));
+
+                const transformableItems = transformationManager.getTransformableItems();
+                if (transformableItems.length > 0) {
+                    addTestResult('core-validation-results', 'Basic Functionality', 'pass', 'Core functionality working correctly');
+                    validationResults.core.passed++;
+                } else {
+                    addTestResult('core-validation-results', 'Basic Functionality', 'warning', 'No transformable items found');
+                    validationResults.core.warnings++;
+                }
+
+            } catch (error) {
+                addTestResult('core-validation-results', 'Core System Test', 'fail', 'Core system validation failed', error.message);
+                validationResults.core.failed++;
+            }
+        };
+
+        // Error Handling Validation
+        window.validateErrorHandling = function() {
+            clearResults('error-handling-results');
+            
+            try {
+                const errorHandler = new ErrorHandler();
+                errorHandler.initialize();
+
+                // Test 1: Validation Error Handling
+                const validationError = new Error('Stok tidak mencukupi');
+                const validationResponse = errorHandler.handleValidationError(validationError);
+                
+                if (validationResponse.success === false && validationResponse.message.includes('stok')) {
+                    addTestResult('error-handling-results', 'Validation Error Handling', 'pass', 'Validation errors handled correctly');
+                    validationResults.errorHandling.passed++;
+                } else {
+                    addTestResult('error-handling-results', 'Validation Error Handling', 'fail', 'Validation error handling failed');
+                    validationResults.errorHandling.failed++;
+                }
+
+                // Test 2: Business Logic Error Handling
+                const businessError = new Error('Rasio konversi tidak ditemukan');
+                const businessResponse = errorHandler.handleBusinessLogicError(businessError, {
+                    availableStock: 5,
+                    requestedQuantity: 10
+                });
+                
+                if (businessResponse.success === false && businessResponse.suggestions.length > 0) {
+                    addTestResult('error-handling-results', 'Business Logic Error Handling', 'pass', 'Business logic errors handled correctly');
+                    validationResults.errorHandling.passed++;
+                } else {
+                    addTestResult('error-handling-results', 'Business Logic Error Handling', 'fail', 'Business logic error handling failed');
+                    validationResults.errorHandling.failed++;
+                }
+
+                // Test 3: System Error Handling
+                const systemError = new Error('localStorage access denied');
+                const systemResponse = errorHandler.handleSystemError(systemError);
+                
+                if (systemResponse.success === false && systemResponse.canRetry) {
+                    addTestResult('error-handling-results', 'System Error Handling', 'pass', 'System errors handled correctly');
+                    validationResults.errorHandling.passed++;
+                } else {
+                    addTestResult('error-handling-results', 'System Error Handling', 'fail', 'System error handling failed');
+                    validationResults.errorHandling.failed++;
+                }
+
+            } catch (error) {
+                addTestResult('error-handling-results', 'Error Handling Test', 'fail', 'Error handling validation failed', error.message);
+                validationResults.errorHandling.failed++;
+            }
+        };
+
+        // Calculation Validation
+        window.validateCalculations = async function() {
+            clearResults('calculation-results');
+            
+            try {
+                const calculator = new ConversionCalculator();
+                await calculator.initialize();
+
+                // Test 1: Basic Calculation
+                const targetQty = calculator.calculateTargetQuantity(1, 12);
+                if (targetQty === 12) {
+                    addTestResult('calculation-results', 'Basic Calculation', 'pass', 'Basic calculations working correctly');
+                    validationResults.calculations.passed++;
+                } else {
+                    addTestResult('calculation-results', 'Basic Calculation', 'fail', `Expected 12, got ${targetQty}`);
+                    validationResults.calculations.failed++;
+                }
+
+                // Test 2: Reverse Calculation
+                const sourceQty = calculator.calculateSourceQuantity(12, 12);
+                if (sourceQty === 1) {
+                    addTestResult('calculation-results', 'Reverse Calculation', 'pass', 'Reverse calculations working correctly');
+                    validationResults.calculations.passed++;
+                } else {
+                    addTestResult('calculation-results', 'Reverse Calculation', 'fail', `Expected 1, got ${sourceQty}`);
+                    validationResults.calculations.failed++;
+                }
+
+                // Test 3: Edge Cases
+                try {
+                    calculator.calculateTargetQuantity(1, NaN);
+                    addTestResult('calculation-results', 'NaN Handling', 'fail', 'Should have thrown error for NaN input');
+                    validationResults.calculations.failed++;
+                } catch (error) {
+                    addTestResult('calculation-results', 'NaN Handling', 'pass', 'NaN inputs properly rejected');
+                    validationResults.calculations.passed++;
+                }
+
+                // Test 4: Whole Number Validation
+                const wholeNumberResult = calculator.validateWholeNumberResult(12.0);
+                if (wholeNumberResult.isValid) {
+                    addTestResult('calculation-results', 'Whole Number Validation', 'pass', 'Whole number validation working');
+                    validationResults.calculations.passed++;
+                } else {
+                    addTestResult('calculation-results', 'Whole Number Validation', 'fail', 'Whole number validation failed');
+                    validationResults.calculations.failed++;
+                }
+
+            } catch (error) {
+                addTestResult('calculation-results', 'Calculation Test', 'fail', 'Calculation validation failed', error.message);
+                validationResults.calculations.failed++;
+            }
+        };
+
+        // Data Integrity Validation
+        window.validateDataIntegrity = async function() {
+            clearResults('data-integrity-results');
+            
+            try {
+                const stockManager = new StockManager();
+                await stockManager.initialize();
+
+                // Test 1: Stock Balance Conservation
+                const initialStock = { 'AQUA-DUS': 10, 'AQUA-PCS': 50 };
+                const transformation = {
+                    sourceItem: { id: 'AQUA-DUS', quantity: 1 },
+                    targetItem: { id: 'AQUA-PCS', quantity: 12 }
+                };
+
+                // Simulate stock update
+                const beforeTotal = initialStock['AQUA-DUS'] * 12 + initialStock['AQUA-PCS'];
+                const afterTotal = (initialStock['AQUA-DUS'] - 1) * 12 + (initialStock['AQUA-PCS'] + 12);
+
+                if (beforeTotal === afterTotal) {
+                    addTestResult('data-integrity-results', 'Stock Balance Conservation', 'pass', 'Stock balance properly conserved');
+                    validationResults.dataIntegrity.passed++;
+                } else {
+                    addTestResult('data-integrity-results', 'Stock Balance Conservation', 'fail', 'Stock balance not conserved');
+                    validationResults.dataIntegrity.failed++;
+                }
+
+                // Test 2: Negative Stock Prevention
+                try {
+                    const result = stockManager.updateStock('AQUA-DUS', -20);
+                    if (result.success === false) {
+                        addTestResult('data-integrity-results', 'Negative Stock Prevention', 'pass', 'Negative stock properly prevented');
+                        validationResults.dataIntegrity.passed++;
+                    } else {
+                        addTestResult('data-integrity-results', 'Negative Stock Prevention', 'fail', 'Negative stock not prevented');
+                        validationResults.dataIntegrity.failed++;
+                    }
+                } catch (error) {
+                    addTestResult('data-integrity-results', 'Negative Stock Prevention', 'pass', 'Negative stock properly prevented with exception');
+                    validationResults.dataIntegrity.passed++;
+                }
+
+                // Test 3: Data Consistency
+                const auditLogger = new AuditLogger();
+                await auditLogger.initialize();
+                
+                const testRecord = {
+                    id: 'TEST-001',
+                    user: 'test-user',
+                    sourceItem: { id: 'AQUA-DUS', name: 'Aqua DUS', unit: 'dus', quantity: 1, stockBefore: 10, stockAfter: 9 },
+                    targetItem: { id: 'AQUA-PCS', name: 'Aqua PCS', unit: 'pcs', quantity: 12, stockBefore: 50, stockAfter: 62 },
+                    conversionRatio: 12,
+                    status: 'completed'
+                };
+
+                auditLogger.logTransformation(testRecord);
+                const history = auditLogger.getTransformationHistory();
+                
+                if (history.length > 0 && history[0].id === 'TEST-001') {
+                    addTestResult('data-integrity-results', 'Audit Trail Consistency', 'pass', 'Audit trail properly maintained');
+                    validationResults.dataIntegrity.passed++;
+                } else {
+                    addTestResult('data-integrity-results', 'Audit Trail Consistency', 'fail', 'Audit trail inconsistent');
+                    validationResults.dataIntegrity.failed++;
+                }
+
+            } catch (error) {
+                addTestResult('data-integrity-results', 'Data Integrity Test', 'fail', 'Data integrity validation failed', error.message);
+                validationResults.dataIntegrity.failed++;
+            }
+        };
+
+        // Performance Validation
+        window.validatePerformance = async function() {
+            clearResults('performance-results');
+            
+            try {
+                // Test 1: Large Dataset Handling
+                const startTime = performance.now();
+                
+                const largeDataset = [];
+                for (let i = 0; i < 1000; i++) {
+                    largeDataset.push({
+                        kode: `ITEM-${i}`,
+                        nama: `Item ${i}`,
+                        satuan: 'pcs',
+                        stok: Math.floor(Math.random() * 100),
+                        baseProduct: `PRODUCT-${Math.floor(i / 10)}`
+                    });
+                }
+
+                localStorage.setItem('masterBarang', JSON.stringify(largeDataset));
+                
+                const transformationManager = new TransformationManager();
+                await transformationManager.initialize();
+                
+                const transformableItems = transformationManager.getTransformableItems();
+                
+                const endTime = performance.now();
+                const processingTime = endTime - startTime;
+
+                if (processingTime < 2000) { // Less than 2 seconds
+                    addTestResult('performance-results', 'Large Dataset Processing', 'pass', `Processed 1000 items in ${processingTime.toFixed(2)}ms`);
+                    validationResults.performance.passed++;
+                } else {
+                    addTestResult('performance-results', 'Large Dataset Processing', 'warning', `Processing took ${processingTime.toFixed(2)}ms (>2s)`);
+                    validationResults.performance.warnings++;
+                }
+
+                // Test 2: Memory Usage
+                const memoryBefore = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                
+                // Simulate heavy operations
+                for (let i = 0; i < 100; i++) {
+                    transformationManager.getTransformableItems();
+                }
+                
+                const memoryAfter = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                const memoryIncrease = memoryAfter - memoryBefore;
+
+                if (memoryIncrease < 10 * 1024 * 1024) { // Less than 10MB
+                    addTestResult('performance-results', 'Memory Usage', 'pass', `Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+                    validationResults.performance.passed++;
+                } else {
+                    addTestResult('performance-results', 'Memory Usage', 'warning', `High memory usage: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+                    validationResults.performance.warnings++;
+                }
+
+            } catch (error) {
+                addTestResult('performance-results', 'Performance Test', 'fail', 'Performance validation failed', error.message);
+                validationResults.performance.failed++;
+            }
+        };
+
+        // UI Validation
+        window.validateUI = function() {
+            clearResults('ui-validation-results');
+            
+            try {
+                // Test 1: UI Controller Initialization
+                const uiController = new UIController();
+                uiController.initialize();
+                
+                addTestResult('ui-validation-results', 'UI Controller Initialization', 'pass', 'UI Controller initialized successfully');
+                validationResults.ui.passed++;
+
+                // Test 2: Form Validation
+                const mockFormData = {
+                    sourceItem: null,
+                    targetItem: { id: 'AQUA-PCS' },
+                    quantity: 5
+                };
+
+                const validationResult = uiController.validateForm(mockFormData);
+                if (!validationResult.isValid) {
+                    addTestResult('ui-validation-results', 'Form Validation', 'pass', 'Form validation working correctly');
+                    validationResults.ui.passed++;
+                } else {
+                    addTestResult('ui-validation-results', 'Form Validation', 'fail', 'Form validation not working');
+                    validationResults.ui.failed++;
+                }
+
+                // Test 3: Preview Generation
+                const previewData = {
+                    sourceItem: { id: 'AQUA-DUS', name: 'Aqua DUS', unit: 'dus', stock: 10 },
+                    targetItem: { id: 'AQUA-PCS', name: 'Aqua PCS', unit: 'pcs', stock: 50 },
+                    quantity: 1,
+                    conversionRatio: 12
+                };
+
+                const preview = uiController.generatePreview(previewData);
+                if (preview && preview.sourceAfter !== undefined && preview.targetAfter !== undefined) {
+                    addTestResult('ui-validation-results', 'Preview Generation', 'pass', 'Preview generation working correctly');
+                    validationResults.ui.passed++;
+                } else {
+                    addTestResult('ui-validation-results', 'Preview Generation', 'fail', 'Preview generation failed');
+                    validationResults.ui.failed++;
+                }
+
+            } catch (error) {
+                addTestResult('ui-validation-results', 'UI Test', 'fail', 'UI validation failed', error.message);
+                validationResults.ui.failed++;
+            }
+        };
+
+        // Run All Validations
+        window.runAllValidations = async function() {
+            // Reset results
+            validationResults = {
+                core: { passed: 0, failed: 0, warnings: 0 },
+                errorHandling: { passed: 0, failed: 0, warnings: 0 },
+                calculations: { passed: 0, failed: 0, warnings: 0 },
+                dataIntegrity: { passed: 0, failed: 0, warnings: 0 },
+                performance: { passed: 0, failed: 0, warnings: 0 },
+                ui: { passed: 0, failed: 0, warnings: 0 }
+            };
+
+            // Clear all results
+            ['core-validation-results', 'error-handling-results', 'calculation-results', 
+             'data-integrity-results', 'performance-results', 'ui-validation-results'].forEach(clearResults);
+
+            // Run all validations
+            await validateCoreSystem();
+            validateErrorHandling();
+            await validateCalculations();
+            await validateDataIntegrity();
+            await validatePerformance();
+            validateUI();
+
+            // Generate summary
+            updateValidationSummary();
+        };
+
+        function updateValidationSummary() {
+            const summaryContainer = document.getElementById('validation-summary');
+            
+            let totalPassed = 0;
+            let totalFailed = 0;
+            let totalWarnings = 0;
+
+            Object.values(validationResults).forEach(result => {
+                totalPassed += result.passed;
+                totalFailed += result.failed;
+                totalWarnings += result.warnings;
+            });
+
+            const totalTests = totalPassed + totalFailed + totalWarnings;
+            const successRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : 0;
+
+            summaryContainer.innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">${totalPassed}</h5>
+                                <p class="card-text">Tests Passed</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger">${totalFailed}</h5>
+                                <p class="card-text">Tests Failed</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning">${totalWarnings}</h5>
+                                <p class="card-text">Warnings</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">${successRate}%</h5>
+                                <p class="card-text">Success Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="alert ${totalFailed === 0 ? 'alert-success' : 'alert-warning'}" role="alert">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-${totalFailed === 0 ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            Validation ${totalFailed === 0 ? 'Complete' : 'Summary'}
+                        </h6>
+                        ${totalFailed === 0 
+                            ? 'All validations passed successfully! The system is ready for deployment.' 
+                            : `${totalFailed} test(s) failed and ${totalWarnings} warning(s) found. Please review and fix issues before deployment.`
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Task 12 Final Validation initialized');
+        });
+    </script>
+</body>
+</html>

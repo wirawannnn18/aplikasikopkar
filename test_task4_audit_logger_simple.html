@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 4: AuditLogger Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Task 4: AuditLogger Implementation</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Transformation History</h2>
+        <div id="historyResults"></div>
+    </div>
+
+    <script type="module">
+        import AuditLogger from './js/transformasi-barang/AuditLogger.js';
+
+        const testResults = document.getElementById('testResults');
+        const historyResults = document.getElementById('historyResults');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            testResults.appendChild(div);
+        }
+
+        function logPre(content, title = '') {
+            if (title) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'info';
+                titleDiv.textContent = title;
+                historyResults.appendChild(titleDiv);
+            }
+            
+            const pre = document.createElement('pre');
+            pre.textContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : content;
+            historyResults.appendChild(pre);
+        }
+
+        async function runTests() {
+            try {
+                log('Starting AuditLogger tests...', 'info');
+                
+                // Clear localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Initialize AuditLogger
+                const auditLogger = new AuditLogger();
+                auditLogger.initialize();
+                log('✓ AuditLogger initialized successfully', 'success');
+
+                // Test 1: Log a simple transformation
+                const transformationRecord1 = {
+                    id: 'TEST_001',
+                    user: 'test_user',
+                    status: 'completed',
+                    sourceItem: {
+                        id: 'ITEM_001_DUS',
+                        name: 'Sabun Mandi',
+                        unit: 'DUS',
+                        quantity: 2,
+                        stockBefore: 10,
+                        stockAfter: 8,
+                        baseProduct: 'SABUN_MANDI'
+                    },
+                    targetItem: {
+                        id: 'ITEM_001_PCS',
+                        name: 'Sabun Mandi',
+                        unit: 'PCS',
+                        quantity: 24,
+                        stockBefore: 50,
+                        stockAfter: 74,
+                        baseProduct: 'SABUN_MANDI'
+                    },
+                    conversionRatio: 12
+                };
+
+                const logId1 = await auditLogger.logTransformation(transformationRecord1);
+                log(`✓ Transformation logged with ID: ${logId1}`, 'success');
+
+                // Test 2: Retrieve the logged transformation
+                const retrievedLog = await auditLogger.getTransformationLog('TEST_001');
+                if (retrievedLog) {
+                    log('✓ Transformation retrieved successfully', 'success');
+                    logPre(retrievedLog, 'Retrieved Transformation:');
+                } else {
+                    log('✗ Failed to retrieve transformation', 'error');
+                }
+
+                // Test 3: Log another transformation
+                const transformationRecord2 = {
+                    id: 'TEST_002',
+                    user: 'test_user',
+                    status: 'completed',
+                    sourceItem: {
+                        id: 'ITEM_002_LUSIN',
+                        name: 'Pasta Gigi',
+                        unit: 'LUSIN',
+                        quantity: 1,
+                        stockBefore: 5,
+                        stockAfter: 4,
+                        baseProduct: 'PASTA_GIGI'
+                    },
+                    targetItem: {
+                        id: 'ITEM_002_PCS',
+                        name: 'Pasta Gigi',
+                        unit: 'PCS',
+                        quantity: 12,
+                        stockBefore: 20,
+                        stockAfter: 32,
+                        baseProduct: 'PASTA_GIGI'
+                    },
+                    conversionRatio: 12
+                };
+
+                const logId2 = await auditLogger.logTransformation(transformationRecord2);
+                log(`✓ Second transformation logged with ID: ${logId2}`, 'success');
+
+                // Test 4: Get transformation history
+                const history = await auditLogger.getTransformationHistory();
+                log(`✓ Retrieved history with ${history.data.length} transformations`, 'success');
+                logPre(history, 'Transformation History:');
+
+                // Test 5: Test filtering
+                const filteredHistory = await auditLogger.getTransformationHistory({
+                    user: 'test_user',
+                    status: 'completed'
+                });
+                log(`✓ Filtered history contains ${filteredHistory.data.length} transformations`, 'success');
+
+                // Test 6: Test statistics
+                const stats = await auditLogger.getTransformationStatistics();
+                log(`✓ Statistics generated: ${stats.totalTransformations} total transformations`, 'success');
+                logPre(stats, 'Statistics:');
+
+                // Test 7: Test export functionality
+                const csvExport = await auditLogger.exportTransformationHistory({}, 'csv');
+                log('✓ CSV export generated successfully', 'success');
+                logPre(csvExport.substring(0, 500) + '...', 'CSV Export (first 500 chars):');
+
+                // Test 8: Test event logging
+                await auditLogger.logEvent('info', 'Test event logged', { testId: 'EVENT_001' });
+                log('✓ Event logged successfully', 'success');
+
+                // Test 9: Test daily summary
+                const dailySummary = await auditLogger.getDailyTransformationSummary(7);
+                log(`✓ Daily summary generated for ${dailySummary.length} days`, 'success');
+                logPre(dailySummary, 'Daily Summary:');
+
+                // Test 10: Test search functionality
+                const searchResults = await auditLogger.searchLogs('Sabun');
+                log(`✓ Search found ${searchResults.length} results`, 'success');
+
+                log('All tests completed successfully!', 'success');
+
+            } catch (error) {
+                log(`✗ Test failed: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            }
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

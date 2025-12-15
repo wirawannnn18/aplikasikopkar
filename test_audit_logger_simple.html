@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AuditLogger - Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test AuditLogger - Sistem Transformasi Barang</h1>
+        <p>Test ini memverifikasi implementasi AuditLogger dan transaction logging.</p>
+        
+        <div class="test-section">
+            <h3>1. Test Basic Logging</h3>
+            <button onclick="testBasicLogging()">Run Basic Logging Tests</button>
+            <div id="basicLoggingResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Test Transformation Logging</h3>
+            <button onclick="testTransformationLogging()">Run Transformation Logging Tests</button>
+            <div id="transformationLoggingResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test History and Filtering</h3>
+            <button onclick="testHistoryFiltering()">Run History & Filtering Tests</button>
+            <div id="historyFilteringResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Test Search and Statistics</h3>
+            <button onclick="testSearchStatistics()">Run Search & Statistics Tests</button>
+            <div id="searchStatisticsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Test Export Functionality</h3>
+            <button onclick="testExportFunctionality()">Run Export Tests</button>
+            <div id="exportResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. Test Log Management</h3>
+            <button onclick="testLogManagement()">Run Log Management Tests</button>
+            <div id="logManagementResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>7. View Current Logs</h3>
+            <button onclick="viewCurrentLogs()">View All Logs</button>
+            <button onclick="clearAllLogs()">Clear All Logs</button>
+            <div id="currentLogsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>8. Run All Tests</h3>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <div id="allTestsResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Import modules -->
+    <script type="module">
+        import AuditLogger from './js/transformasi-barang/AuditLogger.js';
+        import { TransformationRecord, TransformationItem } from './js/transformasi-barang/DataModels.js';
+        
+        window.AuditLogger = AuditLogger;
+        window.TransformationRecord = TransformationRecord;
+        window.TransformationItem = TransformationItem;
+    </script>
+
+    <script>
+        let auditLogger;
+
+        // Initialize AuditLogger
+        function initializeAuditLogger() {
+            auditLogger = new AuditLogger();
+            auditLogger.initialize();
+        }
+
+        // Helper function to create sample transformation record
+        function createSampleTransformationRecord(overrides = {}) {
+            const sourceItem = new TransformationItem({
+                id: 'AQUA-DUS',
+                name: 'Aqua 1L DUS',
+                unit: 'dus',
+                quantity: 1,
+                stockBefore: 10,
+                stockAfter: 9,
+                baseProduct: 'AQUA-1L'
+            });
+
+            const targetItem = new TransformationItem({
+                id: 'AQUA-PCS',
+                name: 'Aqua 1L PCS',
+                unit: 'pcs',
+                quantity: 12,
+                stockBefore: 50,
+                stockAfter: 62,
+                baseProduct: 'AQUA-1L'
+            });
+
+            return new TransformationRecord({
+                user: 'kasir01',
+                sourceItem,
+                targetItem,
+                conversionRatio: 12,
+                status: 'completed',
+                ...overrides
+            });
+        }
+
+        async function testBasicLogging() {
+            const resultDiv = document.getElementById('basicLoggingResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                let results = [];
+                
+                // Test initialization
+                results.push(`✓ AuditLogger initialized: ${auditLogger.initialized}`);
+                
+                // Test event logging
+                const eventResult = await auditLogger.logEvent('info', 'Test event message', { test: true });
+                results.push(`✓ Event logging result: ${eventResult}`);
+                
+                // Test error event logging
+                const errorResult = await auditLogger.logEvent('error', 'Test error message', { errorCode: 'TEST_001' });
+                results.push(`✓ Error event logging result: ${errorResult}`);
+                
+                // Test warning event logging
+                const warningResult = await auditLogger.logEvent('warning', 'Test warning message');
+                results.push(`✓ Warning event logging result: ${warningResult}`);
+                
+                results.push(`✓ Log cache size: ${auditLogger.logCache.length}`);
+                
+                resultDiv.innerHTML = `<div class="success">Basic Logging Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Basic Logging Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testTransformationLogging() {
+            const resultDiv = document.getElementById('transformationLoggingResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                let results = [];
+                
+                // Test transformation logging
+                const transformationRecord = createSampleTransformationRecord();
+                const logResult = await auditLogger.logTransformation(transformationRecord);
+                results.push(`✓ Transformation logging result: ${logResult}`);
+                
+                // Test with different status
+                const failedRecord = createSampleTransformationRecord({ 
+                    user: 'kasir02', 
+                    status: 'failed' 
+                });
+                const failedLogResult = await auditLogger.logTransformation(failedRecord);
+                results.push(`✓ Failed transformation logging result: ${failedLogResult}`);
+                
+                // Get specific transformation log
+                const specificLog = await auditLogger.getTransformationLog(transformationRecord.id);
+                results.push(`✓ Retrieved specific log: ${specificLog ? 'Found' : 'Not found'}`);
+                
+                if (specificLog) {
+                    results.push(`  - Log ID: ${specificLog.id}`);
+                    results.push(`  - User: ${specificLog.user}`);
+                    results.push(`  - Status: ${specificLog.status}`);
+                    results.push(`  - Source: ${specificLog.sourceItem.name} (${specificLog.sourceItem.quantity} ${specificLog.sourceItem.unit})`);
+                    results.push(`  - Target: ${specificLog.targetItem.name} (${specificLog.targetItem.quantity} ${specificLog.targetItem.unit})`);
+                }
+                
+                resultDiv.innerHTML = `<div class="success">Transformation Logging Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Transformation Logging Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testHistoryFiltering() {
+            const resultDiv = document.getElementById('historyFilteringResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                let results = [];
+                
+                // Create multiple transformation records
+                const records = [
+                    createSampleTransformationRecord({ user: 'kasir01', status: 'completed' }),
+                    createSampleTransformationRecord({ user: 'kasir02', status: 'failed' }),
+                    createSampleTransformationRecord({ user: 'kasir01', status: 'completed' }),
+                    createSampleTransformationRecord({ user: 'kasir03', status: 'completed' })
+                ];
+
+                for (const record of records) {
+                    await auditLogger.logTransformation(record);
+                    // Small delay to ensure different timestamps
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // Test get all history
+                const allHistory = await auditLogger.getTransformationHistory();
+                results.push(`✓ Total transformations logged: ${allHistory.data.length}`);
+                results.push(`✓ Total count from metadata: ${allHistory.metadata.totalCount}`);
+                
+                // Test filter by user
+                const kasir01History = await auditLogger.getTransformationHistory({ user: 'kasir01' });
+                results.push(`✓ Kasir01 transformations: ${kasir01History.data.length}`);
+                
+                // Test filter by status
+                const completedHistory = await auditLogger.getTransformationHistory({ status: 'completed' });
+                results.push(`✓ Completed transformations: ${completedHistory.data.length}`);
+                
+                const failedHistory = await auditLogger.getTransformationHistory({ status: 'failed' });
+                results.push(`✓ Failed transformations: ${failedHistory.data.length}`);
+                
+                // Test pagination
+                const page1 = await auditLogger.getTransformationHistory({ limit: 2, offset: 0 });
+                results.push(`✓ Page 1 (limit 2): ${page1.data.length} items, hasMore: ${page1.metadata.hasMore}`);
+                
+                const page2 = await auditLogger.getTransformationHistory({ limit: 2, offset: 2 });
+                results.push(`✓ Page 2 (limit 2): ${page2.data.length} items, hasMore: ${page2.metadata.hasMore}`);
+                
+                // Test date filtering
+                const now = new Date();
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                const recentHistory = await auditLogger.getTransformationHistory({
+                    dateFrom: oneHourAgo.toISOString(),
+                    dateTo: now.toISOString()
+                });
+                results.push(`✓ Recent transformations (last hour): ${recentHistory.data.length}`);
+                
+                resultDiv.innerHTML = `<div class="success">History & Filtering Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">History & Filtering Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testSearchStatistics() {
+            const resultDiv = document.getElementById('searchStatisticsResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                let results = [];
+                
+                // Create test data
+                const record1 = createSampleTransformationRecord({ user: 'kasir01' });
+                const record2 = createSampleTransformationRecord({ user: 'kasir02' });
+                
+                await auditLogger.logTransformation(record1);
+                await auditLogger.logTransformation(record2);
+                await auditLogger.logEvent('info', 'Test event with AQUA keyword');
+                
+                // Test search functionality
+                const searchResults = await auditLogger.searchLogs('AQUA');
+                results.push(`✓ Search results for 'AQUA': ${searchResults.length} items`);
+                
+                const transformationResults = searchResults.filter(log => log.type === 'transformation');
+                const eventResults = searchResults.filter(log => log.type === 'event');
+                results.push(`  - Transformation logs: ${transformationResults.length}`);
+                results.push(`  - Event logs: ${eventResults.length}`);
+                
+                // Test statistics
+                const stats = await auditLogger.getTransformationStatistics();
+                results.push(`✓ Statistics:`);
+                results.push(`  - Total transformations: ${stats.totalTransformations}`);
+                results.push(`  - Successful: ${stats.successfulTransformations}`);
+                results.push(`  - Failed: ${stats.failedTransformations}`);
+                results.push(`  - Unique users: ${stats.uniqueUsers}`);
+                results.push(`  - Unique products: ${stats.uniqueProducts}`);
+                
+                // Test daily summary
+                const dailySummary = await auditLogger.getDailyTransformationSummary(7);
+                results.push(`✓ Daily summary (7 days): ${dailySummary.length} days`);
+                
+                if (dailySummary.length > 0) {
+                    const today = dailySummary[0];
+                    results.push(`  - Today: ${today.totalTransformations} transformations, ${today.uniqueUsers} users`);
+                }
+                
+                // Create stats display
+                const statsHtml = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.totalTransformations}</div>
+                            <div class="stat-label">Total Transformations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.successfulTransformations}</div>
+                            <div class="stat-label">Successful</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.failedTransformations}</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.uniqueUsers}</div>
+                            <div class="stat-label">Unique Users</div>
+                        </div>
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = `<div class="success">Search & Statistics Tests Passed!</div><pre>${results.join('\n')}</pre>${statsHtml}`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Search & Statistics Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testExportFunctionality() {
+            const resultDiv = document.getElementById('exportResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                let results = [];
+                
+                // Create test data
+                const record = createSampleTransformationRecord();
+                await auditLogger.logTransformation(record);
+                
+                // Test JSON export
+                const jsonData = await auditLogger.exportTransformationHistory({}, 'json');
+                results.push(`✓ JSON export length: ${jsonData.length} characters`);
+                
+                const jsonParsed = JSON.parse(jsonData);
+                results.push(`✓ JSON export contains:`);
+                results.push(`  - Export timestamp: ${jsonParsed.exportTimestamp}`);
+                results.push(`  - Total records: ${jsonParsed.totalRecords}`);
+                results.push(`  - Transformations array: ${Array.isArray(jsonParsed.transformations)}`);
+                
+                // Test CSV export
+                const csvData = await auditLogger.exportTransformationHistory({}, 'csv');
+                results.push(`✓ CSV export length: ${csvData.length} characters`);
+                
+                const csvLines = csvData.split('\n');
+                results.push(`✓ CSV export contains:`);
+                results.push(`  - Total lines: ${csvLines.length}`);
+                results.push(`  - Header line: ${csvLines[0].includes('Timestamp,User,Status')}`);
+                results.push(`  - Data lines: ${csvLines.length - 1}`);
+                
+                // Show preview of exports
+                results.push(`\n--- JSON Export Preview ---`);
+                results.push(JSON.stringify(jsonParsed, null, 2).substring(0, 300) + '...');
+                
+                results.push(`\n--- CSV Export Preview ---`);
+                results.push(csvLines.slice(0, 3).join('\n'));
+                
+                resultDiv.innerHTML = `<div class="success">Export Functionality Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Export Functionality Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testLogManagement() {
+            const resultDiv = document.getElementById('logManagementResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                let results = [];
+                
+                // Create test data
+                const record = createSampleTransformationRecord();
+                await auditLogger.logTransformation(record);
+                await auditLogger.logEvent('info', 'Test event');
+                
+                // Test get specific log
+                const specificLog = await auditLogger.getTransformationLog(record.id);
+                results.push(`✓ Get specific log: ${specificLog ? 'Found' : 'Not found'}`);
+                
+                // Test get non-existent log
+                const nonExistentLog = await auditLogger.getTransformationLog('NON-EXISTENT-ID');
+                results.push(`✓ Get non-existent log: ${nonExistentLog ? 'Found' : 'Not found (correct)'}`);
+                
+                // Test cleanup with retention
+                const beforeCleanup = await auditLogger.getTransformationHistory();
+                results.push(`✓ Logs before cleanup: ${beforeCleanup.data.length}`);
+                
+                // Cleanup with 30 days retention (should keep all recent logs)
+                const deletedCount30 = await auditLogger.cleanupOldLogs(30);
+                results.push(`✓ Deleted with 30 days retention: ${deletedCount30} logs`);
+                
+                const afterCleanup30 = await auditLogger.getTransformationHistory();
+                results.push(`✓ Logs after 30-day cleanup: ${afterCleanup30.data.length}`);
+                
+                // Cleanup with 0 days retention (should remove all)
+                const deletedCount0 = await auditLogger.cleanupOldLogs(0);
+                results.push(`✓ Deleted with 0 days retention: ${deletedCount0} logs`);
+                
+                const afterCleanup0 = await auditLogger.getTransformationHistory();
+                results.push(`✓ Logs after 0-day cleanup: ${afterCleanup0.data.length}`);
+                
+                resultDiv.innerHTML = `<div class="success">Log Management Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Log Management Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function viewCurrentLogs() {
+            const resultDiv = document.getElementById('currentLogsResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeAuditLogger();
+                
+                const history = await auditLogger.getTransformationHistory();
+                const allLogs = auditLogger._getAllLogs();
+                
+                let results = [];
+                results.push(`=== CURRENT LOGS SUMMARY ===`);
+                results.push(`Total logs in storage: ${allLogs.length}`);
+                results.push(`Transformation logs: ${history.data.length}`);
+                results.push(`Event logs: ${allLogs.length - history.data.length}`);
+                results.push(``);
+                
+                if (history.data.length > 0) {
+                    results.push(`=== RECENT TRANSFORMATIONS ===`);
+                    history.data.slice(0, 5).forEach((log, index) => {
+                        results.push(`${index + 1}. ${log.timestamp}`);
+                        results.push(`   User: ${log.user}, Status: ${log.status}`);
+                        results.push(`   ${log.sourceItem.name} (${log.sourceItem.quantity} ${log.sourceItem.unit}) → ${log.targetItem.name} (${log.targetItem.quantity} ${log.targetItem.unit})`);
+                        results.push(``);
+                    });
+                }
+                
+                const eventLogs = allLogs.filter(log => log.type === 'event').slice(0, 5);
+                if (eventLogs.length > 0) {
+                    results.push(`=== RECENT EVENTS ===`);
+                    eventLogs.forEach((log, index) => {
+                        results.push(`${index + 1}. ${log.timestamp} [${log.level.toUpperCase()}]`);
+                        results.push(`   ${log.message}`);
+                        results.push(``);
+                    });
+                }
+                
+                resultDiv.innerHTML = `<div class="info">Current Logs</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Failed to view logs!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function clearAllLogs() {
+            const resultDiv = document.getElementById('currentLogsResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                localStorage.removeItem('transformationLogs');
+                initializeAuditLogger();
+                
+                resultDiv.innerHTML = `<div class="success">All logs cleared successfully!</div>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Failed to clear logs!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function runAllTests() {
+            const resultDiv = document.getElementById('allTestsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">Running all tests...</div>';
+            
+            const tests = [
+                { name: 'Basic Logging', func: testBasicLogging },
+                { name: 'Transformation Logging', func: testTransformationLogging },
+                { name: 'History & Filtering', func: testHistoryFiltering },
+                { name: 'Search & Statistics', func: testSearchStatistics },
+                { name: 'Export Functionality', func: testExportFunctionality },
+                { name: 'Log Management', func: testLogManagement }
+            ];
+            
+            let results = [];
+            let passedCount = 0;
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    results.push(`✓ ${test.name}: PASSED`);
+                    passedCount++;
+                } catch (error) {
+                    results.push(`✗ ${test.name}: FAILED - ${error.message}`);
+                }
+            }
+            
+            const summary = `Test Summary: ${passedCount}/${tests.length} tests passed`;
+            const status = passedCount === tests.length ? 'success' : 'error';
+            
+            resultDiv.innerHTML = `<div class="${status}">${summary}</div><pre>${results.join('\n')}</pre>`;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            console.log('AuditLogger test page loaded');
+        });
+    </script>
+</body>
+</html>

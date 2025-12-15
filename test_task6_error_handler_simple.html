@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 6: ErrorHandler Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .alert-danger { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .alert-warning { background-color: #fff3cd; border: 1px solid #ffeaa7; }
+        .alert-success { background-color: #d4edda; border: 1px solid #c3e6cb; }
+    </style>
+</head>
+<body>
+    <h1>Test Task 6: ErrorHandler Implementation</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Error Display Tests</h2>
+        <div id="error-container"></div>
+        <div id="success-container"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Error Log</h2>
+        <div id="errorLogResults"></div>
+    </div>
+
+    <script type="module">
+        import ErrorHandler from './js/transformasi-barang/ErrorHandler.js';
+
+        const testResults = document.getElementById('testResults');
+        const errorLogResults = document.getElementById('errorLogResults');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            testResults.appendChild(div);
+        }
+
+        function logPre(content, title = '') {
+            if (title) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'info';
+                titleDiv.textContent = title;
+                errorLogResults.appendChild(titleDiv);
+            }
+            
+            const pre = document.createElement('pre');
+            pre.textContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : content;
+            errorLogResults.appendChild(pre);
+        }
+
+        async function runTests() {
+            try {
+                log('Starting ErrorHandler tests...', 'info');
+                
+                // Clear localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Initialize ErrorHandler
+                const errorHandler = new ErrorHandler();
+                errorHandler.initialize();
+                log('✓ ErrorHandler initialized successfully', 'success');
+
+                // Test 1: Validation Error Handling
+                const validationError = new Error('Field nama produk wajib diisi');
+                const validationContext = {
+                    field: 'nama_produk',
+                    operation: 'form_validation',
+                    userRole: 'kasir'
+                };
+
+                const validationResponse = errorHandler.handleValidationError(validationError, validationContext);
+                log('✓ Validation error handled successfully', 'success');
+                logPre(validationResponse, 'Validation Error Response:');
+
+                // Verify validation response
+                expect(validationResponse.success).toBe(false);
+                expect(validationResponse.category).toBe('validation');
+                expect(validationResponse.canRetry).toBe(true);
+                expect(validationResponse.suggestions.length).toBeGreaterThan(0);
+                log('✓ Validation response structure verified', 'success');
+
+                // Test 2: Business Logic Error Handling (Insufficient Stock)
+                const stockError = new Error('Stok Sabun Mandi tidak mencukupi. Stok tersedia: 5, diminta: 10');
+                const stockContext = {
+                    itemName: 'Sabun Mandi',
+                    availableStock: 5,
+                    requestedQuantity: 10,
+                    operation: 'stock_transformation'
+                };
+
+                const stockResponse = errorHandler.handleBusinessLogicError(stockError, stockContext);
+                log('✓ Stock error handled successfully', 'success');
+                logPre(stockResponse, 'Stock Error Response:');
+
+                // Verify stock response
+                expect(stockResponse.success).toBe(false);
+                expect(stockResponse.category).toBe('business_logic');
+                expect(stockResponse.severity).toBe('warning');
+                expect(stockResponse.alternatives).toBeDefined();
+                log('✓ Stock response structure verified', 'success');
+
+                // Test 3: Missing Ratio Error Handling
+                const ratioError = new Error('Rasio konversi dari DUS ke PCS belum dikonfigurasi untuk produk Pasta Gigi');
+                const ratioContext = {
+                    sourceUnit: 'DUS',
+                    targetUnit: 'PCS',
+                    productName: 'Pasta Gigi',
+                    operation: 'ratio_lookup'
+                };
+
+                const ratioResponse = errorHandler.handleBusinessLogicError(ratioError, ratioContext);
+                log('✓ Ratio error handled successfully', 'success');
+                logPre(ratioResponse, 'Ratio Error Response:');
+
+                // Verify ratio response
+                expect(ratioResponse.success).toBe(false);
+                expect(ratioResponse.category).toBe('business_logic');
+                expect(ratioResponse.canRetry).toBe(true);
+                log('✓ Ratio response structure verified', 'success');
+
+                // Test 4: System Error Handling
+                const systemError = new Error('localStorage quota exceeded');
+                const systemContext = {
+                    operation: 'data_storage',
+                    rollbackFunction: () => console.log('Rollback executed')
+                };
+
+                const systemResponse = errorHandler.handleSystemError(systemError, systemContext);
+                log('✓ System error handled successfully', 'success');
+                logPre(systemResponse, 'System Error Response:');
+
+                // Verify system response
+                expect(systemResponse.success).toBe(false);
+                expect(systemResponse.category).toBe('system');
+                expect(systemResponse.severity).toBe('error');
+                expect(systemResponse.errorId).toBeDefined();
+                log('✓ System response structure verified', 'success');
+
+                // Test 5: Calculation Error Handling
+                const calcError = new Error('Hasil transformasi harus berupa bilangan bulat');
+                const calcContext = {
+                    operation: 'quantity_calculation',
+                    sourceQuantity: 3,
+                    conversionRatio: 2.5
+                };
+
+                const calcResponse = errorHandler.handleCalculationError(calcError, calcContext);
+                log('✓ Calculation error handled successfully', 'success');
+                logPre(calcResponse, 'Calculation Error Response:');
+
+                // Verify calculation response
+                expect(calcResponse.success).toBe(false);
+                expect(calcResponse.category).toBe('calculation');
+                expect(calcResponse.canRetry).toBe(true);
+                log('✓ Calculation response structure verified', 'success');
+
+                // Test 6: Display Error Message
+                errorHandler.displayErrorMessage(stockResponse, 'error-container');
+                log('✓ Error message displayed successfully', 'success');
+
+                // Test 7: Display Success Message
+                errorHandler.displaySuccessMessage(
+                    'Transformasi berhasil dilakukan!',
+                    'success-container',
+                    {
+                        'Produk': 'Sabun Mandi',
+                        'Dari': '2 DUS',
+                        'Ke': '24 PCS',
+                        'Waktu': new Date().toLocaleString('id-ID')
+                    }
+                );
+                log('✓ Success message displayed successfully', 'success');
+
+                // Test 8: Error Statistics
+                const stats = errorHandler.getErrorStatistics();
+                log(`✓ Error statistics: ${stats.total} total errors`, 'success');
+                logPre(stats, 'Error Statistics:');
+
+                // Verify statistics
+                expect(stats.total).toBeGreaterThan(0);
+                expect(stats.byCategory).toBeDefined();
+                expect(stats.recent).toBeDefined();
+                log('✓ Error statistics verified', 'success');
+
+                // Test 9: Error Log Retrieval
+                const errorLog = errorHandler.getErrorLog(10);
+                log(`✓ Retrieved ${errorLog.length} error log entries`, 'success');
+                logPre(errorLog, 'Recent Error Log:');
+
+                // Verify error log
+                expect(Array.isArray(errorLog)).toBe(true);
+                expect(errorLog.length).toBeGreaterThan(0);
+                errorLog.forEach(entry => {
+                    expect(entry.category).toBeDefined();
+                    expect(entry.timestamp).toBeDefined();
+                    expect(entry.originalError).toBeDefined();
+                });
+                log('✓ Error log structure verified', 'success');
+
+                // Test 10: Message Quality Verification
+                const allResponses = [validationResponse, stockResponse, ratioResponse, systemResponse, calcResponse];
+                allResponses.forEach((response, index) => {
+                    // Check message quality
+                    expect(response.message.length).toBeGreaterThan(10);
+                    expect(response.message.length).toBeLessThan(500);
+                    
+                    // Check Indonesian language usage
+                    const messageText = response.message.toLowerCase();
+                    const hasIndonesianTerms = 
+                        messageText.includes('terjadi') ||
+                        messageText.includes('tidak') ||
+                        messageText.includes('kesalahan') ||
+                        messageText.includes('silakan');
+                    expect(hasIndonesianTerms).toBe(true);
+                    
+                    // Check suggestions quality
+                    expect(response.suggestions.length).toBeGreaterThan(0);
+                    response.suggestions.forEach(suggestion => {
+                        expect(suggestion.length).toBeGreaterThan(5);
+                    });
+                });
+                log('✓ Message quality verified for all error types', 'success');
+
+                // Test 11: Clear Error Log
+                errorHandler.clearErrorLog();
+                const clearedLog = errorHandler.getErrorLog();
+                expect(clearedLog.length).toBe(0);
+                log('✓ Error log cleared successfully', 'success');
+
+                log('All ErrorHandler tests completed successfully!', 'success');
+
+            } catch (error) {
+                log(`✗ Test failed: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            }
+        }
+
+        // Simple expect function for testing
+        function expect(actual) {
+            return {
+                toBe: (expected) => {
+                    if (actual !== expected) {
+                        throw new Error(`Expected ${expected}, but got ${actual}`);
+                    }
+                },
+                toBeGreaterThan: (expected) => {
+                    if (actual <= expected) {
+                        throw new Error(`Expected ${actual} to be greater than ${expected}`);
+                    }
+                },
+                toBeLessThan: (expected) => {
+                    if (actual >= expected) {
+                        throw new Error(`Expected ${actual} to be less than ${expected}`);
+                    }
+                },
+                toBeDefined: () => {
+                    if (actual === undefined || actual === null) {
+                        throw new Error(`Expected value to be defined, but got ${actual}`);
+                    }
+                }
+            };
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

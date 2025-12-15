@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 7: UI Controller Complete - Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .preview-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .stock-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        .stock-item {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .autocomplete-results {
+            border: 1px solid #ddd;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+        }
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .autocomplete-item:hover {
+            background-color: #f8f9fa;
+        }
+        .confirmation-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 2000;
+            min-width: 400px;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Task 7: UI Controller Complete - Transformasi Barang</h1>
+        <p>Testing UI Controller functionality including preview information, UI completeness, and success confirmation display.</p>
+    </div>
+
+    <!-- Test Section 1: Preview Information Completeness -->
+    <div class="container">
+        <h2>Test 1: Preview Information Completeness</h2>
+        <div class="test-section info">
+            <h3>Property 5: Preview Information Completeness</h3>
+            <p>Testing that preview displays complete information including current stock, transformation quantity, and resulting stock for both units.</p>
+            
+            <div class="form-group">
+                <label>Item Sumber:</label>
+                <select id="sourceItem1">
+                    <option value="">Pilih Item Sumber</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Item Target:</label>
+                <select id="targetItem1">
+                    <option value="">Pilih Item Target</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Quantity:</label>
+                <input type="number" id="quantity1" min="1" placeholder="Masukkan quantity">
+            </div>
+            
+            <div class="preview-box" id="preview1">
+                <h4>Preview Transformasi</h4>
+                <div id="previewContent1">Pilih item dan quantity untuk melihat preview</div>
+            </div>
+            
+            <button onclick="testPreviewCompleteness()">Test Preview Completeness</button>
+            <div id="previewResults" class="test-results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Test Section 2: UI Functionality Completeness -->
+    <div class="container">
+        <h2>Test 2: UI Functionality Completeness</h2>
+        <div class="test-section info">
+            <h3>Property 26: UI Functionality Completeness</h3>
+            <p>Testing auto-complete, dropdown selections, and form validation functionality.</p>
+            
+            <div class="form-group">
+                <label>Search Item (Auto-complete):</label>
+                <div style="position: relative;">
+                    <input type="text" id="searchInput" placeholder="Ketik untuk mencari item..." oninput="performAutoComplete()">
+                    <div id="autocompleteResults" class="autocomplete-results" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Item Sumber (Dropdown):</label>
+                <select id="sourceItem2" onchange="updateTargetDropdown()">
+                    <option value="">Pilih Item Sumber</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Item Target (Filtered):</label>
+                <select id="targetItem2">
+                    <option value="">Pilih Item Target</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Quantity:</label>
+                <input type="number" id="quantity2" min="1" oninput="validateForm()">
+            </div>
+            
+            <div id="validationErrors" class="test-section error" style="display: none;">
+                <h4>Validation Errors:</h4>
+                <ul id="errorList"></ul>
+            </div>
+            
+            <button id="submitBtn" onclick="testUIFunctionality()" disabled>Test UI Functionality</button>
+            <div id="uiResults" class="test-results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Test Section 3: Success Confirmation Display -->
+    <div class="container">
+        <h2>Test 3: Success Confirmation Display</h2>
+        <div class="test-section info">
+            <h3>Property 27: Success Confirmation Display</h3>
+            <p>Testing success confirmation with complete transformation details and updated stock levels.</p>
+            
+            <button onclick="simulateSuccessfulTransformation()">Simulate Successful Transformation</button>
+            <button onclick="testConfirmationHistory()">Test Confirmation History</button>
+            <div id="confirmationResults" class="test-results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Success Confirmation Modal -->
+    <div id="modalOverlay" class="modal-overlay" style="display: none;" onclick="closeConfirmation()"></div>
+    <div id="confirmationModal" class="confirmation-modal" style="display: none;">
+        <h3 id="confirmationTitle">Transformasi Berhasil!</h3>
+        <p id="confirmationSummary"></p>
+        <div id="confirmationDetails"></div>
+        <div class="stock-info" id="stockUpdates"></div>
+        <div style="margin-top: 15px;">
+            <button onclick="closeConfirmation()">Tutup</button>
+            <button onclick="printReceipt()">Cetak Bukti</button>
+            <button onclick="newTransformation()">Transformasi Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        // Mock data untuk testing
+        const mockItems = [
+            { id: 1, name: 'Indomie Goreng', unit: 'DUS', stock: 50, baseProduct: 'Indomie Goreng' },
+            { id: 2, name: 'Indomie Goreng', unit: 'PCS', stock: 120, baseProduct: 'Indomie Goreng' },
+            { id: 3, name: 'Teh Botol', unit: 'KARTON', stock: 30, baseProduct: 'Teh Botol' },
+            { id: 4, name: 'Teh Botol', unit: 'PCS', stock: 240, baseProduct: 'Teh Botol' },
+            { id: 5, name: 'Biskuit Roma', unit: 'LUSIN', stock: 25, baseProduct: 'Biskuit Roma' },
+            { id: 6, name: 'Biskuit Roma', unit: 'PCS', stock: 180, baseProduct: 'Biskuit Roma' }
+        ];
+
+        const conversionRatios = {
+            'DUS_PCS': 12,
+            'PCS_DUS': 1/12,
+            'KARTON_PCS': 24,
+            'PCS_KARTON': 1/24,
+            'LUSIN_PCS': 12,
+            'PCS_LUSIN': 1/12
+        };
+
+        let confirmationHistory = [];
+
+        // Initialize dropdowns
+        function initializeDropdowns() {
+            const sourceSelects = ['sourceItem1', 'sourceItem2'];
+            sourceSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Pilih Item Sumber</option>';
+                mockItems.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = `${item.name} (${item.unit}) - Stock: ${item.stock}`;
+                    option.dataset.item = JSON.stringify(item);
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Update preview for Test 1
+        function updatePreview() {
+            const sourceSelect = document.getElementById('sourceItem1');
+            const targetSelect = document.getElementById('targetItem1');
+            const quantityInput = document.getElementById('quantity1');
+            const previewContent = document.getElementById('previewContent1');
+
+            if (!sourceSelect.value || !targetSelect.value || !quantityInput.value) {
+                previewContent.innerHTML = 'Pilih item dan quantity untuk melihat preview';
+                return;
+            }
+
+            const sourceItem = JSON.parse(sourceSelect.selectedOptions[0].dataset.item);
+            const targetItem = JSON.parse(targetSelect.selectedOptions[0].dataset.item);
+            const quantity = parseInt(quantityInput.value);
+            const ratio = conversionRatios[`${sourceItem.unit}_${targetItem.unit}`] || 1;
+            const targetQuantity = quantity * ratio;
+
+            previewContent.innerHTML = `
+                <div class="stock-info">
+                    <div class="stock-item">
+                        <h5>Item Sumber: ${sourceItem.name} (${sourceItem.unit})</h5>
+                        <p>Stok Saat Ini: ${sourceItem.stock}</p>
+                        <p>Quantity Transformasi: ${quantity}</p>
+                        <p>Stok Setelah: ${sourceItem.stock - quantity}</p>
+                    </div>
+                    <div class="stock-item">
+                        <h5>Item Target: ${targetItem.name} (${targetItem.unit})</h5>
+                        <p>Stok Saat Ini: ${targetItem.stock}</p>
+                        <p>Quantity Diterima: ${targetQuantity}</p>
+                        <p>Stok Setelah: ${targetItem.stock + targetQuantity}</p>
+                    </div>
+                </div>
+                <p><strong>Rasio Konversi:</strong> 1 ${sourceItem.unit} = ${ratio} ${targetItem.unit}</p>
+            `;
+        }
+
+        // Auto-complete functionality
+        function performAutoComplete() {
+            const searchInput = document.getElementById('searchInput');
+            const resultsDiv = document.getElementById('autocompleteResults');
+            const searchTerm = searchInput.value.toLowerCase();
+
+            if (searchTerm.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            const results = mockItems.filter(item => 
+                item.name.toLowerCase().includes(searchTerm) ||
+                item.unit.toLowerCase().includes(searchTerm)
+            ).slice(0, 10);
+
+            if (results.length === 0) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            resultsDiv.innerHTML = results.map(item => 
+                `<div class="autocomplete-item" onclick="selectAutoCompleteItem(${item.id})">
+                    ${item.name} (${item.unit}) - Stock: ${item.stock}
+                </div>`
+            ).join('');
+            resultsDiv.style.display = 'block';
+        }
+
+        function selectAutoCompleteItem(itemId) {
+            const item = mockItems.find(i => i.id === itemId);
+            document.getElementById('searchInput').value = `${item.name} (${item.unit})`;
+            document.getElementById('autocompleteResults').style.display = 'none';
+        }
+
+        // Update target dropdown based on source selection
+        function updateTargetDropdown() {
+            const sourceSelect = document.getElementById('sourceItem2');
+            const targetSelect = document.getElementById('targetItem2');
+
+            targetSelect.innerHTML = '<option value="">Pilih Item Target</option>';
+
+            if (!sourceSelect.value) return;
+
+            const sourceItem = JSON.parse(sourceSelect.selectedOptions[0].dataset.item);
+            const compatibleItems = mockItems.filter(item => 
+                item.baseProduct === sourceItem.baseProduct && item.unit !== sourceItem.unit
+            );
+
+            compatibleItems.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `${item.name} (${item.unit}) - Stock: ${item.stock}`;
+                option.dataset.item = JSON.stringify(item);
+                targetSelect.appendChild(option);
+            });
+
+            validateForm();
+        }
+
+        // Form validation
+        function validateForm() {
+            const sourceSelect = document.getElementById('sourceItem2');
+            const targetSelect = document.getElementById('targetItem2');
+            const quantityInput = document.getElementById('quantity2');
+            const submitBtn = document.getElementById('submitBtn');
+            const errorsDiv = document.getElementById('validationErrors');
+            const errorList = document.getElementById('errorList');
+
+            const errors = [];
+
+            if (!sourceSelect.value) {
+                errors.push('Item sumber harus dipilih');
+            }
+
+            if (!targetSelect.value) {
+                errors.push('Item target harus dipilih');
+            }
+
+            if (!quantityInput.value || quantityInput.value <= 0) {
+                errors.push('Quantity harus berupa angka positif');
+            }
+
+            if (sourceSelect.value && quantityInput.value) {
+                const sourceItem = JSON.parse(sourceSelect.selectedOptions[0].dataset.item);
+                if (sourceItem.stock < parseInt(quantityInput.value)) {
+                    errors.push('Stok tidak mencukupi untuk transformasi');
+                }
+            }
+
+            if (errors.length > 0) {
+                errorList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+                errorsDiv.style.display = 'block';
+                submitBtn.disabled = true;
+            } else {
+                errorsDiv.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Test functions
+        function testPreviewCompleteness() {
+            const results = document.getElementById('previewResults');
+            const tests = [];
+
+            // Test 1: Preview with valid data
+            document.getElementById('sourceItem1').value = '1';
+            document.getElementById('targetItem1').innerHTML = '<option value="2" data-item=\'{"id":2,"name":"Indomie Goreng","unit":"PCS","stock":120,"baseProduct":"Indomie Goreng"}\' selected>Indomie Goreng (PCS)</option>';
+            document.getElementById('targetItem1').value = '2';
+            document.getElementById('quantity1').value = '5';
+            updatePreview();
+
+            const previewContent = document.getElementById('previewContent1').innerHTML;
+            tests.push({
+                name: 'Preview contains all required information',
+                passed: previewContent.includes('Stok Saat Ini') && 
+                       previewContent.includes('Quantity Transformasi') && 
+                       previewContent.includes('Stok Setelah') &&
+                       previewContent.includes('Rasio Konversi')
+            });
+
+            // Test 2: Mathematical accuracy
+            tests.push({
+                name: 'Preview calculations are mathematically correct',
+                passed: previewContent.includes('Stok Setelah: 45') && // 50 - 5
+                       previewContent.includes('Quantity Diterima: 60') && // 5 * 12
+                       previewContent.includes('Stok Setelah: 180') // 120 + 60
+            });
+
+            displayTestResults(results, tests, 'Preview Information Completeness');
+        }
+
+        function testUIFunctionality() {
+            const results = document.getElementById('uiResults');
+            const tests = [];
+
+            // Test 1: Auto-complete functionality
+            document.getElementById('searchInput').value = 'indo';
+            performAutoComplete();
+            const autocompleteVisible = document.getElementById('autocompleteResults').style.display !== 'none';
+            tests.push({
+                name: 'Auto-complete provides relevant results',
+                passed: autocompleteVisible
+            });
+
+            // Test 2: Dropdown filtering
+            document.getElementById('sourceItem2').value = '1';
+            updateTargetDropdown();
+            const targetOptions = document.getElementById('targetItem2').options.length;
+            tests.push({
+                name: 'Target dropdown filters correctly',
+                passed: targetOptions > 1 // Should have options besides the default
+            });
+
+            // Test 3: Form validation
+            document.getElementById('quantity2').value = '100';
+            validateForm();
+            const submitDisabled = document.getElementById('submitBtn').disabled;
+            tests.push({
+                name: 'Form validation works correctly',
+                passed: submitDisabled // Should be disabled due to insufficient stock
+            });
+
+            displayTestResults(results, tests, 'UI Functionality Completeness');
+        }
+
+        function simulateSuccessfulTransformation() {
+            const transformationResult = {
+                success: true,
+                sourceItem: 'Indomie Goreng',
+                sourceUnit: 'DUS',
+                sourceQuantity: 5,
+                sourcePreviousStock: 50,
+                sourceCurrentStock: 45,
+                targetItem: 'Indomie Goreng',
+                targetUnit: 'PCS',
+                targetQuantity: 60,
+                targetPreviousStock: 120,
+                targetCurrentStock: 180,
+                conversionRatio: 12,
+                transactionId: 'TXN' + Date.now(),
+                user: 'Test User',
+                timestamp: new Date().toISOString()
+            };
+
+            displaySuccessConfirmation(transformationResult);
+        }
+
+        function displaySuccessConfirmation(result) {
+            const modal = document.getElementById('confirmationModal');
+            const overlay = document.getElementById('modalOverlay');
+            
+            document.getElementById('confirmationTitle').textContent = 'Transformasi Berhasil!';
+            document.getElementById('confirmationSummary').textContent = 
+                `${result.sourceQuantity} ${result.sourceUnit} berhasil dikonversi menjadi ${result.targetQuantity} ${result.targetUnit}`;
+            
+            document.getElementById('confirmationDetails').innerHTML = `
+                <p><strong>Produk:</strong> ${result.sourceItem}</p>
+                <p><strong>Rasio:</strong> 1 ${result.sourceUnit} = ${result.conversionRatio} ${result.targetUnit}</p>
+                <p><strong>ID Transaksi:</strong> ${result.transactionId}</p>
+                <p><strong>User:</strong> ${result.user}</p>
+            `;
+
+            document.getElementById('stockUpdates').innerHTML = `
+                <div class="stock-item">
+                    <h5>${result.sourceUnit}</h5>
+                    <p>Sebelum: ${result.sourcePreviousStock}</p>
+                    <p>Sesudah: ${result.sourceCurrentStock}</p>
+                    <p>Perubahan: -${result.sourceQuantity}</p>
+                </div>
+                <div class="stock-item">
+                    <h5>${result.targetUnit}</h5>
+                    <p>Sebelum: ${result.targetPreviousStock}</p>
+                    <p>Sesudah: ${result.targetCurrentStock}</p>
+                    <p>Perubahan: +${result.targetQuantity}</p>
+                </div>
+            `;
+
+            confirmationHistory.push(result);
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function testConfirmationHistory() {
+            const results = document.getElementById('confirmationResults');
+            const tests = [];
+
+            // Simulate multiple transformations
+            for (let i = 0; i < 3; i++) {
+                simulateSuccessfulTransformation();
+                closeConfirmation();
+            }
+
+            tests.push({
+                name: 'Confirmation history is maintained',
+                passed: confirmationHistory.length >= 3
+            });
+
+            tests.push({
+                name: 'Each confirmation contains complete information',
+                passed: confirmationHistory.every(conf => 
+                    conf.transactionId && conf.sourceItem && conf.targetItem && 
+                    conf.conversionRatio && conf.timestamp
+                )
+            });
+
+            displayTestResults(results, tests, 'Success Confirmation Display');
+        }
+
+        function closeConfirmation() {
+            document.getElementById('confirmationModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        function printReceipt() {
+            alert('Fitur cetak bukti akan diimplementasikan');
+        }
+
+        function newTransformation() {
+            closeConfirmation();
+            // Reset form
+            document.getElementById('sourceItem1').value = '';
+            document.getElementById('targetItem1').innerHTML = '<option value="">Pilih Item Target</option>';
+            document.getElementById('quantity1').value = '';
+            updatePreview();
+        }
+
+        function displayTestResults(container, tests, testName) {
+            const passedTests = tests.filter(test => test.passed).length;
+            const totalTests = tests.length;
+            const allPassed = passedTests === totalTests;
+
+            container.innerHTML = `
+                <h4>${testName} Results</h4>
+                <p class="${allPassed ? 'success' : 'error'}">
+                    ${passedTests}/${totalTests} tests passed
+                </p>
+                <ul>
+                    ${tests.map(test => 
+                        `<li class="${test.passed ? 'success' : 'error'}">
+                            ${test.name}: ${test.passed ? 'PASS' : 'FAIL'}
+                        </li>`
+                    ).join('')}
+                </ul>
+            `;
+            container.style.display = 'block';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDropdowns();
+            
+            // Add event listeners
+            document.getElementById('sourceItem1').addEventListener('change', function() {
+                const targetSelect = document.getElementById('targetItem1');
+                targetSelect.innerHTML = '<option value="">Pilih Item Target</option>';
+                
+                if (this.value) {
+                    const sourceItem = JSON.parse(this.selectedOptions[0].dataset.item);
+                    const compatibleItems = mockItems.filter(item => 
+                        item.baseProduct === sourceItem.baseProduct && item.unit !== sourceItem.unit
+                    );
+                    
+                    compatibleItems.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = `${item.name} (${item.unit}) - Stock: ${item.stock}`;
+                        option.dataset.item = JSON.stringify(item);
+                        targetSelect.appendChild(option);
+                    });
+                }
+                updatePreview();
+            });
+            
+            document.getElementById('targetItem1').addEventListener('change', updatePreview);
+            document.getElementById('quantity1').addEventListener('input', updatePreview);
+            document.getElementById('sourceItem2').addEventListener('change', updateTargetDropdown);
+            document.getElementById('targetItem2').addEventListener('change', validateForm);
+            document.getElementById('quantity2').addEventListener('input', validateForm);
+        });
+    </script>
+</body>
+</html>

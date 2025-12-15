@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 3: StockManager Complete Implementation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Task 3: StockManager Complete Implementation</h1>
+        <p>Testing StockManager dengan property tests untuk Requirements 1.3 dan 3.5</p>
+        
+        <div class="test-section info">
+            <h3>📋 Test Coverage</h3>
+            <ul>
+                <li>✅ Task 3: StockManager implementation</li>
+                <li>✅ Task 3.1: Property test - Stock Balance Conservation</li>
+                <li>✅ Task 3.2: Property test - Stock Consistency</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 StockManager Core Functions</h3>
+            <button onclick="testStockManagerCore()">Test Core Functions</button>
+            <div id="coreTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚖️ Stock Balance Conservation Tests</h3>
+            <button onclick="testStockConservation()">Test Conservation Property</button>
+            <div id="conservationTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Stock Consistency Tests</h3>
+            <button onclick="testStockConsistency()">Test Consistency Property</button>
+            <div id="consistencyTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔀 Atomic Operations Tests</h3>
+            <button onclick="testAtomicOperations()">Test Atomic Updates</button>
+            <div id="atomicTestResult"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import StockManager
+        import StockManager from './js/transformasi-barang/StockManager.js';
+        
+        let stockManager;
+        
+        // Initialize StockManager
+        function initializeStockManager() {
+            stockManager = new StockManager();
+            stockManager.initialize();
+            return stockManager;
+        }
+        
+        // Test StockManager core functions
+        window.testStockManagerCore = async function() {
+            const resultDiv = document.getElementById('coreTestResult');
+            resultDiv.innerHTML = '<p>🔄 Testing StockManager core functions...</p>';
+            
+            try {
+                initializeStockManager();
+                
+                // Setup test data
+                const testData = [
+                    { kode: 'TEST001', nama: 'Test Item 1', stok: 100, unit: 'pcs' },
+                    { kode: 'TEST002', nama: 'Test Item 2', stok: 50, unit: 'box' }
+                ];
+                localStorage.setItem('masterBarang', JSON.stringify(testData));
+                
+                const tests = [];
+                
+                // Test 1: Get stock balance
+                const stock1 = await stockManager.getStockBalance('TEST001');
+                tests.push({
+                    name: 'Get Stock Balance',
+                    success: stock1 === 100,
+                    details: `Expected: 100, Got: ${stock1}`
+                });
+                
+                // Test 2: Update stock
+                const updateResult = await stockManager.updateStock('TEST001', 'pcs', -10);
+                tests.push({
+                    name: 'Update Stock',
+                    success: updateResult.success && updateResult.newStock === 90,
+                    details: `Success: ${updateResult.success}, New Stock: ${updateResult.newStock}`
+                });
+                
+                // Test 3: Check stock sufficiency
+                const sufficient = await stockManager.isStockSufficient('TEST001', 50);
+                tests.push({
+                    name: 'Stock Sufficiency Check',
+                    success: sufficient === true,
+                    details: `Stock sufficient for 50 units: ${sufficient}`
+                });
+                
+                // Test 4: Get items with stock
+                const itemsWithStock = await stockManager.getItemsWithStock();
+                tests.push({
+                    name: 'Get Items With Stock',
+                    success: itemsWithStock.length === 2,
+                    details: `Found ${itemsWithStock.length} items with stock`
+                });
+                
+                // Test 5: Bulk stock balance
+                const bulkStocks = await stockManager.getBulkStockBalance(['TEST001', 'TEST002']);
+                tests.push({
+                    name: 'Bulk Stock Balance',
+                    success: bulkStocks['TEST001'] === 90 && bulkStocks['TEST002'] === 50,
+                    details: `TEST001: ${bulkStocks['TEST001']}, TEST002: ${bulkStocks['TEST002']}`
+                });
+                
+                displayTestResults(resultDiv, tests);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        };
+        
+        // Test stock conservation property
+        window.testStockConservation = async function() {
+            const resultDiv = document.getElementById('conservationTestResult');
+            resultDiv.innerHTML = '<p>🔄 Testing stock conservation property...</p>';
+            
+            try {
+                initializeStockManager();
+                
+                const tests = [];
+                
+                // Test conservation in single item updates
+                for (let i = 0; i < 5; i++) {
+                    const testData = [{
+                        kode: `CONS${i}`,
+                        nama: `Conservation Test ${i}`,
+                        stok: 100 + i * 10,
+                        unit: 'pcs'
+                    }];
+                    localStorage.setItem('masterBarang', JSON.stringify(testData));
+                    
+                    const initialStock = await stockManager.getStockBalance(`CONS${i}`);
+                    const change = -5 - i;
+                    
+                    const result = await stockManager.updateStock(`CONS${i}`, 'pcs', change);
+                    const finalStock = await stockManager.getStockBalance(`CONS${i}`);
+                    
+                    const conserved = (finalStock === initialStock + change);
+                    tests.push({
+                        name: `Conservation Test ${i + 1}`,
+                        success: conserved,
+                        details: `Initial: ${initialStock}, Change: ${change}, Final: ${finalStock}, Expected: ${initialStock + change}`
+                    });
+                }
+                
+                // Test conservation in atomic transformations
+                const atomicTestData = [
+                    { kode: 'ATOM1', nama: 'Atomic Source', stok: 200, unit: 'pcs' },
+                    { kode: 'ATOM2', nama: 'Atomic Target', stok: 50, unit: 'box' }
+                ];
+                localStorage.setItem('masterBarang', JSON.stringify(atomicTestData));
+                
+                const initialSource = await stockManager.getStockBalance('ATOM1');
+                const initialTarget = await stockManager.getStockBalance('ATOM2');
+                const sourceChange = -20;
+                const targetChange = 10;
+                
+                const atomicResult = await stockManager.atomicTransformationUpdate(
+                    { itemId: 'ATOM1', quantityChange: sourceChange },
+                    { itemId: 'ATOM2', quantityChange: targetChange }
+                );
+                
+                const finalSource = await stockManager.getStockBalance('ATOM1');
+                const finalTarget = await stockManager.getStockBalance('ATOM2');
+                
+                const atomicConserved = (
+                    finalSource === initialSource + sourceChange &&
+                    finalTarget === initialTarget + targetChange
+                );
+                
+                tests.push({
+                    name: 'Atomic Transformation Conservation',
+                    success: atomicConserved,
+                    details: `Source: ${initialSource}→${finalSource} (${sourceChange}), Target: ${initialTarget}→${finalTarget} (${targetChange})`
+                });
+                
+                displayTestResults(resultDiv, tests);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        };
+        
+        // Test stock consistency property
+        window.testStockConsistency = async function() {
+            const resultDiv = document.getElementById('consistencyTestResult');
+            resultDiv.innerHTML = '<p>🔄 Testing stock consistency property...</p>';
+            
+            try {
+                initializeStockManager();
+                
+                const tests = [];
+                
+                // Test transformation record consistency
+                const testData = [
+                    { kode: 'SRC001', nama: 'Source Item', stok: 100, unit: 'pcs' },
+                    { kode: 'TGT001', nama: 'Target Item', stok: 20, unit: 'box' }
+                ];
+                localStorage.setItem('masterBarang', JSON.stringify(testData));
+                
+                const initialSourceStock = await stockManager.getStockBalance('SRC001');
+                const initialTargetStock = await stockManager.getStockBalance('TGT001');
+                
+                const sourceQuantity = 15;
+                const conversionRatio = 2.5;
+                const targetQuantity = Math.floor(sourceQuantity * conversionRatio);
+                
+                const result = await stockManager.atomicTransformationUpdate(
+                    { itemId: 'SRC001', quantityChange: -sourceQuantity },
+                    { itemId: 'TGT001', quantityChange: targetQuantity }
+                );
+                
+                // Create transformation record
+                const transformationRecord = {
+                    sourceItem: {
+                        id: 'SRC001',
+                        quantity: sourceQuantity,
+                        stockBefore: initialSourceStock,
+                        stockAfter: result.sourceUpdate.newStock
+                    },
+                    targetItem: {
+                        id: 'TGT001',
+                        quantity: targetQuantity,
+                        stockBefore: initialTargetStock,
+                        stockAfter: result.targetUpdate.newStock
+                    },
+                    conversionRatio: conversionRatio
+                };
+                
+                const isConsistent = await stockManager.validateStockConsistency(transformationRecord);
+                tests.push({
+                    name: 'Transformation Record Consistency',
+                    success: isConsistent,
+                    details: `Validation result: ${isConsistent}`
+                });
+                
+                // Test cache consistency
+                const stockFromCache = await stockManager.getStockBalance('SRC001');
+                stockManager.refreshStockCache();
+                const stockAfterRefresh = await stockManager.getStockBalance('SRC001');
+                
+                tests.push({
+                    name: 'Cache Consistency',
+                    success: stockFromCache === stockAfterRefresh,
+                    details: `Before refresh: ${stockFromCache}, After refresh: ${stockAfterRefresh}`
+                });
+                
+                // Test backup/restore consistency
+                const backup = await stockManager.createStockBackup();
+                
+                // Make some changes
+                await stockManager.updateStock('SRC001', 'pcs', -10);
+                const changedStock = await stockManager.getStockBalance('SRC001');
+                
+                // Restore
+                const restoreSuccess = await stockManager.restoreStockFromBackup(backup);
+                const restoredStock = await stockManager.getStockBalance('SRC001');
+                
+                tests.push({
+                    name: 'Backup/Restore Consistency',
+                    success: restoreSuccess && restoredStock === result.sourceUpdate.newStock,
+                    details: `Restore success: ${restoreSuccess}, Original: ${result.sourceUpdate.newStock}, Restored: ${restoredStock}`
+                });
+                
+                displayTestResults(resultDiv, tests);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        };
+        
+        // Test atomic operations
+        window.testAtomicOperations = async function() {
+            const resultDiv = document.getElementById('atomicTestResult');
+            resultDiv.innerHTML = '<p>🔄 Testing atomic operations...</p>';
+            
+            try {
+                initializeStockManager();
+                
+                const tests = [];
+                
+                // Test successful atomic operation
+                const testData = [
+                    { kode: 'ATOMIC1', nama: 'Atomic Test 1', stok: 150, unit: 'pcs' },
+                    { kode: 'ATOMIC2', nama: 'Atomic Test 2', stok: 30, unit: 'box' }
+                ];
+                localStorage.setItem('masterBarang', JSON.stringify(testData));
+                
+                const result1 = await stockManager.atomicTransformationUpdate(
+                    { itemId: 'ATOMIC1', quantityChange: -25 },
+                    { itemId: 'ATOMIC2', quantityChange: 12 }
+                );
+                
+                tests.push({
+                    name: 'Successful Atomic Operation',
+                    success: result1.success,
+                    details: `Operation success: ${result1.success}`
+                });
+                
+                // Test rollback functionality
+                const rollbackSuccess = await stockManager.rollbackStockChanges(result1.rollbackData);
+                const rolledBackStock1 = await stockManager.getStockBalance('ATOMIC1');
+                const rolledBackStock2 = await stockManager.getStockBalance('ATOMIC2');
+                
+                tests.push({
+                    name: 'Rollback Functionality',
+                    success: rollbackSuccess && rolledBackStock1 === 150 && rolledBackStock2 === 30,
+                    details: `Rollback success: ${rollbackSuccess}, Stock1: ${rolledBackStock1}, Stock2: ${rolledBackStock2}`
+                });
+                
+                // Test atomic operation with insufficient stock
+                try {
+                    await stockManager.atomicTransformationUpdate(
+                        { itemId: 'ATOMIC1', quantityChange: -200 }, // More than available
+                        { itemId: 'ATOMIC2', quantityChange: 10 }
+                    );
+                    tests.push({
+                        name: 'Insufficient Stock Handling',
+                        success: false,
+                        details: 'Should have thrown error for insufficient stock'
+                    });
+                } catch (error) {
+                    tests.push({
+                        name: 'Insufficient Stock Handling',
+                        success: error.message.includes('tidak mencukupi'),
+                        details: `Correctly threw error: ${error.message}`
+                    });
+                }
+                
+                displayTestResults(resultDiv, tests);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        };
+        
+        // Helper function to display test results
+        function displayTestResults(container, tests) {
+            const successCount = tests.filter(t => t.success).length;
+            const totalCount = tests.length;
+            
+            let html = `<div class="test-result ${successCount === totalCount ? 'success' : 'error'}">
+                <h4>📊 Test Results: ${successCount}/${totalCount} passed</h4>
+            </div>`;
+            
+            tests.forEach(test => {
+                html += `<div class="test-result ${test.success ? 'success' : 'error'}">
+                    <strong>${test.success ? '✅' : '❌'} ${test.name}</strong><br>
+                    <small>${test.details}</small>
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

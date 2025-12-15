@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test TransformationManager - Transformasi Barang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .item-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test TransformationManager - Sistem Transformasi Barang</h1>
+        <p>Test ini memverifikasi implementasi TransformationManager sebagai orchestrator sistem.</p>
+        
+        <div class="test-section">
+            <h3>1. Test Initialization</h3>
+            <button onclick="testInitialization()">Test Initialization</button>
+            <div id="initializationResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Test Transformable Items</h3>
+            <button onclick="testTransformableItems()">Get Transformable Items</button>
+            <div id="transformableItemsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test Conversion Options</h3>
+            <button onclick="testConversionOptions()">Get Conversion Options</button>
+            <div id="conversionOptionsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Test Transformation Preview</h3>
+            <button onclick="testTransformationPreview()">Get Transformation Preview</button>
+            <div id="transformationPreviewResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Test Transformation Execution</h3>
+            <button onclick="testTransformationExecution()">Execute Transformation</button>
+            <div id="transformationExecutionResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. Test Validation</h3>
+            <button onclick="testValidation()">Test Validation</button>
+            <div id="validationResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>7. Test History</h3>
+            <button onclick="testHistory()">Get Transformation History</button>
+            <div id="historyResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>8. Run All Tests</h3>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <div id="allTestsResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Import modules -->
+    <script type="module">
+        import TransformationManager from './js/transformasi-barang/TransformationManager.js';
+        import ValidationEngine from './js/transformasi-barang/ValidationEngine.js';
+        import ConversionCalculator from './js/transformasi-barang/ConversionCalculator.js';
+        import StockManager from './js/transformasi-barang/StockManager.js';
+        import AuditLogger from './js/transformasi-barang/AuditLogger.js';
+        
+        window.TransformationManager = TransformationManager;
+        window.ValidationEngine = ValidationEngine;
+        window.ConversionCalculator = ConversionCalculator;
+        window.StockManager = StockManager;
+        window.AuditLogger = AuditLogger;
+    </script>
+
+    <script>
+        let transformationManager;
+        let validationEngine;
+        let calculator;
+        let stockManager;
+        let auditLogger;
+
+        // Setup mock data
+        function setupMockData() {
+            // Mock master barang data
+            const masterBarang = [
+                {
+                    kode: 'AQUA-DUS',
+                    nama: 'Aqua 1L DUS',
+                    satuan: 'dus',
+                    stok: 10,
+                    baseProduct: 'AQUA-1L'
+                },
+                {
+                    kode: 'AQUA-PCS',
+                    nama: 'Aqua 1L PCS',
+                    satuan: 'pcs',
+                    stok: 50,
+                    baseProduct: 'AQUA-1L'
+                },
+                {
+                    kode: 'INDOMIE-KARTON',
+                    nama: 'Indomie Karton',
+                    satuan: 'karton',
+                    stok: 5,
+                    baseProduct: 'INDOMIE'
+                },
+                {
+                    kode: 'INDOMIE-PCS',
+                    nama: 'Indomie PCS',
+                    satuan: 'pcs',
+                    stok: 100,
+                    baseProduct: 'INDOMIE'
+                }
+            ];
+
+            // Mock conversion ratios
+            const conversionRatios = [
+                {
+                    baseProduct: 'AQUA-1L',
+                    conversions: [
+                        { from: 'dus', to: 'pcs', ratio: 12 },
+                        { from: 'pcs', to: 'dus', ratio: 0.0833 }
+                    ]
+                },
+                {
+                    baseProduct: 'INDOMIE',
+                    conversions: [
+                        { from: 'karton', to: 'pcs', ratio: 40 },
+                        { from: 'pcs', to: 'karton', ratio: 0.025 }
+                    ]
+                }
+            ];
+
+            localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+            localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+        }
+
+        // Initialize TransformationManager
+        function initializeTransformationManager() {
+            setupMockData();
+            
+            // Create component instances
+            validationEngine = new ValidationEngine();
+            validationEngine.initialize();
+            
+            calculator = new ConversionCalculator();
+            calculator.initialize();
+            
+            stockManager = new StockManager();
+            stockManager.initialize();
+            
+            auditLogger = new AuditLogger();
+            auditLogger.initialize();
+            
+            // Create and initialize TransformationManager
+            transformationManager = new TransformationManager();
+            transformationManager.initialize({
+                validationEngine,
+                calculator,
+                stockManager,
+                auditLogger
+            });
+        }
+
+        async function testInitialization() {
+            const resultDiv = document.getElementById('initializationResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                initializeTransformationManager();
+                
+                let results = [];
+                results.push(`✓ TransformationManager initialized: ${transformationManager.initialized}`);
+                results.push(`✓ ValidationEngine available: ${!!transformationManager.validationEngine}`);
+                results.push(`✓ ConversionCalculator available: ${!!transformationManager.calculator}`);
+                results.push(`✓ StockManager available: ${!!transformationManager.stockManager}`);
+                results.push(`✓ AuditLogger available: ${!!transformationManager.auditLogger}`);
+                
+                resultDiv.innerHTML = `<div class="success">Initialization Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Initialization Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testTransformableItems() {
+            const resultDiv = document.getElementById('transformableItemsResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                if (!transformationManager) {
+                    initializeTransformationManager();
+                }
+                
+                const transformableItems = await transformationManager.getTransformableItems();
+                
+                let results = [];
+                results.push(`✓ Total transformable products: ${transformableItems.length}`);
+                
+                let itemsHtml = '<div class="item-grid">';
+                transformableItems.forEach(product => {
+                    itemsHtml += `
+                        <div class="item-card">
+                            <div class="item-title">${product.baseProduct}</div>
+                            <div>Units available: ${product.items.length}</div>
+                            <ul>
+                                ${product.items.map(item => 
+                                    `<li>${item.name} (${item.unit}) - Stock: ${item.stock}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    `;
+                });
+                itemsHtml += '</div>';
+                
+                resultDiv.innerHTML = `<div class="success">Transformable Items Test Passed!</div><pre>${results.join('\n')}</pre>${itemsHtml}`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Transformable Items Test Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testConversionOptions() {
+            const resultDiv = document.getElementById('conversionOptionsResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                if (!transformationManager) {
+                    initializeTransformationManager();
+                }
+                
+                const options = await transformationManager.getConversionOptions('AQUA-1L');
+                
+                let results = [];
+                results.push(`✓ Conversion options for AQUA-1L: ${options.length}`);
+                
+                let optionsHtml = '<div class="item-grid">';
+                options.forEach(option => {
+                    optionsHtml += `
+                        <div class="item-card">
+                            <div class="item-title">${option.from.unit} → ${option.to.unit}</div>
+                            <div>Ratio: 1 ${option.from.unit} = ${option.ratio} ${option.to.unit}</div>
+                            <div>From Stock: ${option.from.stock}</div>
+                            <div>To Stock: ${option.to.stock}</div>
+                            <div>Available: ${option.available ? 'Yes' : 'No'}</div>
+                        </div>
+                    `;
+                });
+                optionsHtml += '</div>';
+                
+                resultDiv.innerHTML = `<div class="success">Conversion Options Test Passed!</div><pre>${results.join('\n')}</pre>${optionsHtml}`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Conversion Options Test Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testTransformationPreview() {
+            const resultDiv = document.getElementById('transformationPreviewResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                if (!transformationManager) {
+                    initializeTransformationManager();
+                }
+                
+                const preview = await transformationManager.getTransformationPreview('AQUA-DUS', 'AQUA-PCS', 1);
+                
+                let results = [];
+                results.push(`✓ Preview generated successfully`);
+                results.push(`✓ Source: ${preview.sourceItem.name} (${preview.sourceItem.unit})`);
+                results.push(`  - Current stock: ${preview.sourceItem.currentStock}`);
+                results.push(`  - Transform quantity: ${preview.sourceItem.transformQuantity}`);
+                results.push(`  - Resulting stock: ${preview.sourceItem.resultingStock}`);
+                results.push(`✓ Target: ${preview.targetItem.name} (${preview.targetItem.unit})`);
+                results.push(`  - Current stock: ${preview.targetItem.currentStock}`);
+                results.push(`  - Transform quantity: ${preview.targetItem.transformQuantity}`);
+                results.push(`  - Resulting stock: ${preview.targetItem.resultingStock}`);
+                results.push(`✓ Conversion ratio: ${preview.conversionRatio}`);
+                results.push(`✓ Is valid: ${preview.isValid}`);
+                
+                if (preview.errors.length > 0) {
+                    results.push(`⚠ Errors: ${preview.errors.join(', ')}`);
+                }
+                
+                resultDiv.innerHTML = `<div class="success">Transformation Preview Test Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Transformation Preview Test Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testTransformationExecution() {
+            const resultDiv = document.getElementById('transformationExecutionResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                if (!transformationManager) {
+                    initializeTransformationManager();
+                }
+                
+                const transformationData = {
+                    sourceItemId: 'AQUA-DUS',
+                    targetItemId: 'AQUA-PCS',
+                    quantity: 1,
+                    user: 'kasir01'
+                };
+                
+                const result = await transformationManager.executeTransformation(transformationData);
+                
+                let results = [];
+                results.push(`✓ Transformation executed successfully`);
+                results.push(`✓ Transformation ID: ${result.id}`);
+                results.push(`✓ Status: ${result.status}`);
+                results.push(`✓ User: ${result.user}`);
+                results.push(`✓ Source: ${result.sourceItem.name}`);
+                results.push(`  - Quantity: ${result.sourceItem.quantity} ${result.sourceItem.unit}`);
+                results.push(`  - Stock before: ${result.sourceItem.stockBefore}`);
+                results.push(`  - Stock after: ${result.sourceItem.stockAfter}`);
+                results.push(`✓ Target: ${result.targetItem.name}`);
+                results.push(`  - Quantity: ${result.targetItem.quantity} ${result.targetItem.unit}`);
+                results.push(`  - Stock before: ${result.targetItem.stockBefore}`);
+                results.push(`  - Stock after: ${result.targetItem.stockAfter}`);
+                results.push(`✓ Conversion ratio: ${result.conversionRatio}`);
+                
+                resultDiv.innerHTML = `<div class="success">Transformation Execution Test Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Transformation Execution Test Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testValidation() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                if (!transformationManager) {
+                    initializeTransformationManager();
+                }
+                
+                let results = [];
+                
+                // Test valid transformation
+                const validResult = await transformationManager.validateTransformation('AQUA-DUS', 'AQUA-PCS', 1);
+                results.push(`✓ Valid transformation test: ${validResult.isValid ? 'PASSED' : 'FAILED'}`);
+                
+                // Test invalid transformation (insufficient stock)
+                const invalidResult = await transformationManager.validateTransformation('AQUA-DUS', 'AQUA-PCS', 20);
+                results.push(`✓ Invalid transformation test: ${!invalidResult.isValid ? 'PASSED' : 'FAILED'}`);
+                results.push(`  - Errors: ${invalidResult.errors.length}`);
+                
+                // Test non-existent items
+                const nonExistentResult = await transformationManager.validateTransformation('INVALID-ID', 'AQUA-PCS', 1);
+                results.push(`✓ Non-existent item test: ${!nonExistentResult.isValid ? 'PASSED' : 'FAILED'}`);
+                
+                resultDiv.innerHTML = `<div class="success">Validation Tests Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Validation Tests Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testHistory() {
+            const resultDiv = document.getElementById('historyResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                if (!transformationManager) {
+                    initializeTransformationManager();
+                }
+                
+                const history = await transformationManager.getTransformationHistory();
+                
+                let results = [];
+                results.push(`✓ History retrieved: ${history.length} records`);
+                
+                if (history.length > 0) {
+                    results.push(`✓ Recent transformations:`);
+                    history.slice(0, 3).forEach((record, index) => {
+                        results.push(`  ${index + 1}. ${record.sourceItem.name} → ${record.targetItem.name}`);
+                        results.push(`     User: ${record.user}, Status: ${record.status}`);
+                    });
+                }
+                
+                resultDiv.innerHTML = `<div class="success">History Test Passed!</div><pre>${results.join('\n')}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">History Test Failed!</div><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function runAllTests() {
+            const resultDiv = document.getElementById('allTestsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info">Running all tests...</div>';
+            
+            const tests = [
+                { name: 'Initialization', func: testInitialization },
+                { name: 'Transformable Items', func: testTransformableItems },
+                { name: 'Conversion Options', func: testConversionOptions },
+                { name: 'Transformation Preview', func: testTransformationPreview },
+                { name: 'Transformation Execution', func: testTransformationExecution },
+                { name: 'Validation', func: testValidation },
+                { name: 'History', func: testHistory }
+            ];
+            
+            let results = [];
+            let passedCount = 0;
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    results.push(`✓ ${test.name}: PASSED`);
+                    passedCount++;
+                } catch (error) {
+                    results.push(`✗ ${test.name}: FAILED - ${error.message}`);
+                }
+            }
+            
+            const summary = `Test Summary: ${passedCount}/${tests.length} tests passed`;
+            const status = passedCount === tests.length ? 'success' : 'error';
+            
+            resultDiv.innerHTML = `<div class="${status}">${summary}</div><pre>${results.join('\n')}</pre>`;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            console.log('TransformationManager test page loaded');
+        });
+    </script>
+</body>
+</html>
