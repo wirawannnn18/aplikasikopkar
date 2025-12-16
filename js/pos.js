@@ -18,9 +18,22 @@ function renderPOS() {
     document.getElementById('sidebar').style.display = 'none';
     document.querySelector('.navbar').style.display = 'none';
     
+    // Set body to fullscreen mode
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.overflow = 'hidden';
+    document.body.style.height = '100vh';
+    document.body.style.width = '100vw';
+    
     const content = document.getElementById('mainContent');
     content.style.padding = '0';
     content.style.margin = '0';
+    content.style.height = '100vh';
+    content.style.width = '100vw';
+    content.style.position = 'fixed';
+    content.style.top = '0';
+    content.style.left = '0';
+    content.style.zIndex = '9999';
     
     const barang = JSON.parse(localStorage.getItem('barang') || '[]');
     const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
@@ -669,12 +682,22 @@ function exitPOSFullscreen() {
     document.getElementById('sidebar').style.display = '';
     document.querySelector('.navbar').style.display = '';
     
+    // Reset body styles to normal
+    document.body.style.margin = '';
+    document.body.style.padding = '';
+    document.body.style.overflow = '';
+    document.body.style.height = '';
+    document.body.style.width = '';
+    
     const content = document.getElementById('mainContent');
     content.style.padding = '';
     content.style.margin = '';
-    
-    // Reset body styles
-    document.body.style.overflow = 'auto';
+    content.style.height = '';
+    content.style.width = '';
+    content.style.position = '';
+    content.style.top = '';
+    content.style.left = '';
+    content.style.zIndex = '';
     
     // Navigate back to dashboard
     navigateTo('dashboard');
