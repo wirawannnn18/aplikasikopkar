@@ -137,12 +137,10 @@ function renderPOS() {
                 background: white;
                 border-radius: 0;
                 padding: 20px;
-                box-shadow: -2px 0 10px rgba(45, 106, 79, 0.1);
                 height: 100%;
                 position: relative;
-                display: flex;
+                display: flex !important;
                 flex-direction: column;
-                border-left: 3px solid #e9f5f0;
             }
 
             .cart-header {
@@ -421,18 +419,23 @@ function renderPOS() {
             .main-content {
                 flex: 1;
                 display: flex;
-                height: calc(100vh - 70px);
+                height: calc(100vh - 80px);
+                min-height: 600px;
             }
 
             .products-section {
                 flex: 1;
                 display: flex;
                 flex-direction: column;
+                min-width: 0;
             }
 
             .cart-column {
                 width: 400px;
                 flex-shrink: 0;
+                background: white;
+                border-left: 3px solid #e9f5f0;
+                box-shadow: -2px 0 10px rgba(45, 106, 79, 0.1);
             }
 
             /* Responsive Design */
@@ -449,11 +452,13 @@ function renderPOS() {
 
                 .cart-column {
                     width: 100%;
-                    height: 50vh;
+                    height: 40vh;
+                    border-left: none;
+                    border-top: 3px solid #e9f5f0;
                 }
 
                 .products-section {
-                    height: 50vh;
+                    height: 60vh;
                 }
 
                 .product-grid {
@@ -484,6 +489,17 @@ function renderPOS() {
             @keyframes fadeIn {
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }
+            }
+
+            /* Debug styles - ensure cart is visible */
+            .cart-column {
+                min-height: 100% !important;
+                display: block !important;
+            }
+            
+            .cart-section {
+                min-height: 100% !important;
+                visibility: visible !important;
             }
         </style>
         
@@ -531,8 +547,8 @@ function renderPOS() {
                 </div>
 
                 <!-- Cart Section -->
-                <div class="cart-column">
-                    <div class="cart-section fade-in">
+                <div class="cart-column" style="display: block !important; visibility: visible !important;">
+                    <div class="cart-section fade-in" style="display: flex !important; flex-direction: column !important;">
                         <!-- Cart Header -->
                         <div class="cart-header">
                             <div class="cart-icon">
