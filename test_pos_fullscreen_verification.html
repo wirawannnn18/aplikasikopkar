@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test POS Fullscreen Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .test-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .status-indicator {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status-success { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .status-info { background: #d1ecf1; color: #0c5460; }
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" id="navbarLogo">
+                <img src="https://via.placeholder.com/40x40/2d6a4f/ffffff?text=K" alt="Logo" width="40" height="40" class="d-inline-block align-text-top">
+                <span class="ms-2">Koperasi Test</span>
+            </a>
+            <button class="navbar-toggler" type="button" id="sidebarToggle">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span id="currentUser">Test User</span> 
+                    (<span id="currentRole">Kasir</span>)
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar">
+        <div class="position-sticky pt-3">
+            <ul class="nav flex-column" id="menuList">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="testDashboard()">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="testPOS()">
+                        <i class="bi bi-cart"></i> Point of Sales
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="testRiwayat()">
+                        <i class="bi bi-receipt"></i> Riwayat Transaksi
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="test-container">
+            <h2><i class="bi bi-check-circle-fill text-success"></i> POS Fullscreen Verification Test</h2>
+            <p class="text-muted">Testing automatic fullscreen activation when Point of Sales is opened</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Test Controls</h5>
+                    <button class="btn btn-primary me-2 mb-2" onclick="testPOS()">
+                        <i class="bi bi-cart"></i> Open Point of Sales
+                    </button>
+                    <button class="btn btn-secondary me-2 mb-2" onclick="testDashboard()">
+                        <i class="bi bi-speedometer2"></i> Go to Dashboard
+                    </button>
+                    <button class="btn btn-info me-2 mb-2" onclick="checkFullscreenStatus()">
+                        <i class="bi bi-search"></i> Check Status
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <h5>Expected Behavior</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check text-success"></i> Sidebar automatically hidden</li>
+                        <li><i class="bi bi-check text-success"></i> Main content expands to full width</li>
+                        <li><i class="bi bi-check text-success"></i> Exit fullscreen button appears</li>
+                        <li><i class="bi bi-check text-success"></i> Member search dropdown works</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="statusIndicator" class="status-indicator status-info">
+                Ready to test - Click "Open Point of Sales" to verify automatic fullscreen
+            </div>
+
+            <div class="debug-info" id="debugInfo">
+                <strong>Debug Information:</strong><br>
+                <span id="debugContent">Waiting for test...</span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="mainContent">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4>Test Area</h4>
+                    <p class="text-muted">Content will be replaced when testing POS</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mock current user
+        let currentUser = {
+            id: 1,
+            name: 'Test User',
+            role: 'kasir'
+        };
+
+        // Mock data
+        localStorage.setItem('barang', JSON.stringify([
+            { id: '1', nama: 'Test Barang 1', barcode: '123456', hargaJual: 10000, stok: 50, hpp: 8000 },
+            { id: '2', nama: 'Test Barang 2', barcode: '789012', hargaJual: 15000, stok: 30, hpp: 12000 }
+        ]));
+
+        localStorage.setItem('anggota', JSON.stringify([
+            { id: '1', nama: 'John Doe', nik: '1234567890123456' },
+            { id: '2', nama: 'Jane Smith', nik: '9876543210987654' }
+        ]));
+
+        // Mock buka kas session
+        sessionStorage.setItem('bukaKas', JSON.stringify({
+            id: 'test-shift',
+            kasir: 'Test User',
+            kasirId: 1,
+            modalAwal: 1000000,
+            waktuBuka: new Date().toISOString(),
+            status: 'buka'
+        }));
+
+        // Test functions
+        function testPOS() {
+            console.log('🧪 Testing POS with automatic fullscreen...');
+            updateStatus('Testing POS - should automatically activate fullscreen', 'info');
+            
+            try {
+                renderPOS();
+                
+                setTimeout(() => {
+                    checkFullscreenStatus();
+                }, 500);
+            } catch (error) {
+                console.error('❌ Error testing POS:', error);
+                updateStatus('Error testing POS: ' + error.message, 'error');
+            }
+        }
+
+        function testDashboard() {
+            console.log('🧪 Testing Dashboard - should exit fullscreen...');
+            updateStatus('Testing Dashboard - should exit fullscreen', 'info');
+            
+            try {
+                // Exit fullscreen if active
+                if (document.body.classList.contains('pos-fullscreen-mode')) {
+                    exitFullScreenPOS();
+                }
+                
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h3><i class="bi bi-speedometer2 text-primary"></i> Dashboard</h3>
+                            <p>This is the dashboard view. Fullscreen should be disabled.</p>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="dashboard-card">
+                                        <h6>Total Anggota</h6>
+                                        <h2>150</h2>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="dashboard-card success">
+                                        <h6>Transaksi Hari Ini</h6>
+                                        <h2>25</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    checkFullscreenStatus();
+                }, 500);
+            } catch (error) {
+                console.error('❌ Error testing Dashboard:', error);
+                updateStatus('Error testing Dashboard: ' + error.message, 'error');
+            }
+        }
+
+        function testRiwayat() {
+            console.log('🧪 Testing Riwayat...');
+            updateStatus('Testing Riwayat - should exit fullscreen', 'info');
+            
+            try {
+                // Exit fullscreen if active
+                if (document.body.classList.contains('pos-fullscreen-mode')) {
+                    exitFullScreenPOS();
+                }
+                
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h3><i class="bi bi-receipt text-info"></i> Riwayat Transaksi</h3>
+                            <p>This is the transaction history view.</p>
+                        </div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    checkFullscreenStatus();
+                }, 500);
+            } catch (error) {
+                console.error('❌ Error testing Riwayat:', error);
+                updateStatus('Error testing Riwayat: ' + error.message, 'error');
+            }
+        }
+
+        function checkFullscreenStatus() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.querySelector('main');
+            const isFullscreen = document.body.classList.contains('pos-fullscreen-mode');
+            
+            let status = '';
+            let type = 'info';
+            
+            if (isFullscreen) {
+                const sidebarHidden = sidebar && (sidebar.style.display === 'none' || 
+                                                 getComputedStyle(sidebar).display === 'none');
+                const mainExpanded = main && (main.classList.contains('col-12') || 
+                                             getComputedStyle(main).width === '100%' ||
+                                             main.style.width === '100%');
+                
+                if (sidebarHidden && mainExpanded) {
+                    status = '✅ FULLSCREEN ACTIVE - Sidebar hidden, main content expanded';
+                    type = 'success';
+                } else {
+                    status = '⚠️ FULLSCREEN PARTIAL - Some elements not properly configured';
+                    type = 'error';
+                }
+            } else {
+                status = '📱 NORMAL MODE - Fullscreen not active';
+                type = 'info';
+            }
+            
+            updateStatus(status, type);
+            updateDebugInfo();
+        }
+
+        function updateStatus(message, type) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.textContent = message;
+            indicator.className = `status-indicator status-${type}`;
+        }
+
+        function updateDebugInfo() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.querySelector('main');
+            const body = document.body;
+            
+            const debugInfo = {
+                'Body Classes': body.className || 'none',
+                'Sidebar Display': sidebar ? getComputedStyle(sidebar).display : 'not found',
+                'Sidebar Style': sidebar ? sidebar.style.cssText || 'none' : 'not found',
+                'Main Classes': main ? main.className : 'not found',
+                'Main Style': main ? main.style.cssText || 'none' : 'not found',
+                'Session Storage': sessionStorage.getItem('posFullScreen') || 'not set',
+                'Viewport Width': window.innerWidth + 'px'
+            };
+            
+            let debugText = '';
+            for (const [key, value] of Object.entries(debugInfo)) {
+                debugText += `${key}: ${value}\n`;
+            }
+            
+            document.getElementById('debugContent').textContent = debugText;
+        }
+
+        function logout() {
+            alert('Logout clicked - this is just a test');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 POS Fullscreen Verification Test Ready');
+            updateStatus('Ready to test - Click "Open Point of Sales" to verify automatic fullscreen', 'info');
+            updateDebugInfo();
+        });
+
+        // Include the actual POS functions
+    </script>
+    <script src="public/js/pos.js"></script>
+</body>
+</html>

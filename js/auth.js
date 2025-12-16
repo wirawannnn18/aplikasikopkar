@@ -679,7 +679,6 @@ function renderMenu() {
             { icon: 'bi-calculator', text: 'SHU', page: 'shu' },
             { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
-            { icon: 'bi-fullscreen', text: 'POS Fullscreen', page: 'pos-fullscreen' },
             { icon: 'bi-clipboard-check', text: 'Kelola Pengajuan Modal', page: 'kelola-pengajuan-modal' },
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
             { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
@@ -711,7 +710,6 @@ function renderMenu() {
             { icon: 'bi-calculator', text: 'SHU', page: 'shu' },
             { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
-            { icon: 'bi-fullscreen', text: 'POS Fullscreen', page: 'pos-fullscreen' },
             { icon: 'bi-clipboard-check', text: 'Kelola Pengajuan Modal', page: 'kelola-pengajuan-modal' },
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
             { icon: 'bi-box-seam', text: 'Master Barang', page: 'barang' },
@@ -742,7 +740,6 @@ function renderMenu() {
         ],
         kasir: [
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
-            { icon: 'bi-fullscreen', text: 'POS Fullscreen', page: 'pos-fullscreen' },
             { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
             { icon: 'bi-receipt', text: 'Riwayat Transaksi', page: 'riwayat' },
             { icon: 'bi-file-earmark-text', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-kasir' },
@@ -828,9 +825,7 @@ function renderPage(page) {
         case 'pos':
             renderPOS();
             break;
-        case 'pos-fullscreen':
-            renderPOSFullscreen();
-            break;
+
         case 'barang':
             renderBarang();
             break;
