@@ -20,7 +20,7 @@ class TransformationManager {
      * @param {ValidationEngine} dependencies.validationEngine
      * @param {ConversionCalculator} dependencies.calculator
      * @param {StockManager} dependencies.stockManager
-     * @param {AuditLogger} dependencies.auditLogger
+     * @param {TransformasiBarangAuditLogger} dependencies.auditLogger
      */
     initialize(dependencies) {
         this.validationEngine = dependencies.validationEngine;

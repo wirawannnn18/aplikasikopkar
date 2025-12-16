@@ -21,7 +21,7 @@ function initializeTransformasiBarang() {
         
         // Check if all required classes are available
         if (!window.TransformationManager || !window.UIController || !window.ValidationEngine || 
-            !window.StockManager || !window.AuditLogger || !window.ErrorHandler || 
+            !window.StockManager || !window.TransformasiBarangAuditLogger || !window.ErrorHandler || 
             !window.ConversionCalculator) {
             throw new Error('Tidak semua file JavaScript transformasi barang berhasil dimuat');
         }
@@ -74,10 +74,10 @@ function initializeComponents() {
         stockManager.initialize();
         console.log('✓ StockManager initialized');
         
-        // 5. Initialize AuditLogger
-        auditLoggerInstance = new AuditLogger();
+        // 5. Initialize TransformasiBarangAuditLogger
+        auditLoggerInstance = new TransformasiBarangAuditLogger();
         auditLoggerInstance.initialize();
-        console.log('✓ AuditLogger initialized');
+        console.log('✓ TransformasiBarangAuditLogger initialized');
         
         // 6. Initialize TransformationManager with dependencies
         transformationManager = new TransformationManager();
@@ -120,7 +120,7 @@ function checkRequiredFiles() {
         'UIController', 
         'ValidationEngine',
         'StockManager',
-        'AuditLogger',
+        'TransformasiBarangAuditLogger',
         'ErrorHandler',
         'ConversionCalculator'
     ];

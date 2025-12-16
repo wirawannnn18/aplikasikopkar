@@ -5,7 +5,7 @@
  * dengan detail lengkap untuk keperluan audit dan tracking.
  */
 
-class AuditLogger {
+class TransformasiBarangAuditLogger {
     constructor() {
         this.initialized = false;
         this.logCache = []; // Cache untuk batch operations
@@ -599,8 +599,8 @@ class AuditLogger {
 
 // Export untuk browser dan Node.js
 if (typeof window !== 'undefined') {
-    window.AuditLogger = AuditLogger;
+    window.TransformasiBarangAuditLogger = TransformasiBarangAuditLogger;
 }
 
 // ES6 module export (commented out for browser compatibility)
-// export default AuditLogger;
+// export default TransformasiBarangAuditLogger;

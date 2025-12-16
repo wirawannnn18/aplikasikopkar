@@ -16,7 +16,7 @@ class ReportManager {
     /**
      * Initialize ReportManager dengan dependencies
      * @param {Object} dependencies - Object berisi dependencies
-     * @param {AuditLogger} dependencies.auditLogger - AuditLogger instance
+     * @param {TransformasiBarangAuditLogger} dependencies.auditLogger - TransformasiBarangAuditLogger instance
      */
     initialize(dependencies) {
         this.auditLogger = dependencies.auditLogger;
