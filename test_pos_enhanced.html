@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test POS Enhanced Design</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/pos-enhanced.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
+        }
+        
+        .test-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 2000;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .test-controls h6 {
+            margin-bottom: 10px;
+            color: #2d6a4f;
+        }
+        
+        .test-controls .btn {
+            margin: 2px;
+            font-size: 0.8rem;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2d6a4f;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Test Controls -->
+    <div class="test-controls">
+        <h6><i class="bi bi-gear me-1"></i>Test Controls</h6>
+        <button class="btn btn-sm btn-primary" onclick="testAddProducts()">Add Products</button>
+        <button class="btn btn-sm btn-success" onclick="testAddToCart()">Add to Cart</button>
+        <button class="btn btn-sm btn-warning" onclick="testPaymentFlow()">Test Payment</button>
+        <button class="btn btn-sm btn-info" onclick="testResponsive()">Test Mobile</button>
+        <button class="btn btn-sm btn-danger" onclick="clearTestData()">Clear Data</button>
+    </div>
+
+    <!-- Status Indicator -->
+    <div class="status-indicator" id="statusIndicator">
+        Ready for testing
+    </div>
+
+    <!-- Main POS Container -->
+    <div id="mainContent">
+        <!-- POS content will be loaded here -->
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mock data for testing
+        let barang = [
+            { id: '1', nama: 'Beras Premium 5kg', hargaJual: 75000, stok: 25, barcode: '1234567890', hpp: 65000 },
+            { id: '2', nama: 'Minyak Goreng 2L', hargaJual: 35000, stok: 15, barcode: '2345678901', hpp: 30000 },
+            { id: '3', nama: 'Gula Pasir 1kg', hargaJual: 15000, stok: 30, barcode: '3456789012', hpp: 12000 },
+            { id: '4', nama: 'Tepung Terigu 1kg', hargaJual: 12000, stok: 20, barcode: '4567890123', hpp: 10000 },
+            { id: '5', nama: 'Kopi Bubuk 200g', hargaJual: 25000, stok: 10, barcode: '5678901234', hpp: 20000 },
+            { id: '6', nama: 'Teh Celup 25pcs', hargaJual: 8000, stok: 40, barcode: '6789012345', hpp: 6000 },
+            { id: '7', nama: 'Susu UHT 1L', hargaJual: 18000, stok: 0, barcode: '7890123456', hpp: 15000 },
+            { id: '8', nama: 'Roti Tawar', hargaJual: 12000, stok: 3, barcode: '8901234567', hpp: 9000 },
+            { id: '9', nama: 'Telur Ayam 1kg', hargaJual: 28000, stok: 12, barcode: '9012345678', hpp: 24000 },
+            { id: '10', nama: 'Sabun Mandi', hargaJual: 5000, stok: 50, barcode: '0123456789', hpp: 3500 }
+        ];
+
+        let anggota = [
+            { id: '1', nama: 'Ahmad Suryadi', nik: '3201234567890001', status: 'Aktif', tipeAnggota: 'Tetap' },
+            { id: '2', nama: 'Siti Nurhaliza', nik: '3201234567890002', status: 'Aktif', tipeAnggota: 'Tetap' },
+            { id: '3', nama: 'Budi Santoso', nik: '3201234567890003', status: 'Aktif', tipeAnggota: 'Kontrak' },
+            { id: '4', nama: 'Dewi Sartika', nik: '3201234567890004', status: 'Aktif', tipeAnggota: 'Tetap' }
+        ];
+
+        let cart = [];
+        let currentUser = { id: '1', name: 'Test Kasir', role: 'kasir' };
+
+        // Mock localStorage
+        localStorage.setItem('barang', JSON.stringify(barang));
+        localStorage.setItem('anggota', JSON.stringify(anggota));
+        sessionStorage.setItem('bukaKas', JSON.stringify({
+            id: 'test-shift-001',
+            kasir: 'Test Kasir',
+            modalAwal: 500000,
+            waktuBuka: new Date().toISOString(),
+            status: 'buka'
+        }));
+
+        // Mock functions
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function generateId() {
+            return 'test-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showAlert(message, type = 'info') {
+            updateStatus(message);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('statusIndicator').textContent = message;
+            setTimeout(() => {
+                document.getElementById('statusIndicator').textContent = 'Ready for testing';
+            }, 3000);
+        }
+
+        // Credit limit validator mock
+        const creditLimitValidator = {
+            calculateOutstandingBalance: () => 150000,
+            getAvailableCredit: () => 1850000,
+            getCreditStatus: () => ({
+                bgColor: '#e9f5f0',
+                color: '#2d6a4f',
+                icon: 'bi-check-circle',
+                message: 'Kredit Aman',
+                percentage: 7.5
+            }),
+            validateCreditTransaction: () => ({ valid: true })
+        };
+
+        // Initialize POS
+        document.addEventListener('DOMContentLoaded', function() {
+            renderPOS();
+        });
+
+        // Test functions
+        function testAddProducts() {
+            updateStatus('Testing product display...');
+            const searchInput = document.getElementById('searchBarang');
+            if (searchInput) {
+                searchInput.value = 'beras';
+                searchInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'b' }));
+            }
+        }
+
+        function testAddToCart() {
+            updateStatus('Testing add to cart...');
+            if (barang.length > 0) {
+                addToCart(barang[0].id);
+                addToCart(barang[1].id);
+                setTimeout(() => addToCart(barang[0].id), 500);
+            }
+        }
+
+        function testPaymentFlow() {
+            updateStatus('Testing payment flow...');
+            if (cart.length === 0) {
+                testAddToCart();
+                setTimeout(() => {
+                    const cashInput = document.getElementById('uangBayar');
+                    if (cashInput) {
+                        cashInput.value = '100000';
+                        hitungKembalian();
+                    }
+                }, 1000);
+            } else {
+                const cashInput = document.getElementById('uangBayar');
+                if (cashInput) {
+                    cashInput.value = '100000';
+                    hitungKembalian();
+                }
+            }
+        }
+
+        function testResponsive() {
+            updateStatus('Testing responsive design...');
+            const container = document.querySelector('.pos-enhanced-container');
+            if (container) {
+                container.style.maxWidth = '768px';
+                container.style.margin = '0 auto';
+                setTimeout(() => {
+                    container.style.maxWidth = '';
+                    container.style.margin = '';
+                }, 3000);
+            }
+        }
+
+        function clearTestData() {
+            cart = [];
+            updateCartDisplay();
+            const searchInput = document.getElementById('searchBarang');
+            if (searchInput) {
+                searchInput.value = '';
+                clearSearch();
+            }
+            updateStatus('Test data cleared');
+        }
+
+        // Include the enhanced POS functions
+        function renderPOS() {
+            const content = document.getElementById('mainContent');
+            const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            
+            document.body.classList.add('pos-fullscreen-mode');
+            
+            const bukaKas = sessionStorage.getItem('bukaKas');
+            if (!bukaKas) {
+                content.innerHTML = '<div class="alert alert-warning">Buka kas terlebih dahulu</div>';
+                return;
+            }
+            
+            content.innerHTML = `
+                <div class="pos-enhanced-container">
+                    <!-- Enhanced Header -->
+                    <div class="pos-enhanced-header pos-fade-in">
+                        <div class="content">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="pos-header-title">
+                                        <i class="bi bi-shop"></i>
+                                        Point of Sales Enhanced
+                                    </div>
+                                    <div class="pos-header-subtitle">Sistem Kasir Koperasi Karyawan - Enhanced Design</div>
+                                </div>
+                                <div class="pos-header-actions">
+                                    <button class="pos-exit-btn" onclick="exitFullScreenPOS()" title="Keluar dari mode full screen">
+                                        <i class="bi bi-fullscreen-exit me-2"></i>Exit Fullscreen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Product Search & Display -->
+                        <div class="col-lg-8">
+                            <div class="pos-search-panel pos-slide-in">
+                                <div class="pos-search-header">
+                                    <div class="pos-search-icon">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="pos-search-title">Cari Produk</h5>
+                                    </div>
+                                </div>
+                                
+                                <div class="pos-search-input-wrapper">
+                                    <i class="pos-search-input-icon bi bi-upc-scan"></i>
+                                    <input type="text" class="pos-search-input" id="searchBarang" 
+                                        placeholder="Ketik nama produk atau scan barcode..." 
+                                        onkeyup="searchBarang(event)">
+                                </div>
+                                
+                                <!-- Product Grid -->
+                                <div class="pos-product-grid" id="searchResults" style="display: none;">
+                                    <div id="searchResultsList"></div>
+                                </div>
+                                
+                                <!-- Default Product Display -->
+                                <div class="pos-product-grid" id="defaultProducts">
+                                    ${barang.slice(0, 12).map(b => `
+                                        <div class="pos-product-card ${b.stok === 0 ? 'opacity-50' : ''}" onclick="${b.stok > 0 ? `addToCart('${b.id}')` : 'alert(\'Stok habis\');'}">
+                                            <div class="pos-product-image">
+                                                <i class="bi bi-box"></i>
+                                            </div>
+                                            <div class="pos-product-name">${b.nama}</div>
+                                            <div class="pos-product-price">${formatRupiah(b.hargaJual)}</div>
+                                            <div class="pos-product-stock ${b.stok <= 5 ? 'low-stock' : b.stok === 0 ? 'out-of-stock' : ''}">
+                                                Stok: ${b.stok}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <!-- No Search Message -->
+                                <div class="pos-no-products" id="noSearchMessage" style="display: none;">
+                                    <i class="bi bi-search"></i>
+                                    <h5>Tidak ada produk ditemukan</h5>
+                                    <p>Coba kata kunci lain atau scan barcode produk</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Cart Section -->
+                        <div class="col-lg-4">
+                            <div class="pos-cart-panel pos-fade-in">
+                                <!-- Cart Header -->
+                                <div class="pos-cart-header">
+                                    <div class="pos-cart-icon">
+                                        <i class="bi bi-cart3"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="pos-cart-title">Keranjang Belanja</h5>
+                                        <small class="pos-cart-count">Total <span id="cartCount">0</span> item</small>
+                                    </div>
+                                </div>
+
+                                <!-- Member Selection -->
+                                <div class="pos-member-section">
+                                    <div class="pos-member-label">
+                                        <i class="bi bi-person"></i>
+                                        Pilih Anggota
+                                    </div>
+                                    <div class="pos-member-dropdown">
+                                        <input type="text" class="pos-member-input" id="anggotaSearch" 
+                                            placeholder="Ketik nama atau NIK anggota..." 
+                                            onfocus="showAnggotaDropdown()" 
+                                            onkeyup="searchAnggota(event)" 
+                                            autocomplete="off">
+                                        <div class="pos-member-dropdown-list" id="anggotaDropdown">
+                                            <div class="pos-member-option default" onclick="selectAnggota('', 'Umum (Cash)')">
+                                                <strong>Umum (Cash)</strong>
+                                            </div>
+                                            ${anggota.map(a => `
+                                                <div class="pos-member-option" onclick="selectAnggota('${a.id}', '${a.nama} - ${a.nik}')">
+                                                    <strong>${a.nama}</strong><br>
+                                                    <small class="text-muted">NIK: ${a.nik}</small>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                        <input type="hidden" id="anggotaSelect" onchange="updateCreditInfo()">
+                                    </div>
+                                </div>
+
+                                <!-- Cart Items -->
+                                <div class="pos-cart-items" id="cartItems">
+                                    <div class="pos-empty-cart">
+                                        <i class="bi bi-cart-x"></i>
+                                        <h6>Keranjang Kosong</h6>
+                                        <p>Pilih produk untuk memulai transaksi</p>
+                                    </div>
+                                </div>
+
+                                <!-- Cart Total -->
+                                <div class="pos-cart-total">
+                                    <div class="pos-total-label">Total Belanja</div>
+                                    <div class="pos-total-amount" id="totalAmount">Rp 0</div>
+                                </div>
+
+                                <!-- Payment Method -->
+                                <div class="pos-payment-section">
+                                    <div class="pos-payment-label">
+                                        <i class="bi bi-credit-card"></i>
+                                        Metode Pembayaran
+                                    </div>
+                                    <div class="pos-payment-methods">
+                                        <div class="pos-payment-btn active" onclick="selectPaymentMethod('cash')">
+                                            <i class="bi bi-cash me-2"></i>Cash
+                                        </div>
+                                        <div class="pos-payment-btn" onclick="selectPaymentMethod('bon')">
+                                            <i class="bi bi-credit-card me-2"></i>Kredit
+                                        </div>
+                                    </div>
+
+                                    <!-- Cash Payment Section -->
+                                    <div class="pos-cash-section" id="bayarKembalianSection">
+                                        <div class="pos-cash-label">Uang Bayar</div>
+                                        <input type="number" class="pos-cash-input" id="uangBayar" 
+                                            placeholder="0" onkeyup="hitungKembalian()" onchange="hitungKembalian()">
+                                        <div class="pos-quick-cash">
+                                            <button class="pos-quick-cash-btn" onclick="setUangPas()">Pas</button>
+                                            <button class="pos-quick-cash-btn" onclick="setUangBayar(50000)">50K</button>
+                                            <button class="pos-quick-cash-btn" onclick="setUangBayar(100000)">100K</button>
+                                            <button class="pos-quick-cash-btn" onclick="setUangBayar(200000)">200K</button>
+                                        </div>
+                                        <div class="pos-change-display" id="kembalian">
+                                            Kembalian: Rp 0
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="pos-action-buttons">
+                                    <button class="pos-btn-pay" onclick="processPayment()">
+                                        <i class="bi bi-check-circle"></i>
+                                        Bayar Sekarang
+                                    </button>
+                                    <button class="pos-btn-clear" onclick="clearCart()">
+                                        <i class="bi bi-trash"></i>
+                                        Kosongkan Keranjang
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            updateCartDisplay();
+        }
+
+        // Include all the POS functions from the original file
+        function searchBarang(event) {
+            const query = event.target.value.toLowerCase().trim();
+            const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+            const searchResults = document.getElementById('searchResults');
+            const searchResultsList = document.getElementById('searchResultsList');
+            const noSearchMessage = document.getElementById('noSearchMessage');
+            const defaultProducts = document.getElementById('defaultProducts');
+            
+            if (event.key === 'Enter' && query) {
+                const item = barang.find(b => b.barcode.toLowerCase() === query);
+                if (item) {
+                    addToCart(item.id);
+                    event.target.value = '';
+                    searchResults.style.display = 'none';
+                    defaultProducts.style.display = 'grid';
+                    noSearchMessage.style.display = 'none';
+                    return;
+                }
+            }
+            
+            if (query.length === 0) {
+                searchResults.style.display = 'none';
+                defaultProducts.style.display = 'grid';
+                noSearchMessage.style.display = 'none';
+                return;
+            }
+            
+            if (query.length >= 2) {
+                const filtered = barang.filter(b => 
+                    (b.nama.toLowerCase().includes(query) || 
+                     b.barcode.toLowerCase().includes(query))
+                );
+                
+                if (filtered.length > 0) {
+                    searchResults.style.display = 'grid';
+                    defaultProducts.style.display = 'none';
+                    noSearchMessage.style.display = 'none';
+                    
+                    searchResultsList.innerHTML = filtered.slice(0, 12).map(b => `
+                        <div class="pos-product-card ${b.stok === 0 ? 'opacity-50' : ''}" onclick="${b.stok > 0 ? `addToCart('${b.id}'); clearSearch();` : 'alert(\'Stok habis\');'}">
+                            <div class="pos-product-image">
+                                <i class="bi bi-box"></i>
+                            </div>
+                            <div class="pos-product-name">${b.nama}</div>
+                            <div class="pos-product-price">${formatRupiah(b.hargaJual)}</div>
+                            <div class="pos-product-stock ${b.stok <= 5 ? 'low-stock' : b.stok === 0 ? 'out-of-stock' : ''}">
+                                Stok: ${b.stok}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    searchResults.style.display = 'none';
+                    defaultProducts.style.display = 'none';
+                    noSearchMessage.style.display = 'block';
+                }
+            } else {
+                searchResults.style.display = 'none';
+                defaultProducts.style.display = 'grid';
+                noSearchMessage.style.display = 'none';
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('searchBarang').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('defaultProducts').style.display = 'grid';
+            document.getElementById('noSearchMessage').style.display = 'none';
+        }
+
+        function addToCart(barangId) {
+            const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+            const item = barang.find(b => b.id === barangId);
+            
+            if (!item || item.stok <= 0) {
+                showAlert('Stok barang tidak tersedia');
+                return;
+            }
+            
+            const existingItem = cart.find(c => c.id === barangId);
+            if (existingItem) {
+                if (existingItem.qty < item.stok) {
+                    existingItem.qty++;
+                } else {
+                    showAlert('Stok tidak mencukupi');
+                }
+            } else {
+                cart.push({
+                    id: item.id,
+                    nama: item.nama,
+                    harga: item.hargaJual,
+                    hpp: item.hpp,
+                    qty: 1,
+                    stok: item.stok
+                });
+            }
+            
+            updateCartDisplay();
+        }
+
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cartItems');
+            const cartCount = document.getElementById('cartCount');
+            const totalAmount = document.getElementById('totalAmount');
+            
+            if (!cartItems) return;
+            
+            if (cart.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="pos-empty-cart">
+                        <i class="bi bi-cart-x"></i>
+                        <h6>Keranjang Kosong</h6>
+                        <p>Pilih produk untuk memulai transaksi</p>
+                    </div>
+                `;
+                if (cartCount) cartCount.textContent = '0';
+                if (totalAmount) totalAmount.textContent = 'Rp 0';
+                return;
+            }
+            
+            cartItems.innerHTML = cart.map(item => `
+                <div class="pos-cart-item">
+                    <div class="pos-cart-item-info">
+                        <div class="pos-cart-item-name">${item.nama}</div>
+                        <div class="pos-cart-item-price">${formatRupiah(item.harga)} x ${item.qty}</div>
+                    </div>
+                    <div class="pos-cart-item-controls">
+                        <button class="pos-qty-btn" onclick="updateQty('${item.id}', -1)">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <div class="pos-qty-display">${item.qty}</div>
+                        <button class="pos-qty-btn" onclick="updateQty('${item.id}', 1)">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                        <button class="pos-qty-btn danger" onclick="removeFromCart('${item.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+            const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+            
+            if (cartCount) cartCount.textContent = totalItems;
+            if (totalAmount) totalAmount.textContent = formatRupiah(total);
+            
+            const uangBayarElement = document.getElementById('uangBayar');
+            if (uangBayarElement && uangBayarElement.value) {
+                hitungKembalian();
+            }
+        }
+
+        function updateQty(itemId, change) {
+            const item = cart.find(c => c.id === itemId);
+            if (item) {
+                const newQty = item.qty + change;
+                if (newQty > 0 && newQty <= item.stok) {
+                    item.qty = newQty;
+                    updateCartDisplay();
+                } else if (newQty <= 0) {
+                    removeFromCart(itemId);
+                } else {
+                    showAlert('Stok tidak mencukupi!');
+                }
+            }
+        }
+
+        function removeFromCart(itemId) {
+            cart = cart.filter(c => c.id !== itemId);
+            updateCartDisplay();
+        }
+
+        function clearCart() {
+            if (cart.length === 0) return;
+            
+            if (confirm('Yakin ingin mengosongkan keranjang?')) {
+                cart = [];
+                updateCartDisplay();
+            }
+        }
+
+        function selectPaymentMethod(method) {
+            document.querySelectorAll('.pos-payment-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const cashSection = document.getElementById('bayarKembalianSection');
+            if (method === 'cash') {
+                cashSection.style.display = 'block';
+            } else {
+                cashSection.style.display = 'none';
+                resetBayarKembalian();
+            }
+        }
+
+        function setUangPas() {
+            const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+            document.getElementById('uangBayar').value = total;
+            hitungKembalian();
+        }
+
+        function setUangBayar(amount) {
+            const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+            const currentBayar = parseFloat(document.getElementById('uangBayar').value) || 0;
+            
+            if (currentBayar < total) {
+                document.getElementById('uangBayar').value = total + amount;
+            } else {
+                document.getElementById('uangBayar').value = currentBayar + amount;
+            }
+            hitungKembalian();
+        }
+
+        function hitungKembalian() {
+            const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+            const uangBayar = parseFloat(document.getElementById('uangBayar').value) || 0;
+            const kembalian = uangBayar - total;
+            
+            const kembalianElement = document.getElementById('kembalian');
+            if (kembalian < 0) {
+                kembalianElement.textContent = 'Uang kurang: ' + formatRupiah(Math.abs(kembalian));
+                kembalianElement.className = 'pos-change-display insufficient';
+            } else {
+                kembalianElement.textContent = 'Kembalian: ' + formatRupiah(kembalian);
+                kembalianElement.className = 'pos-change-display';
+            }
+        }
+
+        function resetBayarKembalian() {
+            const uangBayar = document.getElementById('uangBayar');
+            const kembalian = document.getElementById('kembalian');
+            
+            if (uangBayar) uangBayar.value = '';
+            if (kembalian) {
+                kembalian.textContent = 'Kembalian: Rp 0';
+                kembalian.className = 'pos-change-display';
+            }
+        }
+
+        function processPayment() {
+            if (cart.length === 0) {
+                showAlert('Keranjang kosong');
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+            const activePaymentBtn = document.querySelector('.pos-payment-btn.active');
+            const paymentMethod = activePaymentBtn ? (activePaymentBtn.textContent.includes('Cash') ? 'cash' : 'bon') : 'cash';
+
+            if (paymentMethod === 'cash') {
+                const cash = parseFloat(document.getElementById('uangBayar').value) || 0;
+                if (cash < total) {
+                    showAlert('Uang bayar kurang dari total belanja');
+                    return;
+                }
+            }
+
+            showAlert('Pembayaran berhasil diproses!');
+            
+            cart = [];
+            updateCartDisplay();
+            document.getElementById('uangBayar').value = '';
+            hitungKembalian();
+        }
+
+        function showAnggotaDropdown() {
+            const dropdown = document.getElementById('anggotaDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'block';
+            }
+        }
+
+        function searchAnggota(event) {
+            const query = event.target.value.toLowerCase().trim();
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            const dropdown = document.getElementById('anggotaDropdown');
+            
+            if (query.length === 0) {
+                dropdown.innerHTML = `
+                    <div class="pos-member-option default" onclick="selectAnggota('', 'Umum (Cash)')">
+                        <strong>Umum (Cash)</strong>
+                    </div>
+                    ${anggota.map(a => `
+                        <div class="pos-member-option" onclick="selectAnggota('${a.id}', '${a.nama} - ${a.nik}')">
+                            <strong>${a.nama}</strong><br>
+                            <small class="text-muted">NIK: ${a.nik}</small>
+                        </div>
+                    `).join('')}
+                `;
+                dropdown.style.display = 'block';
+                return;
+            }
+            
+            const filtered = anggota.filter(a => 
+                a.nama.toLowerCase().includes(query) || 
+                a.nik.toLowerCase().includes(query)
+            );
+            
+            dropdown.innerHTML = `
+                <div class="pos-member-option default" onclick="selectAnggota('', 'Umum (Cash)')">
+                    <strong>Umum (Cash)</strong>
+                </div>
+                ${filtered.map(a => `
+                    <div class="pos-member-option" onclick="selectAnggota('${a.id}', '${a.nama} - ${a.nik}')">
+                        <strong>${a.nama}</strong><br>
+                        <small class="text-muted">NIK: ${a.nik}</small>
+                    </div>
+                `).join('')}
+                ${filtered.length === 0 ? '<div class="pos-member-option">Tidak ada anggota ditemukan</div>' : ''}
+            `;
+            dropdown.style.display = 'block';
+        }
+
+        function selectAnggota(id, displayText) {
+            const searchInput = document.getElementById('anggotaSearch');
+            const selectInput = document.getElementById('anggotaSelect');
+            const dropdown = document.getElementById('anggotaDropdown');
+            
+            if (searchInput) searchInput.value = displayText;
+            if (selectInput) selectInput.value = id;
+            if (dropdown) dropdown.style.display = 'none';
+            
+            if (selectInput) {
+                const event = new Event('change');
+                selectInput.dispatchEvent(event);
+            }
+        }
+
+        function updateCreditInfo() {
+            // Mock credit info update
+            updateStatus('Credit info updated for selected member');
+        }
+
+        function exitFullScreenPOS() {
+            updateStatus('Exiting fullscreen mode...');
+        }
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const searchInput = document.getElementById('anggotaSearch');
+            const dropdown = document.getElementById('anggotaDropdown');
+            
+            if (searchInput && dropdown && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
