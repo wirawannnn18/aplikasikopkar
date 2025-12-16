@@ -41,20 +41,40 @@ function renderPOS() {
     // Create fullscreen POS interface
     content.innerHTML = `
         <style>
-            /* Fullscreen POS Styles */
-            body {
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
+            /* FORCE FULLSCREEN POS STYLES */
+            * {
+                box-sizing: border-box;
+            }
+            
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                height: 100vh !important;
+                width: 100vw !important;
+            }
+            
+            #mainContent {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 99999 !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .pos-container {
                 background: linear-gradient(135deg, #f8f9fa 0%, #e9f5f0 100%);
-                height: 100vh;
-                width: 100vw;
-                padding: 0;
-                display: flex;
-                flex-direction: column;
+                height: 100vh !important;
+                width: 100vw !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                position: relative !important;
+                overflow: hidden !important;
             }
 
             .pos-header {
@@ -68,13 +88,15 @@ function renderPOS() {
             }
 
             .pos-search-section {
-                background: white;
-                border-radius: 0;
-                padding: 20px;
-                box-shadow: 0 2px 10px rgba(45, 106, 79, 0.1);
-                margin-bottom: 0;
-                height: 100%;
-                overflow-y: auto;
+                background: white !important;
+                border-radius: 0 !important;
+                padding: 20px !important;
+                box-shadow: 0 2px 10px rgba(45, 106, 79, 0.1) !important;
+                margin-bottom: 0 !important;
+                height: calc(100vh - 80px) !important;
+                min-height: calc(100vh - 80px) !important;
+                overflow-y: auto !important;
+                flex: 1 !important;
             }
 
             .pos-search-input {
@@ -147,13 +169,15 @@ function renderPOS() {
             }
 
             .cart-section {
-                background: white;
-                border-radius: 0;
-                padding: 20px;
-                height: 100%;
-                position: relative;
+                background: white !important;
+                border-radius: 0 !important;
+                padding: 20px !important;
+                height: calc(100vh - 80px) !important;
+                min-height: calc(100vh - 80px) !important;
+                position: relative !important;
                 display: flex !important;
-                flex-direction: column;
+                flex-direction: column !important;
+                overflow-y: auto !important;
             }
 
             .cart-header {
@@ -430,17 +454,22 @@ function renderPOS() {
             }
 
             .main-content {
-                flex: 1;
-                display: flex;
-                height: calc(100vh - 80px);
-                min-height: 600px;
+                flex: 1 !important;
+                display: flex !important;
+                height: calc(100vh - 80px) !important;
+                min-height: calc(100vh - 80px) !important;
+                width: 100% !important;
+                position: relative !important;
+                overflow: hidden !important;
             }
 
             .products-section {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                min-width: 0;
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-width: 0 !important;
+                height: calc(100vh - 80px) !important;
+                overflow: hidden !important;
             }
 
             .cart-column {
