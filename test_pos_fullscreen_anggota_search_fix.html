@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test POS Fullscreen & Pencarian Anggota</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .test-container {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <!-- Simulasi Layout Aplikasi -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #2d6a4f;">
+        <div class="container-fluid">
+            <span class="navbar-brand">Koperasi Karyawan</span>
+            <button id="sidebarToggle" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="bi bi-house"></i> Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#"><i class="bi bi-cart"></i> Point of Sales</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="bi bi-people"></i> Master Anggota</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div id="mainContent">
+                    <!-- Content akan diisi oleh JavaScript -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="test-container">
+        <div class="test-section">
+            <h3><i class="bi bi-gear"></i> Test Controls POS Fullscreen & Pencarian Anggota</h3>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <button class="btn btn-primary" onclick="testPOSFullscreen()">
+                        <i class="bi bi-fullscreen"></i> Test POS Fullscreen
+                    </button>
+                    <button class="btn btn-secondary ms-2" onclick="testExitFullscreen()">
+                        <i class="bi bi-fullscreen-exit"></i> Exit Fullscreen
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-success" onclick="testAnggotaSearch()">
+                        <i class="bi bi-search"></i> Test Pencarian Anggota
+                    </button>
+                    <button class="btn btn-info ms-2" onclick="populateTestData()">
+                        <i class="bi bi-database"></i> Setup Test Data
+                    </button>
+                </div>
+            </div>
+
+            <div id="testResults" class="mt-3">
+                <h5>Test Results:</h5>
+                <div id="testOutput"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h4>Status Implementasi:</h4>
+            <ul class="list-unstyled">
+                <li><span class="status-indicator status-success"></span> POS Fullscreen Function</li>
+                <li><span class="status-indicator status-success"></span> Pencarian Anggota dengan Nama</li>
+                <li><span class="status-indicator status-success"></span> Pencarian Anggota dengan NIK</li>
+                <li><span class="status-indicator status-success"></span> Dropdown Interaktif</li>
+                <li><span class="status-indicator status-success"></span> CSS Fullscreen Styling</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="public/js/pos.js"></script>
+    
+    <script>
+        // Setup test environment
+        let currentUser = { id: 'test-user', name: 'Test Kasir', role: 'kasir' };
+        
+        function populateTestData() {
+            // Setup test data
+            const testAnggota = [
+                { id: 'ang1', nama: 'Budi Santoso', nik: '1234567890123456', status: 'Aktif', tipeAnggota: 'Tetap' },
+                { id: 'ang2', nama: 'Siti Nurhaliza', nik: '2345678901234567', status: 'Aktif', tipeAnggota: 'Tetap' },
+                { id: 'ang3', nama: 'Ahmad Wijaya', nik: '3456789012345678', status: 'Aktif', tipeAnggota: 'Kontrak' },
+                { id: 'ang4', nama: 'Dewi Sartika', nik: '4567890123456789', status: 'Aktif', tipeAnggota: 'Tetap' },
+                { id: 'ang5', nama: 'Rudi Hermawan', nik: '5678901234567890', status: 'Aktif', tipeAnggota: 'Kontrak' }
+            ];
+            
+            const testBarang = [
+                { id: 'brg1', nama: 'Aqua 600ml', barcode: '123456789', hargaJual: 3000, hpp: 2500, stok: 50 },
+                { id: 'brg2', nama: 'Indomie Goreng', barcode: '234567890', hargaJual: 3500, hpp: 3000, stok: 30 },
+                { id: 'brg3', nama: 'Teh Botol Sosro', barcode: '345678901', hargaJual: 4000, hpp: 3500, stok: 25 }
+            ];
+            
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            localStorage.setItem('barang', JSON.stringify(testBarang));
+            
+            // Setup buka kas session
+            const bukaKasData = {
+                id: 'shift-test',
+                kasir: currentUser.name,
+                kasirId: currentUser.id,
+                modalAwal: 500000,
+                waktuBuka: new Date().toISOString(),
+                status: 'buka'
+            };
+            sessionStorage.setItem('bukaKas', JSON.stringify(bukaKasData));
+            
+            logTest('✅ Test data berhasil di-setup', 'success');
+        }
+        
+        function testPOSFullscreen() {
+            logTest('🧪 Testing POS Fullscreen...', 'info');
+            
+            try {
+                // Render POS
+                renderPOS();
+                
+                // Check if fullscreen is applied
+                setTimeout(() => {
+                    const sidebar = document.getElementById('sidebar');
+                    const mainContent = document.querySelector('main');
+                    const body = document.body;
+                    
+                    let results = [];
+                    
+                    // Test sidebar hidden
+                    if (sidebar && sidebar.style.display === 'none') {
+                        results.push('✅ Sidebar berhasil disembunyikan');
+                    } else {
+                        results.push('❌ Sidebar masih terlihat');
+                    }
+                    
+                    // Test main content expanded
+                    if (mainContent && mainContent.className.includes('col-12')) {
+                        results.push('✅ Main content berhasil diperluas');
+                    } else {
+                        results.push('❌ Main content belum diperluas');
+                    }
+                    
+                    // Test body class
+                    if (body.classList.contains('pos-fullscreen-mode')) {
+                        results.push('✅ Body class fullscreen diterapkan');
+                    } else {
+                        results.push('❌ Body class fullscreen tidak diterapkan');
+                    }
+                    
+                    // Test session storage
+                    if (sessionStorage.getItem('posFullScreen') === 'true') {
+                        results.push('✅ Session storage fullscreen tersimpan');
+                    } else {
+                        results.push('❌ Session storage fullscreen tidak tersimpan');
+                    }
+                    
+                    logTest(results.join('<br>'), 'info');
+                    
+                    if (results.every(r => r.startsWith('✅'))) {
+                        logTest('🎉 POS Fullscreen berhasil diimplementasikan!', 'success');
+                    } else {
+                        logTest('⚠️ Ada masalah dengan implementasi fullscreen', 'warning');
+                    }
+                }, 500);
+                
+            } catch (error) {
+                logTest('❌ Error testing POS fullscreen: ' + error.message, 'error');
+            }
+        }
+        
+        function testExitFullscreen() {
+            logTest('🧪 Testing Exit Fullscreen...', 'info');
+            
+            try {
+                exitFullScreenPOS();
+                
+                setTimeout(() => {
+                    const sidebar = document.getElementById('sidebar');
+                    const body = document.body;
+                    
+                    let results = [];
+                    
+                    if (sidebar && sidebar.style.display !== 'none') {
+                        results.push('✅ Sidebar berhasil ditampilkan kembali');
+                    } else {
+                        results.push('❌ Sidebar masih tersembunyi');
+                    }
+                    
+                    if (!body.classList.contains('pos-fullscreen-mode')) {
+                        results.push('✅ Body class fullscreen berhasil dihapus');
+                    } else {
+                        results.push('❌ Body class fullscreen masih ada');
+                    }
+                    
+                    if (!sessionStorage.getItem('posFullScreen')) {
+                        results.push('✅ Session storage fullscreen berhasil dihapus');
+                    } else {
+                        results.push('❌ Session storage fullscreen masih ada');
+                    }
+                    
+                    logTest(results.join('<br>'), 'info');
+                    
+                    if (results.every(r => r.startsWith('✅'))) {
+                        logTest('🎉 Exit Fullscreen berhasil!', 'success');
+                    } else {
+                        logTest('⚠️ Ada masalah dengan exit fullscreen', 'warning');
+                    }
+                }, 500);
+                
+            } catch (error) {
+                logTest('❌ Error testing exit fullscreen: ' + error.message, 'error');
+            }
+        }
+        
+        function testAnggotaSearch() {
+            logTest('🧪 Testing Pencarian Anggota...', 'info');
+            
+            try {
+                // Render POS first
+                renderPOS();
+                
+                setTimeout(() => {
+                    const searchInput = document.getElementById('anggotaSearch');
+                    const dropdown = document.getElementById('anggotaDropdown');
+                    
+                    if (!searchInput || !dropdown) {
+                        logTest('❌ Element pencarian anggota tidak ditemukan', 'error');
+                        return;
+                    }
+                    
+                    let results = [];
+                    
+                    // Test 1: Search by name
+                    searchInput.value = 'Budi';
+                    const event1 = { target: searchInput };
+                    searchAnggota(event1);
+                    
+                    if (dropdown.innerHTML.includes('Budi Santoso')) {
+                        results.push('✅ Pencarian berdasarkan nama berhasil');
+                    } else {
+                        results.push('❌ Pencarian berdasarkan nama gagal');
+                    }
+                    
+                    // Test 2: Search by NIK
+                    searchInput.value = '1234567890123456';
+                    const event2 = { target: searchInput };
+                    searchAnggota(event2);
+                    
+                    if (dropdown.innerHTML.includes('Budi Santoso')) {
+                        results.push('✅ Pencarian berdasarkan NIK berhasil');
+                    } else {
+                        results.push('❌ Pencarian berdasarkan NIK gagal');
+                    }
+                    
+                    // Test 3: Test selection
+                    selectAnggota('ang1', 'Budi Santoso - 1234567890123456');
+                    
+                    if (searchInput.value === 'Budi Santoso - 1234567890123456') {
+                        results.push('✅ Pemilihan anggota berhasil');
+                    } else {
+                        results.push('❌ Pemilihan anggota gagal');
+                    }
+                    
+                    // Test 4: Hidden input value
+                    const hiddenInput = document.getElementById('anggotaSelect');
+                    if (hiddenInput && hiddenInput.value === 'ang1') {
+                        results.push('✅ Hidden input value berhasil diset');
+                    } else {
+                        results.push('❌ Hidden input value tidak diset');
+                    }
+                    
+                    logTest(results.join('<br>'), 'info');
+                    
+                    if (results.every(r => r.startsWith('✅'))) {
+                        logTest('🎉 Pencarian Anggota berhasil diimplementasikan!', 'success');
+                    } else {
+                        logTest('⚠️ Ada masalah dengan pencarian anggota', 'warning');
+                    }
+                }, 500);
+                
+            } catch (error) {
+                logTest('❌ Error testing pencarian anggota: ' + error.message, 'error');
+            }
+        }
+        
+        function logTest(message, type = 'info') {
+            const output = document.getElementById('testOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type === 'success' ? 'text-success' : 
+                              type === 'error' ? 'text-danger' : 
+                              type === 'warning' ? 'text-warning' : 'text-info';
+            
+            output.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            populateTestData();
+            logTest('🚀 Test environment initialized', 'success');
+        });
+    </script>
+</body>
+</html>
