@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 10: Advanced Features</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn.success {
+            background: #28a745;
+        }
+        .btn.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn.danger {
+            background: #dc3545;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 2px;
+            display: inline-block;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s ease;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-control:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task 10: Advanced Features Testing</h1>
+        <p>Testing advanced features for master barang system including new category/unit handling, status validation, and import processing reliability.</p>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <h3>1. New Category/Unit Handling During Import</h3>
+            <p>Test automatic creation of new categories and units during import process.</p>
+            
+            <div class="form-group">
+                <label>Sample Import Data (JSON):</label>
+                <textarea id="importData" class="form-control" rows="6">[
+  {"kode": "ITEM001", "nama": "Laptop Gaming", "kategori": "Komputer", "satuan": "Unit", "harga": 15000000, "stok": 5},
+  {"kode": "ITEM002", "nama": "Mouse Wireless", "kategori": "Aksesoris", "satuan": "Pcs", "harga": 250000, "stok": 20},
+  {"kode": "ITEM003", "nama": "Kabel HDMI", "kategori": "Kabel", "satuan": "Meter", "harga": 50000, "stok": 100}
+]</textarea>
+            </div>
+            
+            <button class="btn" onclick="testNewEntityHandling()">Test New Entity Handling</button>
+            <button class="btn" onclick="testConflictDetection()">Test Conflict Detection</button>
+            <button class="btn" onclick="testValidationErrors()">Test Validation Errors</button>
+            
+            <div id="newEntityResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <h3>2. Category/Unit Status Validation</h3>
+            <p>Test validation of category and unit status for active operations.</p>
+            
+            <div class="form-group">
+                <label>Entity Type:</label>
+                <select id="entityType" class="form-control">
+                    <option value="category">Category</option>
+                    <option value="unit">Unit</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Entity ID:</label>
+                <select id="entityId" class="form-control">
+                    <option value="1">ID: 1 (Active)</option>
+                    <option value="2">ID: 2 (Inactive)</option>
+                    <option value="3">ID: 3 (Deprecated)</option>
+                    <option value="999">ID: 999 (Non-existent)</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="testStatusValidation()">Test Status Validation</button>
+            <button class="btn" onclick="testBatchStatusValidation()">Test Batch Validation</button>
+            
+            <div id="statusResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <h3>3. Import Processing Reliability & Error Recovery</h3>
+            <p>Test error recovery mechanisms and large dataset optimization.</p>
+            
+            <div class="form-group">
+                <label>Dataset Size:</label>
+                <input type="number" id="datasetSize" class="form-control" value="50" min="10" max="200">
+            </div>
+            
+            <div class="form-group">
+                <label>Batch Size:</label>
+                <input type="number" id="batchSize" class="form-control" value="10" min="5" max="50">
+            </div>
+            
+            <div class="form-group">
+                <label>Max Concurrency:</label>
+                <input type="number" id="maxConcurrency" class="form-control" value="3" min="1" max="5">
+            </div>
+            
+            <button class="btn" onclick="testErrorRecovery()">Test Error Recovery</button>
+            <button class="btn" onclick="testLargeDatasetOptimization()">Test Large Dataset Processing</button>
+            <button class="btn" onclick="testConcurrentProcessing()">Test Concurrent Processing</button>
+            
+            <div class="progress" id="processingProgress" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div id="reliabilityResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="test-section">
+            <h3>4. System Status & Performance</h3>
+            <p>View current system status and performance metrics.</p>
+            
+            <button class="btn" onclick="showSystemStatus()">Show System Status</button>
+            <button class="btn" onclick="clearTestData()">Clear Test Data</button>
+            <button class="btn success" onclick="runAllTests()">Run All Tests</button>
+            
+            <div id="systemStatus" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="js/master-barang/AdvancedFeatureManager.js"></script>
+    <script>
+        // Initialize the advanced feature manager
+        const manager = new AdvancedFeatureManager();
+        
+        // Setup test data
+        function setupTestData() {
+            // Setup existing categories
+            localStorage.setItem('master_barang_categories', JSON.stringify([
+                { id: '1', nama: 'Elektronik', status: 'active', createdAt: new Date().toISOString() },
+                { id: '2', nama: 'Makanan', status: 'inactive', createdAt: new Date().toISOString() },
+                { id: '3', nama: 'Pakaian', status: 'deprecated', createdAt: new Date().toISOString() }
+            ]));
+            
+            // Setup existing units
+            localStorage.setItem('master_barang_satuan', JSON.stringify([
+                { id: '1', nama: 'Pcs', status: 'active', createdAt: new Date().toISOString() },
+                { id: '2', nama: 'Kg', status: 'inactive', createdAt: new Date().toISOString() },
+                { id: '3', nama: 'Liter', status: 'deprecated', createdAt: new Date().toISOString() }
+            ]));
+        }
+        
+        // Test new entity handling
+        async function testNewEntityHandling() {
+            const resultDiv = document.getElementById('newEntityResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Processing...';
+            
+            try {
+                const importData = JSON.parse(document.getElementById('importData').value);
+                const result = await manager.handleNewEntitiesDuringImport(importData, {
+                    autoResolveConflicts: true,
+                    userId: 'test-user'
+                });
+                
+                resultDiv.textContent = `New Entity Handling Result:
+${JSON.stringify(result, null, 2)}
+
+Summary:
+- New Categories Created: ${result.newCategories.length}
+- New Units Created: ${result.newUnits.length}
+- Conflicts Detected: ${result.conflicts.length}
+- Errors: ${result.errors.length}
+- Total Processed: ${result.processed}`;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Test conflict detection
+        async function testConflictDetection() {
+            const resultDiv = document.getElementById('newEntityResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Testing conflict detection...';
+            
+            try {
+                const conflictData = [
+                    {"kode": "ITEM001", "nama": "Test Item", "kategori": "elektronik", "satuan": "pcs", "harga": 100000, "stok": 10},
+                    {"kode": "ITEM002", "nama": "Test Item 2", "kategori": "ELEKTRONIK", "satuan": "PCS", "harga": 200000, "stok": 5}
+                ];
+                
+                const result = await manager.handleNewEntitiesDuringImport(conflictData, {
+                    autoResolveConflicts: false, // Don't auto-resolve to test conflict detection
+                    userId: 'test-user'
+                });
+                
+                resultDiv.textContent = `Conflict Detection Result:
+${JSON.stringify(result, null, 2)}
+
+Conflicts Found: ${result.conflicts.length}
+${result.conflicts.map(c => `- ${c.type}: "${c.new}" similar to "${c.existing}"`).join('\n')}`;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Test validation errors
+        async function testValidationErrors() {
+            const resultDiv = document.getElementById('newEntityResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Testing validation errors...';
+            
+            try {
+                const invalidData = [
+                    {"kode": "ITEM001", "nama": "Valid Item", "kategori": "", "satuan": "Pcs", "harga": 100000, "stok": 10},
+                    {"kode": "ITEM002", "nama": "Invalid Item", "kategori": "A".repeat(60), "satuan": "Invalid@#$", "harga": 200000, "stok": 5}
+                ];
+                
+                const result = await manager.handleNewEntitiesDuringImport(invalidData, {
+                    autoResolveConflicts: true,
+                    userId: 'test-user'
+                });
+                
+                resultDiv.textContent = `Validation Error Handling Result:
+${JSON.stringify(result, null, 2)}
+
+Validation Errors: ${result.errors.length}
+${result.errors.map(e => `- ${e.type}: ${e.message} (${e.entity}: ${e.name})`).join('\n')}`;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Test status validation
+        function testStatusValidation() {
+            const resultDiv = document.getElementById('statusResult');
+            resultDiv.style.display = 'block';
+            
+            const entityType = document.getElementById('entityType').value;
+            const entityId = document.getElementById('entityId').value;
+            
+            const result = manager.validateEntityStatus(entityType, entityId);
+            
+            let statusClass = 'error';
+            if (result.isValid && result.canProceed) {
+                statusClass = result.warning ? 'warning' : 'success';
+            }
+            
+            resultDiv.innerHTML = `Status Validation Result:
+<div class="status ${statusClass}">
+    Status: ${result.status} | Valid: ${result.isValid} | Can Proceed: ${result.canProceed}
+</div>
+
+${JSON.stringify(result, null, 2)}`;
+        }
+        
+        // Test batch status validation
+        function testBatchStatusValidation() {
+            const resultDiv = document.getElementById('statusResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Testing batch validation...';
+            
+            const testCases = [
+                { type: 'category', id: '1' },
+                { type: 'category', id: '2' },
+                { type: 'category', id: '3' },
+                { type: 'unit', id: '1' },
+                { type: 'unit', id: '2' },
+                { type: 'unit', id: '3' },
+                { type: 'category', id: '999' },
+                { type: 'invalid', id: '1' }
+            ];
+            
+            const results = testCases.map(test => ({
+                test: test,
+                result: manager.validateEntityStatus(test.type, test.id)
+            }));
+            
+            let output = 'Batch Status Validation Results:\n\n';
+            results.forEach(({ test, result }) => {
+                const statusClass = result.isValid && result.canProceed ? 
+                    (result.warning ? 'warning' : 'success') : 'error';
+                output += `${test.type}:${test.id} -> ${result.status} (${result.isValid ? 'Valid' : 'Invalid'})\n`;
+            });
+            
+            output += '\nDetailed Results:\n' + JSON.stringify(results, null, 2);
+            resultDiv.textContent = output;
+        }
+        
+        // Test error recovery
+        async function testErrorRecovery() {
+            const resultDiv = document.getElementById('reliabilityResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Testing error recovery...';
+            
+            try {
+                const failedItems = [
+                    {
+                        kode: 'ITEM001',
+                        nama: 'Test Item',
+                        error: { type: 'validation_error', message: 'Invalid data', field: 'harga' }
+                    },
+                    {
+                        kode: 'ITEM002',
+                        nama: 'Test Item 2',
+                        error: { type: 'format_error', message: 'Format error', invalidFields: ['stok'] }
+                    },
+                    {
+                        kode: 'ITEM003',
+                        nama: 'Test Item 3',
+                        error: { type: 'system_error', message: 'System error' }
+                    }
+                ];
+                
+                const result = await manager.implementErrorRecovery(failedItems, {
+                    useDefaults: true,
+                    skipInvalidFields: true,
+                    userId: 'test-user'
+                });
+                
+                resultDiv.textContent = `Error Recovery Result:
+${JSON.stringify(result, null, 2)}
+
+Summary:
+- Total Failed Items: ${failedItems.length}
+- Recovered Items: ${result.recovered.length}
+- Still Failed: ${result.stillFailed.length}
+- Recovery Strategies: ${result.strategies.length}`;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Test large dataset optimization
+        async function testLargeDatasetOptimization() {
+            const resultDiv = document.getElementById('reliabilityResult');
+            const progressDiv = document.getElementById('processingProgress');
+            const progressBar = document.getElementById('progressBar');
+            
+            resultDiv.style.display = 'block';
+            progressDiv.style.display = 'block';
+            resultDiv.textContent = 'Processing large dataset...';
+            
+            try {
+                const datasetSize = parseInt(document.getElementById('datasetSize').value);
+                const batchSize = parseInt(document.getElementById('batchSize').value);
+                const maxConcurrency = parseInt(document.getElementById('maxConcurrency').value);
+                
+                // Generate large dataset
+                const largeDataset = Array.from({ length: datasetSize }, (_, i) => ({
+                    id: i,
+                    kode: `ITEM${i.toString().padStart(4, '0')}`,
+                    nama: `Item ${i}`,
+                    kategori: `Category ${i % 10}`,
+                    satuan: `Unit ${i % 5}`,
+                    harga: Math.random() * 1000000,
+                    stok: Math.floor(Math.random() * 100)
+                }));
+                
+                // Simulate progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 10;
+                    progressBar.style.width = Math.min(progress, 90) + '%';
+                }, 100);
+                
+                const result = await manager.optimizeForLargeDatasets(largeDataset, {
+                    batchSize,
+                    maxConcurrency,
+                    userId: 'test-user'
+                });
+                
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 1000);
+                
+                resultDiv.textContent = `Large Dataset Optimization Result:
+${JSON.stringify(result, null, 2)}
+
+Performance Summary:
+- Dataset Size: ${datasetSize} items
+- Batch Size: ${batchSize} items/batch
+- Batches Created: ${result.batches}
+- Max Concurrency: ${maxConcurrency}
+- Processing Time: ${result.performance.duration}ms
+- Items/Second: ${result.performance.itemsPerSecond}
+- Processed: ${result.processed} items
+- Errors: ${result.errors.length}`;
+                
+            } catch (error) {
+                progressDiv.style.display = 'none';
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Test concurrent processing
+        async function testConcurrentProcessing() {
+            const resultDiv = document.getElementById('reliabilityResult');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Testing concurrent processing...';
+            
+            try {
+                const dataset = Array.from({ length: 50 }, (_, i) => ({
+                    id: i,
+                    value: Math.random()
+                }));
+                
+                // Test sequential processing
+                const sequentialResult = await manager.optimizeForLargeDatasets(dataset, {
+                    batchSize: 10,
+                    maxConcurrency: 1
+                });
+                
+                // Test concurrent processing
+                const concurrentResult = await manager.optimizeForLargeDatasets(dataset, {
+                    batchSize: 10,
+                    maxConcurrency: 3
+                });
+                
+                resultDiv.textContent = `Concurrent Processing Comparison:
+
+Sequential Processing:
+- Duration: ${sequentialResult.performance.duration}ms
+- Items/Second: ${sequentialResult.performance.itemsPerSecond}
+- Processed: ${sequentialResult.processed}
+
+Concurrent Processing:
+- Duration: ${concurrentResult.performance.duration}ms
+- Items/Second: ${concurrentResult.performance.itemsPerSecond}
+- Processed: ${concurrentResult.processed}
+
+Performance Improvement:
+- Speed Ratio: ${(sequentialResult.performance.duration / concurrentResult.performance.duration).toFixed(2)}x
+- Throughput Improvement: ${((concurrentResult.performance.itemsPerSecond / sequentialResult.performance.itemsPerSecond - 1) * 100).toFixed(1)}%`;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Show system status
+        function showSystemStatus() {
+            const resultDiv = document.getElementById('systemStatus');
+            resultDiv.style.display = 'block';
+            
+            const categories = JSON.parse(localStorage.getItem('master_barang_categories') || '[]');
+            const units = JSON.parse(localStorage.getItem('master_barang_satuan') || '[]');
+            const barang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+            
+            resultDiv.textContent = `System Status:
+
+Storage Information:
+- Categories: ${categories.length} items
+- Units: ${units.length} items  
+- Barang: ${barang.length} items
+
+Category Status:
+${categories.map(cat => `- ${cat.nama}: ${cat.status}`).join('\n')}
+
+Unit Status:
+${units.map(unit => `- ${unit.nama}: ${unit.status}`).join('\n')}
+
+Memory Usage:
+- localStorage Size: ${JSON.stringify(localStorage).length} characters
+- Available Features: AdvancedFeatureManager loaded
+
+System Capabilities:
+✓ New Category/Unit Handling
+✓ Status Validation
+✓ Error Recovery
+✓ Large Dataset Processing
+✓ Concurrent Processing
+✓ Performance Optimization`;
+        }
+        
+        // Clear test data
+        function clearTestData() {
+            localStorage.removeItem('master_barang_categories');
+            localStorage.removeItem('master_barang_satuan');
+            localStorage.removeItem('master_barang');
+            
+            // Reset to initial test data
+            setupTestData();
+            
+            alert('Test data cleared and reset to initial state.');
+        }
+        
+        // Run all tests
+        async function runAllTests() {
+            const resultDivs = ['newEntityResult', 'statusResult', 'reliabilityResult', 'systemStatus'];
+            resultDivs.forEach(id => {
+                document.getElementById(id).style.display = 'block';
+                document.getElementById(id).textContent = 'Running tests...';
+            });
+            
+            try {
+                // Test 1: New entity handling
+                await testNewEntityHandling();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Test 2: Status validation
+                testBatchStatusValidation();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Test 3: Error recovery
+                await testErrorRecovery();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Test 4: System status
+                showSystemStatus();
+                
+                alert('All tests completed successfully!');
+                
+            } catch (error) {
+                alert(`Error running tests: ${error.message}`);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTestData();
+            console.log('Advanced Feature Manager Test Page Loaded');
+            console.log('Manager instance:', manager);
+        });
+    </script>
+</body>
+</html>

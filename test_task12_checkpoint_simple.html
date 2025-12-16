@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12 Checkpoint - Simple Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>Task 12 Checkpoint - Simple Test</h1>
+    <div id="test-results"></div>
+
+    <script type="module">
+        import { KategoriManager } from './js/master-barang/KategoriManager.js';
+        import { AuditExporter } from './js/master-barang/AuditExporter.js';
+        import { AuditLogger } from './js/master-barang/AuditLogger.js';
+
+        const resultsDiv = document.getElementById('test-results');
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+
+        // Mock localStorage
+        const mockStorage = {
+            data: {},
+            getItem: function(key) {
+                return this.data[key] || null;
+            },
+            setItem: function(key, value) {
+                this.data[key] = value;
+            },
+            clear: function() {
+                this.data = {};
+            }
+        };
+        
+        // Replace localStorage
+        Object.defineProperty(window, 'localStorage', {
+            value: mockStorage,
+            writable: true
+        });
+
+        async function runTests() {
+            addResult('Starting Task 12 Checkpoint Tests...', 'info');
+
+            // Test 1: KategoriManager Basic Functionality
+            try {
+                addResult('Test 1: KategoriManager Basic Functionality', 'info');
+                
+                const kategoriManager = new KategoriManager();
+                
+                // Test creating a valid category
+                const result = kategoriManager.createKategori({
+                    nama: 'Electronics',
+                    deskripsi: 'Electronic items'
+                });
+                
+                if (result.success) {
+                    addResult('✓ KategoriManager.createKategori works correctly', 'success');
+                } else {
+                    addResult(`✗ KategoriManager.createKategori failed: ${result.errors?.join(', ')}`, 'error');
+                }
+
+                // Test duplicate prevention
+                const duplicateResult = kategoriManager.createKategori({
+                    nama: 'Electronics',
+                    deskripsi: 'Duplicate test'
+                });
+                
+                if (!duplicateResult.success) {
+                    addResult('✓ KategoriManager prevents duplicates correctly', 'success');
+                } else {
+                    addResult('✗ KategoriManager should prevent duplicates', 'error');
+                }
+
+            } catch (error) {
+                addResult(`✗ KategoriManager test failed: ${error.message}`, 'error');
+            }
+
+            // Test 2: AuditExporter Basic Functionality
+            try {
+                addResult('Test 2: AuditExporter Basic Functionality', 'info');
+                
+                const auditLogger = new AuditLogger();
+                const auditExporter = new AuditExporter();
+                
+                // Mock required methods
+                auditLogger.getCurrentUser = () => ({ id: 'test', name: 'Test User' });
+                auditExporter.getCurrentUser = () => ({ id: 'test', name: 'Test User' });
+                
+                // Add some test audit logs
+                auditLogger.logActivity({
+                    table_name: 'barang',
+                    record_id: 'test-1',
+                    action: 'create',
+                    new_data: { nama: 'Test Item' }
+                });
+
+                // Test CSV export
+                const csvResult = auditExporter.exportToCSV();
+                
+                if (csvResult.success) {
+                    addResult('✓ AuditExporter.exportToCSV works correctly', 'success');
+                } else {
+                    addResult(`✗ AuditExporter.exportToCSV failed: ${csvResult.error}`, 'error');
+                }
+
+                // Test JSON export
+                const jsonResult = auditExporter.exportToJSON();
+                
+                if (jsonResult.success) {
+                    addResult('✓ AuditExporter.exportToJSON works correctly', 'success');
+                } else {
+                    addResult(`✗ AuditExporter.exportToJSON failed: ${jsonResult.error}`, 'error');
+                }
+
+                // Test summary report
+                const summaryResult = auditExporter.exportSummaryReport();
+                
+                if (summaryResult.success) {
+                    addResult('✓ AuditExporter.exportSummaryReport works correctly', 'success');
+                } else {
+                    addResult(`✗ AuditExporter.exportSummaryReport failed: ${summaryResult.error}`, 'error');
+                }
+
+            } catch (error) {
+                addResult(`✗ AuditExporter test failed: ${error.message}`, 'error');
+            }
+
+            // Test 3: Validation Options
+            try {
+                addResult('Test 3: Validation Options', 'info');
+                
+                const auditExporter = new AuditExporter();
+                
+                // Test valid options
+                const validOptions = { format: 'csv', days: 30 };
+                const validResult = auditExporter.validateExportOptions(validOptions);
+                
+                if (validResult.valid) {
+                    addResult('✓ Valid options pass validation', 'success');
+                } else {
+                    addResult(`✗ Valid options failed validation: ${validResult.errors.join(', ')}`, 'error');
+                }
+
+                // Test invalid options
+                const invalidOptions = { format: 'invalid', days: 0 };
+                const invalidResult = auditExporter.validateExportOptions(invalidOptions);
+                
+                if (!invalidResult.valid && invalidResult.errors.some(err => err.includes('positive number'))) {
+                    addResult('✓ Invalid options correctly rejected', 'success');
+                } else {
+                    addResult(`✗ Invalid options should be rejected: ${invalidResult.errors.join(', ')}`, 'error');
+                }
+
+            } catch (error) {
+                addResult(`✗ Validation test failed: ${error.message}`, 'error');
+            }
+
+            addResult('Task 12 Checkpoint Tests Completed', 'info');
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

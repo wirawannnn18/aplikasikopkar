@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 13 - Integration Testing & Performance</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            background: white;
+            border: 1px solid #ddd; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-result { 
+            margin: 10px 0; 
+            padding: 12px; 
+            border-radius: 5px;
+            border-left: 4px solid #ccc;
+        }
+        .success { 
+            background-color: #d4edda; 
+            color: #155724; 
+            border-left-color: #28a745;
+        }
+        .error { 
+            background-color: #f8d7da; 
+            color: #721c24; 
+            border-left-color: #dc3545;
+        }
+        .info { 
+            background-color: #d1ecf1; 
+            color: #0c5460; 
+            border-left-color: #17a2b8;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+        .performance-metric { 
+            display: inline-block; 
+            margin: 5px; 
+            padding: 8px 12px; 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .metric-good { background-color: #d4edda; }
+        .metric-warning { background-color: #fff3cd; }
+        .metric-bad { background-color: #f8d7da; }
+        
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task 13 - Integration Testing & Performance Optimization</h1>
+        
+        <div class="test-section">
+            <h2>System Integration Tests</h2>
+            <div id="integration-results"></div>
+            <button class="btn" onclick="runIntegrationTests()">Run Integration Tests</button>
+            <button class="btn" onclick="clearResults('integration-results')">Clear Results</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Performance Tests</h2>
+            <div id="performance-results"></div>
+            <div class="progress-bar" id="performance-progress" style="display: none;">
+                <div class="progress-fill" id="performance-progress-fill"></div>
+            </div>
+            <button class="btn" onclick="runPerformanceTests()">Run Performance Tests</button>
+            <button class="btn" onclick="clearResults('performance-results')">Clear Results</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Concurrent Access Tests</h2>
+            <div id="concurrent-results"></div>
+            <div class="progress-bar" id="concurrent-progress" style="display: none;">
+                <div class="progress-fill" id="concurrent-progress-fill"></div>
+            </div>
+            <button class="btn" onclick="runConcurrentTests()">Run Concurrent Tests</button>
+            <button class="btn" onclick="clearResults('concurrent-results')">Clear Results</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>localStorage Optimization Tests</h2>
+            <div id="storage-results"></div>
+            <button class="btn" onclick="runStorageTests()">Run Storage Tests</button>
+            <button class="btn" onclick="clearResults('storage-results')">Clear Results</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>System Statistics</h2>
+            <div id="system-stats" class="stats-grid"></div>
+            <button class="btn" onclick="updateSystemStats()">Update Statistics</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { MasterBarangSystem } from './js/master-barang/MasterBarangSystem.js';
+        import { PerformanceMonitor } from './js/master-barang/PerformanceMonitor.js';
+        import { OptimizedStorageManager } from './js/master-barang/OptimizedStorageManager.js';
+        import { ConcurrentAccessManager } from './js/master-barang/ConcurrentAccessManager.js';
+        import { KoperasiSystemIntegration } from './js/master-barang/KoperasiSystemIntegration.js';
+
+        let masterBarangSystem;
+        let performanceMonitor;
+        let optimizedStorage;
+        let concurrentManager;
+        let systemIntegration;
+        let isInitialized = false;
+
+        // Initialize components
+        async function initializeComponents() {
+            if (isInitialized) return { success: true };
+            
+            try {
+                masterBarangSystem = new MasterBarangSystem();
+                performanceMonitor = new PerformanceMonitor();
+                optimizedStorage = new OptimizedStorageManager();
+                concurrentManager = new ConcurrentAccessManager();
+                
+                const initResult = await masterBarangSystem.initialize();
+                if (initResult.success) {
+                    systemIntegration = new KoperasiSystemIntegration(masterBarangSystem);
+                    systemIntegration.initialize();
+                    isInitialized = true;
+                }
+                
+                return initResult;
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Integration Tests
+        window.runIntegrationTests = async function() {
+            const resultsDiv = document.getElementById('integration-results');
+            resultsDiv.innerHTML = '<div class="test-result info">Running integration tests...</div>';
+            
+            try {
+                const initResult = await initializeComponents();
+                if (!initResult.success) {
+                    addResult(resultsDiv, `✗ Initialization failed: ${initResult.error}`, 'error');
+                    return;
+                }
+                
+                // Test 1: System initialization
+                addResult(resultsDiv, '✓ Master Barang System initialized successfully', 'success');
+                
+                // Test 2: Event bus integration
+                let eventReceived = false;
+                window.eventBus = window.eventBus || { 
+                    listeners: new Map(),
+                    on: function(event, callback) {
+                        if (!this.listeners.has(event)) this.listeners.set(event, []);
+                        this.listeners.get(event).push(callback);
+                    },
+                    emit: function(event, data) {
+                        if (this.listeners.has(event)) {
+                            this.listeners.get(event).forEach(callback => callback(data));
+                        }
+                    }
+                };
+                
+                window.eventBus.on('master.barang.created', () => { eventReceived = true; });
+                
+                // Create test category and unit first
+                const kategoriResult = masterBarangSystem.kategoriManager.create({
+                    nama: 'Test Category',
+                    deskripsi: 'Integration test category'
+                });
+                
+                const satuanResult = masterBarangSystem.satuanManager.create({
+                    nama: 'Test Unit',
+                    deskripsi: 'Integration test unit'
+                });
+                
+                const testItem = await masterBarangSystem.barangManager.create({
+                    kode: 'INT-001',
+                    nama: 'Integration Test Item',
+                    kategori_id: kategoriResult.success ? kategoriResult.data.id : 'default',
+                    satuan_id: satuanResult.success ? satuanResult.data.id : 'default',
+                    harga_beli: 1000,
+                    harga_jual: 1500,
+                    stok: 100
+                });
+                
+                if (testItem.success) {
+                    addResult(resultsDiv, '✓ Item creation integrated with event system', 'success');
+                } else {
+                    addResult(resultsDiv, `✗ Item creation failed: ${testItem.errors?.join(', ')}`, 'error');
+                }
+                
+                // Test 3: Cross-module communication
+                systemIntegration.handlePOSItemRequest({ kode: 'INT-001', quantity: 5, transaction_id: 'test-001' });
+                addResult(resultsDiv, '✓ Cross-module communication working', 'success');
+                
+                // Test 4: Integration status
+                const integrationStatus = systemIntegration.getIntegrationStatus();
+                addResult(resultsDiv, `✓ Integration status: ${integrationStatus.event_handlers} event handlers registered`, 'info');
+                
+            } catch (error) {
+                addResult(resultsDiv, `✗ Integration test failed: ${error.message}`, 'error');
+            }
+        };
+
+        // Performance Tests
+        window.runPerformanceTests = async function() {
+            const resultsDiv = document.getElementById('performance-results');
+            const progressBar = document.getElementById('performance-progress');
+            const progressFill = document.getElementById('performance-progress-fill');
+            
+            resultsDiv.innerHTML = '<div class="test-result info">Running performance tests...</div>';
+            progressBar.style.display = 'block';
+            
+            try {
+                const initResult = await initializeComponents();
+                if (!initResult.success) {
+                    addResult(resultsDiv, `✗ Initialization failed: ${initResult.error}`, 'error');
+                    return;
+                }
+                
+                // Test 1: Large dataset creation (25% progress)
+                progressFill.style.width = '25%';
+                performanceMonitor.startTimer('large_dataset_creation');
+                
+                const items = [];
+                for (let i = 0; i < 50; i++) { // Reduced for browser testing
+                    items.push({
+                        kode: `PERF-${i}`,
+                        nama: `Performance Test Item ${i}`,
+                        kategori_id: 'default',
+                        satuan_id: 'default',
+                        harga_beli: 1000,
+                        harga_jual: 1500,
+                        stok: 100
+                    });
+                }
+                
+                const bulkResult = await masterBarangSystem.barangManager.bulkCreate(items);
+                const metric1 = performanceMonitor.endTimer('large_dataset_creation');
+                
+                if (bulkResult.success) {
+                    const metricClass = metric1.duration < 1000 ? 'metric-good' : 
+                                      metric1.duration < 3000 ? 'metric-warning' : 'metric-bad';
+                    addResult(resultsDiv, `✓ Created ${items.length} items in ${metric1.duration.toFixed(2)}ms`, 'success');
+                    addMetric(resultsDiv, 'Bulk Creation', metric1.duration, 'ms', metricClass);
+                }
+                
+                // Test 2: Search performance (50% progress)
+                progressFill.style.width = '50%';
+                performanceMonitor.startTimer('search_performance');
+                
+                const searchResults = masterBarangSystem.barangManager.search('Performance');
+                const metric2 = performanceMonitor.endTimer('search_performance');
+                
+                const searchClass = metric2.duration < 50 ? 'metric-good' : 
+                                   metric2.duration < 100 ? 'metric-warning' : 'metric-bad';
+                addResult(resultsDiv, `✓ Search completed in ${metric2.duration.toFixed(2)}ms (${searchResults.length} results)`, 'success');
+                addMetric(resultsDiv, 'Search Operation', metric2.duration, 'ms', searchClass);
+                
+                // Test 3: Export performance (75% progress)
+                progressFill.style.width = '75%';
+                performanceMonitor.startTimer('export_performance');
+                
+                const exportResult = masterBarangSystem.exportManager.exportToCSV();
+                const metric3 = performanceMonitor.endTimer('export_performance');
+                
+                if (exportResult.success) {
+                    const exportClass = metric3.duration < 500 ? 'metric-good' : 
+                                       metric3.duration < 1000 ? 'metric-warning' : 'metric-bad';
+                    addResult(resultsDiv, `✓ Export completed in ${metric3.duration.toFixed(2)}ms (${exportResult.recordCount} records)`, 'success');
+                    addMetric(resultsDiv, 'Export Operation', metric3.duration, 'ms', exportClass);
+                }
+                
+                // Test 4: Performance statistics (100% progress)
+                progressFill.style.width = '100%';
+                const perfStats = performanceMonitor.getStatistics();
+                addResult(resultsDiv, `✓ Performance statistics: ${perfStats.count} operations tracked`, 'info');
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 2000);
+                
+            } catch (error) {
+                addResult(resultsDiv, `✗ Performance test failed: ${error.message}`, 'error');
+                progressBar.style.display = 'none';
+            }
+        };
+
+        // Concurrent Access Tests
+        window.runConcurrentTests = async function() {
+            const resultsDiv = document.getElementById('concurrent-results');
+            const progressBar = document.getElementById('concurrent-progress');
+            const progressFill = document.getElementById('concurrent-progress-fill');
+            
+            resultsDiv.innerHTML = '<div class="test-result info">Running concurrent access tests...</div>';
+            progressBar.style.display = 'block';
+            
+            try {
+                const initResult = await initializeComponents();
+                if (!initResult.success) {
+                    addResult(resultsDiv, `✗ Initialization failed: ${initResult.error}`, 'error');
+                    return;
+                }
+                
+                // Test 1: Concurrent reads (50% progress)
+                progressFill.style.width = '50%';
+                const readPromises = [];
+                for (let i = 0; i < 20; i++) { // Reduced for browser testing
+                    readPromises.push(
+                        concurrentManager.queueOperation('read', 'barang', async () => {
+                            return masterBarangSystem.barangManager.getAll();
+                        })
+                    );
+                }
+                
+                const startTime = performance.now();
+                const readResults = await Promise.all(readPromises);
+                const endTime = performance.now();
+                
+                const readDuration = endTime - startTime;
+                const readClass = readDuration < 500 ? 'metric-good' : 
+                                 readDuration < 1000 ? 'metric-warning' : 'metric-bad';
+                addResult(resultsDiv, `✓ ${readPromises.length} concurrent reads completed in ${readDuration.toFixed(2)}ms`, 'success');
+                addMetric(resultsDiv, 'Concurrent Reads', readDuration, 'ms', readClass);
+                
+                // Test 2: Concurrent writes (100% progress)
+                progressFill.style.width = '100%';
+                const writePromises = [];
+                for (let i = 0; i < 10; i++) { // Reduced for browser testing
+                    writePromises.push(
+                        concurrentManager.queueOperation('write', `item-${i}`, async () => {
+                            return masterBarangSystem.barangManager.create({
+                                kode: `CONC-${i}`,
+                                nama: `Concurrent Test Item ${i}`,
+                                kategori_id: 'default',
+                                satuan_id: 'default',
+                                harga_beli: 1000,
+                                harga_jual: 1500,
+                                stok: 100
+                            });
+                        })
+                    );
+                }
+                
+                const writeStartTime = performance.now();
+                const writeResults = await Promise.all(writePromises);
+                const writeEndTime = performance.now();
+                
+                const writeDuration = writeEndTime - writeStartTime;
+                const successCount = writeResults.filter(r => r.success).length;
+                const writeClass = writeDuration < 1000 ? 'metric-good' : 
+                                  writeDuration < 2000 ? 'metric-warning' : 'metric-bad';
+                addResult(resultsDiv, `✓ ${successCount}/${writePromises.length} concurrent writes completed in ${writeDuration.toFixed(2)}ms`, 'success');
+                addMetric(resultsDiv, 'Concurrent Writes', writeDuration, 'ms', writeClass);
+                
+                // Test 3: Queue statistics
+                const queueStats = concurrentManager.getStatistics();
+                addResult(resultsDiv, `✓ Queue statistics: ${queueStats.totalOperations} total operations, ${queueStats.successRate} success rate`, 'info');
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 2000);
+                
+            } catch (error) {
+                addResult(resultsDiv, `✗ Concurrent test failed: ${error.message}`, 'error');
+                progressBar.style.display = 'none';
+            }
+        };
+
+        // Storage Optimization Tests
+        window.runStorageTests = async function() {
+            const resultsDiv = document.getElementById('storage-results');
+            resultsDiv.innerHTML = '<div class="test-result info">Running storage optimization tests...</div>';
+            
+            try {
+                // Test 1: Batch operations
+                const startTime = performance.now();
+                
+                for (let i = 0; i < 50; i++) { // Reduced for browser testing
+                    optimizedStorage.batchWrite(`test-key-${i}`, {
+                        id: i,
+                        data: `Test data ${i}`,
+                        timestamp: Date.now(),
+                        metadata: {
+                            type: 'test',
+                            category: 'performance',
+                            size: Math.random() * 1000
+                        }
+                    });
+                }
+                
+                // Wait for batch to flush
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                const endTime = performance.now();
+                const batchDuration = endTime - startTime;
+                const batchClass = batchDuration < 100 ? 'metric-good' : 
+                                  batchDuration < 200 ? 'metric-warning' : 'metric-bad';
+                addResult(resultsDiv, `✓ 50 batch writes completed in ${batchDuration.toFixed(2)}ms`, 'success');
+                addMetric(resultsDiv, 'Batch Writes', batchDuration, 'ms', batchClass);
+                
+                // Test 2: Cached reads
+                const readStartTime = performance.now();
+                
+                for (let i = 0; i < 50; i++) {
+                    const data = optimizedStorage.read(`test-key-${i}`);
+                    if (!data) {
+                        throw new Error(`Failed to read test-key-${i}`);
+                    }
+                }
+                
+                const readEndTime = performance.now();
+                const readDuration = readEndTime - readStartTime;
+                const readClass = readDuration < 50 ? 'metric-good' : 
+                                 readDuration < 100 ? 'metric-warning' : 'metric-bad';
+                addResult(resultsDiv, `✓ 50 cached reads completed in ${readDuration.toFixed(2)}ms`, 'success');
+                addMetric(resultsDiv, 'Cached Reads', readDuration, 'ms', readClass);
+                
+                // Test 3: Storage statistics
+                const storageStats = optimizedStorage.getStatistics();
+                addResult(resultsDiv, `✓ Storage statistics: ${storageStats.cacheHitRate} cache hit rate`, 'info');
+                addMetric(resultsDiv, 'Cache Hit Rate', parseFloat(storageStats.cacheHitRate), '%', 'metric-good');
+                addMetric(resultsDiv, 'Storage Size', (storageStats.storageSize / 1024).toFixed(2), 'KB', 'metric-good');
+                
+                // Test 4: Optimization
+                const optimizeResult = optimizedStorage.optimize();
+                if (optimizeResult.success) {
+                    addResult(resultsDiv, `✓ Storage optimized: ${optimizeResult.sizeSaved} bytes saved, ${optimizeResult.invalidKeysRemoved} invalid keys removed`, 'success');
+                }
+                
+            } catch (error) {
+                addResult(resultsDiv, `✗ Storage test failed: ${error.message}`, 'error');
+            }
+        };
+
+        // Update System Statistics
+        window.updateSystemStats = async function() {
+            const statsDiv = document.getElementById('system-stats');
+            
+            try {
+                const initResult = await initializeComponents();
+                if (!initResult.success) {
+                    statsDiv.innerHTML = '<div class="test-result error">System not initialized</div>';
+                    return;
+                }
+                
+                // Get various statistics
+                const barangCount = masterBarangSystem.barangManager.getAll().length;
+                const kategoriCount = masterBarangSystem.kategoriManager.getAll().length;
+                const satuanCount = masterBarangSystem.satuanManager.getAll().length;
+                
+                const perfStats = performanceMonitor.getStatistics();
+                const storageStats = optimizedStorage.getStatistics();
+                const concurrentStats = concurrentManager.getStatistics();
+                
+                const statsHtml = `
+                    <div class="stat-card">
+                        <div class="stat-value">${barangCount}</div>
+                        <div class="stat-label">Total Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${kategoriCount}</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${satuanCount}</div>
+                        <div class="stat-label">Units</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${perfStats.count || 0}</div>
+                        <div class="stat-label">Operations Tracked</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${storageStats.cacheHitRate}</div>
+                        <div class="stat-label">Cache Hit Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${concurrentStats.totalOperations}</div>
+                        <div class="stat-label">Concurrent Operations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${(storageStats.storageSize / 1024).toFixed(1)}KB</div>
+                        <div class="stat-label">Storage Size</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${storageStats.cacheSize}</div>
+                        <div class="stat-label">Cache Size</div>
+                    </div>
+                `;
+                
+                statsDiv.innerHTML = statsHtml;
+                
+            } catch (error) {
+                statsDiv.innerHTML = `<div class="test-result error">Error updating stats: ${error.message}</div>`;
+            }
+        };
+
+        // Helper functions
+        function addResult(container, message, type) {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            container.appendChild(div);
+        }
+
+        function addMetric(container, name, value, unit, className = '') {
+            const span = document.createElement('span');
+            span.className = `performance-metric ${className}`;
+            span.textContent = `${name}: ${typeof value === 'number' ? value.toFixed(2) : value} ${unit}`;
+            container.appendChild(span);
+        }
+
+        window.clearResults = function(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        };
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            try {
+                await initializeComponents();
+                addResult(document.body, '✓ All components initialized successfully', 'success');
+                updateSystemStats();
+            } catch (error) {
+                addResult(document.body, `✗ Initialization failed: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

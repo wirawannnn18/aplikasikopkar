@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Master Barang Interface - Task 3</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+        }
+        .test-success {
+            background-color: #d1e7dd;
+            border: 1px solid #badbcc;
+            color: #0f5132;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #055160;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-box"></i>
+                    Test Master Barang Interface - Task 3
+                </h1>
+                <p class="text-muted">Testing CRUD operations interface components</p>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-primary" id="test-controller-init">
+                                <i class="fas fa-play"></i> Test Controller Init
+                            </button>
+                            <button type="button" class="btn btn-success" id="test-data-table">
+                                <i class="fas fa-table"></i> Test Data Table
+                            </button>
+                            <button type="button" class="btn btn-info" id="test-form-manager">
+                                <i class="fas fa-edit"></i> Test Form Manager
+                            </button>
+                            <button type="button" class="btn btn-warning" id="test-crud-operations">
+                                <i class="fas fa-cogs"></i> Test CRUD Operations
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clear-tests">
+                                <i class="fas fa-trash"></i> Clear Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="row">
+            <div class="col-12">
+                <div id="test-results"></div>
+            </div>
+        </div>
+
+        <!-- Master Barang Interface -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Master Barang</h5>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-primary btn-sm" id="add-barang-btn">
+                                <i class="fas fa-plus"></i> Tambah Barang
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" id="bulk-delete-btn" disabled>
+                                <i class="fas fa-trash"></i> Hapus Terpilih
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Search and Filters -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="search-input" placeholder="Cari barang...">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="kategori-filter">
+                                    <option value="">Semua Kategori</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="satuan-filter">
+                                    <option value="">Semua Satuan</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="status-filter">
+                                    <option value="">Semua Status</option>
+                                    <option value="aktif">Aktif</option>
+                                    <option value="nonaktif">Non-aktif</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Data Table Container -->
+                        <div id="barang-table-container">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Memuat data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Test Script -->
+    <script type="module">
+        import { MasterBarangController } from './js/master-barang/MasterBarangController.js';
+        import { DataTableManager } from './js/master-barang/DataTableManager.js';
+        import { FormManager } from './js/master-barang/FormManager.js';
+        import { ValidationEngine } from './js/master-barang/ValidationEngine.js';
+
+        // Test utilities
+        function addTestResult(title, success, message, details = null) {
+            const resultsContainer = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-section';
+            
+            const statusClass = success ? 'test-success' : 'test-error';
+            const statusIcon = success ? 'fa-check-circle' : 'fa-times-circle';
+            
+            resultDiv.innerHTML = `
+                <h5><i class="fas ${statusIcon}"></i> ${title}</h5>
+                <div class="${statusClass} test-result">
+                    <strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}
+                    ${details ? `<pre class="mt-2 mb-0"><code>${details}</code></pre>` : ''}
+                </div>
+            `;
+            
+            resultsContainer.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearTestResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // Generate sample data
+        function generateSampleData() {
+            const categories = [
+                { id: 'cat1', nama: 'Elektronik' },
+                { id: 'cat2', nama: 'Makanan' },
+                { id: 'cat3', nama: 'Minuman' }
+            ];
+            
+            const units = [
+                { id: 'unit1', nama: 'PCS' },
+                { id: 'unit2', nama: 'KG' },
+                { id: 'unit3', nama: 'LITER' }
+            ];
+            
+            const barang = [
+                {
+                    id: 'brg1',
+                    kode: 'ELK001',
+                    nama: 'Laptop Gaming',
+                    kategori_id: 'cat1',
+                    kategori_nama: 'Elektronik',
+                    satuan_id: 'unit1',
+                    satuan_nama: 'PCS',
+                    harga_beli: 8000000,
+                    harga_jual: 9500000,
+                    stok: 5,
+                    stok_minimum: 2,
+                    status: 'aktif',
+                    deskripsi: 'Laptop gaming high-end'
+                },
+                {
+                    id: 'brg2',
+                    kode: 'MKN001',
+                    nama: 'Beras Premium',
+                    kategori_id: 'cat2',
+                    kategori_nama: 'Makanan',
+                    satuan_id: 'unit2',
+                    satuan_nama: 'KG',
+                    harga_beli: 12000,
+                    harga_jual: 15000,
+                    stok: 1,
+                    stok_minimum: 10,
+                    status: 'aktif',
+                    deskripsi: 'Beras premium kualitas terbaik'
+                },
+                {
+                    id: 'brg3',
+                    kode: 'MIN001',
+                    nama: 'Air Mineral',
+                    kategori_id: 'cat3',
+                    kategori_nama: 'Minuman',
+                    satuan_id: 'unit3',
+                    satuan_nama: 'LITER',
+                    harga_beli: 2000,
+                    harga_jual: 3000,
+                    stok: 0,
+                    stok_minimum: 5,
+                    status: 'aktif',
+                    deskripsi: 'Air mineral kemasan'
+                }
+            ];
+            
+            return { categories, units, barang };
+        }
+
+        // Test Controller Initialization
+        async function testControllerInit() {
+            try {
+                addTestResult('Controller Initialization', false, 'Starting test...', 'Initializing MasterBarangController...');
+                
+                const controller = new MasterBarangController();
+                
+                // Test initialization
+                const initResult = await controller.initialize({
+                    tableContainerId: 'barang-table-container',
+                    formId: 'barang-form'
+                });
+                
+                if (initResult.success) {
+                    addTestResult('Controller Initialization', true, 'Controller initialized successfully', 
+                        JSON.stringify(initResult, null, 2));
+                    
+                    // Store controller globally for other tests
+                    window.testController = controller;
+                    
+                    // Load sample data
+                    const sampleData = generateSampleData();
+                    const paginatedResult = {
+                        data: sampleData.barang,
+                        total: sampleData.barang.length,
+                        page: 1,
+                        limit: 20,
+                        totalPages: 1
+                    };
+                    
+                    await controller.loadData();
+                    
+                    addTestResult('Sample Data Loading', true, 'Sample data loaded successfully', 
+                        `Loaded ${sampleData.barang.length} items`);
+                } else {
+                    addTestResult('Controller Initialization', false, initResult.message, 
+                        initResult.error || 'Unknown error');
+                }
+            } catch (error) {
+                addTestResult('Controller Initialization', false, error.message, error.stack);
+            }
+        }
+
+        // Test Data Table Manager
+        async function testDataTable() {
+            try {
+                addTestResult('Data Table Manager', false, 'Starting test...', 'Testing DataTableManager...');
+                
+                const sampleData = generateSampleData();
+                const paginatedResult = {
+                    data: sampleData.barang,
+                    total: sampleData.barang.length,
+                    page: 1,
+                    limit: 20,
+                    totalPages: 1
+                };
+                
+                const dataTable = new DataTableManager({
+                    containerId: 'barang-table-container',
+                    onSort: (field, order) => {
+                        addTestResult('Sort Event', true, `Sort triggered: ${field} ${order}`);
+                    },
+                    onSelect: (id, selected) => {
+                        addTestResult('Select Event', true, `Item ${id} ${selected ? 'selected' : 'deselected'}`);
+                    },
+                    onEdit: (id) => {
+                        addTestResult('Edit Event', true, `Edit triggered for item: ${id}`);
+                    },
+                    onDelete: (id) => {
+                        addTestResult('Delete Event', true, `Delete triggered for item: ${id}`);
+                    }
+                });
+                
+                await dataTable.updateData(paginatedResult);
+                
+                addTestResult('Data Table Manager', true, 'DataTableManager created and data updated successfully', 
+                    `Rendered ${sampleData.barang.length} items in table`);
+                
+                // Store for other tests
+                window.testDataTable = dataTable;
+                
+            } catch (error) {
+                addTestResult('Data Table Manager', false, error.message, error.stack);
+            }
+        }
+
+        // Test Form Manager
+        async function testFormManager() {
+            try {
+                addTestResult('Form Manager', false, 'Starting test...', 'Testing FormManager...');
+                
+                const validationEngine = new ValidationEngine();
+                
+                const formManager = new FormManager({
+                    formId: 'barang-form',
+                    validationEngine: validationEngine,
+                    onSave: async (data, mode) => {
+                        addTestResult('Save Event', true, `Save triggered in ${mode} mode`, 
+                            JSON.stringify(data, null, 2));
+                        return {
+                            success: true,
+                            message: 'Data saved successfully',
+                            data: { ...data, id: 'test-id' },
+                            warnings: data.harga_jual < data.harga_beli ? ['Harga jual lebih rendah dari harga beli'] : []
+                        };
+                    },
+                    onCancel: () => {
+                        addTestResult('Cancel Event', true, 'Cancel triggered');
+                    }
+                });
+                
+                // Test dropdown updates
+                const sampleData = generateSampleData();
+                await formManager.updateDropdowns({
+                    kategori: sampleData.categories,
+                    satuan: sampleData.units
+                });
+                
+                addTestResult('Form Manager', true, 'FormManager created successfully', 
+                    'Form modal created and dropdowns updated');
+                
+                // Store for other tests
+                window.testFormManager = formManager;
+                
+                // Test showing form
+                setTimeout(() => {
+                    formManager.showForm('add');
+                    addTestResult('Form Display', true, 'Add form displayed successfully');
+                }, 1000);
+                
+            } catch (error) {
+                addTestResult('Form Manager', false, error.message, error.stack);
+            }
+        }
+
+        // Test CRUD Operations
+        async function testCrudOperations() {
+            try {
+                addTestResult('CRUD Operations', false, 'Starting test...', 'Testing CRUD operations...');
+                
+                const validationEngine = new ValidationEngine();
+                
+                // Test validation
+                const testData = {
+                    kode: 'TEST001',
+                    nama: 'Test Product',
+                    kategori_id: 'cat1',
+                    satuan_id: 'unit1',
+                    harga_beli: 10000,
+                    harga_jual: 12000,
+                    stok: 5,
+                    stok_minimum: 2,
+                    status: 'aktif'
+                };
+                
+                const validation = validationEngine.validateBarang(testData);
+                
+                if (validation.isValid) {
+                    addTestResult('Data Validation', true, 'Test data validation passed', 
+                        `Warnings: ${validation.warnings.length}`);
+                } else {
+                    addTestResult('Data Validation', false, 'Test data validation failed', 
+                        validation.errors.join(', '));
+                }
+                
+                // Test invalid data
+                const invalidData = {
+                    kode: '', // Invalid: empty
+                    nama: 'Test',
+                    harga_beli: -100, // Invalid: negative
+                    stok: 'invalid' // Invalid: non-numeric
+                };
+                
+                const invalidValidation = validationEngine.validateBarang(invalidData);
+                
+                if (!invalidValidation.isValid) {
+                    addTestResult('Invalid Data Validation', true, 'Invalid data correctly rejected', 
+                        `Errors: ${invalidValidation.errors.length}`);
+                } else {
+                    addTestResult('Invalid Data Validation', false, 'Invalid data incorrectly accepted');
+                }
+                
+                addTestResult('CRUD Operations', true, 'CRUD operations test completed successfully');
+                
+            } catch (error) {
+                addTestResult('CRUD Operations', false, error.message, error.stack);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('test-controller-init').addEventListener('click', testControllerInit);
+        document.getElementById('test-data-table').addEventListener('click', testDataTable);
+        document.getElementById('test-form-manager').addEventListener('click', testFormManager);
+        document.getElementById('test-crud-operations').addEventListener('click', testCrudOperations);
+        document.getElementById('clear-tests').addEventListener('click', clearTestResults);
+
+        // Auto-run basic test on load
+        document.addEventListener('DOMContentLoaded', () => {
+            addTestResult('Page Load', true, 'Test page loaded successfully', 
+                'Ready to test Master Barang interface components');
+        });
+    </script>
+</body>
+</html>

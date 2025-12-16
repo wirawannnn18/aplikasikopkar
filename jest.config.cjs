@@ -1,6 +1,20 @@
 module.exports = {
   testEnvironment: 'jsdom',
-  transform: {},
+  preset: 'jest-environment-jsdom',
+  extensionsToTreatAsEsm: ['.js'],
+  globals: {
+    'ts-jest': {
+      useESM: true
+    },
+    TextEncoder: TextEncoder,
+    TextDecoder: TextDecoder
+  },
+  transform: {
+    '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(fast-check)/)'
+  ],
   moduleFileExtensions: ['js', 'mjs'],
   testMatch: ['**/__tests__/**/*.test.js'],
   collectCoverageFrom: [
@@ -8,11 +22,10 @@ module.exports = {
     '!js/**/*.test.js'
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  globals: {
-    TextEncoder: TextEncoder,
-    TextDecoder: TextDecoder
-  },
   testEnvironmentOptions: {
     url: 'http://localhost'
+  },
+  moduleNameMapping: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   }
 };

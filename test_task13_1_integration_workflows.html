@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 13.1 - Integration Workflows</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .test-section h3 {
+            color: #2980b9;
+            margin-top: 0;
+        }
+        .test-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background-color: #2980b9;
+        }
+        .test-button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            transition: width 0.3s ease;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Task 13.1 - Integration Workflows Test</h1>
+            <p>Testing complete CRUD workflows, import/export workflows, bulk operations workflows, and audit logging workflows</p>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTests">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="passedTests">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="failedTests">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="testTime">0ms</div>
+                <div class="stat-label">Execution Time</div>
+            </div>
+        </div>
+
+        <div class="progress">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Complete CRUD Workflows</h3>
+            <p>Testing full Create, Read, Update, Delete workflows for barang, categories, and units</p>
+            <button class="test-button" onclick="testCRUDWorkflows()">Test CRUD Workflows</button>
+            <div id="crudResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📁 Import/Export Workflows</h3>
+            <p>Testing complete import and export workflows with file processing and validation</p>
+            <button class="test-button" onclick="testImportExportWorkflows()">Test Import/Export</button>
+            <div id="importExportResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚡ Bulk Operations Workflows</h3>
+            <p>Testing bulk delete, bulk update, and mass operations with progress tracking</p>
+            <button class="test-button" onclick="testBulkOperationsWorkflows()">Test Bulk Operations</button>
+            <div id="bulkOpsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Audit Logging Workflows</h3>
+            <p>Testing comprehensive audit trail for all operations and audit log export</p>
+            <button class="test-button" onclick="testAuditLoggingWorkflows()">Test Audit Logging</button>
+            <div id="auditResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔗 Cross-Component Integration</h3>
+            <p>Testing data consistency and relationships across all system components</p>
+            <button class="test-button" onclick="testCrossComponentIntegration()">Test Integration</button>
+            <div id="integrationResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🛡️ Error Recovery & Resilience</h3>
+            <p>Testing system resilience and error recovery mechanisms</p>
+            <button class="test-button" onclick="testErrorRecovery()">Test Error Recovery</button>
+            <div id="errorRecoveryResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Run All Integration Tests</h3>
+            <p>Execute all integration workflow tests in sequence</p>
+            <button class="test-button" onclick="runAllTests()" id="runAllBtn">Run All Tests</button>
+            <div id="allTestsResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import required modules
+        import { MasterBarangSystem } from './js/master-barang/MasterBarangSystem.js';
+        import { BarangManager } from './js/master-barang/BarangManager.js';
+        import { KategoriManager } from './js/master-barang/KategoriManager.js';
+        import { SatuanManager } from './js/master-barang/SatuanManager.js';
+        import { ImportManager } from './js/master-barang/ImportManager.js';
+        import { ExportManager } from './js/master-barang/ExportManager.js';
+        import { BulkOperationsManager } from './js/master-barang/BulkOperationsManager.js';
+        import { AuditLogger } from './js/master-barang/AuditLogger.js';
+
+        // Global variables
+        let system, barangManager, kategoriManager, satuanManager;
+        let importManager, exportManager, bulkOperationsManager, auditLogger;
+        let testStats = { total: 0, passed: 0, failed: 0, startTime: 0 };
+
+        // Initialize system
+        function initializeSystem() {
+            system = new MasterBarangSystem();
+            barangManager = new BarangManager();
+            kategoriManager = new KategoriManager();
+            satuanManager = new SatuanManager();
+            importManager = new ImportManager();
+            exportManager = new ExportManager();
+            bulkOperationsManager = new BulkOperationsManager();
+            auditLogger = new AuditLogger();
+            
+            setupInitialData();
+        }
+
+        function setupInitialData() {
+            // Clear existing data
+            localStorage.removeItem('master_barang_categories');
+            localStorage.removeItem('master_barang_units');
+            localStorage.removeItem('master_barang_items');
+            localStorage.removeItem('master_barang_audit_logs');
+            
+            // Setup initial categories
+            const categories = [
+                { id: 'cat1', nama: 'ELEKTRONIK', status: 'aktif', created_at: new Date().toISOString() },
+                { id: 'cat2', nama: 'MAKANAN', status: 'aktif', created_at: new Date().toISOString() },
+                { id: 'cat3', nama: 'MINUMAN', status: 'aktif', created_at: new Date().toISOString() }
+            ];
+            
+            // Setup initial units
+            const units = [
+                { id: 'unit1', nama: 'PCS', status: 'aktif', created_at: new Date().toISOString() },
+                { id: 'unit2', nama: 'KG', status: 'aktif', created_at: new Date().toISOString() },
+                { id: 'unit3', nama: 'LITER', status: 'aktif', created_at: new Date().toISOString() }
+            ];
+            
+            // Setup initial barang
+            const barang = [
+                {
+                    id: 'brg1',
+                    kode: 'BRG001',
+                    nama: 'Laptop Gaming',
+                    kategori_id: 'cat1',
+                    kategori_nama: 'ELEKTRONIK',
+                    satuan_id: 'unit1',
+                    satuan_nama: 'PCS',
+                    harga_beli: 5000000,
+                    harga_jual: 6000000,
+                    stok: 5,
+                    stok_minimum: 2,
+                    status: 'aktif',
+                    created_at: new Date().toISOString()
+                },
+                {
+                    id: 'brg2',
+                    kode: 'BRG002',
+                    nama: 'Beras Premium',
+                    kategori_id: 'cat2',
+                    kategori_nama: 'MAKANAN',
+                    satuan_id: 'unit2',
+                    satuan_nama: 'KG',
+                    harga_beli: 12000,
+                    harga_jual: 15000,
+                    stok: 100,
+                    stok_minimum: 20,
+                    status: 'aktif',
+                    created_at: new Date().toISOString()
+                }
+            ];
+            
+            localStorage.setItem('master_barang_categories', JSON.stringify(categories));
+            localStorage.setItem('master_barang_units', JSON.stringify(units));
+            localStorage.setItem('master_barang_items', JSON.stringify(barang));
+        }
+
+        function updateStats() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            
+            if (testStats.startTime > 0) {
+                const elapsed = Date.now() - testStats.startTime;
+                document.getElementById('testTime').textContent = elapsed + 'ms';
+            }
+            
+            const progress = testStats.total > 0 ? (testStats.passed + testStats.failed) / testStats.total * 100 : 0;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        // Test functions
+        window.testCRUDWorkflows = async function() {
+            const resultId = 'crudResult';
+            showResult(resultId, 'Running CRUD workflow tests...', 'info');
+            
+            try {
+                initializeSystem();
+                let results = [];
+                
+                // Test 1: Complete CRUD workflow for barang
+                try {
+                    const newBarang = {
+                        kode: 'TEST001',
+                        nama: 'Test Item',
+                        kategori_id: 'cat1',
+                        satuan_id: 'unit1',
+                        harga_beli: 1000,
+                        harga_jual: 1200,
+                        stok: 10,
+                        stok_minimum: 2
+                    };
+                    
+                    // CREATE
+                    const createResult = await barangManager.create(newBarang);
+                    if (!createResult.success) throw new Error('Create failed: ' + createResult.error);
+                    
+                    // READ
+                    const readResult = barangManager.getById(createResult.data.id);
+                    if (!readResult || readResult.kode !== 'TEST001') throw new Error('Read failed');
+                    
+                    // UPDATE
+                    const updateResult = await barangManager.update(createResult.data.id, {
+                        ...readResult,
+                        nama: 'Test Item Updated'
+                    });
+                    if (!updateResult.success) throw new Error('Update failed: ' + updateResult.error);
+                    
+                    // DELETE
+                    const deleteResult = await barangManager.delete(createResult.data.id);
+                    if (!deleteResult.success) throw new Error('Delete failed: ' + deleteResult.error);
+                    
+                    results.push('✅ Complete CRUD workflow for barang: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Complete CRUD workflow for barang: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 2: Category management workflow
+                try {
+                    const newCategory = {
+                        nama: 'TEST_CATEGORY',
+                        deskripsi: 'Test category'
+                    };
+                    
+                    const createResult = await kategoriManager.create(newCategory);
+                    if (!createResult.success) throw new Error('Category create failed');
+                    
+                    const updateResult = await kategoriManager.update(createResult.data.id, {
+                        ...createResult.data,
+                        deskripsi: 'Updated test category'
+                    });
+                    if (!updateResult.success) throw new Error('Category update failed');
+                    
+                    const deleteResult = await kategoriManager.delete(createResult.data.id);
+                    if (!deleteResult.success) throw new Error('Category delete failed');
+                    
+                    results.push('✅ Category management workflow: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Category management workflow: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 3: Category dependency validation
+                try {
+                    const deleteResult = await kategoriManager.delete('cat1'); // Used by existing barang
+                    if (deleteResult.success) throw new Error('Should not allow deleting used category');
+                    
+                    results.push('✅ Category dependency validation: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Category dependency validation: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                updateStats();
+                showResult(resultId, results.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'CRUD workflow test failed: ' + error.message, 'error');
+            }
+        };
+
+        window.testImportExportWorkflows = async function() {
+            const resultId = 'importExportResult';
+            showResult(resultId, 'Running import/export workflow tests...', 'info');
+            
+            try {
+                initializeSystem();
+                let results = [];
+                
+                // Test 1: Import workflow
+                try {
+                    const importData = [
+                        {
+                            kode: 'IMP001',
+                            nama: 'Imported Item 1',
+                            kategori: 'ELEKTRONIK',
+                            satuan: 'PCS',
+                            harga_beli: 100000,
+                            harga_jual: 120000,
+                            stok: 10
+                        },
+                        {
+                            kode: 'IMP002',
+                            nama: 'Imported Item 2',
+                            kategori: 'NEW_CATEGORY',
+                            satuan: 'NEW_UNIT',
+                            harga_beli: 50000,
+                            harga_jual: 60000,
+                            stok: 20
+                        }
+                    ];
+                    
+                    const mockFile = { name: 'test_import.csv', type: 'text/csv' };
+                    const importResult = await importManager.processImport(importData, mockFile);
+                    
+                    if (!importResult.success) throw new Error('Import failed: ' + importResult.error);
+                    if (importResult.imported_count !== 2) throw new Error('Expected 2 imported items');
+                    
+                    // Verify imported items exist
+                    const allBarang = barangManager.getAll();
+                    const importedItem1 = allBarang.find(item => item.kode === 'IMP001');
+                    const importedItem2 = allBarang.find(item => item.kode === 'IMP002');
+                    
+                    if (!importedItem1 || !importedItem2) throw new Error('Imported items not found');
+                    
+                    results.push('✅ Import workflow: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Import workflow: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 2: Export workflow
+                try {
+                    const exportResult = await exportManager.exportData({
+                        format: 'csv',
+                        filters: {}
+                    });
+                    
+                    if (!exportResult.success) throw new Error('Export failed: ' + exportResult.error);
+                    if (!exportResult.data || exportResult.data.length === 0) throw new Error('No data exported');
+                    if (!exportResult.filename.includes('master_barang_export')) throw new Error('Invalid filename');
+                    
+                    results.push('✅ Export workflow: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Export workflow: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 3: Export with filters
+                try {
+                    const exportResult = await exportManager.exportData({
+                        format: 'csv',
+                        filters: { kategori_id: 'cat1' }
+                    });
+                    
+                    if (!exportResult.success) throw new Error('Filtered export failed');
+                    
+                    // Verify only ELEKTRONIK items are exported
+                    const hasNonElektronik = exportResult.data.some(item => 
+                        item.kategori_nama !== 'ELEKTRONIK'
+                    );
+                    if (hasNonElektronik) throw new Error('Filter not applied correctly');
+                    
+                    results.push('✅ Export with filters: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Export with filters: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                updateStats();
+                showResult(resultId, results.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'Import/export workflow test failed: ' + error.message, 'error');
+            }
+        };
+
+        window.testBulkOperationsWorkflows = async function() {
+            const resultId = 'bulkOpsResult';
+            showResult(resultId, 'Running bulk operations workflow tests...', 'info');
+            
+            try {
+                initializeSystem();
+                let results = [];
+                
+                // Test 1: Bulk delete workflow
+                try {
+                    const initialCount = barangManager.getAll().length;
+                    const itemsToDelete = ['brg1', 'brg2'];
+                    
+                    const bulkDeleteResult = await bulkOperationsManager.bulkDelete(itemsToDelete);
+                    if (!bulkDeleteResult.success) throw new Error('Bulk delete failed: ' + bulkDeleteResult.error);
+                    if (bulkDeleteResult.deleted_count !== 2) throw new Error('Expected 2 deleted items');
+                    
+                    const remainingCount = barangManager.getAll().length;
+                    if (remainingCount !== initialCount - 2) throw new Error('Items not deleted correctly');
+                    
+                    results.push('✅ Bulk delete workflow: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Bulk delete workflow: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Reinitialize for next test
+                initializeSystem();
+                
+                // Test 2: Bulk update workflow
+                try {
+                    const itemsToUpdate = ['brg1', 'brg2'];
+                    const updateData = {
+                        kategori_id: 'cat3',
+                        kategori_nama: 'MINUMAN'
+                    };
+                    
+                    const bulkUpdateResult = await bulkOperationsManager.bulkUpdate(itemsToUpdate, updateData);
+                    if (!bulkUpdateResult.success) throw new Error('Bulk update failed: ' + bulkUpdateResult.error);
+                    if (bulkUpdateResult.updated_count !== 2) throw new Error('Expected 2 updated items');
+                    
+                    // Verify updates
+                    const updatedItem1 = barangManager.getById('brg1');
+                    const updatedItem2 = barangManager.getById('brg2');
+                    
+                    if (updatedItem1.kategori_id !== 'cat3' || updatedItem2.kategori_id !== 'cat3') {
+                        throw new Error('Items not updated correctly');
+                    }
+                    
+                    results.push('✅ Bulk update workflow: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Bulk update workflow: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 3: Bulk operation error handling
+                try {
+                    const nonExistentItems = ['invalid1', 'invalid2'];
+                    const bulkDeleteResult = await bulkOperationsManager.bulkDelete(nonExistentItems);
+                    
+                    if (bulkDeleteResult.success) throw new Error('Should fail for non-existent items');
+                    
+                    results.push('✅ Bulk operation error handling: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Bulk operation error handling: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                updateStats();
+                showResult(resultId, results.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'Bulk operations workflow test failed: ' + error.message, 'error');
+            }
+        };
+
+        window.testAuditLoggingWorkflows = async function() {
+            const resultId = 'auditResult';
+            showResult(resultId, 'Running audit logging workflow tests...', 'info');
+            
+            try {
+                initializeSystem();
+                auditLogger.clearLogs();
+                let results = [];
+                
+                // Test 1: Complete audit trail
+                try {
+                    // Perform various operations
+                    const newBarang = {
+                        kode: 'AUDIT001',
+                        nama: 'Audit Test Item',
+                        kategori_id: 'cat1',
+                        satuan_id: 'unit1',
+                        harga_beli: 1000,
+                        harga_jual: 1200,
+                        stok: 5
+                    };
+                    
+                    // CREATE
+                    const createResult = await barangManager.create(newBarang);
+                    
+                    // UPDATE
+                    await barangManager.update(createResult.data.id, {
+                        ...createResult.data,
+                        nama: 'Audit Test Item Updated'
+                    });
+                    
+                    // IMPORT
+                    const importData = [{
+                        kode: 'AUDIT002',
+                        nama: 'Imported Audit Item',
+                        kategori: 'ELEKTRONIK',
+                        satuan: 'PCS',
+                        harga_beli: 2000,
+                        harga_jual: 2400,
+                        stok: 3
+                    }];
+                    await importManager.processImport(importData, { name: 'audit_test.csv' });
+                    
+                    // EXPORT
+                    await exportManager.exportData({ format: 'csv', filters: {} });
+                    
+                    // BULK OPERATION
+                    await bulkOperationsManager.bulkUpdate([createResult.data.id], { stok: 10 });
+                    
+                    // DELETE
+                    await barangManager.delete(createResult.data.id);
+                    
+                    // Verify all operations are logged
+                    const auditLogs = auditLogger.getLogs();
+                    
+                    const createLog = auditLogs.find(log => log.action === 'create');
+                    const updateLog = auditLogs.find(log => log.action === 'update');
+                    const importLog = auditLogs.find(log => log.action === 'import');
+                    const exportLog = auditLogs.find(log => log.action === 'export');
+                    const bulkLog = auditLogs.find(log => log.action === 'bulk_operation');
+                    const deleteLog = auditLogs.find(log => log.action === 'delete');
+                    
+                    if (!createLog || !updateLog || !importLog || !exportLog || !bulkLog || !deleteLog) {
+                        throw new Error('Missing audit logs');
+                    }
+                    
+                    results.push('✅ Complete audit trail: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Complete audit trail: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 2: Audit log export
+                try {
+                    const auditExportResult = await auditLogger.exportLogs({
+                        format: 'csv',
+                        date_from: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                        date_to: new Date()
+                    });
+                    
+                    if (!auditExportResult.success) throw new Error('Audit export failed');
+                    if (!auditExportResult.data || auditExportResult.data.length === 0) {
+                        throw new Error('No audit data exported');
+                    }
+                    if (!auditExportResult.filename.includes('audit_log_export')) {
+                        throw new Error('Invalid audit export filename');
+                    }
+                    
+                    results.push('✅ Audit log export: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Audit log export: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                updateStats();
+                showResult(resultId, results.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'Audit logging workflow test failed: ' + error.message, 'error');
+            }
+        };
+
+        window.testCrossComponentIntegration = async function() {
+            const resultId = 'integrationResult';
+            showResult(resultId, 'Running cross-component integration tests...', 'info');
+            
+            try {
+                initializeSystem();
+                let results = [];
+                
+                // Test 1: Data consistency across components
+                try {
+                    // Create new category and unit
+                    const newCategory = await kategoriManager.create({
+                        nama: 'INTEGRATION_TEST',
+                        deskripsi: 'Category for integration testing'
+                    });
+                    
+                    const newUnit = await satuanManager.create({
+                        nama: 'INTEG',
+                        deskripsi: 'Unit for integration testing'
+                    });
+                    
+                    // Create barang using new category and unit
+                    const newBarang = await barangManager.create({
+                        kode: 'INTEG001',
+                        nama: 'Integration Test Item',
+                        kategori_id: newCategory.data.id,
+                        satuan_id: newUnit.data.id,
+                        harga_beli: 1000,
+                        harga_jual: 1200,
+                        stok: 10
+                    });
+                    
+                    // Verify relationships
+                    const barang = barangManager.getById(newBarang.data.id);
+                    if (barang.kategori_nama !== 'INTEGRATION_TEST') {
+                        throw new Error('Category relationship not maintained');
+                    }
+                    if (barang.satuan_nama !== 'INTEG') {
+                        throw new Error('Unit relationship not maintained');
+                    }
+                    
+                    // Try to delete category (should fail)
+                    const deleteCategoryResult = await kategoriManager.delete(newCategory.data.id);
+                    if (deleteCategoryResult.success) {
+                        throw new Error('Should not allow deleting used category');
+                    }
+                    
+                    // Delete barang first, then category should be deletable
+                    await barangManager.delete(newBarang.data.id);
+                    const deleteCategoryResult2 = await kategoriManager.delete(newCategory.data.id);
+                    const deleteUnitResult2 = await satuanManager.delete(newUnit.data.id);
+                    
+                    if (!deleteCategoryResult2.success || !deleteUnitResult2.success) {
+                        throw new Error('Should allow deleting unused category/unit');
+                    }
+                    
+                    results.push('✅ Data consistency across components: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Data consistency across components: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 2: Concurrent operations
+                try {
+                    const promises = [];
+                    
+                    // Multiple create operations
+                    for (let i = 1; i <= 3; i++) {
+                        promises.push(
+                            barangManager.create({
+                                kode: `CONCURRENT${i}`,
+                                nama: `Concurrent Item ${i}`,
+                                kategori_id: 'cat1',
+                                satuan_id: 'unit1',
+                                harga_beli: 1000 * i,
+                                harga_jual: 1200 * i,
+                                stok: 10 + i
+                            })
+                        );
+                    }
+                    
+                    const results_concurrent = await Promise.all(promises);
+                    
+                    // Verify all operations succeeded
+                    results_concurrent.forEach((result, index) => {
+                        if (!result.success) {
+                            throw new Error(`Concurrent operation ${index + 1} failed`);
+                        }
+                    });
+                    
+                    // Verify all items exist
+                    const allBarang = barangManager.getAll();
+                    for (let i = 1; i <= 3; i++) {
+                        const item = allBarang.find(b => b.kode === `CONCURRENT${i}`);
+                        if (!item) throw new Error(`Concurrent item ${i} not found`);
+                    }
+                    
+                    results.push('✅ Concurrent operations: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Concurrent operations: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                updateStats();
+                showResult(resultId, results.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'Cross-component integration test failed: ' + error.message, 'error');
+            }
+        };
+
+        window.testErrorRecovery = async function() {
+            const resultId = 'errorRecoveryResult';
+            showResult(resultId, 'Running error recovery tests...', 'info');
+            
+            try {
+                initializeSystem();
+                let results = [];
+                
+                // Test 1: Storage error recovery
+                try {
+                    // Mock localStorage error
+                    const originalSetItem = localStorage.setItem;
+                    localStorage.setItem = function() {
+                        throw new Error('Storage quota exceeded');
+                    };
+                    
+                    // Try to create barang (should handle error)
+                    const createResult = await barangManager.create({
+                        kode: 'ERROR_TEST',
+                        nama: 'Error Test Item',
+                        kategori_id: 'cat1',
+                        satuan_id: 'unit1',
+                        harga_beli: 1000,
+                        harga_jual: 1200,
+                        stok: 5
+                    });
+                    
+                    if (createResult.success) throw new Error('Should fail with storage error');
+                    if (!createResult.error.includes('Storage')) throw new Error('Wrong error message');
+                    
+                    // Restore localStorage
+                    localStorage.setItem = originalSetItem;
+                    
+                    // Verify system still works
+                    const createResult2 = await barangManager.create({
+                        kode: 'RECOVERY_TEST',
+                        nama: 'Recovery Test Item',
+                        kategori_id: 'cat1',
+                        satuan_id: 'unit1',
+                        harga_beli: 1000,
+                        harga_jual: 1200,
+                        stok: 5
+                    });
+                    
+                    if (!createResult2.success) throw new Error('System not recovered after error');
+                    
+                    results.push('✅ Storage error recovery: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Storage error recovery: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                // Test 2: Invalid data handling
+                try {
+                    const invalidBarang = {
+                        kode: '', // Empty code
+                        nama: '', // Empty name
+                        kategori_id: 'invalid_category',
+                        satuan_id: 'invalid_unit',
+                        harga_beli: -1000, // Negative price
+                        harga_jual: 'invalid', // Invalid price format
+                        stok: -5 // Negative stock
+                    };
+                    
+                    const createResult = await barangManager.create(invalidBarang);
+                    if (createResult.success) throw new Error('Should fail with invalid data');
+                    if (!createResult.errors || createResult.errors.length === 0) {
+                        throw new Error('Should return validation errors');
+                    }
+                    
+                    // Verify system state is not corrupted
+                    const allBarang = barangManager.getAll();
+                    const invalidItem = allBarang.find(item => item.kode === '');
+                    if (invalidItem) throw new Error('Invalid item should not be saved');
+                    
+                    results.push('✅ Invalid data handling: PASSED');
+                    testStats.passed++;
+                } catch (error) {
+                    results.push('❌ Invalid data handling: FAILED - ' + error.message);
+                    testStats.failed++;
+                }
+                testStats.total++;
+                
+                updateStats();
+                showResult(resultId, results.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'Error recovery test failed: ' + error.message, 'error');
+            }
+        };
+
+        window.runAllTests = async function() {
+            const resultId = 'allTestsResult';
+            const runAllBtn = document.getElementById('runAllBtn');
+            
+            runAllBtn.disabled = true;
+            runAllBtn.textContent = 'Running Tests...';
+            
+            // Reset stats
+            testStats = { total: 0, passed: 0, failed: 0, startTime: Date.now() };
+            updateStats();
+            
+            showResult(resultId, 'Running all integration workflow tests...', 'info');
+            
+            try {
+                let allResults = [];
+                
+                // Run all test suites
+                allResults.push('=== CRUD Workflows ===');
+                await testCRUDWorkflows();
+                
+                allResults.push('\n=== Import/Export Workflows ===');
+                await testImportExportWorkflows();
+                
+                allResults.push('\n=== Bulk Operations Workflows ===');
+                await testBulkOperationsWorkflows();
+                
+                allResults.push('\n=== Audit Logging Workflows ===');
+                await testAuditLoggingWorkflows();
+                
+                allResults.push('\n=== Cross-Component Integration ===');
+                await testCrossComponentIntegration();
+                
+                allResults.push('\n=== Error Recovery & Resilience ===');
+                await testErrorRecovery();
+                
+                // Final summary
+                const summary = `
+=== FINAL SUMMARY ===
+Total Tests: ${testStats.total}
+Passed: ${testStats.passed}
+Failed: ${testStats.failed}
+Success Rate: ${testStats.total > 0 ? Math.round((testStats.passed / testStats.total) * 100) : 0}%
+Execution Time: ${Date.now() - testStats.startTime}ms
+
+${testStats.failed === 0 ? '🎉 ALL INTEGRATION TESTS PASSED!' : '⚠️ Some tests failed. Please review the results above.'}`;
+                
+                allResults.push(summary);
+                
+                updateStats();
+                showResult(resultId, allResults.join('\n'), testStats.failed === 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(resultId, 'All tests execution failed: ' + error.message, 'error');
+            } finally {
+                runAllBtn.disabled = false;
+                runAllBtn.textContent = 'Run All Tests';
+            }
+        };
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Integration Workflows Test Page Loaded');
+            updateStats();
+        });
+    </script>
+</body>
+</html>
