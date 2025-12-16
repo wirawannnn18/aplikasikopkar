@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug POS Fullscreen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        .debug-panel h6 {
+            color: #ffd60a;
+            margin-bottom: 10px;
+        }
+        .debug-item {
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .debug-value {
+            color: #52b788;
+            font-weight: bold;
+        }
+        .test-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+        .test-controls button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <h6><i class="bi bi-bug"></i> POS Fullscreen Debug</h6>
+        <div class="debug-item">
+            <span>Sidebar Display:</span>
+            <span class="debug-value" id="sidebarDisplay">-</span>
+        </div>
+        <div class="debug-item">
+            <span>Main Classes:</span>
+            <span class="debug-value" id="mainClasses">-</span>
+        </div>
+        <div class="debug-item">
+            <span>Main Width:</span>
+            <span class="debug-value" id="mainWidth">-</span>
+        </div>
+        <div class="debug-item">
+            <span>Body Classes:</span>
+            <span class="debug-value" id="bodyClasses">-</span>
+        </div>
+        <div class="debug-item">
+            <span>Session State:</span>
+            <span class="debug-value" id="sessionState">-</span>
+        </div>
+        <div class="debug-item">
+            <span>Console Logs:</span>
+            <span class="debug-value" id="consoleCount">0</span>
+        </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="test-controls">
+        <button class="btn btn-primary btn-sm" onclick="testRenderPOS()">
+            <i class="bi bi-play"></i> Test renderPOS()
+        </button>
+        <button class="btn btn-success btn-sm" onclick="testMakeFullscreen()">
+            <i class="bi bi-fullscreen"></i> Test makePOSFullScreen()
+        </button>
+        <button class="btn btn-warning btn-sm" onclick="testExitFullscreen()">
+            <i class="bi bi-fullscreen-exit"></i> Test exitFullScreenPOS()
+        </button>
+        <button class="btn btn-info btn-sm" onclick="inspectElements()">
+            <i class="bi bi-search"></i> Inspect Elements
+        </button>
+    </div>
+
+    <!-- Simulasi Layout Aplikasi (sama seperti index.html) -->
+    <div id="app">
+        <div id="mainApp">
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-dark">
+                <div class="container-fluid">
+                    <button class="btn btn-sm d-lg-none me-2" id="sidebarToggle">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <a class="navbar-brand" href="#">
+                        <i class="bi bi-shop-window"></i> Koperasi Karyawan
+                    </a>
+                    <div class="d-flex">
+                        <button class="btn btn-sm" onclick="logout()">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- Sidebar -->
+                    <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                        <div class="position-sticky pt-3">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#"><i class="bi bi-house"></i> Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#"><i class="bi bi-cart"></i> Point of Sales</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#"><i class="bi bi-people"></i> Master Anggota</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+
+                    <!-- Main Content -->
+                    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                        <div id="mainContent" class="py-4">
+                            <h2>Loading...</h2>
+                            <p>Content will be loaded here by renderPOS()</p>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="public/js/pos.js"></script>
+    
+    <script>
+        // Mock data and functions
+        let currentUser = { id: 'test', name: 'Test User', role: 'kasir' };
+        let consoleLogCount = 0;
+        
+        // Override console.log to count logs
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            consoleLogCount++;
+            document.getElementById('consoleCount').textContent = consoleLogCount;
+            originalConsoleLog.apply(console, args);
+        };
+        
+        // Mock functions
+        window.showAlert = function(message, type) {
+            console.log(`Alert (${type}): ${message}`);
+        };
+        
+        window.showMenu = function(menu) {
+            console.log(`Navigate to: ${menu}`);
+        };
+        
+        window.logout = function() {
+            console.log('Logout clicked');
+        };
+        
+        // Setup test data
+        function setupTestData() {
+            const testAnggota = [
+                { id: 'ang1', nama: 'Budi Santoso', nik: '1234567890123456', status: 'Aktif', tipeAnggota: 'Tetap' },
+                { id: 'ang2', nama: 'Siti Nurhaliza', nik: '2345678901234567', status: 'Aktif', tipeAnggota: 'Tetap' }
+            ];
+            
+            const testBarang = [
+                { id: 'brg1', nama: 'Aqua 600ml', barcode: '123456789', hargaJual: 3000, hpp: 2500, stok: 50 }
+            ];
+            
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            localStorage.setItem('barang', JSON.stringify(testBarang));
+            
+            // Setup buka kas session
+            const bukaKasData = {
+                id: 'shift-test',
+                kasir: currentUser.name,
+                kasirId: currentUser.id,
+                modalAwal: 500000,
+                waktuBuka: new Date().toISOString(),
+                status: 'buka'
+            };
+            sessionStorage.setItem('bukaKas', JSON.stringify(bukaKasData));
+        }
+        
+        // Debug functions
+        function updateDebugInfo() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.querySelector('main');
+            const body = document.body;
+            
+            document.getElementById('sidebarDisplay').textContent = 
+                sidebar ? getComputedStyle(sidebar).display : 'not found';
+            document.getElementById('mainClasses').textContent = 
+                main ? main.className : 'not found';
+            document.getElementById('mainWidth').textContent = 
+                main ? getComputedStyle(main).width : 'not found';
+            document.getElementById('bodyClasses').textContent = 
+                body.classList.contains('pos-fullscreen-mode') ? 'has pos-fullscreen-mode' : 'normal';
+            document.getElementById('sessionState').textContent = 
+                sessionStorage.getItem('posFullScreen') || 'none';
+        }
+        
+        function testRenderPOS() {
+            console.log('🧪 Testing renderPOS()...');
+            try {
+                renderPOS();
+                setTimeout(updateDebugInfo, 500);
+            } catch (error) {
+                console.error('❌ Error in renderPOS():', error);
+            }
+        }
+        
+        function testMakeFullscreen() {
+            console.log('🧪 Testing makePOSFullScreen()...');
+            try {
+                makePOSFullScreen();
+                setTimeout(updateDebugInfo, 500);
+            } catch (error) {
+                console.error('❌ Error in makePOSFullScreen():', error);
+            }
+        }
+        
+        function testExitFullscreen() {
+            console.log('🧪 Testing exitFullScreenPOS()...');
+            try {
+                exitFullScreenPOS();
+                setTimeout(updateDebugInfo, 500);
+            } catch (error) {
+                console.error('❌ Error in exitFullScreenPOS():', error);
+            }
+        }
+        
+        function inspectElements() {
+            console.log('🔍 Inspecting Elements...');
+            
+            const sidebar = document.getElementById('sidebar');
+            const main = document.querySelector('main');
+            
+            console.log('Sidebar element:', sidebar);
+            console.log('Sidebar computed style:', sidebar ? getComputedStyle(sidebar) : 'not found');
+            console.log('Main element:', main);
+            console.log('Main computed style:', main ? getComputedStyle(main) : 'not found');
+            console.log('Body classes:', document.body.className);
+            console.log('Session storage:', sessionStorage.getItem('posFullScreen'));
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTestData();
+            updateDebugInfo();
+            
+            // Auto-test after 2 seconds
+            setTimeout(() => {
+                console.log('🚀 Auto-testing renderPOS()...');
+                testRenderPOS();
+            }, 2000);
+        });
+        
+        // Update debug info every second
+        setInterval(updateDebugInfo, 1000);
+    </script>
+</body>
+</html>

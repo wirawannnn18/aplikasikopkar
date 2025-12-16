@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test POS Fullscreen Simple</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+        }
+        .test-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug Info -->
+    <div class="debug-info" id="debugInfo">
+        <div>Sidebar Display: <span id="sidebarStatus">-</span></div>
+        <div>Main Width: <span id="mainWidth">-</span></div>
+        <div>Body Class: <span id="bodyClass">-</span></div>
+        <div>Session: <span id="sessionStatus">-</span></div>
+    </div>
+
+    <!-- Test Button -->
+    <button class="btn btn-primary test-btn" onclick="toggleFullscreen()">
+        <i class="bi bi-fullscreen"></i> Toggle Fullscreen
+    </button>
+
+    <!-- Simulasi Layout Aplikasi -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #2d6a4f;">
+        <div class="container-fluid">
+            <span class="navbar-brand">Koperasi Karyawan</span>
+            <button id="sidebarToggle" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <h6 class="sidebar-heading">Menu</h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="bi bi-house"></i> Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#"><i class="bi bi-cart"></i> Point of Sales</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><i class="bi bi-people"></i> Master Anggota</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div id="mainContent">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">Point of Sales</h2>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exitFullScreenPOS()" title="Keluar dari mode full screen">
+                            <i class="bi bi-fullscreen-exit"></i> Exit Full Screen
+                        </button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Area Pencarian Barang</h5>
+                                    <input type="text" class="form-control" placeholder="Scan barcode atau cari barang...">
+                                    <div class="mt-3 text-center py-5">
+                                        <i class="bi bi-search" style="font-size: 3rem; color: #ccc;"></i>
+                                        <h5 class="text-muted mt-3">Cari Barang untuk Ditambahkan</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Keranjang</h5>
+                                    <div class="mb-3">
+                                        <label class="form-label">Pilih Anggota</label>
+                                        <input type="text" class="form-control" placeholder="Ketik nama atau NIK anggota...">
+                                    </div>
+                                    <div class="text-center py-4">
+                                        <p class="text-muted">Keranjang kosong</p>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <strong>Total:</strong>
+                                        <span class="text-success fw-bold">Rp 0</span>
+                                    </div>
+                                    <button class="btn btn-success w-100">
+                                        <i class="bi bi-check-circle"></i> Bayar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="public/js/pos.js"></script>
+    
+    <script>
+        let isFullscreen = false;
+        
+        function updateDebugInfo() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.querySelector('main');
+            const body = document.body;
+            
+            document.getElementById('sidebarStatus').textContent = 
+                sidebar ? getComputedStyle(sidebar).display : 'not found';
+            document.getElementById('mainWidth').textContent = 
+                main ? getComputedStyle(main).width : 'not found';
+            document.getElementById('bodyClass').textContent = 
+                body.classList.contains('pos-fullscreen-mode') ? 'fullscreen' : 'normal';
+            document.getElementById('sessionStatus').textContent = 
+                sessionStorage.getItem('posFullScreen') || 'none';
+        }
+        
+        function toggleFullscreen() {
+            if (isFullscreen) {
+                exitFullScreenPOS();
+                isFullscreen = false;
+            } else {
+                makePOSFullScreen();
+                isFullscreen = true;
+            }
+            
+            setTimeout(updateDebugInfo, 200);
+        }
+        
+        // Mock functions if not available
+        if (typeof showAlert === 'undefined') {
+            window.showAlert = function(message, type) {
+                console.log(`Alert (${type}): ${message}`);
+            };
+        }
+        
+        if (typeof showMenu === 'undefined') {
+            window.showMenu = function(menu) {
+                console.log(`Navigate to: ${menu}`);
+            };
+        }
+        
+        // Update debug info every second
+        setInterval(updateDebugInfo, 1000);
+        updateDebugInfo();
+        
+        // Auto-test fullscreen on load
+        setTimeout(() => {
+            console.log('🧪 Auto-testing fullscreen...');
+            makePOSFullScreen();
+            isFullscreen = true;
+            setTimeout(updateDebugInfo, 500);
+        }, 1000);
+    </script>
+</body>
+</html>
