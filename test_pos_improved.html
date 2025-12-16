@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test POS Improved - Koperasi Karyawan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar">
+                <div class="sidebar-header">
+                    <h4>Koperasi</h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="renderPOS()">
+                            <i class="bi bi-shop"></i> Point of Sales
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 main-content">
+                <div id="mainContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="public/js/utils.js"></script>
+    <script src="public/js/pos.js"></script>
+    
+    <script>
+        // Mock data untuk testing
+        const currentUser = {
+            id: 'user1',
+            name: 'Test Kasir',
+            role: 'kasir'
+        };
+
+        // Sample data barang
+        const sampleBarang = [
+            {
+                id: 'brg1',
+                nama: 'Beras Premium 5kg',
+                barcode: '1234567890',
+                hargaJual: 75000,
+                hpp: 65000,
+                stok: 50,
+                kategori: 'Sembako'
+            },
+            {
+                id: 'brg2',
+                nama: 'Minyak Goreng 2L',
+                barcode: '1234567891',
+                hargaJual: 35000,
+                hpp: 30000,
+                stok: 30,
+                kategori: 'Sembako'
+            },
+            {
+                id: 'brg3',
+                nama: 'Gula Pasir 1kg',
+                barcode: '1234567892',
+                hargaJual: 15000,
+                hpp: 12000,
+                stok: 25,
+                kategori: 'Sembako'
+            },
+            {
+                id: 'brg4',
+                nama: 'Teh Celup Sariwangi',
+                barcode: '1234567893',
+                hargaJual: 8500,
+                hpp: 7000,
+                stok: 40,
+                kategori: 'Minuman'
+            },
+            {
+                id: 'brg5',
+                nama: 'Kopi Kapal Api',
+                barcode: '1234567894',
+                hargaJual: 12000,
+                hpp: 10000,
+                stok: 35,
+                kategori: 'Minuman'
+            },
+            {
+                id: 'brg6',
+                nama: 'Sabun Mandi Lifebuoy',
+                barcode: '1234567895',
+                hargaJual: 5500,
+                hpp: 4500,
+                stok: 60,
+                kategori: 'Kebersihan'
+            }
+        ];
+
+        const sampleAnggota = [
+            {
+                id: 'ang1',
+                nama: 'John Doe',
+                nik: '1234567890123456',
+                tipeAnggota: 'Tetap',
+                status: 'Aktif'
+            },
+            {
+                id: 'ang2',
+                nama: 'Jane Smith',
+                nik: '1234567890123457',
+                tipeAnggota: 'Kontrak',
+                status: 'Aktif'
+            }
+        ];
+
+        // Set sample data to localStorage
+        localStorage.setItem('barang', JSON.stringify(sampleBarang));
+        localStorage.setItem('anggota', JSON.stringify(sampleAnggota));
+        localStorage.setItem('koperasi', JSON.stringify({
+            nama: 'Koperasi Karyawan Test',
+            alamat: 'Jl. Test No. 123',
+            telepon: '021-12345678'
+        }));
+
+        // Set session untuk buka kas
+        sessionStorage.setItem('bukaKas', JSON.stringify({
+            id: 'shift1',
+            kasir: 'Test Kasir',
+            kasirId: 'user1',
+            modalAwal: 500000,
+            waktuBuka: new Date().toISOString(),
+            status: 'buka'
+        }));
+
+        // Mock functions
+        function generateId() {
+            return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function generateNoByType(type) {
+            return type.toUpperCase() + '-' + Date.now();
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert_' + Date.now();
+            
+            const alertHTML = `
+                <div id="${alertId}" class="alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                const alertElement = document.getElementById(alertId);
+                if (alertElement) {
+                    alertElement.remove();
+                }
+            }, 3000);
+        }
+
+        function addJurnal(description, entries) {
+            console.log('Jurnal:', description, entries);
+        }
+
+        // Mock credit limit validator
+        const creditLimitValidator = {
+            calculateOutstandingBalance: () => 0,
+            getAvailableCredit: () => 2000000,
+            getCreditStatus: () => ({
+                bgColor: '#d1ecf1',
+                color: '#0c5460',
+                icon: 'bi-check-circle',
+                message: 'Kredit Aman',
+                percentage: 0
+            }),
+            validateCreditTransaction: () => ({ valid: true })
+        };
+
+        // Initialize POS
+        document.addEventListener('DOMContentLoaded', function() {
+            renderPOS();
+        });
+    </script>
+</body>
+</html>
