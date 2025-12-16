@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test POS Full Screen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+        }
+        .pos-search-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Main Application -->
+        <div id="mainApp">
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-dark">
+                <div class="container-fluid">
+                    <!-- Mobile Menu Toggle -->
+                    <button class="btn btn-sm d-lg-none me-2" id="sidebarToggle" style="background: rgba(255, 255, 255, 0.2); color: white; border: none;">
+                        <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+                    </button>
+                    
+                    <a class="navbar-brand d-flex align-items-center" href="#" style="font-weight: 700; font-size: 1.3rem;">
+                        <div style="width: 40px; height: 40px; margin-right: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-shop-window" style="font-size: 1.5rem; color: #ffd60a;"></i>
+                        </div>
+                        <span class="d-none d-sm-inline">Koperasi Karyawan</span>
+                    </a>
+                    <div class="d-flex align-items-center">
+                        <span class="text-white me-2 me-md-3 d-none d-md-inline" style="background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 25px;">
+                            <i class="bi bi-person-circle" style="color: #ffd60a;"></i> 
+                            <span>Test Kasir</span> (<span>kasir</span>)
+                        </span>
+                        <button class="btn btn-sm" style="background: #ffd60a; color: #1b4332; font-weight: 600; border-radius: 20px; padding: 6px 12px;">
+                            <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- Sidebar -->
+                    <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                        <div class="position-sticky pt-3">
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="testDashboard()">
+                                        <i class="bi bi-house-door"></i> Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#" onclick="testPOS()">
+                                        <i class="bi bi-cart"></i> Point of Sales
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="testRiwayat()">
+                                        <i class="bi bi-receipt"></i> Riwayat Transaksi
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+
+                    <!-- Main Content -->
+                    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                        <div id="mainContent" class="py-4">
+                            <h2>Loading...</h2>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/creditLimit.js"></script>
+    <script src="js/pengajuanModal.js"></script>
+    <script src="js/pos.js"></script>
+    
+    <script>
+        // Mock data and functions for testing
+        let currentUser = {
+            id: 'kasir1',
+            name: 'Test Kasir',
+            role: 'kasir'
+        };
+
+        // Mock localStorage data
+        localStorage.setItem('barang', JSON.stringify([
+            {
+                id: 'brg1',
+                nama: 'Beras Premium',
+                barcode: '1234567890',
+                hargaJual: 15000,
+                hpp: 12000,
+                stok: 100,
+                kategori: 'Sembako',
+                satuan: 'Kg'
+            },
+            {
+                id: 'brg2',
+                nama: 'Minyak Goreng',
+                barcode: '0987654321',
+                hargaJual: 25000,
+                hpp: 20000,
+                stok: 50,
+                kategori: 'Sembako',
+                satuan: 'Liter'
+            },
+            {
+                id: 'brg3',
+                nama: 'Gula Pasir',
+                barcode: '1122334455',
+                hargaJual: 18000,
+                hpp: 15000,
+                stok: 75,
+                kategori: 'Sembako',
+                satuan: 'Kg'
+            }
+        ]));
+
+        localStorage.setItem('anggota', JSON.stringify([
+            {
+                id: 'ang1',
+                nama: 'John Doe',
+                nik: '1234567890123456',
+                tipeAnggota: 'Tetap',
+                status: 'Aktif'
+            },
+            {
+                id: 'ang2',
+                nama: 'Jane Smith',
+                nik: '9876543210987654',
+                tipeAnggota: 'Kontrak',
+                status: 'Aktif'
+            }
+        ]));
+
+        localStorage.setItem('koperasi', JSON.stringify({
+            nama: 'Koperasi Karyawan Test',
+            alamat: 'Jl. Test No. 123',
+            telepon: '021-12345678'
+        }));
+
+        // Set buka kas session for testing
+        sessionStorage.setItem('bukaKas', JSON.stringify({
+            id: 'shift1',
+            kasir: 'Test Kasir',
+            kasirId: 'kasir1',
+            modalAwal: 500000,
+            waktuBuka: new Date().toISOString(),
+            status: 'buka'
+        }));
+
+        // Mock functions
+        function showAlert(message, type = 'success') {
+            console.log(`Alert (${type}): ${message}`);
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+
+        function generateId() {
+            return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function generateNoByType(type) {
+            return type.toUpperCase() + '-' + Date.now();
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('id-ID');
+        }
+
+        function addJurnal(description, entries) {
+            console.log('Jurnal added:', description, entries);
+        }
+
+        function isPengajuanModalEnabled() {
+            return false; // Disable for testing
+        }
+
+        function showMenu(menu) {
+            console.log('Navigate to:', menu);
+        }
+
+        function navigateTo(page) {
+            console.log('Navigate to:', page);
+        }
+
+        // Credit limit validator mock
+        const creditLimitValidator = {
+            calculateOutstandingBalance: () => 0,
+            getAvailableCredit: () => 2000000,
+            getCreditStatus: () => ({
+                bgColor: '#d1edff',
+                color: '#0c63e4',
+                icon: 'bi-check-circle',
+                message: 'Kredit Aman',
+                percentage: 0
+            }),
+            validateCreditTransaction: () => ({ valid: true })
+        };
+
+        // Test functions
+        function testPOS() {
+            console.log('Testing POS Full Screen...');
+            renderPOS();
+        }
+
+        function testDashboard() {
+            console.log('Testing Dashboard...');
+            exitFullScreenPOS();
+            document.getElementById('mainContent').innerHTML = `
+                <h2>Dashboard</h2>
+                <p>This is the dashboard view with sidebar visible.</p>
+                <button class="btn btn-primary" onclick="testPOS()">Go to POS (Full Screen)</button>
+            `;
+        }
+
+        function testRiwayat() {
+            console.log('Testing Riwayat...');
+            exitFullScreenPOS();
+            document.getElementById('mainContent').innerHTML = `
+                <h2>Riwayat Transaksi</h2>
+                <p>This is the transaction history view with sidebar visible.</p>
+                <button class="btn btn-primary" onclick="testPOS()">Go to POS (Full Screen)</button>
+            `;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, testing POS full screen...');
+            testPOS();
+        });
+    </script>
+</body>
+</html>
