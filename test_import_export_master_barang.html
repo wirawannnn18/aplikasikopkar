@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Import/Export Master Barang</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/fontawesome.min.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1><i class="fas fa-vial"></i> Test Import/Export Master Barang</h1>
+        <p class="text-muted">Halaman test untuk memverifikasi implementasi fitur import/export</p>
+
+        <!-- Test Navigation -->
+        <div class="test-section">
+            <h3>Test 1: Navigation & UI Elements</h3>
+            <div id="test1-results"></div>
+            <button class="btn btn-primary" onclick="runTest1()">Run Test</button>
+        </div>
+
+        <!-- Test Template Download -->
+        <div class="test-section">
+            <h3>Test 2: Template Download Functions</h3>
+            <div id="test2-results"></div>
+            <button class="btn btn-primary" onclick="runTest2()">Run Test</button>
+            <div class="mt-2">
+                <button class="btn btn-outline-success btn-sm" onclick="testDownloadTemplate('excel')">
+                    Test Excel Template
+                </button>
+                <button class="btn btn-outline-info btn-sm" onclick="testDownloadTemplate('csv')">
+                    Test CSV Template
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Import Functions -->
+        <div class="test-section">
+            <h3>Test 3: Import Dialog Functions</h3>
+            <div id="test3-results"></div>
+            <button class="btn btn-primary" onclick="runTest3()">Run Test</button>
+            <button class="btn btn-outline-warning btn-sm" onclick="testOpenImportDialog()">
+                Test Import Dialog
+            </button>
+        </div>
+
+        <!-- Test Export Functions -->
+        <div class="test-section">
+            <h3>Test 4: Export Dialog Functions</h3>
+            <div id="test4-results"></div>
+            <button class="btn btn-primary" onclick="runTest4()">Run Test</button>
+            <button class="btn btn-outline-success btn-sm" onclick="testOpenExportDialog()">
+                Test Export Dialog
+            </button>
+        </div>
+
+        <!-- Test Data Operations -->
+        <div class="test-section">
+            <h3>Test 5: Data Operations</h3>
+            <div id="test5-results"></div>
+            <button class="btn btn-primary" onclick="runTest5()">Run Test</button>
+            <div class="mt-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="createSampleData()">
+                    Create Sample Data
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="clearSampleData()">
+                    Clear Sample Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="test-section">
+            <h3>Test Summary</h3>
+            <div id="test-summary"></div>
+            <button class="btn btn-success" onclick="runAllTests()">Run All Tests</button>
+        </div>
+
+        <!-- Sample Data Display -->
+        <div class="test-section">
+            <h3>Current Data</h3>
+            <div id="current-data"></div>
+            <button class="btn btn-info" onclick="displayCurrentData()">Refresh Data Display</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/master-barang-simple.js"></script>
+    <script>
+        let testResults = {
+            test1: null,
+            test2: null,
+            test3: null,
+            test4: null,
+            test5: null
+        };
+
+        // Test 1: Navigation & UI Elements
+        function runTest1() {
+            const results = [];
+            const resultsDiv = document.getElementById('test1-results');
+            
+            try {
+                // Test if showSection function exists
+                if (typeof showSection === 'function') {
+                    results.push({ test: 'showSection function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'showSection function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                // Test if showHelp function exists
+                if (typeof showHelp === 'function') {
+                    results.push({ test: 'showHelp function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'showHelp function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                testResults.test1 = results.every(r => r.status === 'pass');
+            } catch (error) {
+                results.push({ test: 'Navigation functions', status: 'fail', error: error.message });
+                testResults.test1 = false;
+            }
+
+            displayTestResults(resultsDiv, results);
+        }
+
+        // Test 2: Template Download Functions
+        function runTest2() {
+            const results = [];
+            const resultsDiv = document.getElementById('test2-results');
+            
+            try {
+                // Test if downloadTemplate function exists
+                if (typeof downloadTemplate === 'function') {
+                    results.push({ test: 'downloadTemplate function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'downloadTemplate function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                // Test template data generation
+                if (typeof generateTemplateData === 'function') {
+                    const templateData = generateTemplateData();
+                    if (templateData && templateData.headers && templateData.data) {
+                        results.push({ test: 'Template data generation', status: 'pass' });
+                    } else {
+                        results.push({ test: 'Template data generation', status: 'fail', error: 'Invalid template data structure' });
+                    }
+                } else {
+                    results.push({ test: 'Template data generation', status: 'info', error: 'Function not available (may be in complex system)' });
+                }
+
+                testResults.test2 = results.filter(r => r.status !== 'info').every(r => r.status === 'pass');
+            } catch (error) {
+                results.push({ test: 'Template functions', status: 'fail', error: error.message });
+                testResults.test2 = false;
+            }
+
+            displayTestResults(resultsDiv, results);
+        }
+
+        // Test 3: Import Functions
+        function runTest3() {
+            const results = [];
+            const resultsDiv = document.getElementById('test3-results');
+            
+            try {
+                // Test if openImportDialog function exists
+                if (typeof openImportDialog === 'function') {
+                    results.push({ test: 'openImportDialog function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'openImportDialog function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                // Test if handleFileUpload function exists
+                if (typeof handleFileUpload === 'function') {
+                    results.push({ test: 'handleFileUpload function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'handleFileUpload function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                testResults.test3 = results.every(r => r.status === 'pass');
+            } catch (error) {
+                results.push({ test: 'Import functions', status: 'fail', error: error.message });
+                testResults.test3 = false;
+            }
+
+            displayTestResults(resultsDiv, results);
+        }
+
+        // Test 4: Export Functions
+        function runTest4() {
+            const results = [];
+            const resultsDiv = document.getElementById('test4-results');
+            
+            try {
+                // Test if openExportDialog function exists
+                if (typeof openExportDialog === 'function') {
+                    results.push({ test: 'openExportDialog function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'openExportDialog function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                // Test if exportData function exists
+                if (typeof exportData === 'function') {
+                    results.push({ test: 'exportData function exists', status: 'pass' });
+                } else {
+                    results.push({ test: 'exportData function exists', status: 'fail', error: 'Function not found' });
+                }
+
+                testResults.test4 = results.every(r => r.status === 'pass');
+            } catch (error) {
+                results.push({ test: 'Export functions', status: 'fail', error: error.message });
+                testResults.test4 = false;
+            }
+
+            displayTestResults(resultsDiv, results);
+        }
+
+        // Test 5: Data Operations
+        function runTest5() {
+            const results = [];
+            const resultsDiv = document.getElementById('test5-results');
+            
+            try {
+                // Test localStorage access
+                try {
+                    localStorage.setItem('test', 'value');
+                    localStorage.removeItem('test');
+                    results.push({ test: 'localStorage access', status: 'pass' });
+                } catch (e) {
+                    results.push({ test: 'localStorage access', status: 'fail', error: 'localStorage not available' });
+                }
+
+                // Test data structure
+                const currentData = JSON.parse(localStorage.getItem('master_barang') || '[]');
+                results.push({ 
+                    test: 'Data structure check', 
+                    status: 'info', 
+                    error: `Current data count: ${currentData.length} items` 
+                });
+
+                testResults.test5 = results.filter(r => r.status !== 'info').every(r => r.status === 'pass');
+            } catch (error) {
+                results.push({ test: 'Data operations', status: 'fail', error: error.message });
+                testResults.test5 = false;
+            }
+
+            displayTestResults(resultsDiv, results);
+        }
+
+        // Helper Functions
+        function displayTestResults(container, results) {
+            container.innerHTML = '';
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result test-${result.status}`;
+                div.innerHTML = `
+                    <strong>${result.test}:</strong> 
+                    ${result.status.toUpperCase()}
+                    ${result.error ? ` - ${result.error}` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function runAllTests() {
+            runTest1();
+            runTest2();
+            runTest3();
+            runTest4();
+            runTest5();
+            
+            setTimeout(() => {
+                updateTestSummary();
+            }, 500);
+        }
+
+        function updateTestSummary() {
+            const summaryDiv = document.getElementById('test-summary');
+            const passCount = Object.values(testResults).filter(r => r === true).length;
+            const totalCount = Object.keys(testResults).length;
+            
+            summaryDiv.innerHTML = `
+                <div class="test-result ${passCount === totalCount ? 'test-pass' : 'test-info'}">
+                    <strong>Overall Result:</strong> ${passCount}/${totalCount} tests passed
+                    <br><small>Tests: Navigation (${testResults.test1 ? 'PASS' : 'FAIL'}), 
+                    Template (${testResults.test2 ? 'PASS' : 'FAIL'}), 
+                    Import (${testResults.test3 ? 'PASS' : 'FAIL'}), 
+                    Export (${testResults.test4 ? 'PASS' : 'FAIL'}), 
+                    Data (${testResults.test5 ? 'PASS' : 'FAIL'})</small>
+                </div>
+            `;
+        }
+
+        // Test Individual Functions
+        function testDownloadTemplate(format) {
+            try {
+                downloadTemplate(format);
+                alert(`Template ${format} download initiated successfully!`);
+            } catch (error) {
+                alert(`Error downloading ${format} template: ${error.message}`);
+            }
+        }
+
+        function testOpenImportDialog() {
+            try {
+                openImportDialog();
+            } catch (error) {
+                alert(`Error opening import dialog: ${error.message}`);
+            }
+        }
+
+        function testOpenExportDialog() {
+            try {
+                openExportDialog();
+            } catch (error) {
+                alert(`Error opening export dialog: ${error.message}`);
+            }
+        }
+
+        // Sample Data Management
+        function createSampleData() {
+            const sampleData = [
+                {
+                    id: 'test_001',
+                    kode: 'TST001',
+                    nama: 'Test Barang 1',
+                    kategori_id: 'kat_001',
+                    kategori_nama: 'Test Kategori',
+                    satuan_id: 'sat_001',
+                    satuan_nama: 'PCS',
+                    harga_beli: 10000,
+                    harga_jual: 12000,
+                    stok: 50,
+                    stok_minimum: 10,
+                    deskripsi: 'Barang test untuk import/export',
+                    status: 'aktif',
+                    created_at: new Date().toISOString()
+                },
+                {
+                    id: 'test_002',
+                    kode: 'TST002',
+                    nama: 'Test Barang 2',
+                    kategori_id: 'kat_001',
+                    kategori_nama: 'Test Kategori',
+                    satuan_id: 'sat_002',
+                    satuan_nama: 'KG',
+                    harga_beli: 15000,
+                    harga_jual: 18000,
+                    stok: 25,
+                    stok_minimum: 5,
+                    deskripsi: 'Barang test kedua',
+                    status: 'aktif',
+                    created_at: new Date().toISOString()
+                }
+            ];
+
+            localStorage.setItem('master_barang', JSON.stringify(sampleData));
+            alert('Sample data created successfully!');
+            displayCurrentData();
+        }
+
+        function clearSampleData() {
+            localStorage.removeItem('master_barang');
+            alert('Sample data cleared!');
+            displayCurrentData();
+        }
+
+        function displayCurrentData() {
+            const currentData = JSON.parse(localStorage.getItem('master_barang') || '[]');
+            const dataDiv = document.getElementById('current-data');
+            
+            if (currentData.length === 0) {
+                dataDiv.innerHTML = '<div class="alert alert-info">No data found in localStorage</div>';
+            } else {
+                let html = `<div class="alert alert-success">Found ${currentData.length} items in localStorage</div>`;
+                html += '<div class="table-responsive"><table class="table table-sm table-striped">';
+                html += '<thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Satuan</th><th>Harga Jual</th><th>Stok</th></tr></thead><tbody>';
+                
+                currentData.forEach(item => {
+                    html += `<tr>
+                        <td>${item.kode}</td>
+                        <td>${item.nama}</td>
+                        <td>${item.kategori_nama}</td>
+                        <td>${item.satuan_nama}</td>
+                        <td>${item.harga_jual}</td>
+                        <td>${item.stok}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                dataDiv.innerHTML = html;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            displayCurrentData();
+            console.log('Test page initialized');
+        });
+    </script>
+</body>
+</html>
