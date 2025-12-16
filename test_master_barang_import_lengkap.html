@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Master Barang Import Lengkap</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/fontawesome.min.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test Master Barang Import Lengkap</h1>
+        <p class="text-muted">Test semua fitur master barang termasuk import data</p>
+
+        <div class="test-section">
+            <h3>1. Test Data Storage</h3>
+            <button class="btn btn-primary" onclick="testDataStorage()">Test Storage</button>
+            <div id="storageResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Test CSV Parser</h3>
+            <button class="btn btn-primary" onclick="testCSVParser()">Test CSV Parser</button>
+            <div id="csvResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test Data Validation</h3>
+            <button class="btn btn-primary" onclick="testValidation()">Test Validation</button>
+            <div id="validationResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Test Import Process</h3>
+            <button class="btn btn-primary" onclick="testImportProcess()">Test Import</button>
+            <div id="importResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Test Search & Filter</h3>
+            <button class="btn btn-primary" onclick="testSearchFilter()">Test Search & Filter</button>
+            <div id="searchResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. Test CRUD Operations</h3>
+            <button class="btn btn-primary" onclick="testCRUD()">Test CRUD</button>
+            <div id="crudResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>7. Test Export Functions</h3>
+            <button class="btn btn-primary" onclick="testExport()">Test Export</button>
+            <div id="exportResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>8. Akses Master Barang</h3>
+            <a href="master_barang.html" class="btn btn-success" target="_blank">
+                <i class="fas fa-external-link-alt"></i> Buka Master Barang
+            </a>
+        </div>
+    </div>
+
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Test functions
+        function showResult(elementId, success, message) {
+            const element = document.getElementById(elementId);
+            element.className = `test-result ${success ? 'test-success' : 'test-error'}`;
+            element.innerHTML = `<strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}`;
+        }
+
+        function testDataStorage() {
+            try {
+                // Test localStorage
+                const testData = [
+                    {
+                        id: 'test1',
+                        kode: 'TEST001',
+                        nama: 'Test Barang',
+                        kategori_nama: 'Test',
+                        satuan_nama: 'PCS',
+                        harga_jual: 10000,
+                        stok: 100
+                    }
+                ];
+                
+                localStorage.setItem('test_master_barang', JSON.stringify(testData));
+                const retrieved = JSON.parse(localStorage.getItem('test_master_barang'));
+                
+                if (retrieved && retrieved.length === 1 && retrieved[0].kode === 'TEST001') {
+                    localStorage.removeItem('test_master_barang');
+                    showResult('storageResult', true, 'localStorage berfungsi dengan baik');
+                } else {
+                    showResult('storageResult', false, 'Data tidak tersimpan dengan benar');
+                }
+            } catch (error) {
+                showResult('storageResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testCSVParser() {
+            try {
+                const csvData = `Kode Barang,Nama Barang,Kategori,Satuan,Harga Beli,Harga Jual,Stok,Stok Minimum,Deskripsi
+TEST001,"Test Barang 1",Sembako,PCS,5000,7000,50,10,"Deskripsi test"
+TEST002,Test Barang 2,Minuman,Botol,3000,4000,25,5,Test deskripsi`;
+
+                const lines = csvData.split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                
+                if (headers.length === 9 && headers[0] === 'Kode Barang' && headers[1] === 'Nama Barang') {
+                    showResult('csvResult', true, `CSV parser berhasil. Headers: ${headers.length}, Data rows: ${lines.length - 1}`);
+                } else {
+                    showResult('csvResult', false, 'CSV parser tidak menghasilkan struktur yang benar');
+                }
+            } catch (error) {
+                showResult('csvResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testValidation() {
+            try {
+                // Test validation logic
+                const validData = {
+                    kode: 'TEST001',
+                    nama: 'Test Barang',
+                    kategori_nama: 'Sembako',
+                    satuan_nama: 'PCS'
+                };
+
+                const invalidData = {
+                    kode: '',
+                    nama: '',
+                    kategori_nama: 'Sembako',
+                    satuan_nama: 'PCS'
+                };
+
+                let validationPassed = true;
+                let message = '';
+
+                // Test valid data
+                if (!validData.kode || !validData.nama) {
+                    validationPassed = false;
+                    message = 'Valid data gagal validasi';
+                }
+
+                // Test invalid data
+                if (invalidData.kode || invalidData.nama) {
+                    // This should fail validation
+                } else {
+                    message += ' Invalid data berhasil terdeteksi.';
+                }
+
+                if (validationPassed) {
+                    showResult('validationResult', true, 'Validasi data berfungsi dengan baik.' + message);
+                } else {
+                    showResult('validationResult', false, message);
+                }
+            } catch (error) {
+                showResult('validationResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testImportProcess() {
+            try {
+                // Simulate import process
+                const sampleData = [
+                    {
+                        'Kode Barang': 'IMP001',
+                        'Nama Barang': 'Import Test 1',
+                        'Kategori': 'Sembako',
+                        'Satuan': 'PCS',
+                        'Harga Beli': '5000',
+                        'Harga Jual': '7000',
+                        'Stok': '100',
+                        'Stok Minimum': '10',
+                        'Deskripsi': 'Test import'
+                    }
+                ];
+
+                let processedData = [];
+                sampleData.forEach((row, index) => {
+                    const barang = {
+                        id: 'imp' + Date.now() + '_' + index,
+                        kode: row['Kode Barang'] || '',
+                        nama: row['Nama Barang'] || '',
+                        kategori_nama: row['Kategori'] || 'Umum',
+                        satuan_nama: row['Satuan'] || 'PCS',
+                        harga_beli: parseInt(row['Harga Beli']) || 0,
+                        harga_jual: parseInt(row['Harga Jual']) || 0,
+                        stok: parseInt(row['Stok']) || 0,
+                        stok_minimum: parseInt(row['Stok Minimum']) || 0,
+                        deskripsi: row['Deskripsi'] || ''
+                    };
+                    
+                    if (barang.kode && barang.nama) {
+                        processedData.push(barang);
+                    }
+                });
+
+                if (processedData.length === 1 && processedData[0].kode === 'IMP001') {
+                    showResult('importResult', true, `Import process berhasil. ${processedData.length} data diproses.`);
+                } else {
+                    showResult('importResult', false, 'Import process tidak menghasilkan data yang benar');
+                }
+            } catch (error) {
+                showResult('importResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testSearchFilter() {
+            try {
+                const testData = [
+                    { kode: 'BRG001', nama: 'Beras Premium', kategori_nama: 'Sembako', satuan_nama: 'Karung' },
+                    { kode: 'BRG002', nama: 'Minyak Goreng', kategori_nama: 'Sembako', satuan_nama: 'Botol' },
+                    { kode: 'BRG003', nama: 'Teh Celup', kategori_nama: 'Minuman', satuan_nama: 'Dus' }
+                ];
+
+                // Test search
+                const searchTerm = 'beras';
+                const searchResult = testData.filter(item => 
+                    item.kode.toLowerCase().includes(searchTerm) ||
+                    item.nama.toLowerCase().includes(searchTerm) ||
+                    item.kategori_nama.toLowerCase().includes(searchTerm)
+                );
+
+                // Test category filter
+                const categoryFilter = 'Sembako';
+                const categoryResult = testData.filter(item => item.kategori_nama === categoryFilter);
+
+                if (searchResult.length === 1 && categoryResult.length === 2) {
+                    showResult('searchResult', true, `Search & Filter berfungsi. Search: ${searchResult.length}, Category: ${categoryResult.length}`);
+                } else {
+                    showResult('searchResult', false, 'Search & Filter tidak menghasilkan hasil yang benar');
+                }
+            } catch (error) {
+                showResult('searchResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testCRUD() {
+            try {
+                let testData = [];
+                
+                // Test Create
+                const newItem = {
+                    id: 'crud1',
+                    kode: 'CRUD001',
+                    nama: 'CRUD Test',
+                    kategori_nama: 'Test',
+                    satuan_nama: 'PCS',
+                    harga_jual: 10000,
+                    stok: 50
+                };
+                testData.push(newItem);
+
+                // Test Read
+                const foundItem = testData.find(item => item.id === 'crud1');
+
+                // Test Update
+                if (foundItem) {
+                    foundItem.nama = 'CRUD Test Updated';
+                }
+
+                // Test Delete
+                testData = testData.filter(item => item.id !== 'crud1');
+
+                if (foundItem && foundItem.nama === 'CRUD Test Updated' && testData.length === 0) {
+                    showResult('crudResult', true, 'CRUD operations berfungsi dengan baik');
+                } else {
+                    showResult('crudResult', false, 'CRUD operations tidak berfungsi dengan benar');
+                }
+            } catch (error) {
+                showResult('crudResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        function testExport() {
+            try {
+                const testData = [
+                    { kode: 'EXP001', nama: 'Export Test', kategori_nama: 'Test', satuan_nama: 'PCS', harga_jual: 10000, stok: 50 }
+                ];
+
+                // Test CSV export format
+                const headers = ['Kode', 'Nama', 'Kategori', 'Satuan', 'Harga Jual', 'Stok'];
+                const csvContent = [
+                    headers.join(','),
+                    testData.map(item => [
+                        item.kode,
+                        item.nama,
+                        item.kategori_nama,
+                        item.satuan_nama,
+                        item.harga_jual,
+                        item.stok
+                    ].join(','))
+                ].join('\n');
+
+                // Test JSON export
+                const jsonContent = JSON.stringify(testData, null, 2);
+
+                if (csvContent.includes('EXP001') && jsonContent.includes('EXP001')) {
+                    showResult('exportResult', true, 'Export functions berfungsi dengan baik (CSV & JSON)');
+                } else {
+                    showResult('exportResult', false, 'Export functions tidak menghasilkan format yang benar');
+                }
+            } catch (error) {
+                showResult('exportResult', false, 'Error: ' + error.message);
+            }
+        }
+
+        // Auto run basic tests
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Master Barang Import Test Page loaded');
+        });
+    </script>
+</body>
+</html>

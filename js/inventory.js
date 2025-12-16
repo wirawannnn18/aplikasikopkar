@@ -12,6 +12,25 @@ function renderBarang() {
             <button class="btn btn-primary" onclick="showBarangModal()">Tambah Barang</button>
             <button class="btn btn-secondary" onclick="showKategoriModal()">Kelola Kategori</button>
             <button class="btn btn-secondary" onclick="showSatuanModal()">Kelola Satuan</button>
+            <div class="btn-group ms-2" role="group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-download"></i> Template
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="downloadBarangTemplate('excel')">
+                        <i class="bi bi-file-earmark-excel text-success"></i> Template Excel
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="downloadBarangTemplate('csv')">
+                        <i class="bi bi-file-earmark-text text-info"></i> Template CSV
+                    </a></li>
+                </ul>
+            </div>
+            <button class="btn btn-outline-warning" onclick="openBarangImportDialog()">
+                <i class="bi bi-upload"></i> Import Data
+            </button>
+            <button class="btn btn-outline-success" onclick="openBarangExportDialog()">
+                <i class="bi bi-download"></i> Export Data
+            </button>
         </div>
         <table class="table">
             <thead>
@@ -2130,4 +2149,586 @@ function updatePurchaseTable() {
     // This function is called by the search UI when items are added
     // We just need to update our existing purchase list
     updateItemPembelianList();
+}
+
+// ============================================
+// MASTER BARANG IMPORT/EXPORT FUNCTIONS
+// ============================================
+
+/**
+ * Download template for Master Barang import
+ * @param {string} format - Format template (excel/csv)
+ */
+function downloadBarangTemplate(format) {
+    const templateData = {
+        headers: [
+            'Barcode',
+            'Nama Barang', 
+            'Kategori',
+            'Satuan',
+            'Stok Awal',
+            'HPP',
+            'Harga Jual'
+        ],
+        data: [
+            ['BRG001', 'Beras Premium 5kg', 'Sembako', 'Karung', '100', '45000', '50000'],
+            ['BRG002', 'Minyak Goreng 1L', 'Sembako', 'Botol', '50', '12000', '14000'],
+            ['BRG003', 'Gula Pasir 1kg', 'Sembako', 'Kg', '75', '13000', '15000'],
+            ['BRG004', 'Teh Celup 25pcs', 'Minuman', 'Dus', '30', '8000', '10000'],
+            ['BRG005', 'Kopi Sachet 10pcs', 'Minuman', 'Dus', '25', '15000', '18000']
+        ]
+    };
+
+    const fileName = `template_master_barang_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : format}`;
+    
+    if (format === 'csv') {
+        downloadBarangCSV(templateData, fileName);
+    } else if (format === 'excel') {
+        downloadBarangExcel(templateData, fileName);
+    }
+}
+
+/**
+ * Download CSV file
+ * @param {Object} data - Data with headers and rows
+ * @param {string} fileName - File name
+ */
+function downloadBarangCSV(data, fileName) {
+    const csvContent = [
+        data.headers.join(','),
+        ...data.data.map(row => 
+            row.map(cell => {
+                const cellStr = String(cell);
+                if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                    return '"' + cellStr.replace(/"/g, '""') + '"';
+                }
+                return cellStr;
+            }).join(',')
+        )
+    ].join('\n');
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, fileName);
+}
+
+/**
+ * Download Excel file (HTML format)
+ * @param {Object} data - Data with headers and rows
+ * @param {string} fileName - File name
+ */
+function downloadBarangExcel(data, fileName) {
+    let html = '<table>';
+    
+    // Headers
+    html += '<tr>';
+    data.headers.forEach(header => {
+        html += `<th>${escapeHtml(header)}</th>`;
+    });
+    html += '</tr>';
+    
+    // Data
+    data.data.forEach(row => {
+        html += '<tr>';
+        row.forEach(cell => {
+            html += `<td>${escapeHtml(cell)}</td>`;
+        });
+        html += '</tr>';
+    });
+    
+    html += '</table>';
+
+    const blob = new Blob([html], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    downloadBlob(blob, fileName);
+}
+
+/**
+ * Open import dialog for Master Barang
+ */
+function openBarangImportDialog() {
+    const modal = `
+        <div class="modal fade" id="barangImportModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-upload"></i> Import Data Master Barang</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle"></i> Panduan Import:</h6>
+                            <ol>
+                                <li>Download template terlebih dahulu</li>
+                                <li>Isi data sesuai format template</li>
+                                <li>Upload file yang sudah diisi</li>
+                                <li>Preview dan konfirmasi data</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Download Template:</label>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-success" onclick="downloadBarangTemplate('excel')">
+                                    <i class="bi bi-file-earmark-excel"></i> Template Excel
+                                </button>
+                                <button class="btn btn-outline-info" onclick="downloadBarangTemplate('csv')">
+                                    <i class="bi bi-file-earmark-text"></i> Template CSV
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label for="barangImportFile" class="form-label">Upload File:</label>
+                            <input type="file" id="barangImportFile" class="form-control" 
+                                   accept=".xlsx,.xls,.csv" onchange="handleBarangImportFile(event)">
+                            <div class="form-text">
+                                Format yang didukung: Excel (.xlsx, .xls) dan CSV (.csv)
+                            </div>
+                        </div>
+                        
+                        <div id="barangImportPreview" style="display: none;">
+                            <h6>Preview Data:</h6>
+                            <div class="alert alert-success">
+                                File berhasil dipilih. Klik "Proses Import" untuk melanjutkan.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-primary" onclick="processBarangImport()" id="processBarangImportBtn" disabled>
+                            <i class="bi bi-upload"></i> Proses Import
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('barangImportModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modal);
+    
+    // Show modal
+    const modalInstance = new bootstrap.Modal(document.getElementById('barangImportModal'));
+    modalInstance.show();
+}
+
+/**
+ * Handle import file selection
+ * @param {Event} event - File input change event
+ */
+function handleBarangImportFile(event) {
+    const file = event.target.files[0];
+    if (file) {
+        document.getElementById('barangImportPreview').style.display = 'block';
+        document.getElementById('processBarangImportBtn').disabled = false;
+    }
+}
+
+/**
+ * Process import from modal
+ */
+function processBarangImport() {
+    const fileInput = document.getElementById('barangImportFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showAlert('Pilih file yang akan diimport', 'warning');
+        return;
+    }
+    
+    // Show loading
+    showAlert('Memproses import data...', 'info');
+    
+    // Process file
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let data;
+            const fileName = file.name.toLowerCase();
+            
+            if (fileName.endsWith('.csv')) {
+                data = parseBarangCSV(e.target.result);
+            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                showAlert('Untuk file Excel, silakan convert ke CSV terlebih dahulu atau gunakan template CSV', 'warning');
+                return;
+            } else {
+                throw new Error('Format file tidak didukung');
+            }
+            
+            // Validate and import data
+            importBarangData(data);
+            
+        } catch (error) {
+            showAlert('Error memproses file: ' + error.message, 'danger');
+        }
+    };
+    
+    reader.readAsText(file);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('barangImportModal'));
+    modal.hide();
+}
+
+/**
+ * Parse CSV data for Master Barang
+ * @param {string} csvText - CSV content
+ * @returns {Array} Parsed data array
+ */
+function parseBarangCSV(csvText) {
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const data = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+            const values = parseCSVLine(lines[i]);
+            const row = {};
+            headers.forEach((header, index) => {
+                row[header] = values[index] || '';
+            });
+            data.push(row);
+        }
+    }
+    
+    return data;
+}
+
+/**
+ * Parse CSV line handling quotes and commas
+ * @param {string} line - CSV line
+ * @returns {Array} Parsed values
+ */
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    
+    result.push(current.trim());
+    return result;
+}
+
+/**
+ * Import barang data from parsed CSV
+ * @param {Array} data - Parsed CSV data
+ */
+function importBarangData(data) {
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+    const kategori = JSON.parse(localStorage.getItem('kategori') || '[]');
+    const satuan = JSON.parse(localStorage.getItem('satuan') || '[]');
+    
+    data.forEach((row, index) => {
+        try {
+            // Map CSV columns to our data structure
+            const barcode = row['Barcode'] || row['barcode'] || '';
+            const nama = row['Nama Barang'] || row['Nama'] || row['nama'] || '';
+            const kategoriNama = row['Kategori'] || row['kategori'] || 'Umum';
+            const satuanNama = row['Satuan'] || row['satuan'] || 'PCS';
+            
+            // Validate required fields
+            if (!barcode || !nama) {
+                throw new Error(`Baris ${index + 2}: Barcode dan Nama barang wajib diisi`);
+            }
+            
+            // Check if barcode already exists
+            const existingItem = barang.find(item => item.barcode === barcode);
+            if (existingItem) {
+                throw new Error(`Baris ${index + 2}: Barcode '${barcode}' sudah ada`);
+            }
+            
+            // Find or create kategori
+            let kategoriId = '';
+            let existingKategori = kategori.find(k => k.nama.toLowerCase() === kategoriNama.toLowerCase());
+            if (!existingKategori) {
+                kategoriId = generateId();
+                kategori.push({ id: kategoriId, nama: kategoriNama });
+            } else {
+                kategoriId = existingKategori.id;
+            }
+            
+            // Find or create satuan
+            let satuanId = '';
+            let existingSatuan = satuan.find(s => s.nama.toLowerCase() === satuanNama.toLowerCase());
+            if (!existingSatuan) {
+                satuanId = generateId();
+                satuan.push({ id: satuanId, nama: satuanNama });
+            } else {
+                satuanId = existingSatuan.id;
+            }
+            
+            const newBarang = {
+                id: generateId(),
+                barcode: barcode,
+                nama: nama,
+                kategoriId: kategoriId,
+                satuanId: satuanId,
+                stok: parseFloat(row['Stok Awal'] || row['Stok'] || row['stok'] || 0),
+                hpp: parseFloat(row['HPP'] || row['hpp'] || row['Harga Beli'] || 0),
+                hargaJual: parseFloat(row['Harga Jual'] || row['harga_jual'] || 0)
+            };
+            
+            // Add to data
+            barang.push(newBarang);
+            successCount++;
+            
+        } catch (error) {
+            errorCount++;
+            errors.push(error.message);
+        }
+    });
+    
+    // Save to localStorage
+    localStorage.setItem('barang', JSON.stringify(barang));
+    localStorage.setItem('kategori', JSON.stringify(kategori));
+    localStorage.setItem('satuan', JSON.stringify(satuan));
+    
+    // Show results
+    let message = `Import selesai!\n\nBerhasil: ${successCount} data\nGagal: ${errorCount} data`;
+    
+    if (errors.length > 0) {
+        message += '\n\nError:\n' + errors.slice(0, 5).join('\n');
+        if (errors.length > 5) {
+            message += `\n... dan ${errors.length - 5} error lainnya`;
+        }
+    }
+    
+    showAlert(message, successCount > 0 ? 'success' : 'warning');
+    
+    // Refresh table
+    renderBarang();
+}
+
+/**
+ * Open export dialog for Master Barang
+ */
+function openBarangExportDialog() {
+    const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+    
+    const modal = `
+        <div class="modal fade" id="barangExportModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-download"></i> Export Data Master Barang</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Format Export:</label>
+                            <select id="barangExportFormat" class="form-select">
+                                <option value="excel">Excel (.xlsx)</option>
+                                <option value="csv">CSV (.csv)</option>
+                                <option value="json">JSON (.json)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Data yang akan diekspor: <strong>${barang.length}</strong> barang
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-success" onclick="processBarangExport()">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('barangExportModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modal);
+    
+    // Show modal
+    const modalInstance = new bootstrap.Modal(document.getElementById('barangExportModal'));
+    modalInstance.show();
+}
+
+/**
+ * Process export from modal
+ */
+function processBarangExport() {
+    const format = document.getElementById('barangExportFormat').value;
+    const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+    const kategori = JSON.parse(localStorage.getItem('kategori') || '[]');
+    const satuan = JSON.parse(localStorage.getItem('satuan') || '[]');
+    
+    if (barang.length === 0) {
+        showAlert('Tidak ada data untuk diekspor', 'warning');
+        return;
+    }
+    
+    // Prepare data with kategori and satuan names
+    const exportData = barang.map(b => {
+        const kat = kategori.find(k => k.id === b.kategoriId);
+        const sat = satuan.find(s => s.id === b.satuanId);
+        
+        return {
+            barcode: b.barcode,
+            nama: b.nama,
+            kategori: kat?.nama || '-',
+            satuan: sat?.nama || '-',
+            stok: b.stok,
+            hpp: b.hpp,
+            hargaJual: b.hargaJual
+        };
+    });
+    
+    const fileName = `export_master_barang_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.${format}`;
+    
+    if (format === 'csv') {
+        exportBarangToCSV(exportData, fileName);
+    } else if (format === 'excel') {
+        exportBarangToExcel(exportData, fileName);
+    } else if (format === 'json') {
+        exportBarangToJSON(exportData, fileName);
+    }
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('barangExportModal'));
+    modal.hide();
+    
+    showAlert(`Data berhasil diekspor ke file: ${fileName}`, 'success');
+}
+
+/**
+ * Export barang data to CSV
+ * @param {Array} data - Barang data
+ * @param {string} fileName - File name
+ */
+function exportBarangToCSV(data, fileName) {
+    const headers = ['Barcode', 'Nama Barang', 'Kategori', 'Satuan', 'Stok', 'HPP', 'Harga Jual'];
+    const csvContent = [
+        headers.join(','),
+        ...data.map(item => [
+            item.barcode || '',
+            item.nama || '',
+            item.kategori || '',
+            item.satuan || '',
+            item.stok || 0,
+            item.hpp || 0,
+            item.hargaJual || 0
+        ].map(cell => {
+            const cellStr = String(cell);
+            if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                return '"' + cellStr.replace(/"/g, '""') + '"';
+            }
+            return cellStr;
+        }).join(','))
+    ].join('\n');
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, fileName);
+}
+
+/**
+ * Export barang data to Excel
+ * @param {Array} data - Barang data
+ * @param {string} fileName - File name
+ */
+function exportBarangToExcel(data, fileName) {
+    let html = '<table>';
+    
+    // Headers
+    const headers = ['Barcode', 'Nama Barang', 'Kategori', 'Satuan', 'Stok', 'HPP', 'Harga Jual'];
+    html += '<tr>';
+    headers.forEach(header => {
+        html += `<th>${escapeHtml(header)}</th>`;
+    });
+    html += '</tr>';
+    
+    // Data
+    data.forEach(item => {
+        html += '<tr>';
+        [
+            item.barcode || '',
+            item.nama || '',
+            item.kategori || '',
+            item.satuan || '',
+            item.stok || 0,
+            item.hpp || 0,
+            item.hargaJual || 0
+        ].forEach(cell => {
+            html += `<td>${escapeHtml(cell)}</td>`;
+        });
+        html += '</tr>';
+    });
+    
+    html += '</table>';
+
+    const blob = new Blob([html], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    downloadBlob(blob, fileName);
+}
+
+/**
+ * Export barang data to JSON
+ * @param {Array} data - Barang data
+ * @param {string} fileName - File name
+ */
+function exportBarangToJSON(data, fileName) {
+    const jsonContent = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    downloadBlob(blob, fileName);
+}
+
+/**
+ * Utility function to download blob as file
+ * @param {Blob} blob - Blob to download
+ * @param {string} fileName - File name
+ */
+function downloadBlob(blob, fileName) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+}
+
+/**
+ * Utility function to escape HTML
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped text
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

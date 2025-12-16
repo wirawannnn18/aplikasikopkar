@@ -425,11 +425,13 @@
                 data: [
                     ['BRG001', 'Beras Premium 5kg', 'Sembako', 'Karung', '45000', '50000', '100', '10', 'Beras premium kualitas terbaik'],
                     ['BRG002', 'Minyak Goreng 1L', 'Sembako', 'Botol', '12000', '14000', '50', '5', 'Minyak goreng berkualitas'],
-                    ['BRG003', 'Gula Pasir 1kg', 'Sembako', 'Kg', '13000', '15000', '75', '15', 'Gula pasir putih bersih']
+                    ['BRG003', 'Gula Pasir 1kg', 'Sembako', 'Kg', '13000', '15000', '75', '15', 'Gula pasir putih bersih'],
+                    ['BRG004', 'Teh Celup 25pcs', 'Minuman', 'Dus', '8000', '10000', '30', '5', 'Teh celup kemasan dus'],
+                    ['BRG005', 'Kopi Sachet 10pcs', 'Minuman', 'Dus', '15000', '18000', '25', '5', 'Kopi instan kemasan sachet']
                 ]
             };
 
-            const fileName = `template_master_barang_${new Date().toISOString().slice(0, 10)}.${format}`;
+            const fileName = `template_master_barang_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : format}`;
             
             if (format === 'csv') {
                 downloadCSV(templateData, fileName);
@@ -579,11 +581,170 @@
                 return;
             }
             
-            // Simulate import process
+            // Show loading
+            showLoading('Memproses import data...');
+            
+            // Process file
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let data;
+                    const fileName = file.name.toLowerCase();
+                    
+                    if (fileName.endsWith('.csv')) {
+                        data = parseCSV(e.target.result);
+                    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                        // For Excel files, we'll simulate parsing for now
+                        // In real implementation, you'd use a library like SheetJS
+                        alert('Untuk implementasi lengkap Excel, gunakan library seperti SheetJS. Saat ini gunakan format CSV.');
+                        hideLoading();
+                        return;
+                    } else {
+                        throw new Error('Format file tidak didukung');
+                    }
+                    
+                    // Validate and import data
+                    importBarangData(data);
+                    
+                } catch (error) {
+                    hideLoading();
+                    alert('Error memproses file: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+            
+            // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
             modal.hide();
+        }
+
+        // Parse CSV data
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
             
-            // Show success message
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = parseCSVLine(lines[i]);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                }
+            }
+            
+            return data;
+        }
+
+        // Parse CSV line handling quotes and commas
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+
+        // Import barang data
+        function importBarangData(data) {
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            data.forEach((row, index) => {
+                try {
+                    // Map CSV columns to our data structure
+                    const barang = {
+                        id: 'brg' + Date.now() + '_' + index,
+                        kode: row['Kode Barang'] || row['Kode'] || '',
+                        nama: row['Nama Barang'] || row['Nama'] || '',
+                        kategori_id: 'kat' + Date.now(),
+                        kategori_nama: row['Kategori'] || 'Umum',
+                        satuan_id: 'sat' + Date.now(),
+                        satuan_nama: row['Satuan'] || 'PCS',
+                        harga_beli: parseInt(row['Harga Beli']) || 0,
+                        harga_jual: parseInt(row['Harga Jual']) || 0,
+                        stok: parseInt(row['Stok']) || 0,
+                        stok_minimum: parseInt(row['Stok Minimum']) || 0,
+                        deskripsi: row['Deskripsi'] || '',
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    // Validate required fields
+                    if (!barang.kode || !barang.nama) {
+                        throw new Error(`Baris ${index + 2}: Kode dan Nama barang wajib diisi`);
+                    }
+                    
+                    // Check if kode already exists
+                    const existingItem = masterBarangData.find(item => item.kode === barang.kode);
+                    if (existingItem) {
+                        throw new Error(`Baris ${index + 2}: Kode barang '${barang.kode}' sudah ada`);
+                    }
+                    
+                    // Add to data
+                    masterBarangData.push(barang);
+                    successCount++;
+                    
+                } catch (error) {
+                    errorCount++;
+                    errors.push(error.message);
+                }
+            });
+            
+            // Save to localStorage
+            localStorage.setItem('master_barang', JSON.stringify(masterBarangData));
+            
+            // Show results
+            hideLoading();
+            
+            let message = `Import selesai!\n\nBerhasil: ${successCount} data\nGagal: ${errorCount} data`;
+            
+            if (errors.length > 0) {
+                message += '\n\nError:\n' + errors.slice(0, 5).join('\n');
+                if (errors.length > 5) {
+                    message += `\n... dan ${errors.length - 5} error lainnya`;
+                }
+            }
+            
+            alert(message);
+            
+            // Refresh table
+            loadTableData();
+        }
+
+        // Show loading overlay
+        function showLoading(message = 'Memproses...') {
+            const overlay = document.getElementById('loading-overlay');
+            const text = overlay.querySelector('.loading-text');
+            if (text) text.textContent = message;
+            overlay.style.display = 'flex';
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'none';
+        }
+
+        // Show success message
             setTimeout(() => {
                 alert('Import berhasil! Data telah ditambahkan ke sistem.\n\nCatatan: Ini adalah simulasi. Untuk implementasi lengkap, diperlukan parser file Excel/CSV.');
                 loadTableData();
@@ -832,26 +993,43 @@
         }
 
         // Load table data
-        function loadTableData() {
+        function loadTableData(dataToShow = null) {
             const tbody = document.getElementById('barang-tbody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
-                masterBarangData.forEach((item, index) => {
+                const data = dataToShow || masterBarangData;
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                ${dataToShow ? 'Tidak ada data yang sesuai dengan filter' : 'Belum ada data barang'}
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                data.forEach((item, index) => {
+                    const stockClass = item.stok <= item.stok_minimum ? 'text-danger' : '';
                     const row = `
                         <tr>
                             <td><input type="checkbox" value="${item.id}"></td>
                             <td>${item.kode}</td>
                             <td>${item.nama}</td>
-                            <td>${item.kategori_nama}</td>
-                            <td>${item.satuan_nama}</td>
+                            <td><span class="badge bg-secondary">${item.kategori_nama}</span></td>
+                            <td><span class="badge bg-info">${item.satuan_nama}</span></td>
                             <td>Rp ${item.harga_jual.toLocaleString()}</td>
-                            <td>${item.stok}</td>
+                            <td class="${stockClass}">
+                                ${item.stok}
+                                ${item.stok <= item.stok_minimum ? '<i class="fas fa-exclamation-triangle text-warning" title="Stok rendah"></i>' : ''}
+                            </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="editItem('${item.id}')">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editItem('${item.id}')" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('${item.id}')">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('${item.id}')" title="Hapus">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>
@@ -860,15 +1038,387 @@
                     tbody.innerHTML += row;
                 });
             }
+            
+            // Update filter dropdowns
+            updateFilterDropdowns();
         }
 
-        // Placeholder functions
+        // Update filter dropdowns
+        function updateFilterDropdowns() {
+            const categoryFilter = document.getElementById('category-filter');
+            const unitFilter = document.getElementById('unit-filter');
+            
+            if (categoryFilter) {
+                const categories = [...new Set(masterBarangData.map(item => item.kategori_nama))];
+                const currentValue = categoryFilter.value;
+                
+                categoryFilter.innerHTML = '<option value="">Semua Kategori</option>';
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    if (category === currentValue) option.selected = true;
+                    categoryFilter.appendChild(option);
+                });
+            }
+            
+            if (unitFilter) {
+                const units = [...new Set(masterBarangData.map(item => item.satuan_nama))];
+                const currentValue = unitFilter.value;
+                
+                unitFilter.innerHTML = '<option value="">Semua Satuan</option>';
+                units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit;
+                    option.textContent = unit;
+                    if (unit === currentValue) option.selected = true;
+                    unitFilter.appendChild(option);
+                });
+            }
+        }
+
+        // Show add form
         function showAddForm() {
-            alert('Fitur tambah barang akan segera tersedia');
+            const modal = `
+                <div class="modal fade" id="addBarangModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Tambah Barang Baru</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="addBarangForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Kode Barang *</label>
+                                                <input type="text" id="kode" class="form-control" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Nama Barang *</label>
+                                                <input type="text" id="nama" class="form-control" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Kategori</label>
+                                                <select id="kategori" class="form-select">
+                                                    <option value="Sembako">Sembako</option>
+                                                    <option value="Minuman">Minuman</option>
+                                                    <option value="Makanan">Makanan</option>
+                                                    <option value="Peralatan">Peralatan</option>
+                                                    <option value="Lainnya">Lainnya</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Satuan</label>
+                                                <select id="satuan" class="form-select">
+                                                    <option value="PCS">PCS</option>
+                                                    <option value="Kg">Kg</option>
+                                                    <option value="Liter">Liter</option>
+                                                    <option value="Karung">Karung</option>
+                                                    <option value="Botol">Botol</option>
+                                                    <option value="Dus">Dus</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Harga Beli</label>
+                                                <input type="number" id="harga_beli" class="form-control" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Harga Jual</label>
+                                                <input type="number" id="harga_jual" class="form-control" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Stok</label>
+                                                <input type="number" id="stok" class="form-control" min="0" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Stok Minimum</label>
+                                                <input type="number" id="stok_minimum" class="form-control" min="0" value="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Deskripsi</label>
+                                        <textarea id="deskripsi" class="form-control" rows="3"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="button" class="btn btn-primary" onclick="saveBarang()">
+                                    <i class="fas fa-save"></i> Simpan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal
+            const existingModal = document.getElementById('addBarangModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add modal
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // Show modal
+            const modalInstance = new bootstrap.Modal(document.getElementById('addBarangModal'));
+            modalInstance.show();
+        }
+
+        // Save barang
+        function saveBarang() {
+            const form = document.getElementById('addBarangForm');
+            const formData = new FormData(form);
+            
+            // Get form values
+            const kode = document.getElementById('kode').value.trim();
+            const nama = document.getElementById('nama').value.trim();
+            const kategori = document.getElementById('kategori').value;
+            const satuan = document.getElementById('satuan').value;
+            const harga_beli = parseInt(document.getElementById('harga_beli').value) || 0;
+            const harga_jual = parseInt(document.getElementById('harga_jual').value) || 0;
+            const stok = parseInt(document.getElementById('stok').value) || 0;
+            const stok_minimum = parseInt(document.getElementById('stok_minimum').value) || 0;
+            const deskripsi = document.getElementById('deskripsi').value.trim();
+            
+            // Validate
+            if (!kode || !nama) {
+                alert('Kode dan Nama barang wajib diisi');
+                return;
+            }
+            
+            // Check if kode already exists
+            const existingItem = masterBarangData.find(item => item.kode === kode);
+            if (existingItem) {
+                alert('Kode barang sudah ada, gunakan kode yang berbeda');
+                return;
+            }
+            
+            // Create new barang
+            const newBarang = {
+                id: 'brg' + Date.now(),
+                kode: kode,
+                nama: nama,
+                kategori_id: 'kat' + Date.now(),
+                kategori_nama: kategori,
+                satuan_id: 'sat' + Date.now(),
+                satuan_nama: satuan,
+                harga_beli: harga_beli,
+                harga_jual: harga_jual,
+                stok: stok,
+                stok_minimum: stok_minimum,
+                deskripsi: deskripsi,
+                status: 'aktif',
+                created_at: new Date().toISOString()
+            };
+            
+            // Add to data
+            masterBarangData.push(newBarang);
+            
+            // Save to localStorage
+            localStorage.setItem('master_barang', JSON.stringify(masterBarangData));
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addBarangModal'));
+            modal.hide();
+            
+            // Refresh table
+            loadTableData();
+            
+            alert('Barang berhasil ditambahkan!');
         }
 
         function showBulkOperations() {
-            alert('Fitur operasi massal akan segera tersedia');
+            const selectedItems = getSelectedItems();
+            if (selectedItems.length === 0) {
+                alert('Pilih minimal satu barang untuk operasi massal');
+                return;
+            }
+            
+            const modal = `
+                <div class="modal fade" id="bulkOperationsModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Operasi Massal</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><strong>${selectedItems.length}</strong> barang dipilih</p>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Pilih Operasi:</label>
+                                    <select id="bulkOperation" class="form-select">
+                                        <option value="">-- Pilih Operasi --</option>
+                                        <option value="delete">Hapus Semua</option>
+                                        <option value="updateCategory">Update Kategori</option>
+                                        <option value="updateUnit">Update Satuan</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="bulkOperationOptions" style="display: none;">
+                                    <!-- Options will be populated based on selected operation -->
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="button" class="btn btn-primary" onclick="executeBulkOperation()" id="executeBulkBtn" disabled>
+                                    <i class="fas fa-check"></i> Jalankan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal
+            const existingModal = document.getElementById('bulkOperationsModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add modal
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // Add event listener for operation selection
+            document.getElementById('bulkOperation').addEventListener('change', function() {
+                const operation = this.value;
+                const optionsDiv = document.getElementById('bulkOperationOptions');
+                const executeBtn = document.getElementById('executeBulkBtn');
+                
+                if (operation) {
+                    executeBtn.disabled = false;
+                    optionsDiv.style.display = 'block';
+                    
+                    if (operation === 'updateCategory') {
+                        optionsDiv.innerHTML = `
+                            <label class="form-label">Kategori Baru:</label>
+                            <select id="newCategory" class="form-select">
+                                <option value="Sembako">Sembako</option>
+                                <option value="Minuman">Minuman</option>
+                                <option value="Makanan">Makanan</option>
+                                <option value="Peralatan">Peralatan</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        `;
+                    } else if (operation === 'updateUnit') {
+                        optionsDiv.innerHTML = `
+                            <label class="form-label">Satuan Baru:</label>
+                            <select id="newUnit" class="form-select">
+                                <option value="PCS">PCS</option>
+                                <option value="Kg">Kg</option>
+                                <option value="Liter">Liter</option>
+                                <option value="Karung">Karung</option>
+                                <option value="Botol">Botol</option>
+                                <option value="Dus">Dus</option>
+                            </select>
+                        `;
+                    } else {
+                        optionsDiv.innerHTML = '';
+                    }
+                } else {
+                    executeBtn.disabled = true;
+                    optionsDiv.style.display = 'none';
+                }
+            });
+            
+            // Show modal
+            const modalInstance = new bootstrap.Modal(document.getElementById('bulkOperationsModal'));
+            modalInstance.show();
+        }
+
+        // Get selected items
+        function getSelectedItems() {
+            const checkboxes = document.querySelectorAll('#barang-tbody input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Execute bulk operation
+        function executeBulkOperation() {
+            const operation = document.getElementById('bulkOperation').value;
+            const selectedIds = getSelectedItems();
+            
+            if (!operation || selectedIds.length === 0) {
+                alert('Pilih operasi dan barang yang akan diproses');
+                return;
+            }
+            
+            let confirmMessage = '';
+            
+            switch (operation) {
+                case 'delete':
+                    confirmMessage = `Apakah Anda yakin ingin menghapus ${selectedIds.length} barang?`;
+                    break;
+                case 'updateCategory':
+                    const newCategory = document.getElementById('newCategory').value;
+                    confirmMessage = `Apakah Anda yakin ingin mengubah kategori ${selectedIds.length} barang menjadi "${newCategory}"?`;
+                    break;
+                case 'updateUnit':
+                    const newUnit = document.getElementById('newUnit').value;
+                    confirmMessage = `Apakah Anda yakin ingin mengubah satuan ${selectedIds.length} barang menjadi "${newUnit}"?`;
+                    break;
+            }
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Execute operation
+            let successCount = 0;
+            
+            selectedIds.forEach(id => {
+                const itemIndex = masterBarangData.findIndex(item => item.id === id);
+                if (itemIndex !== -1) {
+                    switch (operation) {
+                        case 'delete':
+                            masterBarangData.splice(itemIndex, 1);
+                            successCount++;
+                            break;
+                        case 'updateCategory':
+                            masterBarangData[itemIndex].kategori_nama = document.getElementById('newCategory').value;
+                            masterBarangData[itemIndex].updated_at = new Date().toISOString();
+                            successCount++;
+                            break;
+                        case 'updateUnit':
+                            masterBarangData[itemIndex].satuan_nama = document.getElementById('newUnit').value;
+                            masterBarangData[itemIndex].updated_at = new Date().toISOString();
+                            successCount++;
+                            break;
+                    }
+                }
+            });
+            
+            // Save to localStorage
+            localStorage.setItem('master_barang', JSON.stringify(masterBarangData));
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('bulkOperationsModal'));
+            modal.hide();
+            
+            // Refresh table
+            loadTableData();
+            
+            alert(`Operasi berhasil dijalankan untuk ${successCount} barang`);
         }
 
         function refreshData() {
@@ -881,11 +1431,230 @@
         }
 
         function applyFilters() {
-            alert('Fitur filter akan segera tersedia');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const categoryFilter = document.getElementById('category-filter').value;
+            const unitFilter = document.getElementById('unit-filter').value;
+            
+            let filteredData = masterBarangData;
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredData = filteredData.filter(item => 
+                    item.kode.toLowerCase().includes(searchTerm) ||
+                    item.nama.toLowerCase().includes(searchTerm) ||
+                    item.kategori_nama.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Apply category filter
+            if (categoryFilter) {
+                filteredData = filteredData.filter(item => item.kategori_nama === categoryFilter);
+            }
+            
+            // Apply unit filter
+            if (unitFilter) {
+                filteredData = filteredData.filter(item => item.satuan_nama === unitFilter);
+            }
+            
+            // Update table with filtered data
+            loadTableData(filteredData);
         }
 
+        // Real-time search
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    applyFilters();
+                });
+            }
+            
+            const categoryFilter = document.getElementById('category-filter');
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', function() {
+                    applyFilters();
+                });
+            }
+            
+            const unitFilter = document.getElementById('unit-filter');
+            if (unitFilter) {
+                unitFilter.addEventListener('change', function() {
+                    applyFilters();
+                });
+            }
+        });
+
         function editItem(id) {
-            alert('Fitur edit barang akan segera tersedia');
+            const item = masterBarangData.find(barang => barang.id === id);
+            if (!item) {
+                alert('Data barang tidak ditemukan');
+                return;
+            }
+            
+            const modal = `
+                <div class="modal fade" id="editBarangModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Barang</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editBarangForm">
+                                    <input type="hidden" id="edit_id" value="${item.id}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Kode Barang *</label>
+                                                <input type="text" id="edit_kode" class="form-control" value="${item.kode}" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Nama Barang *</label>
+                                                <input type="text" id="edit_nama" class="form-control" value="${item.nama}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Kategori</label>
+                                                <select id="edit_kategori" class="form-select">
+                                                    <option value="Sembako" ${item.kategori_nama === 'Sembako' ? 'selected' : ''}>Sembako</option>
+                                                    <option value="Minuman" ${item.kategori_nama === 'Minuman' ? 'selected' : ''}>Minuman</option>
+                                                    <option value="Makanan" ${item.kategori_nama === 'Makanan' ? 'selected' : ''}>Makanan</option>
+                                                    <option value="Peralatan" ${item.kategori_nama === 'Peralatan' ? 'selected' : ''}>Peralatan</option>
+                                                    <option value="Lainnya" ${item.kategori_nama === 'Lainnya' ? 'selected' : ''}>Lainnya</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Satuan</label>
+                                                <select id="edit_satuan" class="form-select">
+                                                    <option value="PCS" ${item.satuan_nama === 'PCS' ? 'selected' : ''}>PCS</option>
+                                                    <option value="Kg" ${item.satuan_nama === 'Kg' ? 'selected' : ''}>Kg</option>
+                                                    <option value="Liter" ${item.satuan_nama === 'Liter' ? 'selected' : ''}>Liter</option>
+                                                    <option value="Karung" ${item.satuan_nama === 'Karung' ? 'selected' : ''}>Karung</option>
+                                                    <option value="Botol" ${item.satuan_nama === 'Botol' ? 'selected' : ''}>Botol</option>
+                                                    <option value="Dus" ${item.satuan_nama === 'Dus' ? 'selected' : ''}>Dus</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Harga Beli</label>
+                                                <input type="number" id="edit_harga_beli" class="form-control" value="${item.harga_beli}" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Harga Jual</label>
+                                                <input type="number" id="edit_harga_jual" class="form-control" value="${item.harga_jual}" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Stok</label>
+                                                <input type="number" id="edit_stok" class="form-control" value="${item.stok}" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Stok Minimum</label>
+                                                <input type="number" id="edit_stok_minimum" class="form-control" value="${item.stok_minimum}" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Deskripsi</label>
+                                        <textarea id="edit_deskripsi" class="form-control" rows="3">${item.deskripsi}</textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="button" class="btn btn-primary" onclick="updateBarang()">
+                                    <i class="fas fa-save"></i> Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal
+            const existingModal = document.getElementById('editBarangModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add modal
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // Show modal
+            const modalInstance = new bootstrap.Modal(document.getElementById('editBarangModal'));
+            modalInstance.show();
+        }
+
+        // Update barang
+        function updateBarang() {
+            const id = document.getElementById('edit_id').value;
+            const kode = document.getElementById('edit_kode').value.trim();
+            const nama = document.getElementById('edit_nama').value.trim();
+            const kategori = document.getElementById('edit_kategori').value;
+            const satuan = document.getElementById('edit_satuan').value;
+            const harga_beli = parseInt(document.getElementById('edit_harga_beli').value) || 0;
+            const harga_jual = parseInt(document.getElementById('edit_harga_jual').value) || 0;
+            const stok = parseInt(document.getElementById('edit_stok').value) || 0;
+            const stok_minimum = parseInt(document.getElementById('edit_stok_minimum').value) || 0;
+            const deskripsi = document.getElementById('edit_deskripsi').value.trim();
+            
+            // Validate
+            if (!kode || !nama) {
+                alert('Kode dan Nama barang wajib diisi');
+                return;
+            }
+            
+            // Check if kode already exists (excluding current item)
+            const existingItem = masterBarangData.find(item => item.kode === kode && item.id !== id);
+            if (existingItem) {
+                alert('Kode barang sudah ada, gunakan kode yang berbeda');
+                return;
+            }
+            
+            // Find and update item
+            const itemIndex = masterBarangData.findIndex(item => item.id === id);
+            if (itemIndex !== -1) {
+                masterBarangData[itemIndex] = {
+                    ...masterBarangData[itemIndex],
+                    kode: kode,
+                    nama: nama,
+                    kategori_nama: kategori,
+                    satuan_nama: satuan,
+                    harga_beli: harga_beli,
+                    harga_jual: harga_jual,
+                    stok: stok,
+                    stok_minimum: stok_minimum,
+                    deskripsi: deskripsi,
+                    updated_at: new Date().toISOString()
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('master_barang', JSON.stringify(masterBarangData));
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editBarangModal'));
+                modal.hide();
+                
+                // Refresh table
+                loadTableData();
+                
+                alert('Barang berhasil diupdate!');
+            }
         }
 
         function deleteItem(id) {

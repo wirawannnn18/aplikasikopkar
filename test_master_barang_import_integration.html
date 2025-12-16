@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Master Barang Import Integration</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Master Barang Import Integration</h2>
+        <p class="text-muted">Testing the integrated import functionality in Master Barang menu</p>
+        
+        <div class="alert alert-info">
+            <h5>Test Steps:</h5>
+            <ol>
+                <li>Click "Master Barang" to render the page</li>
+                <li>Check if Template dropdown appears</li>
+                <li>Check if Import Data button appears</li>
+                <li>Check if Export Data button appears</li>
+                <li>Test template download functionality</li>
+                <li>Test import dialog opening</li>
+                <li>Test export dialog opening</li>
+            </ol>
+        </div>
+        
+        <div class="mb-3">
+            <button class="btn btn-primary" onclick="testRenderBarang()">Test Master Barang Render</button>
+            <button class="btn btn-secondary" onclick="testTemplateDownload()">Test Template Download</button>
+            <button class="btn btn-warning" onclick="testImportDialog()">Test Import Dialog</button>
+            <button class="btn btn-success" onclick="testExportDialog()">Test Export Dialog</button>
+        </div>
+        
+        <div id="testResults" class="mt-4"></div>
+        <div id="mainContent" class="mt-4"></div>
+    </div>
+
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/inventory.js"></script>
+    
+    <script>
+        // Test functions
+        function testRenderBarang() {
+            try {
+                renderBarang();
+                logResult('✅ renderBarang() executed successfully');
+                
+                // Check if new buttons exist
+                const templateBtn = document.querySelector('[data-bs-toggle="dropdown"]');
+                const importBtn = document.querySelector('[onclick="openBarangImportDialog()"]');
+                const exportBtn = document.querySelector('[onclick="openBarangExportDialog()"]');
+                
+                if (templateBtn) {
+                    logResult('✅ Template dropdown button found');
+                } else {
+                    logResult('❌ Template dropdown button NOT found');
+                }
+                
+                if (importBtn) {
+                    logResult('✅ Import Data button found');
+                } else {
+                    logResult('❌ Import Data button NOT found');
+                }
+                
+                if (exportBtn) {
+                    logResult('✅ Export Data button found');
+                } else {
+                    logResult('❌ Export Data button NOT found');
+                }
+                
+            } catch (error) {
+                logResult('❌ Error in renderBarang(): ' + error.message);
+            }
+        }
+        
+        function testTemplateDownload() {
+            try {
+                if (typeof downloadBarangTemplate === 'function') {
+                    logResult('✅ downloadBarangTemplate function exists');
+                    // Test CSV template
+                    downloadBarangTemplate('csv');
+                    logResult('✅ CSV template download triggered');
+                } else {
+                    logResult('❌ downloadBarangTemplate function NOT found');
+                }
+            } catch (error) {
+                logResult('❌ Error in template download: ' + error.message);
+            }
+        }
+        
+        function testImportDialog() {
+            try {
+                if (typeof openBarangImportDialog === 'function') {
+                    logResult('✅ openBarangImportDialog function exists');
+                    openBarangImportDialog();
+                    logResult('✅ Import dialog opened');
+                } else {
+                    logResult('❌ openBarangImportDialog function NOT found');
+                }
+            } catch (error) {
+                logResult('❌ Error opening import dialog: ' + error.message);
+            }
+        }
+        
+        function testExportDialog() {
+            try {
+                if (typeof openBarangExportDialog === 'function') {
+                    logResult('✅ openBarangExportDialog function exists');
+                    openBarangExportDialog();
+                    logResult('✅ Export dialog opened');
+                } else {
+                    logResult('❌ openBarangExportDialog function NOT found');
+                }
+            } catch (error) {
+                logResult('❌ Error opening export dialog: ' + error.message);
+            }
+        }
+        
+        function logResult(message) {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = 'alert alert-' + (message.includes('✅') ? 'success' : 'danger');
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        // Initialize some sample data for testing
+        if (!localStorage.getItem('barang')) {
+            const sampleBarang = [
+                {
+                    id: 'brg1',
+                    barcode: 'BRG001',
+                    nama: 'Beras Premium 5kg',
+                    kategoriId: 'kat1',
+                    satuanId: 'sat1',
+                    stok: 100,
+                    hpp: 45000,
+                    hargaJual: 50000
+                }
+            ];
+            localStorage.setItem('barang', JSON.stringify(sampleBarang));
+        }
+        
+        if (!localStorage.getItem('kategori')) {
+            const sampleKategori = [
+                { id: 'kat1', nama: 'Sembako' }
+            ];
+            localStorage.setItem('kategori', JSON.stringify(sampleKategori));
+        }
+        
+        if (!localStorage.getItem('satuan')) {
+            const sampleSatuan = [
+                { id: 'sat1', nama: 'Karung' }
+            ];
+            localStorage.setItem('satuan', JSON.stringify(sampleSatuan));
+        }
+        
+        logResult('🔧 Test environment initialized with sample data');
+    </script>
+</body>
+</html>
