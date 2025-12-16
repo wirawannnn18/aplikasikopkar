@@ -491,15 +491,41 @@ function renderPOS() {
                 to { opacity: 1; transform: translateY(0); }
             }
 
-            /* Debug styles - ensure cart is visible */
+            /* CRITICAL FIX - Force cart visibility */
             .cart-column {
-                min-height: 100% !important;
                 display: block !important;
+                width: 400px !important;
+                min-width: 400px !important;
+                max-width: 400px !important;
+                flex-shrink: 0 !important;
+                background: white !important;
+                border-left: 3px solid #52b788 !important;
+                box-shadow: -2px 0 10px rgba(45, 106, 79, 0.1) !important;
+                position: relative !important;
+                z-index: 1 !important;
             }
             
             .cart-section {
-                min-height: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 20px !important;
                 visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            .main-content {
+                display: flex !important;
+                flex-direction: row !important;
+                width: 100% !important;
+                height: calc(100vh - 80px) !important;
+            }
+            
+            .products-section {
+                flex: 1 !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
             }
         </style>
         
@@ -547,8 +573,8 @@ function renderPOS() {
                 </div>
 
                 <!-- Cart Section -->
-                <div class="cart-column" style="display: block !important; visibility: visible !important;">
-                    <div class="cart-section fade-in" style="display: flex !important; flex-direction: column !important;">
+                <div class="cart-column" style="display: block !important; width: 400px !important; min-width: 400px !important; background: white !important; border-left: 3px solid #52b788 !important; flex-shrink: 0 !important;">
+                    <div class="cart-section fade-in" style="display: flex !important; flex-direction: column !important; height: 100% !important; padding: 20px !important;">
                         <!-- Cart Header -->
                         <div class="cart-header">
                             <div class="cart-icon">
