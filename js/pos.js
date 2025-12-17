@@ -582,6 +582,9 @@ function renderPOS() {
                     <div class="text-end">
                         <div class="d-flex gap-2 align-items-center">
                             <small class="opacity-75">F1: Search | ESC: Exit | F12: Clear</small>
+                            <button class="btn btn-warning btn-sm me-2" onclick="showTutupKasirModal()">
+                                <i class="bi bi-calculator me-1"></i>Tutup Kasir
+                            </button>
                             <button class="btn btn-outline-light btn-sm" onclick="exitPOSFullscreen()">
                                 <i class="bi bi-arrow-left me-1"></i>Kembali ke Menu
                             </button>
@@ -1299,5 +1302,454 @@ function showBukaKasModal() {
         
         showAlert('Kas berhasil dibuka');
         renderPOS();
+    });
+}
+
+// Show tutup kasir modal
+function showTutupKasirModal() {
+    const bukaKas = sessionStorage.getItem('bukaKas');
+    if (!bukaKas) {
+        showAlert('Belum ada kas yang dibuka', 'error');
+        return;
+    }
+    
+    const shiftData = JSON.parse(bukaKas);
+    const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+    
+    // Filter penjualan untuk shift ini (berdasarkan waktu)
+    const waktuBuka = new Date(shiftData.waktuBuka);
+    const sekarang = new Date();
+    
+    const penjualanShift = penjualan.filter(p => {
+        const tanggalPenjualan = new Date(p.tanggal);
+        return tanggalPenjualan >= waktuBuka && tanggalPenjualan <= sekarang;
+    });
+    
+    // Hitung total penjualan
+    const totalPenjualan = penjualanShift.reduce((sum, p) => sum + p.total, 0);
+    const totalCash = penjualanShift.filter(p => p.status === 'cash').reduce((sum, p) => sum + p.total, 0);
+    const totalKredit = penjualanShift.filter(p => p.status === 'kredit').reduce((sum, p) => sum + p.total, 0);
+    
+    // Kas yang seharusnya ada
+    const kasSeharusnya = shiftData.modalAwal + totalCash;
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="tutupKasirModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">
+                            <i class="bi bi-calculator me-2"></i>Tutup Kasir
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Informasi Shift</h6>
+                                        <p class="mb-1"><strong>Kasir:</strong> ${shiftData.kasir}</p>
+                                        <p class="mb-1"><strong>Waktu Buka:</strong> ${formatDateTime(shiftData.waktuBuka)}</p>
+                                        <p class="mb-0"><strong>Modal Awal:</strong> ${formatRupiah(shiftData.modalAwal)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Ringkasan Penjualan</h6>
+                                        <p class="mb-1"><strong>Total Transaksi:</strong> ${penjualanShift.length}</p>
+                                        <p class="mb-1"><strong>Penjualan Cash:</strong> ${formatRupiah(totalCash)}</p>
+                                        <p class="mb-0"><strong>Penjualan Kredit:</strong> ${formatRupiah(totalKredit)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Perhitungan Kas</h6>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <p class="mb-1">Modal Awal:</p>
+                                                <h5 class="text-primary">${formatRupiah(shiftData.modalAwal)}</h5>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <p class="mb-1">Penjualan Cash:</p>
+                                                <h5 class="text-success">${formatRupiah(totalCash)}</h5>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <p class="mb-1">Kas Seharusnya:</p>
+                                                <h5 class="text-info">${formatRupiah(kasSeharusnya)}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form id="tutupKasirForm">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Kas Aktual (Hitung Uang di Kasir)</strong></label>
+                                <input type="number" class="form-control form-control-lg" id="kasAktual" 
+                                       placeholder="Masukkan jumlah uang yang ada di kasir" required>
+                            </div>
+                            
+                            <div class="alert alert-info" id="selisihInfo" style="display: none;">
+                                <h6 class="mb-2">Selisih Kas:</h6>
+                                <div id="selisihDetail"></div>
+                            </div>
+                            
+                            <div class="mb-3" id="keteranganSection" style="display: none;">
+                                <label class="form-label">Keterangan Selisih</label>
+                                <textarea class="form-control" id="keteranganSelisih" rows="3" 
+                                          placeholder="Jelaskan penyebab selisih kas..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-warning" onclick="prosesTutupKasir()">
+                            <i class="bi bi-printer me-1"></i>Tutup & Print Laporan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('tutupKasirModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('tutupKasirModal'));
+    modal.show();
+    
+    // Add event listener for kas aktual input
+    document.getElementById('kasAktual').addEventListener('input', function() {
+        const kasAktual = parseFloat(this.value) || 0;
+        const selisih = kasAktual - kasSeharusnya;
+        
+        const selisihInfo = document.getElementById('selisihInfo');
+        const selisihDetail = document.getElementById('selisihDetail');
+        const keteranganSection = document.getElementById('keteranganSection');
+        
+        if (kasAktual > 0) {
+            selisihInfo.style.display = 'block';
+            
+            if (selisih === 0) {
+                selisihInfo.className = 'alert alert-success';
+                selisihDetail.innerHTML = '<strong>Kas Sesuai!</strong> Tidak ada selisih.';
+                keteranganSection.style.display = 'none';
+            } else if (selisih > 0) {
+                selisihInfo.className = 'alert alert-warning';
+                selisihDetail.innerHTML = `<strong>Kas Lebih:</strong> ${formatRupiah(selisih)}`;
+                keteranganSection.style.display = 'block';
+            } else {
+                selisihInfo.className = 'alert alert-danger';
+                selisihDetail.innerHTML = `<strong>Kas Kurang:</strong> ${formatRupiah(Math.abs(selisih))}`;
+                keteranganSection.style.display = 'block';
+            }
+        } else {
+            selisihInfo.style.display = 'none';
+            keteranganSection.style.display = 'none';
+        }
+    });
+}
+
+// Proses tutup kasir
+function prosesTutupKasir() {
+    const kasAktual = parseFloat(document.getElementById('kasAktual').value);
+    const keteranganSelisih = document.getElementById('keteranganSelisih').value;
+    
+    if (!kasAktual || kasAktual < 0) {
+        showAlert('Masukkan kas aktual yang valid', 'error');
+        return;
+    }
+    
+    const bukaKas = JSON.parse(sessionStorage.getItem('bukaKas'));
+    const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+    
+    // Filter penjualan untuk shift ini
+    const waktuBuka = new Date(bukaKas.waktuBuka);
+    const sekarang = new Date();
+    
+    const penjualanShift = penjualan.filter(p => {
+        const tanggalPenjualan = new Date(p.tanggal);
+        return tanggalPenjualan >= waktuBuka && tanggalPenjualan <= sekarang;
+    });
+    
+    // Hitung totals
+    const totalPenjualan = penjualanShift.reduce((sum, p) => sum + p.total, 0);
+    const totalCash = penjualanShift.filter(p => p.status === 'cash').reduce((sum, p) => sum + p.total, 0);
+    const totalKredit = penjualanShift.filter(p => p.status === 'kredit').reduce((sum, p) => sum + p.total, 0);
+    const kasSeharusnya = bukaKas.modalAwal + totalCash;
+    const selisih = kasAktual - kasSeharusnya;
+    
+    // Create tutup kasir record
+    const tutupKasData = {
+        id: generateId(),
+        shiftId: bukaKas.id,
+        kasir: bukaKas.kasir,
+        kasirId: bukaKas.kasirId,
+        waktuBuka: bukaKas.waktuBuka,
+        waktuTutup: sekarang.toISOString(),
+        modalAwal: bukaKas.modalAwal,
+        totalPenjualan: totalPenjualan,
+        totalCash: totalCash,
+        totalKredit: totalKredit,
+        kasSeharusnya: kasSeharusnya,
+        kasAktual: kasAktual,
+        selisih: selisih,
+        keteranganSelisih: keteranganSelisih,
+        jumlahTransaksi: penjualanShift.length,
+        tanggalTutup: sekarang.toISOString().split('T')[0]
+    };
+    
+    // Save to localStorage
+    const riwayatTutupKas = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+    riwayatTutupKas.push(tutupKasData);
+    localStorage.setItem('riwayatTutupKas', JSON.stringify(riwayatTutupKas));
+    
+    // Create journal entry for selisih if any
+    if (selisih !== 0) {
+        const keterangan = `Selisih Kas Tutup Kasir - ${bukaKas.kasir} - ${formatDate(sekarang)}`;
+        
+        if (selisih > 0) {
+            // Kas lebih - Debit Kas, Kredit Pendapatan Lain-lain
+            addJurnal(keterangan, [
+                { akun: '1001', debit: Math.abs(selisih), kredit: 0 }, // Kas
+                { akun: '4002', debit: 0, kredit: Math.abs(selisih) }  // Pendapatan Lain-lain
+            ]);
+        } else {
+            // Kas kurang - Debit Beban Lain-lain, Kredit Kas
+            addJurnal(keterangan, [
+                { akun: '5002', debit: Math.abs(selisih), kredit: 0 }, // Beban Lain-lain
+                { akun: '1001', debit: 0, kredit: Math.abs(selisih) }  // Kas
+            ]);
+        }
+    }
+    
+    // Clear session
+    sessionStorage.removeItem('bukaKas');
+    sessionStorage.removeItem('shiftId');
+    
+    // Hide modal
+    bootstrap.Modal.getInstance(document.getElementById('tutupKasirModal')).hide();
+    
+    // Print laporan
+    printLaporanTutupKasir(tutupKasData);
+    
+    // Show success message
+    showAlert('Kas berhasil ditutup dan laporan telah dicetak!', 'success');
+    
+    // Return to dashboard
+    setTimeout(() => {
+        exitPOSFullscreen();
+    }, 2000);
+}
+
+// Print laporan tutup kasir
+function printLaporanTutupKasir(data) {
+    const koperasi = JSON.parse(localStorage.getItem('koperasi') || '{}');
+    
+    const laporanWindow = window.open('', '', 'width=800,height=600');
+    laporanWindow.document.write(`
+        <html>
+        <head>
+            <title>Laporan Tutup Kasir</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    font-size: 12px; 
+                    padding: 20px; 
+                    line-height: 1.4;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px; 
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 15px;
+                }
+                .logo { 
+                    max-width: 80px; 
+                    max-height: 80px; 
+                    margin: 10px auto; 
+                }
+                .section { 
+                    margin-bottom: 20px; 
+                }
+                .section-title { 
+                    font-weight: bold; 
+                    background: #f0f0f0; 
+                    padding: 8px; 
+                    margin-bottom: 10px;
+                    border: 1px solid #ccc;
+                }
+                .info-row { 
+                    display: flex; 
+                    justify-content: space-between; 
+                    margin-bottom: 5px; 
+                }
+                .amount { 
+                    text-align: right; 
+                    font-weight: bold; 
+                }
+                .total-row { 
+                    border-top: 2px solid #000; 
+                    padding-top: 5px; 
+                    font-weight: bold; 
+                }
+                .signature { 
+                    margin-top: 50px; 
+                    display: flex; 
+                    justify-content: space-between; 
+                }
+                .signature-box { 
+                    text-align: center; 
+                    width: 200px; 
+                }
+                .signature-line { 
+                    border-top: 1px solid #000; 
+                    margin-top: 60px; 
+                    padding-top: 5px; 
+                }
+                @media print {
+                    body { margin: 0; padding: 15px; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                ${koperasi.logo ? `<img src="${koperasi.logo}" alt="Logo" class="logo">` : ''}
+                <h2 style="margin: 10px 0;">${koperasi.nama || 'Koperasi Karyawan'}</h2>
+                <p style="margin: 5px 0;">${koperasi.alamat || ''}</p>
+                ${koperasi.telepon ? `<p style="margin: 5px 0;">Telp: ${koperasi.telepon}</p>` : ''}
+                <h3 style="margin: 15px 0 5px 0;">LAPORAN TUTUP KASIR</h3>
+                <p style="margin: 0;">No: TK-${data.id}</p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">INFORMASI SHIFT</div>
+                <div class="info-row">
+                    <span>Kasir:</span>
+                    <span>${data.kasir}</span>
+                </div>
+                <div class="info-row">
+                    <span>Waktu Buka:</span>
+                    <span>${formatDateTime(data.waktuBuka)}</span>
+                </div>
+                <div class="info-row">
+                    <span>Waktu Tutup:</span>
+                    <span>${formatDateTime(data.waktuTutup)}</span>
+                </div>
+                <div class="info-row">
+                    <span>Durasi Shift:</span>
+                    <span>${calculateShiftDuration(data.waktuBuka, data.waktuTutup)}</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">RINGKASAN PENJUALAN</div>
+                <div class="info-row">
+                    <span>Jumlah Transaksi:</span>
+                    <span>${data.jumlahTransaksi} transaksi</span>
+                </div>
+                <div class="info-row">
+                    <span>Total Penjualan:</span>
+                    <span class="amount">${formatRupiah(data.totalPenjualan)}</span>
+                </div>
+                <div class="info-row">
+                    <span>- Penjualan Cash:</span>
+                    <span class="amount">${formatRupiah(data.totalCash)}</span>
+                </div>
+                <div class="info-row">
+                    <span>- Penjualan Kredit:</span>
+                    <span class="amount">${formatRupiah(data.totalKredit)}</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">REKONSILIASI KAS</div>
+                <div class="info-row">
+                    <span>Modal Awal Kasir:</span>
+                    <span class="amount">${formatRupiah(data.modalAwal)}</span>
+                </div>
+                <div class="info-row">
+                    <span>Penjualan Cash:</span>
+                    <span class="amount">${formatRupiah(data.totalCash)}</span>
+                </div>
+                <div class="info-row total-row">
+                    <span>Kas Seharusnya:</span>
+                    <span class="amount">${formatRupiah(data.kasSeharusnya)}</span>
+                </div>
+                <div class="info-row">
+                    <span>Kas Aktual:</span>
+                    <span class="amount">${formatRupiah(data.kasAktual)}</span>
+                </div>
+                <div class="info-row total-row" style="color: ${data.selisih === 0 ? 'green' : data.selisih > 0 ? 'orange' : 'red'};">
+                    <span>Selisih:</span>
+                    <span class="amount">${formatRupiah(data.selisih)}</span>
+                </div>
+                ${data.selisih !== 0 && data.keteranganSelisih ? `
+                    <div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd;">
+                        <strong>Keterangan Selisih:</strong><br>
+                        ${data.keteranganSelisih}
+                    </div>
+                ` : ''}
+            </div>
+
+            <div class="signature">
+                <div class="signature-box">
+                    <div>Kasir</div>
+                    <div class="signature-line">${data.kasir}</div>
+                </div>
+                <div class="signature-box">
+                    <div>Supervisor</div>
+                    <div class="signature-line">(.....................)</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
+                Dicetak pada: ${formatDateTime(new Date().toISOString())}
+            </div>
+        </body>
+        </html>
+    `);
+    laporanWindow.document.close();
+    laporanWindow.print();
+}
+
+// Helper function to calculate shift duration
+function calculateShiftDuration(waktuBuka, waktuTutup) {
+    const start = new Date(waktuBuka);
+    const end = new Date(waktuTutup);
+    const diff = end - start;
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${hours} jam ${minutes} menit`;
+}
+
+// Helper function to format date time
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     });
 }

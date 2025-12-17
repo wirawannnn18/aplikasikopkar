@@ -496,6 +496,302 @@ function renderSHU() {
     `;
 }
 
+// Render Riwayat Tutup Kasir
+function renderRiwayatTutupKas() {
+    const content = document.getElementById('mainContent');
+    const riwayatTutupKas = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+    
+    // Sort by date descending (newest first)
+    riwayatTutupKas.sort((a, b) => new Date(b.waktuTutup) - new Date(a.waktuTutup));
+    
+    content.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #2d6a4f; font-weight: 700;">
+                <i class="bi bi-clock-history me-2"></i>Riwayat Tutup Kasir
+            </h2>
+            <div>
+                <button class="btn btn-success" onclick="exportRiwayatTutupKas()">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+                </button>
+            </div>
+        </div>
+        
+        ${riwayatTutupKas.length === 0 ? `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-clock-history" style="font-size: 4rem; color: #dee2e6;"></i>
+                    <h5 class="mt-3 text-muted">Belum Ada Riwayat Tutup Kasir</h5>
+                    <p class="text-muted">Riwayat tutup kasir akan muncul setelah kasir melakukan tutup kasir</p>
+                </div>
+            </div>
+        ` : `
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>No. Laporan</th>
+                                    <th>Tanggal</th>
+                                    <th>Kasir</th>
+                                    <th>Durasi Shift</th>
+                                    <th>Modal Awal</th>
+                                    <th>Total Penjualan</th>
+                                    <th>Kas Aktual</th>
+                                    <th>Selisih</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${riwayatTutupKas.map(tk => {
+                                    const durasi = calculateShiftDuration(tk.waktuBuka, tk.waktuTutup);
+                                    const selisihClass = tk.selisih === 0 ? 'text-success' : tk.selisih > 0 ? 'text-warning' : 'text-danger';
+                                    
+                                    return `
+                                        <tr>
+                                            <td><strong>TK-${tk.id}</strong></td>
+                                            <td>${formatDate(tk.tanggalTutup)}</td>
+                                            <td>
+                                                <div>
+                                                    <strong>${tk.kasir}</strong><br>
+                                                    <small class="text-muted">${formatTime(tk.waktuBuka)} - ${formatTime(tk.waktuTutup)}</small>
+                                                </div>
+                                            </td>
+                                            <td>${durasi}</td>
+                                            <td>${formatRupiah(tk.modalAwal)}</td>
+                                            <td>
+                                                <div>
+                                                    <strong>${formatRupiah(tk.totalPenjualan)}</strong><br>
+                                                    <small class="text-muted">${tk.jumlahTransaksi} transaksi</small>
+                                                </div>
+                                            </td>
+                                            <td>${formatRupiah(tk.kasAktual)}</td>
+                                            <td class="${selisihClass}">
+                                                <strong>${formatRupiah(tk.selisih)}</strong>
+                                                ${tk.selisih !== 0 ? `<br><small>${tk.selisih > 0 ? 'Lebih' : 'Kurang'}</small>` : ''}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="viewDetailTutupKas('${tk.id}')" title="Lihat Detail">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-success" onclick="printUlangTutupKas('${tk.id}')" title="Print Ulang">
+                                                    <i class="bi bi-printer"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `}
+        
+        <!-- Modal Detail Tutup Kasir -->
+        <div class="modal fade" id="detailTutupKasModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-file-text me-2"></i>Detail Laporan Tutup Kasir
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="detailTutupKasContent">
+                        <!-- Content will be loaded here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-primary" id="printDetailBtn">
+                            <i class="bi bi-printer me-1"></i>Print Laporan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// View detail tutup kasir
+function viewDetailTutupKas(id) {
+    const riwayatTutupKas = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+    const data = riwayatTutupKas.find(tk => tk.id === id);
+    
+    if (!data) {
+        showAlert('Data tutup kasir tidak ditemukan', 'error');
+        return;
+    }
+    
+    const durasi = calculateShiftDuration(data.waktuBuka, data.waktuTutup);
+    const selisihClass = data.selisih === 0 ? 'text-success' : data.selisih > 0 ? 'text-warning' : 'text-danger';
+    
+    document.getElementById('detailTutupKasContent').innerHTML = `
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-1"></i>Informasi Shift</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr><td><strong>No. Laporan:</strong></td><td>TK-${data.id}</td></tr>
+                            <tr><td><strong>Kasir:</strong></td><td>${data.kasir}</td></tr>
+                            <tr><td><strong>Tanggal:</strong></td><td>${formatDate(data.tanggalTutup)}</td></tr>
+                            <tr><td><strong>Waktu Buka:</strong></td><td>${formatDateTime(data.waktuBuka)}</td></tr>
+                            <tr><td><strong>Waktu Tutup:</strong></td><td>${formatDateTime(data.waktuTutup)}</td></tr>
+                            <tr><td><strong>Durasi Shift:</strong></td><td>${durasi}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-graph-up me-1"></i>Ringkasan Penjualan</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr><td><strong>Jumlah Transaksi:</strong></td><td>${data.jumlahTransaksi} transaksi</td></tr>
+                            <tr><td><strong>Total Penjualan:</strong></td><td>${formatRupiah(data.totalPenjualan)}</td></tr>
+                            <tr><td><strong>- Penjualan Cash:</strong></td><td>${formatRupiah(data.totalCash)}</td></tr>
+                            <tr><td><strong>- Penjualan Kredit:</strong></td><td>${formatRupiah(data.totalKredit)}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-calculator me-1"></i>Rekonsiliasi Kas</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <table class="table table-sm">
+                            <tr><td><strong>Modal Awal Kasir:</strong></td><td class="text-end">${formatRupiah(data.modalAwal)}</td></tr>
+                            <tr><td><strong>Penjualan Cash:</strong></td><td class="text-end">${formatRupiah(data.totalCash)}</td></tr>
+                            <tr class="table-light"><td><strong>Kas Seharusnya:</strong></td><td class="text-end"><strong>${formatRupiah(data.kasSeharusnya)}</strong></td></tr>
+                            <tr><td><strong>Kas Aktual:</strong></td><td class="text-end">${formatRupiah(data.kasAktual)}</td></tr>
+                            <tr class="border-top"><td><strong>Selisih:</strong></td><td class="text-end ${selisihClass}"><strong>${formatRupiah(data.selisih)}</strong></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert ${data.selisih === 0 ? 'alert-success' : data.selisih > 0 ? 'alert-warning' : 'alert-danger'}">
+                            <h6 class="mb-1">
+                                ${data.selisih === 0 ? 'Kas Sesuai' : data.selisih > 0 ? 'Kas Lebih' : 'Kas Kurang'}
+                            </h6>
+                            <div class="h5 mb-0">${formatRupiah(Math.abs(data.selisih))}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${data.selisih !== 0 && data.keteranganSelisih ? `
+                    <div class="mt-3">
+                        <h6>Keterangan Selisih:</h6>
+                        <div class="alert alert-info">
+                            ${data.keteranganSelisih}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    // Set print button action
+    document.getElementById('printDetailBtn').onclick = () => printUlangTutupKas(id);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('detailTutupKasModal'));
+    modal.show();
+}
+
+// Print ulang tutup kasir
+function printUlangTutupKas(id) {
+    const riwayatTutupKas = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+    const data = riwayatTutupKas.find(tk => tk.id === id);
+    
+    if (!data) {
+        showAlert('Data tutup kasir tidak ditemukan', 'error');
+        return;
+    }
+    
+    // Use the same print function from pos.js
+    if (typeof printLaporanTutupKasir === 'function') {
+        printLaporanTutupKasir(data);
+    } else {
+        showAlert('Fungsi print tidak tersedia', 'error');
+    }
+}
+
+// Export riwayat tutup kasir to Excel
+function exportRiwayatTutupKas() {
+    const riwayatTutupKas = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+    
+    if (riwayatTutupKas.length === 0) {
+        showAlert('Tidak ada data untuk diekspor', 'info');
+        return;
+    }
+    
+    // Prepare data for export
+    const exportData = riwayatTutupKas.map(tk => ({
+        'No. Laporan': `TK-${tk.id}`,
+        'Tanggal': formatDate(tk.tanggalTutup),
+        'Kasir': tk.kasir,
+        'Waktu Buka': formatDateTime(tk.waktuBuka),
+        'Waktu Tutup': formatDateTime(tk.waktuTutup),
+        'Durasi Shift': calculateShiftDuration(tk.waktuBuka, tk.waktuTutup),
+        'Modal Awal': tk.modalAwal,
+        'Total Penjualan': tk.totalPenjualan,
+        'Penjualan Cash': tk.totalCash,
+        'Penjualan Kredit': tk.totalKredit,
+        'Kas Seharusnya': tk.kasSeharusnya,
+        'Kas Aktual': tk.kasAktual,
+        'Selisih': tk.selisih,
+        'Jumlah Transaksi': tk.jumlahTransaksi,
+        'Keterangan Selisih': tk.keteranganSelisih || ''
+    }));
+    
+    // Convert to CSV
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => 
+            headers.map(header => {
+                const value = row[header];
+                // Handle numbers and strings properly for CSV
+                if (typeof value === 'number') {
+                    return value;
+                }
+                return `"${value || ''}"`;
+            }).join(',')
+        )
+    ].join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `riwayat_tutup_kasir_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('Data berhasil diekspor ke CSV', 'success');
+}
+
+// Helper function to format time only
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 function downloadSHU() {
     const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
     const pembelian = JSON.parse(localStorage.getItem('pembelian') || '[]');

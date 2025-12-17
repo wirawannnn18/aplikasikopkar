@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tutup Kasir POS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Tutup Kasir POS</h2>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Setup Test Data</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-2" onclick="setupTestData()">Setup Test Data</button>
+                        <button class="btn btn-success mb-2" onclick="simulateBukaKas()">Simulasi Buka Kas</button>
+                        <button class="btn btn-warning mb-2" onclick="simulateTransaksi()">Simulasi Transaksi</button>
+                        <button class="btn btn-info mb-2" onclick="testTutupKasir()">Test Tutup Kasir</button>
+                        <button class="btn btn-secondary mb-2" onclick="viewRiwayat()">Lihat Riwayat</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="statusInfo"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/pos.js"></script>
+    
+    <script>
+        // Mock current user
+        window.currentUser = {
+            id: 'kasir1',
+            name: 'Test Kasir',
+            role: 'kasir'
+        };
+        
+        function setupTestData() {
+            // Setup basic data
+            const koperasi = {
+                nama: 'Koperasi Test',
+                alamat: 'Jl. Test No. 123',
+                telepon: '021-123456'
+            };
+            
+            const barang = [
+                {
+                    id: 'brg1',
+                    nama: 'Beras 5kg',
+                    hargaJual: 50000,
+                    stok: 100
+                },
+                {
+                    id: 'brg2', 
+                    nama: 'Minyak Goreng 1L',
+                    hargaJual: 15000,
+                    stok: 50
+                }
+            ];
+            
+            const coa = [
+                { kode: '1001', nama: 'Kas', tipe: 'Aset', saldo: 0 },
+                { kode: '4001', nama: 'Penjualan', tipe: 'Pendapatan', saldo: 0 },
+                { kode: '4002', nama: 'Pendapatan Lain-lain', tipe: 'Pendapatan', saldo: 0 },
+                { kode: '5002', nama: 'Beban Lain-lain', tipe: 'Beban', saldo: 0 }
+            ];
+            
+            localStorage.setItem('koperasi', JSON.stringify(koperasi));
+            localStorage.setItem('barang', JSON.stringify(barang));
+            localStorage.setItem('coa', JSON.stringify(coa));
+            localStorage.setItem('penjualan', JSON.stringify([]));
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            localStorage.setItem('riwayatTutupKas', JSON.stringify([]));
+            
+            updateStatus();
+            showAlert('Test data berhasil di-setup!', 'success');
+        }
+        
+        function simulateBukaKas() {
+            const shiftData = {
+                id: generateId(),
+                kasir: 'Test Kasir',
+                kasirId: 'kasir1',
+                modalAwal: 500000,
+                waktuBuka: new Date().toISOString(),
+                status: 'buka'
+            };
+            
+            sessionStorage.setItem('bukaKas', JSON.stringify(shiftData));
+            sessionStorage.setItem('shiftId', shiftData.id);
+            
+            updateStatus();
+            showAlert('Kas berhasil dibuka dengan modal Rp 500.000', 'success');
+        }
+        
+        function simulateTransaksi() {
+            const bukaKas = sessionStorage.getItem('bukaKas');
+            if (!bukaKas) {
+                showAlert('Buka kas terlebih dahulu!', 'error');
+                return;
+            }
+            
+            const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+            
+            // Simulasi beberapa transaksi
+            const transaksi = [
+                {
+                    id: generateId(),
+                    tanggal: new Date().toISOString(),
+                    items: [
+                        { barangId: 'brg1', nama: 'Beras 5kg', qty: 2, harga: 50000, subtotal: 100000 }
+                    ],
+                    total: 100000,
+                    bayar: 100000,
+                    kembalian: 0,
+                    status: 'cash',
+                    kasir: 'Test Kasir'
+                },
+                {
+                    id: generateId(),
+                    tanggal: new Date().toISOString(),
+                    items: [
+                        { barangId: 'brg2', nama: 'Minyak Goreng 1L', qty: 3, harga: 15000, subtotal: 45000 }
+                    ],
+                    total: 45000,
+                    anggotaId: 'anggota1',
+                    status: 'kredit',
+                    kasir: 'Test Kasir'
+                }
+            ];
+            
+            penjualan.push(...transaksi);
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            
+            updateStatus();
+            showAlert('Simulasi transaksi berhasil! 2 transaksi ditambahkan', 'success');
+        }
+        
+        function testTutupKasir() {
+            const bukaKas = sessionStorage.getItem('bukaKas');
+            if (!bukaKas) {
+                showAlert('Buka kas terlebih dahulu!', 'error');
+                return;
+            }
+            
+            // Simulasi tutup kasir dengan kas pas
+            if (typeof showTutupKasirModal === 'function') {
+                showTutupKasirModal();
+                showAlert('Modal tutup kasir berhasil dibuka!', 'success');
+            } else {
+                showAlert('Fungsi tutup kasir tidak ditemukan!', 'error');
+            }
+        }
+        
+        function viewRiwayat() {
+            if (typeof renderRiwayatTutupKas === 'function') {
+                // Create a temporary container
+                const tempContainer = document.createElement('div');
+                tempContainer.id = 'mainContent';
+                document.body.appendChild(tempContainer);
+                
+                renderRiwayatTutupKas();
+                
+                const content = tempContainer.innerHTML;
+                document.getElementById('testResults').innerHTML = content;
+                
+                document.body.removeChild(tempContainer);
+                showAlert('Riwayat tutup kasir berhasil ditampilkan!', 'success');
+            } else {
+                showAlert('Fungsi riwayat tutup kasir tidak ditemukan!', 'error');
+            }
+        }
+        
+        function updateStatus() {
+            const bukaKas = sessionStorage.getItem('bukaKas');
+            const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+            const riwayat = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+            
+            const statusHTML = `
+                <p><strong>Status Kas:</strong> ${bukaKas ? 'Buka' : 'Tutup'}</p>
+                <p><strong>Jumlah Transaksi:</strong> ${penjualan.length}</p>
+                <p><strong>Riwayat Tutup Kasir:</strong> ${riwayat.length}</p>
+                ${bukaKas ? `<p><strong>Modal Awal:</strong> ${formatRupiah(JSON.parse(bukaKas).modalAwal)}</p>` : ''}
+            `;
+            
+            document.getElementById('statusInfo').innerHTML = statusHTML;
+        }
+        
+        function showAlert(message, type = 'info') {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 'alert-info';
+            
+            const alertHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.getElementById('testResults').insertAdjacentHTML('afterbegin', alertHTML);
+        }
+        
+        // Initialize
+        updateStatus();
+    </script>
+</body>
+</html>
