@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Real - SIMPLE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4><i class="bi bi-check-circle me-2"></i>Test Transformasi Barang Real - SIMPLE</h4>
+                        <p class="mb-0">Verifikasi bahwa transformasi barang menggunakan data REAL dari master_barang</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-results"></div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6><i class="bi bi-database me-1"></i>Data Check</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <button class="btn btn-primary w-100 mb-2" onclick="checkRealData()">
+                                            <i class="bi bi-search me-1"></i>Cek Data Real
+                                        </button>
+                                        <button class="btn btn-success w-100 mb-2" onclick="createTestData()">
+                                            <i class="bi bi-plus-circle me-1"></i>Buat Test Data
+                                        </button>
+                                        <button class="btn btn-info w-100" onclick="openTransformationPage()">
+                                            <i class="bi bi-arrow-right me-1"></i>Buka Halaman Transformasi
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h6><i class="bi bi-list-check me-1"></i>Status Data</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="data-status">
+                                            <div class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Mengecek data...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="bi bi-terminal me-1"></i>Test Log</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="test-log" style="height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace;">
+                                    <div class="text-muted">Menunggu test...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Utility functions
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const iconMap = {
+                'info': '🔵',
+                'success': '✅', 
+                'warning': '⚠️',
+                'error': '❌'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'mb-1';
+            logEntry.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${iconMap[type]} ${message}`;
+            
+            if (logContainer.firstChild.classList?.contains('text-muted')) {
+                logContainer.innerHTML = '';
+            }
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function showTestResult(message, type = 'info') {
+            const resultsContainer = document.getElementById('test-results');
+            const alertClass = type === 'error' ? 'danger' : type;
+            
+            resultsContainer.innerHTML = `
+                <div class="alert alert-${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        // Check real data
+        function checkRealData() {
+            log('Mengecek data real di localStorage...', 'info');
+            
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+                const transformationData = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                
+                log(`Data master_barang: ${masterBarang.length} items`, masterBarang.length > 0 ? 'success' : 'warning');
+                log(`Data masterBarang (transformasi): ${transformationData.length} items`, 'info');
+                log(`Conversion ratios: ${conversionRatios.length} groups`, 'info');
+                
+                // Update status display
+                const statusHtml = `
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong>Master Barang (Real):</strong>
+                            <span class="badge bg-${masterBarang.length > 0 ? 'success' : 'danger'} ms-1">
+                                ${masterBarang.length} items
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Data Transformasi:</strong>
+                            <span class="badge bg-${transformationData.length > 0 ? 'info' : 'secondary'} ms-1">
+                                ${transformationData.length} items
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Conversion Ratios:</strong>
+                            <span class="badge bg-${conversionRatios.length > 0 ? 'success' : 'secondary'} ms-1">
+                                ${conversionRatios.length} groups
+                            </span>
+                        </div>
+                        ${masterBarang.length > 0 ? `
+                        <div class="mt-3">
+                            <div class="alert alert-success py-2">
+                                <small>✅ Data real tersedia untuk transformasi</small>
+                            </div>
+                        </div>
+                        ` : `
+                        <div class="mt-3">
+                            <div class="alert alert-warning py-2">
+                                <small>⚠️ Tidak ada data real, perlu buat test data</small>
+                            </div>
+                        </div>
+                        `}
+                    </div>
+                `;
+                
+                document.getElementById('data-status').innerHTML = statusHtml;
+                
+                if (masterBarang.length > 0) {
+                    showTestResult(`Data real ditemukan: ${masterBarang.length} items siap untuk transformasi!`, 'success');
+                    
+                    // Show sample data
+                    log('Sample data dari master_barang:', 'info');
+                    masterBarang.slice(0, 3).forEach(item => {
+                        log(`- ${item.nama} (${item.kode}): ${item.stok} ${item.satuan_nama || 'pcs'}`, 'info');
+                    });
+                } else {
+                    showTestResult('Tidak ada data real ditemukan. Silakan buat test data terlebih dahulu.', 'warning');
+                }
+                
+            } catch (error) {
+                log(`Error checking data: ${error.message}`, 'error');
+                showTestResult(`Error checking data: ${error.message}`, 'error');
+            }
+        }
+
+        // Create test data
+        function createTestData() {
+            log('Membuat test data untuk transformasi...', 'info');
+            
+            try {
+                const testData = [
+                    {
+                        id: 'test001',
+                        kode: 'BRG001',
+                        nama: 'Beras Premium 5kg',
+                        kategori_nama: 'Sembako',
+                        satuan_nama: 'karung',
+                        stok: 50,
+                        harga_beli: 45000,
+                        harga_jual: 50000,
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'test002',
+                        kode: 'BRG002',
+                        nama: 'Beras Premium 1kg',
+                        kategori_nama: 'Sembako',
+                        satuan_nama: 'kg',
+                        stok: 250,
+                        harga_beli: 9000,
+                        harga_jual: 10000,
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'test003',
+                        kode: 'BRG003',
+                        nama: 'Minyak Goreng 1L',
+                        kategori_nama: 'Sembako',
+                        satuan_nama: 'botol',
+                        stok: 100,
+                        harga_beli: 12000,
+                        harga_jual: 14000,
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'test004',
+                        kode: 'BRG004',
+                        nama: 'Minyak Goreng 250ml',
+                        kategori_nama: 'Sembako',
+                        satuan_nama: 'botol',
+                        stok: 400,
+                        harga_beli: 3000,
+                        harga_jual: 3500,
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'test005',
+                        kode: 'BRG005',
+                        nama: 'Air Mineral 1 Dus',
+                        kategori_nama: 'Minuman',
+                        satuan_nama: 'dus',
+                        stok: 30,
+                        harga_beli: 48000,
+                        harga_jual: 60000,
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'test006',
+                        kode: 'BRG006',
+                        nama: 'Air Mineral 600ml',
+                        kategori_nama: 'Minuman',
+                        satuan_nama: 'botol',
+                        stok: 720,
+                        harga_beli: 2000,
+                        harga_jual: 2500,
+                        status: 'aktif',
+                        created_at: new Date().toISOString()
+                    }
+                ];
+                
+                // Save to master_barang
+                localStorage.setItem('master_barang', JSON.stringify(testData));
+                
+                log(`✅ Test data berhasil dibuat: ${testData.length} items`, 'success');
+                
+                testData.forEach(item => {
+                    log(`- ${item.nama}: ${item.stok} ${item.satuan_nama}`, 'info');
+                });
+                
+                showTestResult(`Test data berhasil dibuat! ${testData.length} items siap untuk transformasi.`, 'success');
+                
+                // Refresh status
+                setTimeout(checkRealData, 500);
+                
+            } catch (error) {
+                log(`Error creating test data: ${error.message}`, 'error');
+                showTestResult(`Error creating test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Open transformation page
+        function openTransformationPage() {
+            log('Membuka halaman transformasi barang...', 'info');
+            window.open('transformasi_barang.html', '_blank');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Test system loaded', 'info');
+            setTimeout(checkRealData, 500);
+        });
+    </script>
+</body>
+</html>
