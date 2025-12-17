@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Koneksi Master Barang - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .diagnostic-card {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .status-success { border-color: #28a745; background-color: #f8fff9; }
+        .status-warning { border-color: #ffc107; background-color: #fffdf5; }
+        .status-error { border-color: #dc3545; background-color: #fff5f5; }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .fix-button {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 600;
+        }
+        .fix-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-tools me-2"></i>Fix Koneksi Master Barang - Transformasi Barang</h2>
+                <p class="text-muted">Diagnostic dan perbaikan untuk masalah koneksi transformasi barang dengan master barang</p>
+                
+                <!-- Alert Container -->
+                <div id="alert-container"></div>
+                
+                <!-- Diagnostic Section -->
+                <div class="diagnostic-card" id="diagnostic-card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-search me-2"></i>Diagnostic Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="diagnostic-results">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Menjalankan diagnostic...</span>
+                                </div>
+                                <p class="mt-2">Menjalankan diagnostic sistem...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fix Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-wrench me-2"></i>Aksi Perbaikan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <button class="btn fix-button w-100" onclick="fixMasterBarangConnection()">
+                                    <i class="bi bi-database-fill-up me-2"></i>
+                                    Perbaiki Koneksi Master Barang
+                                </button>
+                                <small class="text-muted">Memuat ulang data master barang dan memperbaiki koneksi</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <button class="btn fix-button w-100" onclick="initializeSampleData()">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Inisialisasi Data Sample
+                                </button>
+                                <small class="text-muted">Membuat data sample untuk testing transformasi</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <button class="btn fix-button w-100" onclick="validateTransformationSystem()">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    Validasi Sistem Transformasi
+                                </button>
+                                <small class="text-muted">Memvalidasi semua komponen sistem transformasi</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <button class="btn fix-button w-100" onclick="resetTransformationSystem()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>
+                                    Reset Sistem Transformasi
+                                </button>
+                                <small class="text-muted">Reset lengkap sistem transformasi barang</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Data Preview -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-table me-2"></i>Preview Data Master Barang</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="data-preview">
+                            <p class="text-muted">Jalankan diagnostic untuk melihat data...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Test Transformasi -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-play-circle me-2"></i>Test Transformasi</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="testTransformationSystem()">
+                            <i class="bi bi-play me-2"></i>Test Sistem Transformasi
+                        </button>
+                        <button class="btn btn-primary ms-2" onclick="openTransformationPage()">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>Buka Halaman Transformasi
+                        </button>
+                        <div id="test-results" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let diagnosticResults = {};
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            runDiagnostic();
+        });
+        
+        /**
+         * Show alert message
+         */
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alert-container');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
+        /**
+         * Run comprehensive diagnostic
+         */
+        async function runDiagnostic() {
+            const diagnosticCard = document.getElementById('diagnostic-card');
+            const resultsContainer = document.getElementById('diagnostic-results');
+            
+            try {
+                // Reset results
+                diagnosticResults = {
+                    masterBarangData: false,
+                    conversionRatios: false,
+                    transformationScripts: false,
+                    localStorage: false,
+                    dataIntegrity: false
+                };
+                
+                let diagnosticHtml = '<div class="row">';
+                
+                // 1. Check localStorage availability
+                diagnosticResults.localStorage = checkLocalStorage();
+                diagnosticHtml += createDiagnosticItem(
+                    'LocalStorage',
+                    diagnosticResults.localStorage,
+                    diagnosticResults.localStorage ? 'LocalStorage tersedia dan berfungsi' : 'LocalStorage tidak tersedia'
+                );
+                
+                // 2. Check master barang data
+                const masterBarangCheck = checkMasterBarangData();
+                diagnosticResults.masterBarangData = masterBarangCheck.exists;
+                diagnosticHtml += createDiagnosticItem(
+                    'Data Master Barang',
+                    masterBarangCheck.exists,
+                    `${masterBarangCheck.count} item ditemukan di localStorage`
+                );
+                
+                // 3. Check conversion ratios
+                const conversionCheck = checkConversionRatios();
+                diagnosticResults.conversionRatios = conversionCheck.exists;
+                diagnosticHtml += createDiagnosticItem(
+                    'Rasio Konversi',
+                    conversionCheck.exists,
+                    `${conversionCheck.count} rasio konversi ditemukan`
+                );
+                
+                // 4. Check transformation scripts
+                const scriptsCheck = checkTransformationScripts();
+                diagnosticResults.transformationScripts = scriptsCheck.loaded;
+                diagnosticHtml += createDiagnosticItem(
+                    'Script Transformasi',
+                    scriptsCheck.loaded,
+                    `${scriptsCheck.loadedCount}/${scriptsCheck.totalCount} script dimuat`
+                );
+                
+                // 5. Check data integrity
+                const integrityCheck = checkDataIntegrity();
+                diagnosticResults.dataIntegrity = integrityCheck.valid;
+                diagnosticHtml += createDiagnosticItem(
+                    'Integritas Data',
+                    integrityCheck.valid,
+                    integrityCheck.message
+                );
+                
+                diagnosticHtml += '</div>';
+                
+                // Update diagnostic card status
+                const overallStatus = Object.values(diagnosticResults).every(result => result);
+                diagnosticCard.className = `diagnostic-card ${overallStatus ? 'status-success' : 'status-warning'}`;
+                
+                resultsContainer.innerHTML = diagnosticHtml;
+                
+                // Update data preview
+                updateDataPreview();
+                
+            } catch (error) {
+                console.error('Error running diagnostic:', error);
+                diagnosticCard.className = 'diagnostic-card status-error';
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Error menjalankan diagnostic: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        /**
+         * Create diagnostic item HTML
+         */
+        function createDiagnosticItem(title, status, message) {
+            const statusIcon = status ? 'check-circle text-success' : 'x-circle text-danger';
+            const statusText = status ? 'OK' : 'ERROR';
+            
+            return `
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-${statusIcon} me-2 fs-5"></i>
+                        <div class="flex-grow-1">
+                            <strong>${title}</strong>
+                            <div class="small text-muted">${message}</div>
+                        </div>
+                        <span class="badge bg-${status ? 'success' : 'danger'}">${statusText}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
+         * Check localStorage availability
+         */
+        function checkLocalStorage() {
+            try {
+                const testKey = 'test-' + Date.now();
+                localStorage.setItem(testKey, 'test');
+                localStorage.removeItem(testKey);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        /**
+         * Check master barang data
+         */
+        function checkMasterBarangData() {
+            try {
+                const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
+                let totalCount = 0;
+                let foundSource = null;
+                
+                for (const source of dataSources) {
+                    try {
+                        const data = localStorage.getItem(source);
+                        if (data) {
+                            const parsedData = JSON.parse(data);
+                            if (Array.isArray(parsedData) && parsedData.length > 0) {
+                                totalCount = parsedData.length;
+                                foundSource = source;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`Error parsing ${source}:`, e);
+                    }
+                }
+                
+                return {
+                    exists: totalCount > 0,
+                    count: totalCount,
+                    source: foundSource
+                };
+            } catch (error) {
+                return { exists: false, count: 0, source: null };
+            }
+        }
+        
+        /**
+         * Check conversion ratios
+         */
+        function checkConversionRatios() {
+            try {
+                const ratiosData = localStorage.getItem('conversionRatios');
+                if (ratiosData) {
+                    const ratios = JSON.parse(ratiosData);
+                    return {
+                        exists: Array.isArray(ratios) && ratios.length > 0,
+                        count: Array.isArray(ratios) ? ratios.length : 0
+                    };
+                }
+                return { exists: false, count: 0 };
+            } catch (error) {
+                return { exists: false, count: 0 };
+            }
+        }
+        
+        /**
+         * Check transformation scripts
+         */
+        function checkTransformationScripts() {
+            const requiredClasses = [
+                'TransformationManager',
+                'UIController',
+                'ValidationEngine',
+                'StockManager',
+                'TransformasiBarangAuditLogger',
+                'ErrorHandler',
+                'ConversionCalculator'
+            ];
+            
+            const loadedClasses = requiredClasses.filter(className => typeof window[className] === 'function');
+            
+            return {
+                loaded: loadedClasses.length === requiredClasses.length,
+                loadedCount: loadedClasses.length,
+                totalCount: requiredClasses.length,
+                missing: requiredClasses.filter(className => typeof window[className] !== 'function')
+            };
+        }
+        
+        /**
+         * Check data integrity
+         */
+        function checkDataIntegrity() {
+            try {
+                const masterBarangCheck = checkMasterBarangData();
+                const conversionCheck = checkConversionRatios();
+                
+                if (!masterBarangCheck.exists) {
+                    return { valid: false, message: 'Data master barang tidak ditemukan' };
+                }
+                
+                if (!conversionCheck.exists) {
+                    return { valid: false, message: 'Rasio konversi tidak ditemukan' };
+                }
+                
+                // Check if master barang has required fields
+                const masterBarang = JSON.parse(localStorage.getItem(masterBarangCheck.source) || '[]');
+                const requiredFields = ['kode', 'nama', 'satuan', 'stok'];
+                
+                const validItems = masterBarang.filter(item => 
+                    requiredFields.every(field => item.hasOwnProperty(field))
+                );
+                
+                if (validItems.length === 0) {
+                    return { valid: false, message: 'Data master barang tidak memiliki field yang diperlukan' };
+                }
+                
+                return { valid: true, message: `${validItems.length} item valid ditemukan` };
+                
+            } catch (error) {
+                return { valid: false, message: `Error validasi: ${error.message}` };
+            }
+        }
+        
+        /**
+         * Update data preview
+         */
+        function updateDataPreview() {
+            const previewContainer = document.getElementById('data-preview');
+            
+            try {
+                const masterBarangCheck = checkMasterBarangData();
+                
+                if (!masterBarangCheck.exists) {
+                    previewContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Tidak ada data master barang ditemukan
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const masterBarang = JSON.parse(localStorage.getItem(masterBarangCheck.source) || '[]');
+                const sampleItems = masterBarang.slice(0, 5);
+                
+                let tableHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama</th>
+                                    <th>Satuan</th>
+                                    <th>Stok</th>
+                                    <th>Base Product</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                sampleItems.forEach(item => {
+                    const baseProduct = item.baseProduct || (item.kode ? item.kode.split('-')[0] : 'N/A');
+                    tableHtml += `
+                        <tr>
+                            <td><code>${item.kode || 'N/A'}</code></td>
+                            <td>${item.nama || 'N/A'}</td>
+                            <td>${item.satuan || 'N/A'}</td>
+                            <td>${item.stok || 0}</td>
+                            <td>${baseProduct}</td>
+                        </tr>
+                    `;
+                });
+                
+                tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <small class="text-muted">Menampilkan 5 dari ${masterBarang.length} item total</small>
+                `;
+                
+                previewContainer.innerHTML = tableHtml;
+                
+            } catch (error) {
+                previewContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Error memuat preview data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        /**
+         * Fix master barang connection
+         */
+        async function fixMasterBarangConnection() {
+            try {
+                showAlert('Memperbaiki koneksi master barang...', 'info');
+                
+                // 1. Check existing data sources
+                const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
+                let sourceData = null;
+                let sourceKey = null;
+                
+                for (const source of dataSources) {
+                    try {
+                        const data = localStorage.getItem(source);
+                        if (data) {
+                            const parsedData = JSON.parse(data);
+                            if (Array.isArray(parsedData) && parsedData.length > 0) {
+                                sourceData = parsedData;
+                                sourceKey = source;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`Error parsing ${source}:`, e);
+                    }
+                }
+                
+                // 2. If no data found, create sample data
+                if (!sourceData) {
+                    sourceData = createSampleMasterBarangData();
+                    sourceKey = 'masterBarang';
+                    showAlert('Tidak ada data ditemukan, membuat data sample...', 'warning');
+                }
+                
+                // 3. Normalize data structure
+                const normalizedData = normalizeBarangData(sourceData);
+                
+                // 4. Save to all required keys
+                localStorage.setItem('masterBarang', JSON.stringify(normalizedData));
+                localStorage.setItem('barang', JSON.stringify(normalizedData));
+                
+                // 5. Create/update conversion ratios
+                const conversionRatios = createConversionRatios(normalizedData);
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                
+                // 6. Re-run diagnostic
+                await runDiagnostic();
+                
+                showAlert(`Koneksi master barang berhasil diperbaiki! ${normalizedData.length} item dimuat dari ${sourceKey}`, 'success');
+                
+            } catch (error) {
+                console.error('Error fixing master barang connection:', error);
+                showAlert(`Error memperbaiki koneksi: ${error.message}`, 'danger');
+            }
+        }
+        
+        /**
+         * Create sample master barang data
+         */
+        function createSampleMasterBarangData() {
+            return [
+                {
+                    kode: 'BRG001-KG',
+                    nama: 'Beras Premium (Kilogram)',
+                    satuan: 'kg',
+                    stok: 100,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12000,
+                    hargaJual: 15000,
+                    kategori: 'Sembako'
+                },
+                {
+                    kode: 'BRG001-GR',
+                    nama: 'Beras Premium (Gram)',
+                    satuan: 'gram',
+                    stok: 50000,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12,
+                    hargaJual: 15,
+                    kategori: 'Sembako'
+                },
+                {
+                    kode: 'BRG002-LT',
+                    nama: 'Minyak Goreng (Liter)',
+                    satuan: 'liter',
+                    stok: 50,
+                    baseProduct: 'BRG002',
+                    hargaBeli: 18000,
+                    hargaJual: 22000,
+                    kategori: 'Sembako'
+                },
+                {
+                    kode: 'BRG002-ML',
+                    nama: 'Minyak Goreng (Mililiter)',
+                    satuan: 'ml',
+                    stok: 25000,
+                    baseProduct: 'BRG002',
+                    hargaBeli: 18,
+                    hargaJual: 22,
+                    kategori: 'Sembako'
+                },
+                {
+                    kode: 'BRG003-DUS',
+                    nama: 'Air Mineral (Dus)',
+                    satuan: 'dus',
+                    stok: 20,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 48000,
+                    hargaJual: 60000,
+                    kategori: 'Minuman'
+                },
+                {
+                    kode: 'BRG003-BTL',
+                    nama: 'Air Mineral (Botol)',
+                    satuan: 'botol',
+                    stok: 480,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 2000,
+                    hargaJual: 2500,
+                    kategori: 'Minuman'
+                },
+                {
+                    kode: 'BRG004-KG',
+                    nama: 'Gula Pasir (Kilogram)',
+                    satuan: 'kg',
+                    stok: 75,
+                    baseProduct: 'BRG004',
+                    hargaBeli: 14000,
+                    hargaJual: 17000,
+                    kategori: 'Sembako'
+                },
+                {
+                    kode: 'BRG004-GR',
+                    nama: 'Gula Pasir (Gram)',
+                    satuan: 'gram',
+                    stok: 25000,
+                    baseProduct: 'BRG004',
+                    hargaBeli: 14,
+                    hargaJual: 17,
+                    kategori: 'Sembako'
+                }
+            ];
+        }
+        
+        /**
+         * Normalize barang data structure
+         */
+        function normalizeBarangData(data) {
+            return data.map(item => {
+                // Ensure all required fields exist
+                const normalized = {
+                    kode: item.kode || item.id || item.barcode || `BRG${Date.now()}`,
+                    nama: item.nama || item.name || item.namaBarang || 'Unnamed Item',
+                    satuan: item.satuan || item.unit || 'pcs',
+                    stok: parseInt(item.stok || item.stock || item.qty || 0),
+                    baseProduct: item.baseProduct || (item.kode ? item.kode.split('-')[0] : 'UNKNOWN'),
+                    hargaBeli: parseFloat(item.hargaBeli || item.harga_beli || item.buyPrice || 0),
+                    hargaJual: parseFloat(item.hargaJual || item.harga_jual || item.sellPrice || 0),
+                    kategori: item.kategori || item.category || 'Lainnya'
+                };
+                
+                // Copy additional fields if they exist
+                Object.keys(item).forEach(key => {
+                    if (!normalized.hasOwnProperty(key)) {
+                        normalized[key] = item[key];
+                    }
+                });
+                
+                return normalized;
+            });
+        }
+        
+        /**
+         * Create conversion ratios from master barang data
+         */
+        function createConversionRatios(masterBarang) {
+            const baseProducts = {};
+            
+            // Group items by base product
+            masterBarang.forEach(item => {
+                const baseProduct = item.baseProduct;
+                if (!baseProducts[baseProduct]) {
+                    baseProducts[baseProduct] = [];
+                }
+                baseProducts[baseProduct].push(item);
+            });
+            
+            const conversionRatios = [];
+            
+            // Create conversion ratios for each base product
+            Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                if (items.length > 1) {
+                    const conversions = [];
+                    
+                    // Create predefined conversion ratios based on common units
+                    const unitConversions = {
+                        'kg': { 'gram': 1000, 'gr': 1000 },
+                        'gram': { 'kg': 0.001 },
+                        'gr': { 'kg': 0.001 },
+                        'liter': { 'ml': 1000, 'mililiter': 1000 },
+                        'ml': { 'liter': 0.001 },
+                        'mililiter': { 'liter': 0.001 },
+                        'dus': { 'botol': 24, 'pcs': 24, 'buah': 24 },
+                        'botol': { 'dus': 0.041667 },
+                        'pcs': { 'dus': 0.041667 },
+                        'buah': { 'dus': 0.041667 }
+                    };
+                    
+                    items.forEach(fromItem => {
+                        items.forEach(toItem => {
+                            if (fromItem.satuan !== toItem.satuan) {
+                                let ratio = 1;
+                                
+                                // Check if we have predefined conversion
+                                if (unitConversions[fromItem.satuan] && 
+                                    unitConversions[fromItem.satuan][toItem.satuan]) {
+                                    ratio = unitConversions[fromItem.satuan][toItem.satuan];
+                                }
+                                
+                                conversions.push({
+                                    from: fromItem.satuan,
+                                    to: toItem.satuan,
+                                    ratio: ratio
+                                });
+                            }
+                        });
+                    });
+                    
+                    if (conversions.length > 0) {
+                        conversionRatios.push({
+                            baseProduct: baseProduct,
+                            conversions: conversions
+                        });
+                    }
+                }
+            });
+            
+            return conversionRatios;
+        }
+        
+        /**
+         * Initialize sample data
+         */
+        async function initializeSampleData() {
+            try {
+                showAlert('Menginisialisasi data sample...', 'info');
+                
+                const sampleData = createSampleMasterBarangData();
+                const normalizedData = normalizeBarangData(sampleData);
+                const conversionRatios = createConversionRatios(normalizedData);
+                
+                // Save to localStorage
+                localStorage.setItem('masterBarang', JSON.stringify(normalizedData));
+                localStorage.setItem('barang', JSON.stringify(normalizedData));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                
+                // Clear any existing transformation history
+                localStorage.removeItem('transformationHistory');
+                
+                // Re-run diagnostic
+                await runDiagnostic();
+                
+                showAlert(`Data sample berhasil diinisialisasi! ${normalizedData.length} item dan ${conversionRatios.length} rasio konversi dibuat`, 'success');
+                
+            } catch (error) {
+                console.error('Error initializing sample data:', error);
+                showAlert(`Error menginisialisasi data: ${error.message}`, 'danger');
+            }
+        }
+        
+        /**
+         * Validate transformation system
+         */
+        async function validateTransformationSystem() {
+            try {
+                showAlert('Memvalidasi sistem transformasi...', 'info');
+                
+                const validationResults = [];
+                
+                // 1. Check data availability
+                const masterBarangCheck = checkMasterBarangData();
+                validationResults.push({
+                    test: 'Data Master Barang',
+                    passed: masterBarangCheck.exists,
+                    message: masterBarangCheck.exists ? `${masterBarangCheck.count} item tersedia` : 'Data tidak ditemukan'
+                });
+                
+                // 2. Check conversion ratios
+                const conversionCheck = checkConversionRatios();
+                validationResults.push({
+                    test: 'Rasio Konversi',
+                    passed: conversionCheck.exists,
+                    message: conversionCheck.exists ? `${conversionCheck.count} rasio tersedia` : 'Rasio tidak ditemukan'
+                });
+                
+                // 3. Check transformable items
+                if (masterBarangCheck.exists) {
+                    const masterBarang = JSON.parse(localStorage.getItem(masterBarangCheck.source) || '[]');
+                    const baseProducts = {};
+                    
+                    masterBarang.forEach(item => {
+                        const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                        if (!baseProducts[baseProduct]) {
+                            baseProducts[baseProduct] = [];
+                        }
+                        baseProducts[baseProduct].push(item);
+                    });
+                    
+                    const transformableProducts = Object.values(baseProducts).filter(items => items.length > 1);
+                    validationResults.push({
+                        test: 'Item Transformable',
+                        passed: transformableProducts.length > 0,
+                        message: `${transformableProducts.length} produk dapat ditransformasi`
+                    });
+                }
+                
+                // 4. Check script availability
+                const scriptsCheck = checkTransformationScripts();
+                validationResults.push({
+                    test: 'Script Transformasi',
+                    passed: scriptsCheck.loaded,
+                    message: `${scriptsCheck.loadedCount}/${scriptsCheck.totalCount} script dimuat`
+                });
+                
+                // Display results
+                let resultsHtml = '<div class="mt-3"><h6>Hasil Validasi:</h6><ul class="list-group">';
+                validationResults.forEach(result => {
+                    const iconClass = result.passed ? 'check-circle text-success' : 'x-circle text-danger';
+                    resultsHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-${iconClass} me-2"></i>
+                                <strong>${result.test}</strong>
+                                <div class="small text-muted">${result.message}</div>
+                            </div>
+                            <span class="badge bg-${result.passed ? 'success' : 'danger'}">${result.passed ? 'PASS' : 'FAIL'}</span>
+                        </li>
+                    `;
+                });
+                resultsHtml += '</ul></div>';
+                
+                document.getElementById('test-results').innerHTML = resultsHtml;
+                
+                const allPassed = validationResults.every(result => result.passed);
+                showAlert(
+                    allPassed ? 'Semua validasi berhasil!' : 'Beberapa validasi gagal, periksa hasil detail',
+                    allPassed ? 'success' : 'warning'
+                );
+                
+            } catch (error) {
+                console.error('Error validating transformation system:', error);
+                showAlert(`Error validasi sistem: ${error.message}`, 'danger');
+            }
+        }
+        
+        /**
+         * Reset transformation system
+         */
+        async function resetTransformationSystem() {
+            try {
+                if (!confirm('Apakah Anda yakin ingin mereset seluruh sistem transformasi? Semua data akan dihapus dan diganti dengan data sample.')) {
+                    return;
+                }
+                
+                showAlert('Mereset sistem transformasi...', 'info');
+                
+                // Clear all transformation-related data
+                const keysToRemove = [
+                    'masterBarang',
+                    'barang',
+                    'conversionRatios',
+                    'transformationHistory',
+                    'stokBarang',
+                    'produk'
+                ];
+                
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                // Initialize fresh sample data
+                await initializeSampleData();
+                
+                showAlert('Sistem transformasi berhasil direset!', 'success');
+                
+            } catch (error) {
+                console.error('Error resetting transformation system:', error);
+                showAlert(`Error reset sistem: ${error.message}`, 'danger');
+            }
+        }
+        
+        /**
+         * Test transformation system
+         */
+        async function testTransformationSystem() {
+            try {
+                showAlert('Menjalankan test sistem transformasi...', 'info');
+                
+                const testResults = [];
+                
+                // Test 1: Load master barang
+                try {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    testResults.push({
+                        test: 'Load Master Barang',
+                        passed: masterBarang.length > 0,
+                        message: `${masterBarang.length} item dimuat`
+                    });
+                } catch (error) {
+                    testResults.push({
+                        test: 'Load Master Barang',
+                        passed: false,
+                        message: `Error: ${error.message}`
+                    });
+                }
+                
+                // Test 2: Load conversion ratios
+                try {
+                    const ratios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                    testResults.push({
+                        test: 'Load Conversion Ratios',
+                        passed: ratios.length > 0,
+                        message: `${ratios.length} rasio dimuat`
+                    });
+                } catch (error) {
+                    testResults.push({
+                        test: 'Load Conversion Ratios',
+                        passed: false,
+                        message: `Error: ${error.message}`
+                    });
+                }
+                
+                // Test 3: Check transformable items
+                try {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    const baseProducts = {};
+                    
+                    masterBarang.forEach(item => {
+                        const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                        if (!baseProducts[baseProduct]) {
+                            baseProducts[baseProduct] = [];
+                        }
+                        baseProducts[baseProduct].push(item);
+                    });
+                    
+                    const transformableCount = Object.values(baseProducts).filter(items => items.length > 1).length;
+                    testResults.push({
+                        test: 'Transformable Items',
+                        passed: transformableCount > 0,
+                        message: `${transformableCount} produk dapat ditransformasi`
+                    });
+                } catch (error) {
+                    testResults.push({
+                        test: 'Transformable Items',
+                        passed: false,
+                        message: `Error: ${error.message}`
+                    });
+                }
+                
+                // Test 4: Simulate transformation
+                try {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                    
+                    // Find first transformable pair
+                    let testPair = null;
+                    const baseProducts = {};
+                    
+                    masterBarang.forEach(item => {
+                        const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                        if (!baseProducts[baseProduct]) {
+                            baseProducts[baseProduct] = [];
+                        }
+                        baseProducts[baseProduct].push(item);
+                    });
+                    
+                    for (const [baseProduct, items] of Object.entries(baseProducts)) {
+                        if (items.length > 1) {
+                            const sourceItem = items.find(item => item.stok > 0);
+                            const targetItem = items.find(item => item.kode !== sourceItem?.kode);
+                            
+                            if (sourceItem && targetItem) {
+                                testPair = { sourceItem, targetItem, baseProduct };
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (testPair) {
+                        // Find conversion ratio
+                        const productRatios = conversionRatios.find(r => r.baseProduct === testPair.baseProduct);
+                        const conversion = productRatios?.conversions?.find(c => 
+                            c.from === testPair.sourceItem.satuan && c.to === testPair.targetItem.satuan
+                        );
+                        
+                        testResults.push({
+                            test: 'Simulation Test',
+                            passed: !!conversion,
+                            message: conversion ? 
+                                `${testPair.sourceItem.nama} → ${testPair.targetItem.nama} (ratio: ${conversion.ratio})` :
+                                'Tidak ada rasio konversi ditemukan'
+                        });
+                    } else {
+                        testResults.push({
+                            test: 'Simulation Test',
+                            passed: false,
+                            message: 'Tidak ada pasangan item yang dapat ditransformasi'
+                        });
+                    }
+                } catch (error) {
+                    testResults.push({
+                        test: 'Simulation Test',
+                        passed: false,
+                        message: `Error: ${error.message}`
+                    });
+                }
+                
+                // Display results
+                let resultsHtml = '<div class="mt-3"><h6>Hasil Test:</h6><ul class="list-group">';
+                testResults.forEach(result => {
+                    const iconClass = result.passed ? 'check-circle text-success' : 'x-circle text-danger';
+                    resultsHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-${iconClass} me-2"></i>
+                                <strong>${result.test}</strong>
+                                <div class="small text-muted">${result.message}</div>
+                            </div>
+                            <span class="badge bg-${result.passed ? 'success' : 'danger'}">${result.passed ? 'PASS' : 'FAIL'}</span>
+                        </li>
+                    `;
+                });
+                resultsHtml += '</ul></div>';
+                
+                document.getElementById('test-results').innerHTML = resultsHtml;
+                
+                const allPassed = testResults.every(result => result.passed);
+                showAlert(
+                    allPassed ? 'Semua test berhasil!' : 'Beberapa test gagal, periksa hasil detail',
+                    allPassed ? 'success' : 'warning'
+                );
+                
+            } catch (error) {
+                console.error('Error testing transformation system:', error);
+                showAlert(`Error test sistem: ${error.message}`, 'danger');
+            }
+        }
+        
+        /**
+         * Open transformation page
+         */
+        function openTransformationPage() {
+            window.open('transformasi_barang.html', '_blank');
+        }
+    </script>
+</body>
+</html>
