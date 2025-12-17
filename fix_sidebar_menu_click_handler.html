@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Sidebar Menu Click Handler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-mouse text-primary"></i> Fix Sidebar Menu Click Handler</h1>
+        <p class="lead">Memperbaiki masalah click handler pada menu sidebar yang tidak merespons</p>
+
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle"></i> Masalah yang Ditemukan</h5>
+            <ul class="mb-0">
+                <li>Menu item di sidebar tidak merespons saat diklik</li>
+                <li>Event handler mungkin tidak terpasang dengan benar</li>
+                <li>Konflik antara onclick attribute dan event listener</li>
+                <li>Masalah dengan preventDefault atau return false</li>
+            </ul>
+        </div>
+
+        <!-- Quick Fix Actions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="bi bi-tools"></i> Quick Fix Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100 mb-2" onclick="diagnoseClickHandlers()">
+                                    Diagnose Click Handlers
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-success w-100 mb-2" onclick="fixClickHandlers()">
+                                    Fix Click Handlers
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-warning w-100 mb-2" onclick="rebuildMenuWithHandlers()">
+                                    Rebuild Menu + Handlers
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-info w-100 mb-2" onclick="testAllMenuItems()">
+                                    Test All Menu Items
+                                </button>
+                            </div>
+                        </div>
+                        <div id="actionResults" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Test Sidebar -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-list"></i> Live Test Sidebar</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <nav class="bg-light" style="min-height: 500px;">
+                            <div class="position-sticky pt-3">
+                                <ul class="nav flex-column" id="liveTestMenu">
+                                    <!-- Menu will be populated here -->
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-display"></i> Content Area</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="liveTestContent">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Klik menu di sidebar untuk test navigasi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-activity"></i> Event Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="eventLog" style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        // Event logging
+        const eventLogDiv = document.getElementById('eventLog');
+        
+        function logEvent(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#0066cc',
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                click: '#6f42c1'
+            };
+            
+            const color = colors[type] || colors.info;
+            eventLogDiv.innerHTML += `<div style="color: ${color}; margin-bottom: 2px;">[${timestamp}] ${type.toUpperCase()}: ${message}</div>`;
+            eventLogDiv.scrollTop = eventLogDiv.scrollHeight;
+        }
+
+        // Setup test environment
+        function setupTestEnvironment() {
+            logEvent('Setting up test environment...', 'info');
+            
+            // Setup test user
+            const testUser = {
+                id: 'admin-001',
+                nama: 'Test Administrator',
+                role: 'administrator',
+                username: 'admin'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(testUser));
+            
+            // Set global currentUser
+            if (typeof window.currentUser !== 'undefined') {
+                window.currentUser = testUser;
+            }
+            
+            // Setup minimal data
+            const testData = {
+                anggota: [{ id: 'test-001', nama: 'Test Anggota', status: 'Aktif' }],
+                penjualan: [{ id: 'penjualan-001', anggotaId: 'test-001', total: 100000, metodePembayaran: 'Kredit' }],
+                pembayaranHutangPiutang: [],
+                jurnal: [],
+                coa: [{ kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 }]
+            };
+            
+            Object.keys(testData).forEach(key => {
+                localStorage.setItem(key, JSON.stringify(testData[key]));
+            });
+            
+            logEvent('Test environment setup completed', 'success');
+        }
+
+        // Diagnose click handlers
+        function diagnoseClickHandlers() {
+            const resultDiv = document.getElementById('actionResults');
+            logEvent('Starting click handler diagnosis...', 'info');
+            
+            let html = '<div class="alert alert-info"><h6>Click Handler Diagnosis:</h6>';
+            let issues = [];
+            
+            try {
+                // Check if main menu exists
+                const mainMenu = document.getElementById('menuList');
+                if (mainMenu) {
+                    html += '<p>✅ Main menuList found</p>';
+                    logEvent('Main menuList found', 'success');
+                    
+                    // Check menu items
+                    const menuItems = mainMenu.querySelectorAll('a[data-page]');
+                    html += `<p>✅ Found ${menuItems.length} menu items with data-page attribute</p>';
+                    logEvent(`Found ${menuItems.length} menu items`, 'info');
+                    
+                    // Check pembayaran-hutang-piutang specifically
+                    const pembayaranMenu = mainMenu.querySelector('a[data-page="pembayaran-hutang-piutang"]');
+                    if (pembayaranMenu) {
+                        html += '<p>✅ Pembayaran Hutang/Piutang menu item found</p>';
+                        logEvent('Pembayaran Hutang/Piutang menu item found', 'success');
+                        
+                        // Check onclick attribute
+                        const onclickAttr = pembayaranMenu.getAttribute('onclick');
+                        if (onclickAttr) {
+                            html += `<p>✅ onclick attribute: ${onclickAttr}</p>`;
+                            logEvent(`onclick attribute found: ${onclickAttr}`, 'info');
+                        } else {
+                            html += '<p>❌ No onclick attribute found</p>';
+                            issues.push('Missing onclick attribute');
+                            logEvent('No onclick attribute found', 'warning');
+                        }
+                        
+                        // Check event listeners
+                        const listeners = getEventListeners ? getEventListeners(pembayaranMenu) : null;
+                        if (listeners && listeners.click && listeners.click.length > 0) {
+                            html += `<p>✅ ${listeners.click.length} click event listeners attached</p>`;
+                            logEvent(`${listeners.click.length} click listeners found`, 'success');
+                        } else {
+                            html += '<p>⚠️ No click event listeners detected (may not be visible in this context)</p>';
+                            logEvent('No click event listeners detected', 'warning');
+                        }
+                    } else {
+                        html += '<p>❌ Pembayaran Hutang/Piutang menu item not found</p>';
+                        issues.push('Menu item not found in DOM');
+                        logEvent('Pembayaran Hutang/Piutang menu item not found', 'error');
+                    }
+                } else {
+                    html += '<p>❌ Main menuList not found</p>';
+                    issues.push('Main menu not found');
+                    logEvent('Main menuList not found', 'error');
+                }
+                
+                // Check required functions
+                const requiredFunctions = ['navigateTo', 'renderPage', 'renderPembayaranHutangPiutang'];
+                requiredFunctions.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        html += `<p>✅ ${func} function available</p>`;
+                        logEvent(`${func} function available`, 'success');
+                    } else {
+                        html += `<p>❌ ${func} function not found</p>`;
+                        issues.push(`${func} function missing`);
+                        logEvent(`${func} function not found`, 'error');
+                    }
+                });
+                
+                if (issues.length === 0) {
+                    html += '<hr><p class="text-success"><strong>✅ No major issues found!</strong></p>';
+                } else {
+                    html += `<hr><p class="text-danger"><strong>❌ Issues found: ${issues.length}</strong></p>`;
+                    html += '<ul>' + issues.map(issue => `<li>${issue}</li>`).join('') + '</ul>';
+                }
+                
+                html += '</div>';
+                
+            } catch (error) {
+                html += `<p>❌ Error during diagnosis: ${error.message}</p></div>`;
+                logEvent(`Diagnosis error: ${error.message}`, 'error');
+            }
+            
+            resultDiv.innerHTML = html;
+            logEvent('Click handler diagnosis completed', 'info');
+        }
+
+        // Fix click handlers
+        function fixClickHandlers() {
+            const resultDiv = document.getElementById('actionResults');
+            logEvent('Starting click handler fixes...', 'info');
+            
+            try {
+                let fixesApplied = [];
+                
+                // Fix 1: Ensure navigateTo function exists
+                if (typeof window.navigateTo !== 'function') {
+                    window.navigateTo = function(page) {
+                        logEvent(`navigateTo called for: ${page}`, 'click');
+                        
+                        // Update current page
+                        if (typeof window.currentPage !== 'undefined') {
+                            window.currentPage = page;
+                        }
+                        
+                        // Call renderPage
+                        if (typeof renderPage === 'function') {
+                            renderPage(page);
+                        } else if (page === 'pembayaran-hutang-piutang' && typeof renderPembayaranHutangPiutang === 'function') {
+                            renderPembayaranHutangPiutang();
+                        }
+                        
+                        // Update active menu
+                        if (typeof updateActiveMenu === 'function') {
+                            updateActiveMenu(page);
+                        } else {
+                            // Manual active menu update
+                            document.querySelectorAll('.nav-link').forEach(link => {
+                                link.classList.remove('active');
+                                if (link.getAttribute('data-page') === page) {
+                                    link.classList.add('active');
+                                }
+                            });
+                        }
+                    };
+                    fixesApplied.push('Created navigateTo function');
+                    logEvent('Created navigateTo function', 'success');
+                }
+                
+                // Fix 2: Add event listeners to all menu items
+                const menuItems = document.querySelectorAll('a[data-page]');
+                let listenersAdded = 0;
+                
+                menuItems.forEach(item => {
+                    const page = item.getAttribute('data-page');
+                    
+                    // Remove existing onclick to avoid conflicts
+                    item.removeAttribute('onclick');
+                    
+                    // Add new event listener
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        logEvent(`Menu clicked: ${page}`, 'click');
+                        
+                        if (typeof navigateTo === 'function') {
+                            navigateTo(page);
+                        } else {
+                            logEvent('navigateTo function not available', 'error');
+                        }
+                        
+                        return false;
+                    });
+                    
+                    listenersAdded++;
+                });
+                
+                if (listenersAdded > 0) {
+                    fixesApplied.push(`Added event listeners to ${listenersAdded} menu items`);
+                    logEvent(`Added event listeners to ${listenersAdded} menu items`, 'success');
+                }
+                
+                // Fix 3: Ensure renderPembayaranHutangPiutang works
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    // Test the function
+                    try {
+                        // Create a temporary div to test rendering
+                        const testDiv = document.createElement('div');
+                        testDiv.id = 'content';
+                        document.body.appendChild(testDiv);
+                        
+                        renderPembayaranHutangPiutang();
+                        
+                        if (testDiv.innerHTML.trim() !== '') {
+                            fixesApplied.push('Verified renderPembayaranHutangPiutang works');
+                            logEvent('renderPembayaranHutangPiutang function verified', 'success');
+                        }
+                        
+                        document.body.removeChild(testDiv);
+                    } catch (error) {
+                        logEvent(`renderPembayaranHutangPiutang test failed: ${error.message}`, 'error');
+                    }
+                }
+                
+                // Fix 4: Create fallback render function if needed
+                if (typeof renderPage !== 'function') {
+                    window.renderPage = function(page) {
+                        logEvent(`Fallback renderPage called for: ${page}`, 'info');
+                        
+                        const content = document.getElementById('mainContent') || 
+                                      document.getElementById('content') ||
+                                      document.getElementById('liveTestContent');
+                        
+                        if (!content) {
+                            logEvent('No content element found', 'error');
+                            return;
+                        }
+                        
+                        if (page === 'pembayaran-hutang-piutang') {
+                            if (typeof renderPembayaranHutangPiutang === 'function') {
+                                renderPembayaranHutangPiutang();
+                            } else {
+                                content.innerHTML = '<div class="alert alert-danger">renderPembayaranHutangPiutang function not found</div>';
+                            }
+                        } else {
+                            content.innerHTML = `<div class="alert alert-info">Navigated to: <strong>${page}</strong></div>`;
+                        }
+                    };
+                    fixesApplied.push('Created fallback renderPage function');
+                    logEvent('Created fallback renderPage function', 'success');
+                }
+                
+                resultDiv.innerHTML = `<div class="alert alert-success">
+                    <h6>✅ Click Handler Fixes Applied:</h6>
+                    <ul class="mb-0">${fixesApplied.map(fix => `<li>${fix}</li>`).join('')}</ul>
+                </div>`;
+                
+                logEvent(`Applied ${fixesApplied.length} fixes`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Fix failed: ${error.message}</div>`;
+                logEvent(`Fix failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Rebuild menu with handlers
+        function rebuildMenuWithHandlers() {
+            const resultDiv = document.getElementById('actionResults');
+            logEvent('Rebuilding menu with handlers...', 'info');
+            
+            try {
+                // Rebuild main menu if renderMenu exists
+                if (typeof renderMenu === 'function') {
+                    renderMenu();
+                    logEvent('Main menu rebuilt', 'success');
+                }
+                
+                // Build live test menu
+                buildLiveTestMenu();
+                
+                // Apply fixes after rebuild
+                setTimeout(() => {
+                    fixClickHandlers();
+                    resultDiv.innerHTML = '<div class="alert alert-success">✅ Menu rebuilt with proper click handlers!</div>';
+                    logEvent('Menu rebuild with handlers completed', 'success');
+                }, 500);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Rebuild failed: ${error.message}</div>`;
+                logEvent(`Rebuild failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Build live test menu
+        function buildLiveTestMenu() {
+            const liveTestMenu = document.getElementById('liveTestMenu');
+            if (!liveTestMenu) return;
+            
+            const testMenuItems = [
+                { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+                { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
+                { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
+                { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+                { icon: 'bi-file-earmark-text', text: 'Laporan', page: 'laporan' }
+            ];
+            
+            liveTestMenu.innerHTML = testMenuItems.map(menu => `
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-page="${menu.page}">
+                        <i class="${menu.icon}"></i> ${menu.text}
+                    </a>
+                </li>
+            `).join('');
+            
+            // Add event listeners to test menu
+            liveTestMenu.querySelectorAll('a[data-page]').forEach(item => {
+                const page = item.getAttribute('data-page');
+                
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    logEvent(`Live test menu clicked: ${page}`, 'click');
+                    
+                    // Update active state
+                    liveTestMenu.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    item.classList.add('active');
+                    
+                    // Render content
+                    const liveTestContent = document.getElementById('liveTestContent');
+                    if (liveTestContent) {
+                        if (page === 'pembayaran-hutang-piutang') {
+                            if (typeof renderPembayaranHutangPiutang === 'function') {
+                                // Temporarily redirect output
+                                const originalGetElementById = document.getElementById;
+                                document.getElementById = function(id) {
+                                    if (id === 'content' || id === 'mainContent') {
+                                        return liveTestContent;
+                                    }
+                                    return originalGetElementById.call(document, id);
+                                };
+                                
+                                try {
+                                    renderPembayaranHutangPiutang();
+                                    logEvent('Pembayaran Hutang/Piutang rendered in live test', 'success');
+                                } catch (error) {
+                                    liveTestContent.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                                    logEvent(`Render error: ${error.message}`, 'error');
+                                } finally {
+                                    document.getElementById = originalGetElementById;
+                                }
+                            } else {
+                                liveTestContent.innerHTML = '<div class="alert alert-danger">renderPembayaranHutangPiutang function not found</div>';
+                                logEvent('renderPembayaranHutangPiutang function not found', 'error');
+                            }
+                        } else {
+                            liveTestContent.innerHTML = `<div class="alert alert-info">Live test navigation to: <strong>${page}</strong></div>`;
+                            logEvent(`Live test navigation to: ${page}`, 'info');
+                        }
+                    }
+                });
+            });
+            
+            logEvent('Live test menu built with event listeners', 'success');
+        }
+
+        // Test all menu items
+        function testAllMenuItems() {
+            const resultDiv = document.getElementById('actionResults');
+            logEvent('Testing all menu items...', 'info');
+            
+            let html = '<div class="alert alert-primary"><h6>Menu Item Test Results:</h6>';
+            let testResults = [];
+            
+            const menuItems = document.querySelectorAll('a[data-page]');
+            
+            menuItems.forEach(item => {
+                const page = item.getAttribute('data-page');
+                const text = item.textContent.trim();
+                
+                try {
+                    // Simulate click
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    
+                    item.dispatchEvent(clickEvent);
+                    
+                    testResults.push(`✅ ${text} (${page}) - Click event dispatched`);
+                    logEvent(`Test click on ${text} (${page})`, 'click');
+                    
+                } catch (error) {
+                    testResults.push(`❌ ${text} (${page}) - Error: ${error.message}`);
+                    logEvent(`Test click failed on ${text}: ${error.message}`, 'error');
+                }
+            });
+            
+            html += '<ul>' + testResults.map(result => `<li>${result}</li>`).join('') + '</ul>';
+            html += `<p><strong>Total menu items tested: ${menuItems.length}</strong></p></div>`;
+            
+            resultDiv.innerHTML = html;
+            logEvent(`Tested ${menuItems.length} menu items`, 'info');
+        }
+
+        // Auto-initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logEvent('Fix Sidebar Menu Click Handler tool loaded', 'info');
+            
+            // Setup test environment
+            setupTestEnvironment();
+            
+            // Build live test menu
+            buildLiveTestMenu();
+            
+            // Auto-run diagnosis after a delay
+            setTimeout(() => {
+                diagnoseClickHandlers();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

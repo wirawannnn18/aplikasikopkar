@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Sidebar - Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-tools text-warning"></i> Fix Sidebar - Pembayaran Hutang Piutang</h1>
+        <p class="lead">Diagnosis dan perbaikan masalah menu Pembayaran Hutang/Piutang di sidebar yang tidak bisa dibuka</p>
+
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle"></i> Masalah yang Dilaporkan</h5>
+            <p>Menu "Pembayaran Hutang/Piutang" di sidebar tidak bisa dibuka atau tidak merespons saat diklik.</p>
+        </div>
+
+        <!-- Diagnosis Steps -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="bi bi-search"></i> Diagnosis Masalah</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-primary w-100 mb-2" onclick="checkMenuConfiguration()">
+                                    1. Cek Menu Config
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-success w-100 mb-2" onclick="checkNavigationFunction()">
+                                    2. Cek Navigation
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-info w-100 mb-2" onclick="checkRenderFunction()">
+                                    3. Cek Render Function
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-warning w-100 mb-2" onclick="testDirectNavigation()">
+                                    4. Test Direct Nav
+                                </button>
+                            </div>
+                        </div>
+                        <div id="diagnosisResults" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fix Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="bi bi-wrench"></i> Perbaikan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-success w-100 mb-2" onclick="setupTestEnvironment()">
+                                    Setup Test Environment
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-warning w-100 mb-2" onclick="fixNavigationIssues()">
+                                    Fix Navigation Issues
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-danger w-100 mb-2" onclick="forceMenuRebuild()">
+                                    Force Menu Rebuild
+                                </button>
+                            </div>
+                        </div>
+                        <div id="fixResults" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Sidebar -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-list"></i> Test Sidebar</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <nav id="testSidebar" class="bg-light" style="min-height: 400px;">
+                            <div class="position-sticky pt-3">
+                                <ul class="nav flex-column" id="testMenuList">
+                                    <li class="nav-item">
+                                        <span class="nav-link text-muted">Loading menu...</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-display"></i> Test Content Area</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testContent">
+                            <div class="alert alert-secondary">
+                                <i class="bi bi-info-circle"></i> Klik menu di sidebar untuk test navigasi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Log -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> Console Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleLog" style="background: #1a1a1a; color: #00ff00; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; height: 300px; overflow-y: auto; font-size: 12px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        // Console logging
+        const consoleDiv = document.getElementById('consoleLog');
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info
+        };
+
+        function logToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                log: '#00ff00',
+                error: '#ff4444',
+                warn: '#ffaa00',
+                info: '#00aaff',
+                success: '#44ff44'
+            };
+            
+            const color = colors[type] || colors.log;
+            consoleDiv.innerHTML += `<div style="color: ${color}; margin-bottom: 2px;">[${timestamp}] ${type.toUpperCase()}: ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        // Override console methods
+        console.log = function(...args) {
+            originalConsole.log(...args);
+            logToConsole(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalConsole.error(...args);
+            logToConsole(args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalConsole.warn(...args);
+            logToConsole(args.join(' '), 'warn');
+        };
+
+        console.info = function(...args) {
+            originalConsole.info(...args);
+            logToConsole(args.join(' '), 'info');
+        };
+
+        // Custom success logging
+        console.success = function(...args) {
+            logToConsole(args.join(' '), 'success');
+        };
+
+        // Global variables
+        let testCurrentUser = null;
+
+        // Diagnosis Functions
+        function checkMenuConfiguration() {
+            const resultDiv = document.getElementById('diagnosisResults');
+            console.info('Checking menu configuration...');
+            
+            let html = '<div class="alert alert-info"><h6>Menu Configuration Check:</h6>';
+            
+            try {
+                // Check if renderMenu function exists
+                if (typeof renderMenu === 'function') {
+                    html += '<p>✅ renderMenu function exists</p>';
+                    console.success('renderMenu function found');
+                } else {
+                    html += '<p>❌ renderMenu function not found</p>';
+                    console.error('renderMenu function missing');
+                }
+                
+                // Check current user
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if (currentUser.role) {
+                    html += `<p>✅ Current user role: ${currentUser.role}</p>`;
+                    console.success(`Current user role: ${currentUser.role}`);
+                    
+                    // Check if role has access to pembayaran-hutang-piutang
+                    const allowedRoles = ['super_admin', 'administrator', 'kasir'];
+                    if (allowedRoles.includes(currentUser.role)) {
+                        html += '<p>✅ User role has access to Pembayaran Hutang/Piutang</p>';
+                        console.success('User role has access to menu');
+                    } else {
+                        html += '<p>❌ User role does not have access to Pembayaran Hutang/Piutang</p>';
+                        console.warn('User role does not have access to menu');
+                    }
+                } else {
+                    html += '<p>❌ No current user or role found</p>';
+                    console.error('No current user or role found');
+                }
+                
+                // Check menu list element
+                const menuList = document.getElementById('menuList');
+                if (menuList) {
+                    html += '<p>✅ menuList element found in DOM</p>';
+                    console.success('menuList element found');
+                    
+                    // Check if menu contains pembayaran-hutang-piutang
+                    const menuItems = menuList.querySelectorAll('a[data-page="pembayaran-hutang-piutang"]');
+                    if (menuItems.length > 0) {
+                        html += '<p>✅ Pembayaran Hutang/Piutang menu item found in DOM</p>';
+                        console.success('Menu item found in DOM');
+                    } else {
+                        html += '<p>❌ Pembayaran Hutang/Piutang menu item not found in DOM</p>';
+                        console.error('Menu item not found in DOM');
+                    }
+                } else {
+                    html += '<p>❌ menuList element not found in DOM</p>';
+                    console.error('menuList element not found');
+                }
+                
+                html += '</div>';
+                
+            } catch (error) {
+                html += `<p>❌ Error during check: ${error.message}</p></div>`;
+                console.error('Error during menu configuration check:', error);
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+
+        function checkNavigationFunction() {
+            const resultDiv = document.getElementById('diagnosisResults');
+            console.info('Checking navigation function...');
+            
+            let html = '<div class="alert alert-warning"><h6>Navigation Function Check:</h6>';
+            
+            try {
+                // Check navigateTo function
+                if (typeof navigateTo === 'function') {
+                    html += '<p>✅ navigateTo function exists</p>';
+                    console.success('navigateTo function found');
+                } else {
+                    html += '<p>❌ navigateTo function not found</p>';
+                    console.error('navigateTo function missing');
+                }
+                
+                // Check renderPage function
+                if (typeof renderPage === 'function') {
+                    html += '<p>✅ renderPage function exists</p>';
+                    console.success('renderPage function found');
+                } else {
+                    html += '<p>❌ renderPage function not found</p>';
+                    console.error('renderPage function missing');
+                }
+                
+                // Check updateActiveMenu function
+                if (typeof updateActiveMenu === 'function') {
+                    html += '<p>✅ updateActiveMenu function exists</p>';
+                    console.success('updateActiveMenu function found');
+                } else {
+                    html += '<p>❌ updateActiveMenu function not found</p>';
+                    console.error('updateActiveMenu function missing');
+                }
+                
+                html += '</div>';
+                
+            } catch (error) {
+                html += `<p>❌ Error during check: ${error.message}</p></div>`;
+                console.error('Error during navigation function check:', error);
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+
+        function checkRenderFunction() {
+            const resultDiv = document.getElementById('diagnosisResults');
+            console.info('Checking render function...');
+            
+            let html = '<div class="alert alert-success"><h6>Render Function Check:</h6>';
+            
+            try {
+                // Check renderPembayaranHutangPiutang function
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    html += '<p>✅ renderPembayaranHutangPiutang function exists</p>';
+                    console.success('renderPembayaranHutangPiutang function found');
+                } else {
+                    html += '<p>❌ renderPembayaranHutangPiutang function not found</p>';
+                    console.error('renderPembayaranHutangPiutang function missing');
+                }
+                
+                // Check dependencies
+                const dependencies = [
+                    'hitungSaldoHutang',
+                    'hitungSaldoPiutang',
+                    'validateAnggotaForHutangPiutang',
+                    'checkPembayaranAccess'
+                ];
+                
+                dependencies.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        html += `<p>✅ ${func} function exists</p>`;
+                        console.success(`${func} function found`);
+                    } else {
+                        html += `<p>❌ ${func} function not found</p>`;
+                        console.error(`${func} function missing`);
+                    }
+                });
+                
+                html += '</div>';
+                
+            } catch (error) {
+                html += `<p>❌ Error during check: ${error.message}</p></div>`;
+                console.error('Error during render function check:', error);
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+
+        function testDirectNavigation() {
+            const resultDiv = document.getElementById('diagnosisResults');
+            console.info('Testing direct navigation...');
+            
+            let html = '<div class="alert alert-primary"><h6>Direct Navigation Test:</h6>';
+            
+            try {
+                // Test direct navigation
+                if (typeof navigateTo === 'function') {
+                    console.info('Attempting direct navigation to pembayaran-hutang-piutang...');
+                    navigateTo('pembayaran-hutang-piutang');
+                    
+                    // Check if content was rendered
+                    setTimeout(() => {
+                        const content = document.getElementById('mainContent') || document.getElementById('testContent');
+                        if (content && content.innerHTML.includes('Pembayaran Hutang')) {
+                            html += '<p>✅ Direct navigation successful - content rendered</p>';
+                            console.success('Direct navigation successful');
+                        } else {
+                            html += '<p>❌ Direct navigation failed - no content rendered</p>';
+                            console.error('Direct navigation failed');
+                        }
+                        
+                        resultDiv.innerHTML = html + '</div>';
+                    }, 1000);
+                    
+                    html += '<p>⏳ Testing navigation... (checking in 1 second)</p>';
+                } else {
+                    html += '<p>❌ Cannot test - navigateTo function not available</p>';
+                    html += '</div>';
+                }
+                
+                if (!html.includes('</div>')) {
+                    resultDiv.innerHTML = html;
+                }
+                
+            } catch (error) {
+                html += `<p>❌ Error during test: ${error.message}</p></div>`;
+                console.error('Error during direct navigation test:', error);
+                resultDiv.innerHTML = html;
+            }
+        }
+
+        // Fix Functions
+        function setupTestEnvironment() {
+            const resultDiv = document.getElementById('fixResults');
+            console.info('Setting up test environment...');
+            
+            try {
+                // Setup test user
+                testCurrentUser = {
+                    id: 'admin-001',
+                    nama: 'Test Administrator',
+                    role: 'admin',
+                    username: 'admin'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(testCurrentUser));
+                
+                // Set global currentUser if it exists
+                if (typeof window.currentUser !== 'undefined') {
+                    window.currentUser = testCurrentUser;
+                }
+                
+                // Setup minimal test data
+                const testData = {
+                    anggota: [
+                        {
+                            id: 'anggota-001',
+                            nik: '1234567890123456',
+                            nama: 'Test Anggota',
+                            status: 'Aktif',
+                            statusKeanggotaan: 'Aktif'
+                        }
+                    ],
+                    penjualan: [
+                        {
+                            id: 'penjualan-001',
+                            anggotaId: 'anggota-001',
+                            total: 100000,
+                            metodePembayaran: 'Kredit',
+                            status: 'kredit'
+                        }
+                    ],
+                    pembayaranHutangPiutang: [],
+                    jurnal: [],
+                    coa: [
+                        { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 },
+                        { kode: '2-1000', nama: 'Hutang Anggota', tipe: 'Kewajiban', saldo: 0 }
+                    ]
+                };
+                
+                Object.keys(testData).forEach(key => {
+                    localStorage.setItem(key, JSON.stringify(testData[key]));
+                });
+                
+                // Render test menu
+                renderTestMenu();
+                
+                resultDiv.innerHTML = '<div class="alert alert-success">✅ Test environment setup completed!</div>';
+                console.success('Test environment setup completed');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Setup failed: ${error.message}</div>`;
+                console.error('Setup failed:', error);
+            }
+        }
+
+        function fixNavigationIssues() {
+            const resultDiv = document.getElementById('fixResults');
+            console.info('Fixing navigation issues...');
+            
+            try {
+                let fixesApplied = [];
+                
+                // Fix 1: Ensure navigateTo function exists
+                if (typeof window.navigateTo !== 'function') {
+                    window.navigateTo = function(page) {
+                        console.info(`Custom navigateTo called for page: ${page}`);
+                        
+                        if (typeof renderPage === 'function') {
+                            renderPage(page);
+                        } else if (page === 'pembayaran-hutang-piutang' && typeof renderPembayaranHutangPiutang === 'function') {
+                            renderPembayaranHutangPiutang();
+                        }
+                        
+                        // Update active menu
+                        if (typeof updateActiveMenu === 'function') {
+                            updateActiveMenu(page);
+                        }
+                    };
+                    fixesApplied.push('Created navigateTo function');
+                    console.success('Created navigateTo function');
+                }
+                
+                // Fix 2: Ensure renderPage handles pembayaran-hutang-piutang
+                if (typeof window.renderPage === 'function') {
+                    const originalRenderPage = window.renderPage;
+                    window.renderPage = function(page) {
+                        console.info(`Enhanced renderPage called for: ${page}`);
+                        
+                        if (page === 'pembayaran-hutang-piutang') {
+                            if (typeof renderPembayaranHutangPiutang === 'function') {
+                                renderPembayaranHutangPiutang();
+                                return;
+                            } else {
+                                console.error('renderPembayaranHutangPiutang function not found');
+                                const content = document.getElementById('mainContent') || document.getElementById('testContent');
+                                if (content) {
+                                    content.innerHTML = '<div class="alert alert-danger">Error: renderPembayaranHutangPiutang function not found</div>';
+                                }
+                                return;
+                            }
+                        }
+                        
+                        // Call original function for other pages
+                        originalRenderPage(page);
+                    };
+                    fixesApplied.push('Enhanced renderPage function');
+                    console.success('Enhanced renderPage function');
+                }
+                
+                // Fix 3: Ensure updateActiveMenu function exists
+                if (typeof window.updateActiveMenu !== 'function') {
+                    window.updateActiveMenu = function(page) {
+                        console.info(`Custom updateActiveMenu called for: ${page}`);
+                        
+                        // Update main menu
+                        document.querySelectorAll('#menuList .nav-link').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('data-page') === page) {
+                                link.classList.add('active');
+                            }
+                        });
+                        
+                        // Update test menu
+                        document.querySelectorAll('#testMenuList .nav-link').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('data-page') === page) {
+                                link.classList.add('active');
+                            }
+                        });
+                    };
+                    fixesApplied.push('Created updateActiveMenu function');
+                    console.success('Created updateActiveMenu function');
+                }
+                
+                // Fix 4: Add click event listeners to menu items
+                setTimeout(() => {
+                    const menuItems = document.querySelectorAll('a[data-page="pembayaran-hutang-piutang"]');
+                    menuItems.forEach(item => {
+                        item.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.info('Menu item clicked: pembayaran-hutang-piutang');
+                            navigateTo('pembayaran-hutang-piutang');
+                        });
+                    });
+                    
+                    if (menuItems.length > 0) {
+                        fixesApplied.push(`Added click listeners to ${menuItems.length} menu items`);
+                        console.success(`Added click listeners to ${menuItems.length} menu items`);
+                    }
+                }, 500);
+                
+                resultDiv.innerHTML = `<div class="alert alert-success">✅ Navigation fixes applied:<br>• ${fixesApplied.join('<br>• ')}</div>`;
+                console.success('Navigation fixes applied successfully');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Fix failed: ${error.message}</div>`;
+                console.error('Fix failed:', error);
+            }
+        }
+
+        function forceMenuRebuild() {
+            const resultDiv = document.getElementById('fixResults');
+            console.info('Force rebuilding menu...');
+            
+            try {
+                // Rebuild main menu if exists
+                if (typeof renderMenu === 'function') {
+                    renderMenu();
+                    console.success('Main menu rebuilt');
+                }
+                
+                // Rebuild test menu
+                renderTestMenu();
+                console.success('Test menu rebuilt');
+                
+                // Re-apply event listeners
+                setTimeout(() => {
+                    fixNavigationIssues();
+                }, 500);
+                
+                resultDiv.innerHTML = '<div class="alert alert-success">✅ Menu rebuilt successfully!</div>';
+                console.success('Menu rebuild completed');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Rebuild failed: ${error.message}</div>`;
+                console.error('Rebuild failed:', error);
+            }
+        }
+
+        function renderTestMenu() {
+            const testMenuList = document.getElementById('testMenuList');
+            if (!testMenuList) return;
+            
+            const testMenus = [
+                { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
+                { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
+                { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
+                { icon: 'bi-receipt', text: 'Riwayat Transaksi', page: 'riwayat' }
+            ];
+            
+            testMenuList.innerHTML = testMenus.map(menu => `
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-page="${menu.page}" onclick="testNavigateTo('${menu.page}'); return false;">
+                        <i class="${menu.icon}"></i> ${menu.text}
+                    </a>
+                </li>
+            `).join('');
+            
+            console.success('Test menu rendered');
+        }
+
+        function testNavigateTo(page) {
+            console.info(`Test navigation to: ${page}`);
+            
+            const testContent = document.getElementById('testContent');
+            if (!testContent) return;
+            
+            // Update active menu
+            document.querySelectorAll('#testMenuList .nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-page') === page) {
+                    link.classList.add('active');
+                }
+            });
+            
+            if (page === 'pembayaran-hutang-piutang') {
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    // Temporarily redirect output to test content
+                    const originalGetElementById = document.getElementById;
+                    document.getElementById = function(id) {
+                        if (id === 'content' || id === 'mainContent') {
+                            return testContent;
+                        }
+                        return originalGetElementById.call(document, id);
+                    };
+                    
+                    try {
+                        renderPembayaranHutangPiutang();
+                        console.success('Pembayaran Hutang/Piutang rendered successfully in test area');
+                    } catch (error) {
+                        console.error('Error rendering Pembayaran Hutang/Piutang:', error);
+                        testContent.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                    } finally {
+                        // Restore original function
+                        document.getElementById = originalGetElementById;
+                    }
+                } else {
+                    testContent.innerHTML = '<div class="alert alert-danger">Error: renderPembayaranHutangPiutang function not found</div>';
+                    console.error('renderPembayaranHutangPiutang function not found');
+                }
+            } else {
+                testContent.innerHTML = `<div class="alert alert-info">Test navigation to: <strong>${page}</strong></div>`;
+            }
+        }
+
+        // Auto-initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.info('Fix Sidebar - Pembayaran Hutang Piutang tool loaded');
+            
+            // Auto setup test environment
+            setTimeout(() => {
+                setupTestEnvironment();
+                
+                // Auto run diagnosis
+                setTimeout(() => {
+                    checkMenuConfiguration();
+                }, 1000);
+            }, 500);
+        });
+    </script>
+</body>
+</html>
