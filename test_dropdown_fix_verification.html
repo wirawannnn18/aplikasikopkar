@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dropdown Fix - Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .dropdown-test {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 1rem 0;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .test-result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="test-container">
+            <div class="text-center mb-4">
+                <h1><i class="bi bi-check-circle me-2"></i>Test Dropdown Fix</h1>
+                <p class="text-muted">Verifikasi bahwa perbaikan dropdown transformasi barang berfungsi dengan benar</p>
+            </div>
+
+            <!-- Test Dropdowns -->
+            <div class="dropdown-test">
+                <h3><i class="bi bi-list me-2"></i>Test Dropdown Elements</h3>
+                <p class="text-muted">Dropdown ini menggunakan elemen yang sama dengan halaman transformasi barang</p>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="sourceItem" class="form-label">
+                            <i class="bi bi-box-seam me-1"></i>Item Sumber
+                        </label>
+                        <select class="form-select" id="sourceItem" required>
+                            <option value="">Pilih Item Sumber...</option>
+                        </select>
+                        <div class="form-text">Pilih item yang akan dikurangi stoknya</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="targetItem" class="form-label">
+                            <i class="bi bi-bullseye me-1"></i>Item Target
+                        </label>
+                        <select class="form-select" id="targetItem" required>
+                            <option value="">Pilih Item Target...</option>
+                        </select>
+                        <div class="form-text">Pilih item yang akan ditambah stoknya</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="quantity" class="form-label">
+                            <i class="bi bi-123 me-1"></i>Jumlah Transformasi
+                        </label>
+                        <input type="number" class="form-control" id="quantity" 
+                               min="1" step="1" placeholder="Masukkan jumlah..." required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-calculator me-1"></i>Info Konversi
+                        </label>
+                        <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                            <span class="text-muted">Pilih item untuk melihat rasio konversi</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-clipboard-check me-2"></i>Hasil Test</h4>
+                </div>
+                <div class="card-body">
+                    <div id="test-results">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-hourglass-split display-4 d-block mb-2"></i>
+                            Klik tombol "Run Test" untuk memulai verifikasi
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <button id="run-test" class="btn btn-primary btn-lg me-3">
+                    <i class="bi bi-play-fill me-2"></i>Run Test
+                </button>
+                <button id="apply-fix" class="btn btn-success btn-lg me-3">
+                    <i class="bi bi-tools me-2"></i>Apply Fix
+                </button>
+                <button id="clear-data" class="btn btn-outline-warning btn-lg">
+                    <i class="bi bi-trash me-2"></i>Clear Data
+                </button>
+            </div>
+
+            <!-- Alert Container -->
+            <div id="alert-container" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load the direct dropdown fix -->
+    <script src="js/transformasi-barang/DirectDropdownFix.js"></script>
+    
+    <script>
+        class DropdownTester {
+            constructor() {
+                this.testResults = [];
+            }
+
+            async runTest() {
+                this.testResults = [];
+                this.updateTestResults('Running tests...', 'info');
+                
+                try {
+                    // Test 1: Check if elements exist
+                    await this.testElementsExist();
+                    
+                    // Test 2: Check localStorage data
+                    await this.testLocalStorageData();
+                    
+                    // Test 3: Check dropdown population
+                    await this.testDropdownPopulation();
+                    
+                    // Test 4: Check for undefined values
+                    await this.testUndefinedValues();
+                    
+                    // Test 5: Test conversion info
+                    await this.testConversionInfo();
+                    
+                    // Show final results
+                    this.showFinalResults();
+                    
+                } catch (error) {
+                    console.error('Test failed:', error);
+                    this.addTestResult('Test execution failed', false, error.message);
+                    this.showFinalResults();
+                }
+            }
+
+            async testElementsExist() {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                const quantityInput = document.getElementById('quantity');
+                const conversionInfo = document.getElementById('conversion-info');
+                
+                this.addTestResult('Source dropdown element exists', !!sourceSelect);
+                this.addTestResult('Target dropdown element exists', !!targetSelect);
+                this.addTestResult('Quantity input element exists', !!quantityInput);
+                this.addTestResult('Conversion info element exists', !!conversionInfo);
+                
+                await this.delay(500);
+            }
+
+            async testLocalStorageData() {
+                try {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                    
+                    this.addTestResult('Master barang data exists', masterBarang.length > 0, `${masterBarang.length} items`);
+                    this.addTestResult('Conversion ratios exist', conversionRatios.length > 0, `${conversionRatios.length} ratios`);
+                    
+                    // Check data integrity
+                    let hasValidData = true;
+                    let invalidItems = 0;
+                    
+                    masterBarang.forEach(item => {
+                        if (!item.nama || !item.satuan || typeof item.stok !== 'number') {
+                            hasValidData = false;
+                            invalidItems++;
+                        }
+                    });
+                    
+                    this.addTestResult('Data integrity check', hasValidData, invalidItems > 0 ? `${invalidItems} invalid items` : 'All items valid');
+                    
+                } catch (error) {
+                    this.addTestResult('localStorage data test', false, error.message);
+                }
+                
+                await this.delay(500);
+            }
+
+            async testDropdownPopulation() {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                if (!sourceSelect || !targetSelect) {
+                    this.addTestResult('Dropdown population test', false, 'Elements not found');
+                    return;
+                }
+                
+                // Apply the fix if function exists
+                if (typeof window.populateDropdownsFixed === 'function') {
+                    const success = window.populateDropdownsFixed();
+                    this.addTestResult('Dropdown population function', success);
+                } else {
+                    this.addTestResult('Dropdown population function', false, 'Function not found');
+                }
+                
+                // Check if dropdowns are populated
+                const sourceCount = sourceSelect.options.length - 1; // Exclude placeholder
+                const targetCount = targetSelect.options.length - 1; // Exclude placeholder
+                
+                this.addTestResult('Source dropdown populated', sourceCount > 0, `${sourceCount} options`);
+                this.addTestResult('Target dropdown populated', targetCount > 0, `${targetCount} options`);
+                
+                await this.delay(500);
+            }
+
+            async testUndefinedValues() {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                if (!sourceSelect || !targetSelect) {
+                    this.addTestResult('Undefined values test', false, 'Elements not found');
+                    return;
+                }
+                
+                // Check source dropdown for undefined
+                let sourceUndefinedCount = 0;
+                for (let i = 1; i < sourceSelect.options.length; i++) {
+                    if (sourceSelect.options[i].textContent.includes('undefined')) {
+                        sourceUndefinedCount++;
+                    }
+                }
+                
+                // Check target dropdown for undefined
+                let targetUndefinedCount = 0;
+                for (let i = 1; i < targetSelect.options.length; i++) {
+                    if (targetSelect.options[i].textContent.includes('undefined')) {
+                        targetUndefinedCount++;
+                    }
+                }
+                
+                this.addTestResult('Source dropdown - no undefined', sourceUndefinedCount === 0, 
+                    sourceUndefinedCount > 0 ? `${sourceUndefinedCount} undefined found` : 'Clean');
+                this.addTestResult('Target dropdown - no undefined', targetUndefinedCount === 0, 
+                    targetUndefinedCount > 0 ? `${targetUndefinedCount} undefined found` : 'Clean');
+                
+                await this.delay(500);
+            }
+
+            async testConversionInfo() {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                const quantityInput = document.getElementById('quantity');
+                
+                if (!sourceSelect || !targetSelect || !quantityInput) {
+                    this.addTestResult('Conversion info test', false, 'Elements not found');
+                    return;
+                }
+                
+                // Try to select items and test conversion
+                if (sourceSelect.options.length > 1 && targetSelect.options.length > 1) {
+                    // Select first available source item
+                    sourceSelect.selectedIndex = 1;
+                    
+                    // Find compatible target item
+                    const sourceOption = sourceSelect.options[1];
+                    const sourceBaseProduct = sourceOption.dataset.baseProduct;
+                    
+                    let targetFound = false;
+                    for (let i = 1; i < targetSelect.options.length; i++) {
+                        const targetOption = targetSelect.options[i];
+                        if (targetOption.dataset.baseProduct === sourceBaseProduct && 
+                            targetOption.value !== sourceSelect.value) {
+                            targetSelect.selectedIndex = i;
+                            targetFound = true;
+                            break;
+                        }
+                    }
+                    
+                    if (targetFound) {
+                        quantityInput.value = '1';
+                        
+                        // Trigger conversion info update
+                        if (typeof window.updateConversionInfoFixed === 'function') {
+                            window.updateConversionInfoFixed();
+                            this.addTestResult('Conversion info function', true, 'Function executed');
+                        } else {
+                            this.addTestResult('Conversion info function', false, 'Function not found');
+                        }
+                        
+                        // Check if conversion info is displayed
+                        const conversionInfo = document.getElementById('conversion-info');
+                        const hasConversionData = conversionInfo && 
+                            !conversionInfo.textContent.includes('Pilih item untuk melihat rasio konversi');
+                        
+                        this.addTestResult('Conversion info display', hasConversionData, 
+                            hasConversionData ? 'Info displayed' : 'No conversion info');
+                    } else {
+                        this.addTestResult('Compatible items test', false, 'No compatible target found');
+                    }
+                } else {
+                    this.addTestResult('Conversion info test', false, 'Insufficient dropdown options');
+                }
+                
+                await this.delay(500);
+            }
+
+            addTestResult(testName, passed, details = '') {
+                this.testResults.push({
+                    name: testName,
+                    passed: passed,
+                    details: details
+                });
+            }
+
+            showFinalResults() {
+                const passedTests = this.testResults.filter(r => r.passed).length;
+                const totalTests = this.testResults.length;
+                const allPassed = passedTests === totalTests;
+                
+                const resultHtml = `
+                    <div class="test-result ${allPassed ? 'success' : 'error'}">
+                        <h5><i class="bi bi-${allPassed ? 'check-circle' : 'x-circle'} me-2"></i>
+                            Test Results: ${passedTests}/${totalTests} Passed
+                        </h5>
+                        <div class="mt-3">
+                            ${this.testResults.map(result => `
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>
+                                        <i class="bi bi-${result.passed ? 'check-circle text-success' : 'x-circle text-danger'} me-2"></i>
+                                        ${result.name}
+                                    </span>
+                                    <span class="text-muted small">${result.details}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${allPassed ? 
+                            '<div class="alert alert-success mt-3 mb-0"><strong>✅ All tests passed!</strong> Dropdown fix is working correctly.</div>' :
+                            '<div class="alert alert-warning mt-3 mb-0"><strong>⚠️ Some tests failed.</strong> The dropdown fix may need adjustment.</div>'
+                        }
+                    </div>
+                `;
+                
+                this.updateTestResults(resultHtml);
+            }
+
+            updateTestResults(content, type = '') {
+                const resultsContainer = document.getElementById('test-results');
+                if (type === 'info') {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center text-primary">
+                            <i class="bi bi-hourglass-split display-4 d-block mb-2"></i>
+                            ${content}
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = content;
+                }
+            }
+
+            applyFix() {
+                try {
+                    // Apply the direct dropdown fix
+                    if (typeof window.populateDropdownsFixed === 'function') {
+                        const success = window.populateDropdownsFixed();
+                        if (success) {
+                            this.showAlert('Fix applied successfully!', 'success');
+                        } else {
+                            this.showAlert('Fix application failed', 'danger');
+                        }
+                    } else {
+                        this.showAlert('Fix function not available', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Error applying fix:', error);
+                    this.showAlert(`Error applying fix: ${error.message}`, 'danger');
+                }
+            }
+
+            clearData() {
+                const keys = ['masterBarang', 'barang', 'stokBarang', 'produk', 'conversionRatios'];
+                keys.forEach(key => localStorage.removeItem(key));
+                
+                // Clear dropdowns
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                if (sourceSelect) {
+                    sourceSelect.innerHTML = '<option value="">Pilih Item Sumber...</option>';
+                }
+                if (targetSelect) {
+                    targetSelect.innerHTML = '<option value="">Pilih Item Target...</option>';
+                }
+                
+                this.showAlert('Data cleared successfully', 'info');
+            }
+
+            showAlert(message, type) {
+                const alertContainer = document.getElementById('alert-container');
+                alertContainer.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize tester
+        const tester = new DropdownTester();
+
+        // Event listeners
+        document.getElementById('run-test').addEventListener('click', () => {
+            tester.runTest();
+        });
+
+        document.getElementById('apply-fix').addEventListener('click', () => {
+            tester.applyFix();
+        });
+
+        document.getElementById('clear-data').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all data?')) {
+                tester.clearData();
+            }
+        });
+
+        // Auto-run test on page load
+        setTimeout(() => {
+            tester.runTest();
+        }, 1000);
+    </script>
+</body>
+</html>
