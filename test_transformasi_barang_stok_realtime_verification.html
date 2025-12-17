@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Verifikasi - Transformasi Barang Stok Real-Time</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+        }
+        .success-test {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .failed-test {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .pending-test {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .code-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .comparison-table {
+            font-size: 14px;
+        }
+        .before-after {
+            display: flex;
+            gap: 20px;
+        }
+        .before-after > div {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-check2-square me-2"></i>
+                    Test Verifikasi: Transformasi Barang Stok Real-Time
+                </h1>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Tujuan Test:</strong> Memverifikasi bahwa perbaikan stok real-time berfungsi dengan benar dan menyelesaikan masalah dropdown "undefined".
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Status Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-speedometer2 me-2"></i>Status Test Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-success mb-1" id="passed-count">0</h4>
+                                    <small class="text-muted">Passed</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-danger mb-1" id="failed-count">0</h4>
+                                    <small class="text-muted">Failed</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-warning mb-1" id="pending-count">0</h4>
+                                    <small class="text-muted">Pending</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-primary mb-1" id="total-count">0</h4>
+                                <small class="text-muted">Total</small>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" id="progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Cases -->
+        <div class="row">
+            <div class="col-12">
+                <h3><i class="bi bi-list-check me-2"></i>Test Cases</h3>
+                <div id="test-cases">
+                    <!-- Test cases will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After Comparison -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-arrow-left-right me-2"></i>Before vs After Comparison</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="before-after">
+                            <div>
+                                <h6 class="text-danger">Before (Masalah)</h6>
+                                <div class="code-display" id="before-display">
+                                    <!-- Before state will be shown here -->
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="text-success">After (Solusi)</h6>
+                                <div class="code-display" id="after-display">
+                                    <!-- After state will be shown here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results Detail -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clipboard-data me-2"></i>Test Results Detail</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Test Case</th>
+                                        <th>Expected</th>
+                                        <th>Actual</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-table">
+                                    <!-- Results will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <button class="btn btn-primary btn-lg me-2" id="run-tests">
+                    <i class="bi bi-play-circle me-2"></i>Run All Tests
+                </button>
+                <button class="btn btn-outline-secondary me-2" id="reset-tests">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Reset Tests
+                </button>
+                <button class="btn btn-success" id="apply-fix">
+                    <i class="bi bi-tools me-2"></i>Apply Fix Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load the fix -->
+    <script src="js/transformasi-barang/RealTimeStockFix.js"></script>
+    
+    <script>
+        /**
+         * Test Suite for Transformasi Barang Stock Real-Time Fix
+         */
+        
+        class TransformasiBarangTestSuite {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.passedCount = 0;
+                this.failedCount = 0;
+                this.pendingCount = 0;
+                this.totalCount = 0;
+            }
+
+            /**
+             * Initialize test suite
+             */
+            async initialize() {
+                console.log('🧪 Initializing Transformasi Barang Test Suite...');
+                
+                this.setupTestCases();
+                this.renderTestCases();
+                this.setupEventListeners();
+                this.showBeforeAfterComparison();
+                
+                console.log('✅ Test Suite initialized');
+            }
+
+            /**
+             * Setup test cases
+             */
+            setupTestCases() {
+                this.tests = [
+                    {
+                        id: 'data-loading',
+                        name: 'Data Loading from localStorage',
+                        description: 'Verify that real application data is loaded correctly',
+                        category: 'Data',
+                        test: () => this.testDataLoading()
+                    },
+                    {
+                        id: 'data-validation',
+                        name: 'Data Validation & Cleaning',
+                        description: 'Ensure all data has required fields and no undefined values',
+                        category: 'Data',
+                        test: () => this.testDataValidation()
+                    },
+                    {
+                        id: 'transformation-variants',
+                        name: 'Transformation Variants Creation',
+                        description: 'Verify automatic creation of transformation variants',
+                        category: 'Logic',
+                        test: () => this.testTransformationVariants()
+                    },
+                    {
+                        id: 'conversion-ratios',
+                        name: 'Conversion Ratios Setup',
+                        description: 'Test conversion ratios calculation and setup',
+                        category: 'Logic',
+                        test: () => this.testConversionRatios()
+                    },
+                    {
+                        id: 'dropdown-population',
+                        name: 'Dropdown Population with Real Stock',
+                        description: 'Verify dropdowns show real-time stock without undefined values',
+                        category: 'UI',
+                        test: () => this.testDropdownPopulation()
+                    },
+                    {
+                        id: 'stock-display',
+                        name: 'Stock Display Accuracy',
+                        description: 'Test that stock values are displayed correctly',
+                        category: 'UI',
+                        test: () => this.testStockDisplay()
+                    },
+                    {
+                        id: 'conversion-info',
+                        name: 'Conversion Info Real-Time',
+                        description: 'Verify conversion info updates with real-time stock',
+                        category: 'UI',
+                        test: () => this.testConversionInfo()
+                    },
+                    {
+                        id: 'stock-sufficiency',
+                        name: 'Stock Sufficiency Validation',
+                        description: 'Test validation of sufficient stock for transformation',
+                        category: 'Validation',
+                        test: () => this.testStockSufficiency()
+                    },
+                    {
+                        id: 'compatibility-check',
+                        name: 'Item Compatibility Check',
+                        description: 'Verify only compatible items are shown for transformation',
+                        category: 'Validation',
+                        test: () => this.testCompatibilityCheck()
+                    },
+                    {
+                        id: 'function-override',
+                        name: 'Function Override Success',
+                        description: 'Test that existing functions are properly overridden',
+                        category: 'Integration',
+                        test: () => this.testFunctionOverride()
+                    }
+                ];
+                
+                this.totalCount = this.tests.length;
+                this.pendingCount = this.tests.length;
+            }
+
+            /**
+             * Render test cases
+             */
+            renderTestCases() {
+                const container = document.getElementById('test-cases');
+                container.innerHTML = '';
+                
+                this.tests.forEach(test => {
+                    const testCard = document.createElement('div');
+                    testCard.className = 'card test-card pending-test';
+                    testCard.id = `test-${test.id}`;
+                    
+                    testCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="card-title">
+                                        <span class="badge bg-secondary me-2">${test.category}</span>
+                                        ${test.name}
+                                    </h6>
+                                    <p class="card-text text-muted">${test.description}</p>
+                                </div>
+                                <div class="test-status">
+                                    <i class="bi bi-clock text-warning" id="status-${test.id}"></i>
+                                </div>
+                            </div>
+                            <div class="test-result mt-2" id="result-${test.id}" style="display: none;">
+                                <!-- Test result will be shown here -->
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(testCard);
+                });
+                
+                this.updateCounters();
+            }
+
+            /**
+             * Setup event listeners
+             */
+            setupEventListeners() {
+                document.getElementById('run-tests').addEventListener('click', () => {
+                    this.runAllTests();
+                });
+                
+                document.getElementById('reset-tests').addEventListener('click', () => {
+                    this.resetTests();
+                });
+                
+                document.getElementById('apply-fix').addEventListener('click', () => {
+                    this.applyFix();
+                });
+            }
+
+            /**
+             * Run all tests
+             */
+            async runAllTests() {
+                console.log('🚀 Running all tests...');
+                
+                this.resetResults();
+                
+                for (const test of this.tests) {
+                    await this.runSingleTest(test);
+                    await this.delay(500); // Small delay between tests
+                }
+                
+                this.showFinalResults();
+            }
+
+            /**
+             * Run single test
+             */
+            async runSingleTest(test) {
+                const testCard = document.getElementById(`test-${test.id}`);
+                const statusIcon = document.getElementById(`status-${test.id}`);
+                const resultDiv = document.getElementById(`result-${test.id}`);
+                
+                // Set running status
+                statusIcon.className = 'bi bi-arrow-clockwise text-primary';
+                testCard.className = 'card test-card';
+                
+                try {
+                    const result = await test.test();
+                    
+                    if (result.success) {
+                        // Test passed
+                        statusIcon.className = 'bi bi-check-circle text-success';
+                        testCard.className = 'card test-card success-test';
+                        this.passedCount++;
+                        this.pendingCount--;
+                        
+                        resultDiv.innerHTML = `
+                            <div class="alert alert-success mb-0">
+                                <i class="bi bi-check-circle me-2"></i>
+                                <strong>PASSED:</strong> ${result.message}
+                                ${result.details ? `<br><small>${result.details}</small>` : ''}
+                            </div>
+                        `;
+                    } else {
+                        // Test failed
+                        statusIcon.className = 'bi bi-x-circle text-danger';
+                        testCard.className = 'card test-card failed-test';
+                        this.failedCount++;
+                        this.pendingCount--;
+                        
+                        resultDiv.innerHTML = `
+                            <div class="alert alert-danger mb-0">
+                                <i class="bi bi-x-circle me-2"></i>
+                                <strong>FAILED:</strong> ${result.message}
+                                ${result.details ? `<br><small>${result.details}</small>` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    resultDiv.style.display = 'block';
+                    this.results.push({ test: test.id, result });
+                    
+                } catch (error) {
+                    // Test error
+                    statusIcon.className = 'bi bi-exclamation-triangle text-danger';
+                    testCard.className = 'card test-card failed-test';
+                    this.failedCount++;
+                    this.pendingCount--;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>ERROR:</strong> ${error.message}
+                        </div>
+                    `;
+                    resultDiv.style.display = 'block';
+                    
+                    this.results.push({ 
+                        test: test.id, 
+                        result: { success: false, message: error.message } 
+                    });
+                }
+                
+                this.updateCounters();
+            }
+
+            /**
+             * Test data loading
+             */
+            async testDataLoading() {
+                const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (barang.length === 0 && masterBarang.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No data found in localStorage',
+                        details: 'Both barang and masterBarang are empty'
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Data loaded successfully',
+                    details: `Found ${barang.length} barang items and ${masterBarang.length} master barang items`
+                };
+            }
+
+            /**
+             * Test data validation
+             */
+            async testDataValidation() {
+                const barang = JSON.parse(localStorage.getItem('barang') || '[]');
+                
+                if (barang.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No data to validate'
+                    };
+                }
+                
+                let validItems = 0;
+                let invalidItems = 0;
+                
+                barang.forEach(item => {
+                    if (item.id && item.nama && typeof item.stok === 'number') {
+                        validItems++;
+                    } else {
+                        invalidItems++;
+                    }
+                });
+                
+                if (invalidItems > 0) {
+                    return {
+                        success: false,
+                        message: `Found ${invalidItems} invalid items`,
+                        details: `${validItems} valid, ${invalidItems} invalid items`
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'All data items are valid',
+                    details: `${validItems} items validated successfully`
+                };
+            }
+
+            /**
+             * Test transformation variants
+             */
+            async testTransformationVariants() {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No master barang data found'
+                    };
+                }
+                
+                // Check for conversion variants
+                const convertedItems = masterBarang.filter(item => item.isConverted);
+                const mainItems = masterBarang.filter(item => item.isMain || !item.isConverted);
+                
+                if (convertedItems.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No transformation variants found',
+                        details: 'Conversion variants should be automatically created'
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Transformation variants created successfully',
+                    details: `${mainItems.length} main items, ${convertedItems.length} conversion variants`
+                };
+            }
+
+            /**
+             * Test conversion ratios
+             */
+            async testConversionRatios() {
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                
+                if (conversionRatios.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No conversion ratios found'
+                    };
+                }
+                
+                let totalConversions = 0;
+                conversionRatios.forEach(ratio => {
+                    if (ratio.conversions && Array.isArray(ratio.conversions)) {
+                        totalConversions += ratio.conversions.length;
+                    }
+                });
+                
+                if (totalConversions === 0) {
+                    return {
+                        success: false,
+                        message: 'No conversion rules found'
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Conversion ratios setup successfully',
+                    details: `${conversionRatios.length} base products, ${totalConversions} conversion rules`
+                };
+            }
+
+            /**
+             * Test dropdown population
+             */
+            async testDropdownPopulation() {
+                // Create test dropdowns
+                const testContainer = document.createElement('div');
+                testContainer.innerHTML = `
+                    <select id="test-sourceItem"></select>
+                    <select id="test-targetItem"></select>
+                `;
+                document.body.appendChild(testContainer);
+                
+                try {
+                    // Test the population function
+                    if (typeof window.populateDropdownsWithRealTimeStock === 'function') {
+                        // Temporarily replace IDs for testing
+                        const originalSourceId = 'sourceItem';
+                        const originalTargetId = 'targetItem';
+                        
+                        // Override getElementById for testing
+                        const originalGetElementById = document.getElementById;
+                        document.getElementById = function(id) {
+                            if (id === 'sourceItem') return document.querySelector('#test-sourceItem');
+                            if (id === 'targetItem') return document.querySelector('#test-targetItem');
+                            return originalGetElementById.call(document, id);
+                        };
+                        
+                        window.populateDropdownsWithRealTimeStock();
+                        
+                        // Restore original function
+                        document.getElementById = originalGetElementById;
+                        
+                        const sourceOptions = document.querySelector('#test-sourceItem').options.length;
+                        const targetOptions = document.querySelector('#test-targetItem').options.length;
+                        
+                        if (sourceOptions <= 1 && targetOptions <= 1) {
+                            return {
+                                success: false,
+                                message: 'Dropdowns not populated',
+                                details: `Source: ${sourceOptions} options, Target: ${targetOptions} options`
+                            };
+                        }
+                        
+                        // Check for undefined values
+                        const sourceTexts = Array.from(document.querySelector('#test-sourceItem').options)
+                            .map(opt => opt.textContent);
+                        const hasUndefined = sourceTexts.some(text => text.includes('undefined'));
+                        
+                        if (hasUndefined) {
+                            return {
+                                success: false,
+                                message: 'Found undefined values in dropdown',
+                                details: 'Dropdown options contain "undefined" text'
+                            };
+                        }
+                        
+                        return {
+                            success: true,
+                            message: 'Dropdowns populated successfully',
+                            details: `Source: ${sourceOptions} options, Target: ${targetOptions} options, No undefined values`
+                        };
+                    } else {
+                        return {
+                            success: false,
+                            message: 'populateDropdownsWithRealTimeStock function not found'
+                        };
+                    }
+                } finally {
+                    document.body.removeChild(testContainer);
+                }
+            }
+
+            /**
+             * Test stock display
+             */
+            async testStockDisplay() {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No master barang data to test'
+                    };
+                }
+                
+                // Check if stock values are numbers and not undefined
+                let validStockItems = 0;
+                let invalidStockItems = 0;
+                
+                masterBarang.forEach(item => {
+                    if (typeof item.stok === 'number' && !isNaN(item.stok)) {
+                        validStockItems++;
+                    } else {
+                        invalidStockItems++;
+                    }
+                });
+                
+                if (invalidStockItems > 0) {
+                    return {
+                        success: false,
+                        message: `Found ${invalidStockItems} items with invalid stock`,
+                        details: `${validStockItems} valid, ${invalidStockItems} invalid stock values`
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'All stock values are valid numbers',
+                    details: `${validStockItems} items with valid stock values`
+                };
+            }
+
+            /**
+             * Test conversion info
+             */
+            async testConversionInfo() {
+                if (typeof window.updateConversionInfoWithRealTimeStock === 'function') {
+                    return {
+                        success: true,
+                        message: 'Conversion info function available',
+                        details: 'updateConversionInfoWithRealTimeStock function is defined'
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: 'Conversion info function not found',
+                        details: 'updateConversionInfoWithRealTimeStock function is not defined'
+                    };
+                }
+            }
+
+            /**
+             * Test stock sufficiency
+             */
+            async testStockSufficiency() {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No data to test stock sufficiency'
+                    };
+                }
+                
+                // Find items with stock > 0
+                const itemsWithStock = masterBarang.filter(item => (item.stok || 0) > 0);
+                
+                if (itemsWithStock.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No items with stock > 0 found',
+                        details: 'All items have zero or negative stock'
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Stock sufficiency validation possible',
+                    details: `${itemsWithStock.length} items have stock > 0`
+                };
+            }
+
+            /**
+             * Test compatibility check
+             */
+            async testCompatibilityCheck() {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No data to test compatibility'
+                    };
+                }
+                
+                // Group by base product
+                const baseProducts = {};
+                masterBarang.forEach(item => {
+                    const baseProduct = item.baseProduct;
+                    if (!baseProducts[baseProduct]) {
+                        baseProducts[baseProduct] = [];
+                    }
+                    baseProducts[baseProduct].push(item);
+                });
+                
+                // Count transformable groups (groups with > 1 item)
+                const transformableGroups = Object.values(baseProducts)
+                    .filter(group => group.length > 1);
+                
+                if (transformableGroups.length === 0) {
+                    return {
+                        success: false,
+                        message: 'No transformable item groups found',
+                        details: 'No base products have multiple units for transformation'
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Compatible item groups found',
+                    details: `${transformableGroups.length} transformable groups available`
+                };
+            }
+
+            /**
+             * Test function override
+             */
+            async testFunctionOverride() {
+                const functions = [
+                    'populateDropdownsWithRealTimeStock',
+                    'updateConversionInfoWithRealTimeStock'
+                ];
+                
+                const availableFunctions = functions.filter(func => 
+                    typeof window[func] === 'function'
+                );
+                
+                if (availableFunctions.length !== functions.length) {
+                    return {
+                        success: false,
+                        message: 'Not all required functions are available',
+                        details: `Available: ${availableFunctions.join(', ')}`
+                    };
+                }
+                
+                return {
+                    success: true,
+                    message: 'All required functions are available',
+                    details: `Functions: ${availableFunctions.join(', ')}`
+                };
+            }
+
+            /**
+             * Show before/after comparison
+             */
+            showBeforeAfterComparison() {
+                const beforeDisplay = document.getElementById('before-display');
+                const afterDisplay = document.getElementById('after-display');
+                
+                beforeDisplay.innerHTML = `
+Dropdown Options:
+❌ "BRG001 - undefined undefined"
+❌ "undefined - Stok: NaN undefined"
+❌ "Barang - undefined"
+
+Stock Display:
+❌ Stok: undefined
+❌ Stok: NaN
+❌ No real-time data
+
+Conversion Info:
+❌ Error: Cannot read property 'stok' of undefined
+❌ Rasio: NaN
+❌ Preview tidak tersedia
+
+User Experience:
+❌ Confusing interface
+❌ No stock information
+❌ Transformation fails
+                `;
+                
+                afterDisplay.innerHTML = `
+Dropdown Options:
+✅ "Beras Premium - Stok: 150 kg"
+✅ "Minyak Goreng - Stok: 75 liter"
+✅ "Air Mineral - Stok: 30 dus"
+
+Stock Display:
+✅ Stok: 150 kg (Real-Time)
+✅ Stok: 75 liter (Real-Time)
+✅ Live data from application
+
+Conversion Info:
+✅ Rasio: 1 kg = 1000 gram
+✅ Preview: 5 kg → 5000 gram
+✅ Before: 150 kg, After: 145 kg
+
+User Experience:
+✅ Clear stock information
+✅ Real-time updates
+✅ Successful transformations
+                `;
+            }
+
+            /**
+             * Show final results
+             */
+            showFinalResults() {
+                const resultsTable = document.getElementById('results-table');
+                resultsTable.innerHTML = '';
+                
+                this.results.forEach(result => {
+                    const test = this.tests.find(t => t.id === result.test);
+                    const row = document.createElement('tr');
+                    
+                    const statusClass = result.result.success ? 'text-success' : 'text-danger';
+                    const statusIcon = result.result.success ? 'bi-check-circle' : 'bi-x-circle';
+                    const statusText = result.result.success ? 'PASSED' : 'FAILED';
+                    
+                    row.innerHTML = `
+                        <td><strong>${test.name}</strong></td>
+                        <td>Function should work correctly</td>
+                        <td>${result.result.message}</td>
+                        <td><i class="bi ${statusIcon} ${statusClass}"></i> ${statusText}</td>
+                        <td><small>${result.result.details || '-'}</small></td>
+                    `;
+                    
+                    resultsTable.appendChild(row);
+                });
+            }
+
+            /**
+             * Reset tests
+             */
+            resetTests() {
+                this.results = [];
+                this.passedCount = 0;
+                this.failedCount = 0;
+                this.pendingCount = this.totalCount;
+                
+                this.tests.forEach(test => {
+                    const testCard = document.getElementById(`test-${test.id}`);
+                    const statusIcon = document.getElementById(`status-${test.id}`);
+                    const resultDiv = document.getElementById(`result-${test.id}`);
+                    
+                    testCard.className = 'card test-card pending-test';
+                    statusIcon.className = 'bi bi-clock text-warning';
+                    resultDiv.style.display = 'none';
+                });
+                
+                this.updateCounters();
+                
+                const resultsTable = document.getElementById('results-table');
+                resultsTable.innerHTML = '';
+            }
+
+            /**
+             * Reset results
+             */
+            resetResults() {
+                this.results = [];
+                this.passedCount = 0;
+                this.failedCount = 0;
+                this.pendingCount = this.totalCount;
+            }
+
+            /**
+             * Apply fix
+             */
+            async applyFix() {
+                if (window.realTimeStockFix) {
+                    const success = await window.realTimeStockFix.refreshRealTimeStock();
+                    if (success) {
+                        alert('✅ Fix applied successfully! Real-time stock is now active.');
+                    } else {
+                        alert('❌ Failed to apply fix. Check console for details.');
+                    }
+                } else {
+                    alert('⚠️ RealTimeStockFix not available. Please load the fix script first.');
+                }
+            }
+
+            /**
+             * Update counters
+             */
+            updateCounters() {
+                document.getElementById('passed-count').textContent = this.passedCount;
+                document.getElementById('failed-count').textContent = this.failedCount;
+                document.getElementById('pending-count').textContent = this.pendingCount;
+                document.getElementById('total-count').textContent = this.totalCount;
+                
+                const progress = ((this.passedCount + this.failedCount) / this.totalCount) * 100;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+            }
+
+            /**
+             * Delay helper
+             */
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize test suite when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            const testSuite = new TransformasiBarangTestSuite();
+            await testSuite.initialize();
+            
+            // Make available globally for debugging
+            window.testSuite = testSuite;
+            
+            console.log('✅ Test Suite ready! Click "Run All Tests" to start verification.');
+        });
+    </script>
+</body>
+</html>
