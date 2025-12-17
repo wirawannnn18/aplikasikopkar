@@ -2440,6 +2440,70 @@
                     window.stockManager.initialize();
                 }
                 
+                // Initialize UIController if available
+                if (typeof window.UIController !== 'undefined' && !window.uiController) {
+                    try {
+                        // Verify all required DOM elements exist
+                        const requiredElements = ['sourceItem', 'targetItem', 'quantity'];
+                        const missingElements = requiredElements.filter(id => !document.getElementById(id));
+                        
+                        if (missingElements.length > 0) {
+                            throw new Error(`Missing DOM elements: ${missingElements.join(', ')}`);
+                        }
+                        
+                        // Create minimal dependencies for UIController
+                        const transformationManager = window.transformationManager || {
+                            getTransformableItems: () => Promise.resolve([]),
+                            executeTransformation: (data) => processTransformation(),
+                            getTransformationPreview: () => Promise.resolve({}),
+                            getTransformationHistory: () => Promise.resolve([])
+                        };
+                        
+                        const errorHandler = {
+                            handleError: (error, context) => {
+                                console.error(`Error in ${context}:`, error);
+                                showAlert(`Error: ${error.message}`, 'danger');
+                            }
+                        };
+                        
+                        window.uiController = new UIController();
+                        window.uiController.initialize(transformationManager, errorHandler);
+                        console.log('✅ UIController initialized successfully');
+                    } catch (error) {
+                        console.warn('⚠️ UIController initialization failed, using fallback:', error.message);
+                        // Create fallback uiController
+                        window.uiController = {
+                            refreshData: async () => {
+                                try {
+                                    await populateDropdownsEnhanced();
+                                    await loadInitialData();
+                                    updateStats();
+                                } catch (e) {
+                                    console.error('Error refreshing data:', e);
+                                }
+                            },
+                            _handleFormSubmission: processTransformationFallback,
+                            initialized: false
+                        };
+                    }
+                } else if (!window.uiController) {
+                    // Create fallback if UIController class is not available
+                    console.warn('⚠️ UIController class not available, using fallback');
+                    window.uiController = {
+                        refreshData: async () => {
+                            try {
+                                await populateDropdownsEnhanced();
+                                await loadInitialData();
+                                updateStats();
+                            } catch (e) {
+                                console.error('Error refreshing data:', e);
+                            }
+                        },
+                        _handleFormSubmission: processTransformationFallback,
+                        initialized: false
+                    };
+                }
+                
                 // Populate dropdowns with enhanced features
                 await populateDropdownsEnhanced();
                 
@@ -2456,16 +2520,42 @@
             }
         }
         
-        // Auto-initialize enhanced system
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeEnhancedTransformationSystem);
-        } else {
+        // Auto-initialize enhanced system with proper DOM ready check
+        function safeInitialization() {
+            // Wait for all required classes to be available
+            const requiredClasses = ['StockManager', 'TransformationManager'];
+            const missingClasses = requiredClasses.filter(className => typeof window[className] === 'undefined');
+            
+            if (missingClasses.length > 0) {
+                console.log(`⏳ Waiting for classes: ${missingClasses.join(', ')}`);
+                setTimeout(safeInitialization, 500);
+                return;
+            }
+            
+            // Ensure DOM elements are available
+            const requiredElements = ['sourceItem', 'targetItem', 'quantity'];
+            const missingElements = requiredElements.filter(id => !document.getElementById(id));
+            
+            if (missingElements.length > 0) {
+                console.log(`⏳ Waiting for DOM elements: ${missingElements.join(', ')}`);
+                setTimeout(safeInitialization, 500);
+                return;
+            }
+            
+            // All dependencies ready, initialize
             initializeEnhancedTransformationSystem();
         }
         
-        // Also initialize after delays to ensure all elements are loaded
-        setTimeout(initializeEnhancedTransformationSystem, 1000);
-        setTimeout(initializeEnhancedTransformationSystem, 3000);
+        // Start initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', safeInitialization);
+        } else {
+            safeInitialization();
+        }
+        
+        // Also initialize after delays as fallback
+        setTimeout(safeInitialization, 1000);
+        setTimeout(safeInitialization, 3000);
 
         /**
          * Setup fallback event listeners (continued)
