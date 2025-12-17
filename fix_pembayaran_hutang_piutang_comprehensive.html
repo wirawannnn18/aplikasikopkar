@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Pembayaran Hutang Piutang - Comprehensive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-tools"></i> Fix Pembayaran Hutang Piutang - Comprehensive</h1>
+        <p class="lead">Memperbaiki masalah pembayaran-hutang-piutang yang tidak bisa terbuka</p>
+
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle"></i> Diagnosis Masalah</h5>
+            <p>Masalah yang ditemukan:</p>
+            <ul>
+                <li>Fungsi <code>renderPembayaranHutangPiutang()</code> membutuhkan dependency dari app.js</li>
+                <li>Urutan loading script mungkin tidak tepat</li>
+                <li>Beberapa fungsi utility tidak tersedia saat fungsi dipanggil</li>
+            </ul>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>1. Test Dependencies</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testDependencies()">Check Dependencies</button>
+                        <div id="dependencyStatus" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>2. Test Navigation</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="testNavigation()">Test Navigation</button>
+                        <div id="navigationStatus" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>3. Test Render Function</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning" onclick="testRenderFunction()">Test Render</button>
+                        <div id="renderStatus" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>4. Simulated Main Content</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="mainContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>5. Console Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleLog" style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts in correct order -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load utility scripts first -->
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/koperasi.js"></script>
+    
+    <!-- Load main module -->
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        // Capture console output
+        let consoleOutput = '';
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleOutput += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            const consoleDiv = document.getElementById('consoleLog');
+            if (consoleDiv) {
+                consoleDiv.textContent = consoleOutput;
+                consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            }
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        // Setup test environment
+        function setupTestEnvironment() {
+            console.log('Setting up test environment...');
+            
+            // Setup current user
+            const testUser = {
+                id: 'test-admin',
+                nama: 'Test Admin',
+                role: 'admin'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(testUser));
+
+            // Setup test anggota
+            const testAnggota = [
+                {
+                    id: 'anggota-1',
+                    nik: '1234567890',
+                    nama: 'John Doe',
+                    status: 'Aktif'
+                },
+                {
+                    id: 'anggota-2',
+                    nik: '0987654321',
+                    nama: 'Jane Smith',
+                    status: 'Aktif'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+
+            // Setup test penjualan (kredit transactions)
+            const testPenjualan = [
+                {
+                    id: 'penjualan-1',
+                    anggotaId: 'anggota-1',
+                    total: 100000,
+                    status: 'kredit',
+                    tanggal: '2024-01-15'
+                }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(testPenjualan));
+
+            // Setup empty arrays
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            localStorage.setItem('auditLog', JSON.stringify([]));
+            localStorage.setItem('simpanan', JSON.stringify([]));
+
+            console.log('Test environment setup completed');
+        }
+
+        function testDependencies() {
+            console.log('Testing dependencies...');
+            const statusDiv = document.getElementById('dependencyStatus');
+            
+            const requiredFunctions = [
+                'formatRupiah',
+                'generateId', 
+                'showAlert',
+                'renderPembayaranHutangPiutang',
+                'checkPembayaranAccess',
+                'hitungSaldoHutang',
+                'hitungSaldoPiutang',
+                'filterTransactableAnggota'
+            ];
+
+            let html = '<div class="list-group">';
+            let allOk = true;
+
+            requiredFunctions.forEach(func => {
+                const exists = typeof window[func] === 'function';
+                if (!exists) allOk = false;
+                
+                const className = exists ? 'list-group-item-success' : 'list-group-item-danger';
+                const icon = exists ? 'bi-check-circle-fill' : 'bi-x-circle-fill';
+                
+                html += `<div class="list-group-item ${className}">
+                    <i class="bi ${icon}"></i> ${func}: ${exists ? 'OK' : 'MISSING'}
+                </div>`;
+            });
+
+            html += '</div>';
+            
+            if (allOk) {
+                html = '<div class="alert alert-success">All dependencies OK!</div>' + html;
+            } else {
+                html = '<div class="alert alert-danger">Some dependencies missing!</div>' + html;
+            }
+            
+            statusDiv.innerHTML = html;
+            console.log('Dependencies test completed');
+        }
+
+        function testNavigation() {
+            console.log('Testing navigation...');
+            const statusDiv = document.getElementById('navigationStatus');
+            
+            try {
+                // Test if navigateTo function exists
+                if (typeof navigateTo !== 'function') {
+                    throw new Error('navigateTo function not found');
+                }
+
+                // Test if renderPage function exists  
+                if (typeof renderPage !== 'function') {
+                    throw new Error('renderPage function not found');
+                }
+
+                statusDiv.innerHTML = '<div class="alert alert-success">Navigation functions OK!</div>';
+                console.log('Navigation test passed');
+                
+            } catch (error) {
+                console.error('Navigation test failed:', error);
+                statusDiv.innerHTML = `<div class="alert alert-danger">Navigation test failed: ${error.message}</div>`;
+            }
+        }
+
+        function testRenderFunction() {
+            console.log('Testing render function...');
+            const statusDiv = document.getElementById('renderStatus');
+            
+            try {
+                // Check if function exists
+                if (typeof renderPembayaranHutangPiutang !== 'function') {
+                    throw new Error('renderPembayaranHutangPiutang function not found');
+                }
+
+                // Create content div if not exists
+                let contentDiv = document.getElementById('content');
+                if (!contentDiv) {
+                    contentDiv = document.createElement('div');
+                    contentDiv.id = 'content';
+                    document.getElementById('mainContent').appendChild(contentDiv);
+                }
+
+                // Test the function
+                renderPembayaranHutangPiutang();
+                
+                // Check if content was rendered
+                if (contentDiv.innerHTML.trim() === '') {
+                    throw new Error('Function executed but no content rendered');
+                }
+
+                statusDiv.innerHTML = '<div class="alert alert-success">Render function executed successfully!</div>';
+                console.log('Render function test passed');
+                
+            } catch (error) {
+                console.error('Render function test failed:', error);
+                statusDiv.innerHTML = `<div class="alert alert-danger">Render test failed: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing...');
+            setupTestEnvironment();
+            
+            // Auto-run tests after a short delay
+            setTimeout(() => {
+                testDependencies();
+                testNavigation();
+                testRenderFunction();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

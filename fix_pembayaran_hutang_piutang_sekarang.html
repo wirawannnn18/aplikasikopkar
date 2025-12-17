@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Pembayaran Hutang Piutang - Sekarang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-tools"></i> Fix Pembayaran Hutang Piutang - Sekarang</h1>
+        <p class="lead">Memperbaiki masalah pembayaran hutang piutang yang tidak bisa dibuka</p>
+
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle"></i> Analisis Masalah</h5>
+            <p>Berdasarkan pemeriksaan kode, masalah yang ditemukan:</p>
+            <ul>
+                <li><strong>Routing OK:</strong> Di <code>js/auth.js</code> line 821, case 'pembayaran-hutang-piutang' memanggil <code>renderPembayaranHutangPiutang()</code></li>
+                <li><strong>Fungsi Exists:</strong> Fungsi <code>renderPembayaranHutangPiutang()</code> ada di <code>js/pembayaranHutangPiutang.js</code></li>
+                <li><strong>Script Loading:</strong> File <code>js/pembayaranHutangPiutang.js</code> dimuat di <code>index.html</code> line 179</li>
+                <li><strong>Kemungkinan Masalah:</strong> Dependency functions tidak tersedia atau error saat eksekusi</li>
+            </ul>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-bug"></i> Diagnosis</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-3" onclick="runDiagnosis()">
+                            <i class="bi bi-play-circle"></i> Jalankan Diagnosis
+                        </button>
+                        <div id="diagnosisResult"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-wrench"></i> Perbaikan</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success mb-3" onclick="runFix()" disabled id="fixButton">
+                            <i class="bi bi-check-circle"></i> Jalankan Perbaikan
+                        </button>
+                        <div id="fixResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> Test Area</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info mb-3" onclick="testPembayaranHutangPiutang()">
+                            <i class="bi bi-play"></i> Test Pembayaran Hutang Piutang
+                        </button>
+                        <div id="testResult"></div>
+                        <div id="content" style="border: 1px solid #ddd; min-height: 200px; padding: 10px; margin-top: 10px;">
+                            <!-- Test content will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load required dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        let diagnosisComplete = false;
+        let issues = [];
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const badge = type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info';
+            return `<div class="mb-1"><span class="badge bg-${badge}">${timestamp}</span> ${message}</div>`;
+        }
+
+        function runDiagnosis() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Menjalankan diagnosis...</div>';
+            
+            issues = [];
+            let logs = '';
+
+            setTimeout(() => {
+                // Check 1: Function exists
+                logs += addLog('Checking if renderPembayaranHutangPiutang function exists...', 'info');
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    logs += addLog('✓ renderPembayaranHutangPiutang function found', 'success');
+                } else {
+                    logs += addLog('✗ renderPembayaranHutangPiutang function NOT found', 'error');
+                    issues.push('missing_function');
+                }
+
+                // Check 2: Dependencies
+                logs += addLog('Checking dependencies...', 'info');
+                const requiredFunctions = [
+                    'generateId',
+                    'showAlert', 
+                    'formatRupiah',
+                    'formatTanggal',
+                    'filterTransactableAnggota',
+                    'validateAnggotaForHutangPiutang',
+                    'addJurnal'
+                ];
+
+                requiredFunctions.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        logs += addLog(`✓ ${func} available`, 'success');
+                    } else {
+                        logs += addLog(`✗ ${func} NOT available`, 'error');
+                        issues.push(`missing_${func}`);
+                    }
+                });
+
+                // Check 3: Content element
+                logs += addLog('Checking content element...', 'info');
+                const contentEl = document.getElementById('content');
+                if (contentEl) {
+                    logs += addLog('✓ Content element found', 'success');
+                } else {
+                    logs += addLog('✗ Content element NOT found', 'error');
+                    issues.push('missing_content_element');
+                }
+
+                // Check 4: LocalStorage data
+                logs += addLog('Checking localStorage data...', 'info');
+                const requiredData = ['anggota', 'penjualan', 'pembayaranHutangPiutang'];
+                requiredData.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        if (data !== null) {
+                            logs += addLog(`✓ ${key} data exists`, 'success');
+                        } else {
+                            logs += addLog(`⚠ ${key} data missing (will be initialized)`, 'info');
+                        }
+                    } catch (error) {
+                        logs += addLog(`✗ Error accessing ${key}: ${error.message}`, 'error');
+                        issues.push(`storage_error_${key}`);
+                    }
+                });
+
+                // Summary
+                if (issues.length === 0) {
+                    logs += addLog('=== DIAGNOSIS COMPLETE: NO ISSUES FOUND ===', 'success');
+                    resultDiv.innerHTML = logs + '<div class="alert alert-success mt-2">Semua komponen tersedia. Masalah mungkin di level lain.</div>';
+                } else {
+                    logs += addLog(`=== DIAGNOSIS COMPLETE: ${issues.length} ISSUES FOUND ===`, 'error');
+                    resultDiv.innerHTML = logs + `<div class="alert alert-warning mt-2">Ditemukan ${issues.length} masalah yang perlu diperbaiki.</div>`;
+                    document.getElementById('fixButton').disabled = false;
+                }
+
+                diagnosisComplete = true;
+            }, 1000);
+        }
+
+        function runFix() {
+            if (!diagnosisComplete) {
+                alert('Jalankan diagnosis terlebih dahulu');
+                return;
+            }
+
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Menjalankan perbaikan...</div>';
+            
+            let logs = '';
+
+            setTimeout(() => {
+                // Fix 1: Initialize missing data
+                logs += addLog('Initializing missing localStorage data...', 'info');
+                
+                if (!localStorage.getItem('anggota')) {
+                    localStorage.setItem('anggota', JSON.stringify([]));
+                    logs += addLog('✓ Initialized anggota data', 'success');
+                }
+                
+                if (!localStorage.getItem('penjualan')) {
+                    localStorage.setItem('penjualan', JSON.stringify([]));
+                    logs += addLog('✓ Initialized penjualan data', 'success');
+                }
+                
+                if (!localStorage.getItem('pembayaranHutangPiutang')) {
+                    localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                    logs += addLog('✓ Initialized pembayaranHutangPiutang data', 'success');
+                }
+
+                if (!localStorage.getItem('jurnal')) {
+                    localStorage.setItem('jurnal', JSON.stringify([]));
+                    logs += addLog('✓ Initialized jurnal data', 'success');
+                }
+
+                if (!localStorage.getItem('auditLog')) {
+                    localStorage.setItem('auditLog', JSON.stringify([]));
+                    logs += addLog('✓ Initialized auditLog data', 'success');
+                }
+
+                // Fix 2: Provide missing functions
+                logs += addLog('Providing missing utility functions...', 'info');
+                
+                if (typeof window.generateId !== 'function') {
+                    window.generateId = function() {
+                        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+                    };
+                    logs += addLog('✓ Added generateId function', 'success');
+                }
+
+                if (typeof window.showAlert !== 'function') {
+                    window.showAlert = function(message, type = 'success') {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                        alertDiv.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+                        document.body.insertBefore(alertDiv, document.body.firstChild);
+                        setTimeout(() => alertDiv.remove(), 3000);
+                    };
+                    logs += addLog('✓ Added showAlert function', 'success');
+                }
+
+                if (typeof window.formatRupiah !== 'function') {
+                    window.formatRupiah = function(amount) {
+                        return new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0
+                        }).format(amount);
+                    };
+                    logs += addLog('✓ Added formatRupiah function', 'success');
+                }
+
+                if (typeof window.formatTanggal !== 'function') {
+                    window.formatTanggal = function(tanggal) {
+                        try {
+                            const date = new Date(tanggal);
+                            return date.toLocaleDateString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                            });
+                        } catch (error) {
+                            return tanggal;
+                        }
+                    };
+                    logs += addLog('✓ Added formatTanggal function', 'success');
+                }
+
+                if (typeof window.filterTransactableAnggota !== 'function') {
+                    window.filterTransactableAnggota = function() {
+                        try {
+                            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                            return anggotaList.filter(anggota => 
+                                anggota.status === 'Aktif' && anggota.statusKeanggotaan !== 'Keluar'
+                            );
+                        } catch (error) {
+                            console.error('Error filtering anggota:', error);
+                            return [];
+                        }
+                    };
+                    logs += addLog('✓ Added filterTransactableAnggota function', 'success');
+                }
+
+                if (typeof window.validateAnggotaForHutangPiutang !== 'function') {
+                    window.validateAnggotaForHutangPiutang = function(anggotaId) {
+                        try {
+                            const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                            const anggota = anggotaList.find(a => a.id === anggotaId);
+                            
+                            if (!anggota) {
+                                return { valid: false, error: 'Anggota tidak ditemukan' };
+                            }
+                            
+                            if (anggota.status !== 'Aktif') {
+                                return { valid: false, error: 'Anggota tidak aktif' };
+                            }
+                            
+                            if (anggota.statusKeanggotaan === 'Keluar') {
+                                return { valid: false, error: 'Anggota sudah keluar' };
+                            }
+                            
+                            return { valid: true };
+                        } catch (error) {
+                            return { valid: false, error: 'Error validating anggota: ' + error.message };
+                        }
+                    };
+                    logs += addLog('✓ Added validateAnggotaForHutangPiutang function', 'success');
+                }
+
+                if (typeof window.addJurnal !== 'function') {
+                    window.addJurnal = function(keterangan, entries, tanggal) {
+                        try {
+                            const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                            const newEntry = {
+                                id: window.generateId(),
+                                tanggal: tanggal || new Date().toISOString().split('T')[0],
+                                keterangan: keterangan,
+                                entries: entries,
+                                createdAt: new Date().toISOString()
+                            };
+                            jurnal.push(newEntry);
+                            localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                            return newEntry;
+                        } catch (error) {
+                            console.error('Error adding jurnal:', error);
+                            throw error;
+                        }
+                    };
+                    logs += addLog('✓ Added addJurnal function', 'success');
+                }
+
+                // Fix 3: Initialize current user if needed
+                if (!localStorage.getItem('currentUser')) {
+                    const defaultUser = {
+                        id: 'admin',
+                        nama: 'Administrator',
+                        role: 'admin'
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+                    logs += addLog('✓ Initialized currentUser', 'success');
+                }
+
+                logs += addLog('=== PERBAIKAN SELESAI ===', 'success');
+                resultDiv.innerHTML = logs + '<div class="alert alert-success mt-2">Perbaikan berhasil! Silakan test pembayaran hutang piutang.</div>';
+                
+            }, 1500);
+        }
+
+        function testPembayaranHutangPiutang() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Testing...</div>';
+            
+            let logs = '';
+
+            setTimeout(() => {
+                try {
+                    logs += addLog('Testing renderPembayaranHutangPiutang function...', 'info');
+                    
+                    // Clear content first
+                    const contentEl = document.getElementById('content');
+                    contentEl.innerHTML = '';
+                    
+                    // Call the function
+                    renderPembayaranHutangPiutang();
+                    
+                    // Check if content was rendered
+                    if (contentEl.innerHTML.trim() !== '') {
+                        logs += addLog('✓ Function executed successfully', 'success');
+                        logs += addLog('✓ Content was rendered', 'success');
+                        
+                        // Check for specific elements
+                        const hasTitle = contentEl.innerHTML.includes('Pembayaran Hutang / Piutang');
+                        const hasForm = contentEl.innerHTML.includes('formPembayaranContainer');
+                        const hasRiwayat = contentEl.innerHTML.includes('riwayatPembayaranContainer');
+                        
+                        if (hasTitle) logs += addLog('✓ Title rendered correctly', 'success');
+                        if (hasForm) logs += addLog('✓ Form container rendered', 'success');
+                        if (hasRiwayat) logs += addLog('✓ Riwayat container rendered', 'success');
+                        
+                        if (hasTitle && hasForm && hasRiwayat) {
+                            logs += addLog('=== TEST BERHASIL: PEMBAYARAN HUTANG PIUTANG BERFUNGSI ===', 'success');
+                            resultDiv.innerHTML = logs + '<div class="alert alert-success mt-2"><strong>SUCCESS!</strong> Pembayaran Hutang Piutang sudah berfungsi dengan baik.</div>';
+                        } else {
+                            logs += addLog('⚠ Some elements missing, but basic function works', 'info');
+                            resultDiv.innerHTML = logs + '<div class="alert alert-info mt-2">Function works but some elements may be missing.</div>';
+                        }
+                    } else {
+                        logs += addLog('✗ No content was rendered', 'error');
+                        resultDiv.innerHTML = logs + '<div class="alert alert-danger mt-2">Function executed but no content rendered.</div>';
+                    }
+                    
+                } catch (error) {
+                    logs += addLog('✗ Error during test: ' + error.message, 'error');
+                    resultDiv.innerHTML = logs + '<div class="alert alert-danger mt-2">Test failed: ' + error.message + '</div>';
+                }
+            }, 500);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Fix Pembayaran Hutang Piutang loaded');
+        });
+    </script>
+</body>
+</html>

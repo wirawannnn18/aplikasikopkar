@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perbaikan Cepat - Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <div class="alert alert-primary">
+            <h4><i class="bi bi-tools"></i> Perbaikan Cepat - Pembayaran Hutang Piutang</h4>
+            <p>Mengatasi masalah pembayaran hutang piutang yang tidak bisa dibuka</p>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5>Status Perbaikan</h5>
+                <div id="statusLog"></div>
+                <button class="btn btn-success mt-3" onclick="jalankanPerbaikan()">
+                    <i class="bi bi-play-circle"></i> Jalankan Perbaikan Sekarang
+                </button>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5>Test Area</h5>
+                <button class="btn btn-info" onclick="testMenu()" disabled id="testBtn">
+                    <i class="bi bi-check-circle"></i> Test Menu Pembayaran Hutang Piutang
+                </button>
+                <div id="testArea" class="mt-3" style="min-height: 300px; border: 1px solid #ddd; padding: 15px;">
+                    <!-- Test content akan muncul di sini -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('statusLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const badgeClass = type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info';
+            statusLog.innerHTML += `<div><span class="badge bg-${badgeClass}">${timestamp}</span> ${message}</div>`;
+        }
+
+        function jalankanPerbaikan() {
+            log('Memulai perbaikan...', 'info');
+            
+            // 1. Inisialisasi data localStorage yang diperlukan
+            log('Menginisialisasi data localStorage...', 'info');
+            
+            const requiredData = {
+                'anggota': [],
+                'penjualan': [],
+                'pembayaranHutangPiutang': [],
+                'jurnal': [],
+                'auditLog': [],
+                'simpanan': []
+            };
+
+            Object.keys(requiredData).forEach(key => {
+                if (!localStorage.getItem(key)) {
+                    localStorage.setItem(key, JSON.stringify(requiredData[key]));
+                    log(`✓ Inisialisasi ${key}`, 'success');
+                }
+            });
+
+            // 2. Inisialisasi currentUser jika belum ada
+            if (!localStorage.getItem('currentUser')) {
+                const defaultUser = {
+                    id: 'admin',
+                    nama: 'Administrator', 
+                    role: 'admin'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+                log('✓ Inisialisasi currentUser', 'success');
+            }
+
+            // 3. Definisikan fungsi-fungsi utility yang diperlukan
+            log('Mendefinisikan fungsi utility...', 'info');
+
+            // generateId
+            if (typeof window.generateId !== 'function') {
+                window.generateId = function() {
+                    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+                };
+                log('✓ generateId function', 'success');
+            }
+
+            // showAlert
+            if (typeof window.showAlert !== 'function') {
+                window.showAlert = function(message, type = 'success') {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                    alertDiv.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+                    document.body.insertBefore(alertDiv, document.body.firstChild);
+                    setTimeout(() => alertDiv.remove(), 3000);
+                };
+                log('✓ showAlert function', 'success');
+            }
+
+            // formatRupiah
+            if (typeof window.formatRupiah !== 'function') {
+                window.formatRupiah = function(amount) {
+                    return new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0
+                    }).format(amount || 0);
+                };
+                log('✓ formatRupiah function', 'success');
+            }
+
+            // formatTanggal
+            if (typeof window.formatTanggal !== 'function') {
+                window.formatTanggal = function(tanggal) {
+                    try {
+                        const date = new Date(tanggal);
+                        return date.toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: 'short', 
+                            year: 'numeric'
+                        });
+                    } catch (error) {
+                        return tanggal;
+                    }
+                };
+                log('✓ formatTanggal function', 'success');
+            }
+
+            // filterTransactableAnggota
+            if (typeof window.filterTransactableAnggota !== 'function') {
+                window.filterTransactableAnggota = function() {
+                    try {
+                        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                        return anggotaList.filter(anggota => 
+                            anggota.status === 'Aktif' && anggota.statusKeanggotaan !== 'Keluar'
+                        );
+                    } catch (error) {
+                        console.error('Error filtering anggota:', error);
+                        return [];
+                    }
+                };
+                log('✓ filterTransactableAnggota function', 'success');
+            }
+
+            // validateAnggotaForHutangPiutang
+            if (typeof window.validateAnggotaForHutangPiutang !== 'function') {
+                window.validateAnggotaForHutangPiutang = function(anggotaId) {
+                    try {
+                        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                        const anggota = anggotaList.find(a => a.id === anggotaId);
+                        
+                        if (!anggota) {
+                            return { valid: false, error: 'Anggota tidak ditemukan' };
+                        }
+                        
+                        if (anggota.status !== 'Aktif') {
+                            return { valid: false, error: 'Anggota tidak aktif' };
+                        }
+                        
+                        if (anggota.statusKeanggotaan === 'Keluar') {
+                            return { valid: false, error: 'Anggota sudah keluar' };
+                        }
+                        
+                        return { valid: true };
+                    } catch (error) {
+                        return { valid: false, error: 'Error validating anggota: ' + error.message };
+                    }
+                };
+                log('✓ validateAnggotaForHutangPiutang function', 'success');
+            }
+
+            // addJurnal
+            if (typeof window.addJurnal !== 'function') {
+                window.addJurnal = function(keterangan, entries, tanggal) {
+                    try {
+                        const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                        const newEntry = {
+                            id: window.generateId(),
+                            tanggal: tanggal || new Date().toISOString().split('T')[0],
+                            keterangan: keterangan,
+                            entries: entries,
+                            createdAt: new Date().toISOString()
+                        };
+                        jurnal.push(newEntry);
+                        localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                        return newEntry;
+                    } catch (error) {
+                        console.error('Error adding jurnal:', error);
+                        throw error;
+                    }
+                };
+                log('✓ addJurnal function', 'success');
+            }
+
+            // 4. Load script pembayaranHutangPiutang.js
+            log('Memuat script pembayaranHutangPiutang.js...', 'info');
+            
+            const script = document.createElement('script');
+            script.src = 'js/pembayaranHutangPiutang.js';
+            script.onload = function() {
+                log('✓ Script pembayaranHutangPiutang.js berhasil dimuat', 'success');
+                
+                // Check if function is available
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    log('✓ Function renderPembayaranHutangPiutang tersedia', 'success');
+                    log('=== PERBAIKAN SELESAI ===', 'success');
+                    document.getElementById('testBtn').disabled = false;
+                } else {
+                    log('✗ Function renderPembayaranHutangPiutang tidak ditemukan', 'error');
+                }
+            };
+            script.onerror = function() {
+                log('✗ Gagal memuat script pembayaranHutangPiutang.js', 'error');
+            };
+            document.head.appendChild(script);
+        }
+
+        function testMenu() {
+            log('Testing menu pembayaran hutang piutang...', 'info');
+            
+            const testArea = document.getElementById('testArea');
+            testArea.innerHTML = '';
+            
+            // Set testArea as content element
+            testArea.id = 'content';
+            
+            try {
+                // Call the function
+                renderPembayaranHutangPiutang();
+                
+                if (testArea.innerHTML.trim() !== '') {
+                    log('✓ Menu berhasil dirender!', 'success');
+                    showAlert('Menu Pembayaran Hutang Piutang berhasil diperbaiki!', 'success');
+                } else {
+                    log('✗ Menu tidak dirender', 'error');
+                }
+            } catch (error) {
+                log('✗ Error: ' + error.message, 'error');
+                testArea.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

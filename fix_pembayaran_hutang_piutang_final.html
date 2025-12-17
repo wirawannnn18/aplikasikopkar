@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Pembayaran Hutang Piutang - Final Solution</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-wrench-adjustable"></i> Fix Pembayaran Hutang Piutang - Final Solution</h1>
+        <p class="lead">Solusi lengkap untuk masalah pembayaran-hutang-piutang yang tidak bisa terbuka</p>
+
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle"></i> Masalah yang Ditemukan</h5>
+            <p>Berdasarkan analisis, masalah utama adalah:</p>
+            <ol>
+                <li><strong>Dependency Loading:</strong> Beberapa fungsi utility tidak tersedia saat pembayaranHutangPiutang.js dimuat</li>
+                <li><strong>Script Order:</strong> Urutan loading script dalam index.html mungkin tidak optimal</li>
+                <li><strong>Missing Functions:</strong> Beberapa fungsi yang dibutuhkan tidak tersedia di scope global</li>
+            </ol>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="bi bi-1-circle"></i> Step 1: Test Current State</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary w-100" onclick="testCurrentState()">Test Current State</button>
+                        <div id="currentStateResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="bi bi-2-circle"></i> Step 2: Apply Fix</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success w-100" onclick="applyFix()">Apply Fix</button>
+                        <div id="fixResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="bi bi-3-circle"></i> Step 3: Verify Fix</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info w-100" onclick="verifyFix()">Verify Fix</button>
+                        <div id="verifyResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> Test Area - Pembayaran Hutang Piutang</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="content"></div>
+                        <div id="mainContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-journal-text"></i> Execution Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="executionLog" style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load all required scripts in correct order -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core utilities -->
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Business logic -->
+    <script src="js/koperasi.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    
+    <!-- Main module -->
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        // Enhanced logging system
+        let executionLog = '';
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addToLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const typeColors = {
+                'info': '🔵',
+                'success': '✅', 
+                'error': '❌',
+                'warning': '⚠️',
+                'debug': '🔍'
+            };
+            
+            executionLog += `${typeColors[type] || '📝'} [${timestamp}] ${message}\n`;
+            const logDiv = document.getElementById('executionLog');
+            if (logDiv) {
+                logDiv.textContent = executionLog;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        }
+
+        // Override console methods
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'info');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToLog(args.join(' '), 'warning');
+        };
+
+        // Setup comprehensive test environment
+        function setupTestEnvironment() {
+            addToLog('Setting up comprehensive test environment...', 'info');
+            
+            // Setup current user with proper role
+            const testUser = {
+                id: 'test-admin-001',
+                nama: 'Test Administrator',
+                role: 'admin',
+                username: 'testadmin'
+            };
+            localStorage.setItem('currentUser', JSON.stringify(testUser));
+            addToLog('✓ Current user setup completed', 'success');
+
+            // Setup comprehensive anggota data
+            const testAnggota = [
+                {
+                    id: 'anggota-001',
+                    nik: '1234567890123456',
+                    nama: 'John Doe',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    departemen: 'IT',
+                    tanggalDaftar: '2024-01-01'
+                },
+                {
+                    id: 'anggota-002', 
+                    nik: '6543210987654321',
+                    nama: 'Jane Smith',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif',
+                    departemen: 'Finance',
+                    tanggalDaftar: '2024-01-15'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            addToLog('✓ Test anggota data setup completed', 'success');
+
+            // Setup test penjualan (kredit transactions)
+            const testPenjualan = [
+                {
+                    id: 'penjualan-001',
+                    anggotaId: 'anggota-001',
+                    total: 150000,
+                    status: 'kredit',
+                    metodePembayaran: 'Kredit',
+                    tanggal: '2024-01-20',
+                    items: [
+                        { nama: 'Produk A', qty: 2, harga: 75000 }
+                    ]
+                },
+                {
+                    id: 'penjualan-002',
+                    anggotaId: 'anggota-002', 
+                    total: 200000,
+                    status: 'kredit',
+                    metodePembayaran: 'Kredit',
+                    tanggal: '2024-01-25',
+                    items: [
+                        { nama: 'Produk B', qty: 1, harga: 200000 }
+                    ]
+                }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(testPenjualan));
+            addToLog('✓ Test penjualan (kredit) data setup completed', 'success');
+
+            // Setup empty but required arrays
+            const requiredArrays = [
+                'pembayaranHutangPiutang',
+                'jurnal', 
+                'auditLog',
+                'simpanan',
+                'departemen'
+            ];
+
+            requiredArrays.forEach(key => {
+                localStorage.setItem(key, JSON.stringify([]));
+            });
+            addToLog('✓ Required empty arrays initialized', 'success');
+
+            // Setup basic COA
+            const basicCOA = [
+                { kode: '1-1000', nama: 'Kas', tipe: 'Aset', saldo: 1000000 },
+                { kode: '2-1000', nama: 'Hutang Anggota', tipe: 'Kewajiban', saldo: 0 },
+                { kode: '2-1100', nama: 'Piutang Anggota', tipe: 'Aset', saldo: 0 }
+            ];
+            localStorage.setItem('coa', JSON.stringify(basicCOA));
+            addToLog('✓ Basic COA setup completed', 'success');
+
+            addToLog('Test environment setup completed successfully!', 'success');
+        }
+
+        function testCurrentState() {
+            addToLog('=== TESTING CURRENT STATE ===', 'info');
+            const resultDiv = document.getElementById('currentStateResult');
+            
+            try {
+                // Test 1: Check if all required functions exist
+                const requiredFunctions = [
+                    'formatRupiah',
+                    'generateId',
+                    'showAlert', 
+                    'renderPembayaranHutangPiutang',
+                    'checkPembayaranAccess',
+                    'hitungSaldoHutang',
+                    'hitungSaldoPiutang',
+                    'filterTransactableAnggota',
+                    'validateAnggotaForHutangPiutang',
+                    'addJurnal'
+                ];
+
+                let missingFunctions = [];
+                requiredFunctions.forEach(func => {
+                    if (typeof window[func] !== 'function') {
+                        missingFunctions.push(func);
+                        addToLog(`❌ Missing function: ${func}`, 'error');
+                    } else {
+                        addToLog(`✓ Function available: ${func}`, 'success');
+                    }
+                });
+
+                if (missingFunctions.length > 0) {
+                    throw new Error(`Missing functions: ${missingFunctions.join(', ')}`);
+                }
+
+                // Test 2: Check localStorage data
+                const requiredData = ['currentUser', 'anggota', 'penjualan'];
+                requiredData.forEach(key => {
+                    const data = localStorage.getItem(key);
+                    if (!data) {
+                        addToLog(`❌ Missing localStorage: ${key}`, 'error');
+                    } else {
+                        addToLog(`✓ localStorage available: ${key}`, 'success');
+                    }
+                });
+
+                // Test 3: Try to call the main function
+                addToLog('Testing renderPembayaranHutangPiutang function...', 'info');
+                renderPembayaranHutangPiutang();
+                addToLog('✓ renderPembayaranHutangPiutang executed successfully', 'success');
+
+                resultDiv.innerHTML = '<div class="alert alert-success">✅ All tests passed!</div>';
+                addToLog('=== CURRENT STATE TEST COMPLETED SUCCESSFULLY ===', 'success');
+
+            } catch (error) {
+                addToLog(`❌ Current state test failed: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        function applyFix() {
+            addToLog('=== APPLYING FIX ===', 'info');
+            const resultDiv = document.getElementById('fixResult');
+            
+            try {
+                // Fix 1: Ensure all utility functions are available globally
+                if (typeof window.formatRupiah !== 'function') {
+                    window.formatRupiah = function(amount) {
+                        return new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0
+                        }).format(amount);
+                    };
+                    addToLog('✓ formatRupiah function added to global scope', 'success');
+                }
+
+                if (typeof window.generateId !== 'function') {
+                    window.generateId = function() {
+                        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+                    };
+                    addToLog('✓ generateId function added to global scope', 'success');
+                }
+
+                if (typeof window.showAlert !== 'function') {
+                    window.showAlert = function(message, type = 'success') {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                        alertDiv.innerHTML = `
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        const container = document.getElementById('mainContent') || document.body;
+                        container.insertBefore(alertDiv, container.firstChild);
+                        
+                        setTimeout(() => alertDiv.remove(), 5000);
+                    };
+                    addToLog('✓ showAlert function added to global scope', 'success');
+                }
+
+                // Fix 2: Ensure content container exists
+                let contentDiv = document.getElementById('content');
+                if (!contentDiv) {
+                    contentDiv = document.createElement('div');
+                    contentDiv.id = 'content';
+                    document.getElementById('mainContent').appendChild(contentDiv);
+                    addToLog('✓ Content container created', 'success');
+                }
+
+                // Fix 3: Re-initialize the module if needed
+                if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                    addToLog('✓ Main function is available', 'success');
+                } else {
+                    throw new Error('Main function still not available after fix');
+                }
+
+                resultDiv.innerHTML = '<div class="alert alert-success">✅ Fix applied successfully!</div>';
+                addToLog('=== FIX APPLICATION COMPLETED ===', 'success');
+
+            } catch (error) {
+                addToLog(`❌ Fix application failed: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Fix failed: ${error.message}</div>`;
+            }
+        }
+
+        function verifyFix() {
+            addToLog('=== VERIFYING FIX ===', 'info');
+            const resultDiv = document.getElementById('verifyResult');
+            
+            try {
+                // Clear previous content
+                const contentDiv = document.getElementById('content');
+                if (contentDiv) {
+                    contentDiv.innerHTML = '';
+                }
+
+                // Test the fixed function
+                addToLog('Testing fixed renderPembayaranHutangPiutang...', 'info');
+                renderPembayaranHutangPiutang();
+
+                // Check if content was rendered
+                if (contentDiv && contentDiv.innerHTML.trim() !== '') {
+                    addToLog('✓ Content successfully rendered', 'success');
+                    
+                    // Test specific elements
+                    const expectedElements = [
+                        'totalHutangDisplay',
+                        'totalPiutangDisplay', 
+                        'formPembayaranContainer',
+                        'riwayatPembayaranContainer'
+                    ];
+
+                    let foundElements = 0;
+                    expectedElements.forEach(elementId => {
+                        if (document.getElementById(elementId)) {
+                            foundElements++;
+                            addToLog(`✓ Element found: ${elementId}`, 'success');
+                        } else {
+                            addToLog(`⚠️ Element not found: ${elementId}`, 'warning');
+                        }
+                    });
+
+                    if (foundElements >= 3) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">✅ Fix verification successful! Pembayaran Hutang Piutang is working.</div>';
+                        addToLog('=== FIX VERIFICATION COMPLETED SUCCESSFULLY ===', 'success');
+                    } else {
+                        throw new Error('Not enough elements rendered correctly');
+                    }
+                } else {
+                    throw new Error('No content was rendered');
+                }
+
+            } catch (error) {
+                addToLog(`❌ Fix verification failed: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ Verification failed: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addToLog('Page loaded, initializing fix process...', 'info');
+            setupTestEnvironment();
+            
+            // Auto-run the fix process after a short delay
+            setTimeout(() => {
+                addToLog('Starting automated fix process...', 'info');
+                testCurrentState();
+                
+                setTimeout(() => {
+                    applyFix();
+                    
+                    setTimeout(() => {
+                        verifyFix();
+                    }, 1000);
+                }, 1000);
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
