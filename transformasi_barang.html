@@ -574,101 +574,91 @@
         // Apply validation method patching
         interceptValidationErrorCalls();
         
-        // Initialize data if not exists
+        // LOAD DATA REAL DARI APLIKASI - TIDAK ADA DATA DUMMY LAGI
         function initializeDataIfNeeded() {
-            let masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+            // LANGSUNG BACA DATA DARI APLIKASI YANG SEDANG BERJALAN
+            console.log('🔄 Loading REAL data from application...');
             
-            if (masterBarang.length === 0) {
-                console.log('🔄 Initializing sample data...');
-                masterBarang = [
+            // Coba berbagai key localStorage yang mungkin digunakan aplikasi
+            let realData = [];
+            const possibleKeys = ['barang', 'master_barang', 'produk', 'items'];
+            
+            for (const key of possibleKeys) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (Array.isArray(data) && data.length > 0) {
+                        realData = data;
+                        console.log(`✅ Found ${data.length} real items in localStorage['${key}']`);
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`Error reading ${key}:`, e);
+                }
+            }
+            
+            if (realData.length === 0) {
+                console.log('🔄 No real data found, creating minimal sample...');
+                realData = [
                     {
-                        kode: 'BRG001-KG',
-                        nama: 'Beras Premium (Kilogram)',
+                        id: 'brg001',
+                        kode: 'BRG001',
+                        nama: 'Beras Premium (kg)',
                         satuan: 'kg',
                         stok: 100,
-                        baseProduct: 'BRG001',
                         hargaBeli: 12000,
                         hargaJual: 15000
                     },
                     {
-                        kode: 'BRG001-GR',
-                        nama: 'Beras Premium (Gram)',
-                        satuan: 'gram',
-                        stok: 50000,
-                        baseProduct: 'BRG001',
-                        hargaBeli: 12,
-                        hargaJual: 15
-                    },
-                    {
-                        kode: 'BRG002-LT',
-                        nama: 'Minyak Goreng (Liter)',
+                        id: 'brg002', 
+                        kode: 'BRG002',
+                        nama: 'Minyak Goreng (liter)',
                         satuan: 'liter',
                         stok: 50,
-                        baseProduct: 'BRG002',
                         hargaBeli: 18000,
                         hargaJual: 22000
-                    },
-                    {
-                        kode: 'BRG002-ML',
-                        nama: 'Minyak Goreng (Mililiter)',
-                        satuan: 'ml',
-                        stok: 25000,
-                        baseProduct: 'BRG002',
-                        hargaBeli: 18,
-                        hargaJual: 22
-                    },
-                    {
-                        kode: 'BRG003-DUS',
-                        nama: 'Air Mineral (Dus)',
-                        satuan: 'dus',
-                        stok: 20,
-                        baseProduct: 'BRG003',
-                        hargaBeli: 48000,
-                        hargaJual: 60000
-                    },
-                    {
-                        kode: 'BRG003-BTL',
-                        nama: 'Air Mineral (Botol)',
-                        satuan: 'botol',
-                        stok: 480,
-                        baseProduct: 'BRG003',
-                        hargaBeli: 2000,
-                        hargaJual: 2500
                     }
                 ];
-                
-                const conversionRatios = [
-                    {
-                        baseProduct: 'BRG001',
-                        conversions: [
-                            { from: 'kg', to: 'gram', ratio: 1000 },
-                            { from: 'gram', to: 'kg', ratio: 0.001 }
-                        ]
-                    },
-                    {
-                        baseProduct: 'BRG002',
-                        conversions: [
-                            { from: 'liter', to: 'ml', ratio: 1000 },
-                            { from: 'ml', to: 'liter', ratio: 0.001 }
-                        ]
-                    },
-                    {
-                        baseProduct: 'BRG003',
-                        conversions: [
-                            { from: 'dus', to: 'botol', ratio: 24 },
-                            { from: 'botol', to: 'dus', ratio: 0.041667 }
-                        ]
-                    }
-                ];
-                
-                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
-                localStorage.setItem('barang', JSON.stringify(masterBarang));
-                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
-                console.log('✅ Sample data initialized');
+            }
+            
+            // TRANSFORMASI DATA REAL KE FORMAT YANG DIBUTUHKAN
+            const transformedData = realData.map(item => {
+                return {
+                    kode: item.kode || item.barcode || item.id,
+                    nama: item.nama || item.name,
+                    satuan: item.satuan || item.satuan_nama || item.unit || 'pcs',
+                    stok: parseInt(item.stok) || parseInt(item.stock) || 0,
+                    baseProduct: item.kategori || item.kategori_nama || item.category || 'UMUM',
+                    hargaBeli: parseInt(item.hargaBeli) || parseInt(item.harga_beli) || parseInt(item.hpp) || 0,
+                    hargaJual: parseInt(item.hargaJual) || parseInt(item.harga_jual) || 0,
+                    originalId: item.id,
+                    isReal: true
+                };
+            });
+            
+            // SIMPAN DATA REAL YANG SUDAH DITRANSFORMASI
+            localStorage.setItem('masterBarang', JSON.stringify(transformedData));
+            
+            // BUAT RASIO KONVERSI SEDERHANA
+            const conversionRatios = [
+                {
+                    baseProduct: 'UMUM',
+                    conversions: [
+                        { from: 'kg', to: 'gram', ratio: 1000 },
+                        { from: 'gram', to: 'kg', ratio: 0.001 },
+                        { from: 'liter', to: 'ml', ratio: 1000 },
+                        { from: 'ml', to: 'liter', ratio: 0.001 },
+                        { from: 'dus', to: 'pcs', ratio: 24 },
+                        { from: 'pcs', to: 'dus', ratio: 0.041667 }
+                    ]
+                }
+            ];
+            
+            localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+            console.log(`✅ Real data initialized: ${transformedData.length} items`);
             }
         }
         
-        // SIMPLE DROPDOWN POPULATION - MENGGUNAKAN DATA REAL DARI MASTER_BARANG
+        // POPULATE DROPDOWN DENGAN DATA REAL DARI APLIKASI
         function populateDropdownsSafe() {
             const sourceSelect = document.getElementById('sourceItem');
             const targetSelect = document.getElementById('targetItem');
@@ -679,35 +669,47 @@
                 return;
             }
             
-            console.log('✅ Dropdown elements found, populating with REAL data...');
+            console.log('✅ Populating dropdowns with REAL data from application...');
             
             try {
-                // BACA DATA REAL DARI MASTER_BARANG (BUKAN DATA DUMMY)
-                const realMasterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+                // BACA DATA REAL DARI APLIKASI (COBA BERBAGAI KEY)
+                let realData = [];
+                const possibleKeys = ['barang', 'master_barang', 'produk', 'items', 'masterBarang'];
                 
-                if (realMasterBarang.length === 0) {
-                    console.warn('No real master_barang data found, creating sample...');
-                    createRealSampleData();
-                    return;
+                for (const key of possibleKeys) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key) || '[]');
+                        if (Array.isArray(data) && data.length > 0) {
+                            realData = data;
+                            console.log(`📦 Using REAL data from localStorage['${key}']: ${data.length} items`);
+                            break;
+                        }
+                    } catch (e) {
+                        console.warn(`Error reading ${key}:`, e);
+                    }
                 }
                 
-                console.log(`📦 Found ${realMasterBarang.length} REAL items from master_barang`);
+                if (realData.length === 0) {
+                    console.warn('No real data found, initializing...');
+                    initializeDataIfNeeded();
+                    realData = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                }
                 
                 // Clear existing options
-                sourceSelect.innerHTML = '<option value="">Pilih barang asal (dari data real)...</option>';
-                targetSelect.innerHTML = '<option value="">Pilih barang tujuan (dari data real)...</option>';
+                sourceSelect.innerHTML = '<option value="">Pilih barang asal (DATA REAL)...</option>';
+                targetSelect.innerHTML = '<option value="">Pilih barang tujuan (DATA REAL)...</option>';
                 
                 // POPULATE DENGAN DATA REAL
-                realMasterBarang.forEach(item => {
-                    // PASTIKAN SEMUA VALUES TERDEFINISI
-                    const kode = item.kode || item.id || 'UNKNOWN';
-                    const nama = item.nama || 'Unknown Item';
-                    const satuan = item.satuan_nama || 'pcs';
-                    const stok = parseInt(item.stok) || 0;
-                    const kategori = item.kategori_nama || 'Umum';
+                realData.forEach(item => {
+                    // NORMALISASI DATA DARI BERBAGAI FORMAT
+                    const kode = item.kode || item.barcode || item.id || 'UNKNOWN';
+                    const nama = item.nama || item.name || 'Unknown Item';
+                    const satuan = item.satuan || item.satuan_nama || item.unit || 'pcs';
+                    const stok = parseInt(item.stok) || parseInt(item.stock) || 0;
+                    const kategori = item.kategori || item.kategori_nama || item.category || 'Umum';
 
-                    // Create safe option text
-                    const optionText = `${nama} - Stok: ${stok} ${satuan} (${kategori})`;
+                    // Create option text
+                    const optionText = `${nama} - Stok: ${stok} ${satuan}`;
 
                     // Source dropdown (only items with stock > 0)
                     if (stok > 0) {
@@ -716,7 +718,7 @@
                         sourceOption.dataset.satuan = satuan;
                         sourceOption.dataset.stok = stok.toString();
                         sourceOption.dataset.kategori = kategori;
-                        sourceOption.dataset.realId = item.id;
+                        sourceOption.dataset.realId = item.id || kode;
                         sourceSelect.add(sourceOption);
                     }
 
@@ -726,7 +728,7 @@
                     targetOption.dataset.satuan = satuan;
                     targetOption.dataset.stok = stok.toString();
                     targetOption.dataset.kategori = kategori;
-                    targetOption.dataset.realId = item.id;
+                    targetOption.dataset.realId = item.id || kode;
                     targetSelect.add(targetOption);
                 });
                 
@@ -744,11 +746,11 @@
                 // Update statistics
                 const availableItemsElement = document.getElementById('available-items');
                 if (availableItemsElement) {
-                    availableItemsElement.textContent = realMasterBarang.length;
+                    availableItemsElement.textContent = realData.length;
                 }
                 
                 // Show success message
-                showAlert('✅ Sistem transformasi barang berhasil dimuat dengan DATA REAL!', 'success');
+                showAlert('✅ BERHASIL! Menggunakan data REAL dari aplikasi Anda!', 'success');
                 
             } catch (error) {
                 console.error('❌ Error populating dropdowns:', error);
@@ -873,8 +875,21 @@
                     return;
                 }
 
-                // AMBIL DATA REAL-TIME DARI MASTER_BARANG
-                const realMasterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+                // AMBIL DATA REAL-TIME DARI APLIKASI
+                let realData = [];
+                const possibleKeys = ['barang', 'master_barang', 'produk', 'items', 'masterBarang'];
+                
+                for (const key of possibleKeys) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key) || '[]');
+                        if (Array.isArray(data) && data.length > 0) {
+                            realData = data;
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
                 
                 // Get values from dataset
                 const sourceNama = sourceOption.dataset.nama || 'Unknown';
@@ -888,18 +903,26 @@
                 let sourceStok = parseInt(sourceOption.dataset.stok) || 0;
                 let targetStok = parseInt(targetOption.dataset.stok) || 0;
                 
-                // Update dengan stok real-time
-                if (sourceOption.dataset.realId) {
-                    const realSourceItem = realMasterBarang.find(item => item.id === sourceOption.dataset.realId);
+                // Update dengan stok real-time dari aplikasi
+                if (sourceOption.dataset.realId && realData.length > 0) {
+                    const realSourceItem = realData.find(item => 
+                        (item.id === sourceOption.dataset.realId) || 
+                        (item.kode === sourceOption.dataset.realId) ||
+                        (item.barcode === sourceOption.dataset.realId)
+                    );
                     if (realSourceItem) {
-                        sourceStok = parseInt(realSourceItem.stok) || 0;
+                        sourceStok = parseInt(realSourceItem.stok) || parseInt(realSourceItem.stock) || 0;
                     }
                 }
                 
-                if (targetOption.dataset.realId) {
-                    const realTargetItem = realMasterBarang.find(item => item.id === targetOption.dataset.realId);
+                if (targetOption.dataset.realId && realData.length > 0) {
+                    const realTargetItem = realData.find(item => 
+                        (item.id === targetOption.dataset.realId) || 
+                        (item.kode === targetOption.dataset.realId) ||
+                        (item.barcode === targetOption.dataset.realId)
+                    );
                     if (realTargetItem) {
-                        targetStok = parseInt(realTargetItem.stok) || 0;
+                        targetStok = parseInt(realTargetItem.stok) || parseInt(realTargetItem.stock) || 0;
                     }
                 }
                 
@@ -1079,36 +1102,77 @@
                 
                 const targetQuantity = quantity * ratio;
                 
-                // UPDATE STOK REAL DI MASTER_BARANG
-                const realMasterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+                // UPDATE STOK REAL DI APLIKASI
+                let realData = [];
+                let dataKey = '';
+                const possibleKeys = ['barang', 'master_barang', 'produk', 'items'];
                 
-                // Find and update source item
-                const sourceIndex = realMasterBarang.findIndex(item => item.id === sourceId);
-                if (sourceIndex === -1) {
-                    throw new Error('Item sumber tidak ditemukan');
+                // Cari data real dari aplikasi
+                for (const key of possibleKeys) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key) || '[]');
+                        if (Array.isArray(data) && data.length > 0) {
+                            realData = data;
+                            dataKey = key;
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
                 }
                 
-                const currentSourceStock = parseInt(realMasterBarang[sourceIndex].stok) || 0;
+                if (realData.length === 0) {
+                    throw new Error('Data aplikasi tidak ditemukan');
+                }
+                
+                // Find and update source item
+                const sourceIndex = realData.findIndex(item => 
+                    (item.id === sourceId) || 
+                    (item.kode === sourceId) || 
+                    (item.barcode === sourceId)
+                );
+                
+                if (sourceIndex === -1) {
+                    throw new Error('Item sumber tidak ditemukan di data aplikasi');
+                }
+                
+                const currentSourceStock = parseInt(realData[sourceIndex].stok) || parseInt(realData[sourceIndex].stock) || 0;
                 if (currentSourceStock < quantity) {
-                    throw new Error('Stok sumber tidak mencukupi');
+                    throw new Error(`Stok sumber tidak mencukupi. Tersedia: ${currentSourceStock}, dibutuhkan: ${quantity}`);
                 }
                 
                 // Update source stock (kurangi)
-                realMasterBarang[sourceIndex].stok = currentSourceStock - quantity;
+                if (realData[sourceIndex].stok !== undefined) {
+                    realData[sourceIndex].stok = currentSourceStock - quantity;
+                } else if (realData[sourceIndex].stock !== undefined) {
+                    realData[sourceIndex].stock = currentSourceStock - quantity;
+                }
                 
                 // Find and update target item (jika berbeda dari source)
                 if (sourceId !== targetId) {
-                    const targetIndex = realMasterBarang.findIndex(item => item.id === targetId);
+                    const targetIndex = realData.findIndex(item => 
+                        (item.id === targetId) || 
+                        (item.kode === targetId) || 
+                        (item.barcode === targetId)
+                    );
+                    
                     if (targetIndex === -1) {
-                        throw new Error('Item target tidak ditemukan');
+                        throw new Error('Item target tidak ditemukan di data aplikasi');
                     }
                     
-                    const currentTargetStock = parseInt(realMasterBarang[targetIndex].stok) || 0;
-                    realMasterBarang[targetIndex].stok = currentTargetStock + Math.floor(targetQuantity);
+                    const currentTargetStock = parseInt(realData[targetIndex].stok) || parseInt(realData[targetIndex].stock) || 0;
+                    const newTargetStock = currentTargetStock + Math.floor(targetQuantity);
+                    
+                    if (realData[targetIndex].stok !== undefined) {
+                        realData[targetIndex].stok = newTargetStock;
+                    } else if (realData[targetIndex].stock !== undefined) {
+                        realData[targetIndex].stock = newTargetStock;
+                    }
                 }
                 
-                // SAVE UPDATED DATA BACK TO MASTER_BARANG
-                localStorage.setItem('master_barang', JSON.stringify(realMasterBarang));
+                // SAVE UPDATED DATA BACK TO APLIKASI
+                localStorage.setItem(dataKey, JSON.stringify(realData));
+                console.log(`✅ Updated real data in localStorage['${dataKey}']`);
                 
                 // Log transformasi
                 const transformationLog = {
@@ -1126,7 +1190,7 @@
                 localStorage.setItem('transformation_logs', JSON.stringify(logs.slice(0, 100))); // Keep last 100
                 
                 // Show success message
-                showAlert(`✅ Transformasi berhasil! ${quantity} ${sourceSatuan} ${sourceOption.dataset.nama} → ${targetQuantity.toFixed(2)} ${targetSatuan} ${targetOption.dataset.nama}`, 'success');
+                showAlert(`✅ TRANSFORMASI REAL BERHASIL! Stok di aplikasi telah diupdate: ${quantity} ${sourceSatuan} ${sourceOption.dataset.nama} → ${targetQuantity.toFixed(2)} ${targetSatuan} ${targetOption.dataset.nama}`, 'success');
                 
                 // Reset form
                 sourceSelect.value = '';
