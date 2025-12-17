@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIX SEDERHANA - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h4><i class="bi bi-tools me-2"></i>PERBAIKAN SEDERHANA - Transformasi Barang</h4>
+                    <p>Mengatasi masalah dropdown yang menampilkan "undefined" dengan solusi langsung.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-arrow-left-right me-2"></i>Form Transformasi Barang</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Source Item -->
+                        <div class="mb-3">
+                            <label for="sourceItem" class="form-label">Barang Asal (yang akan dikurangi stoknya)</label>
+                            <select class="form-select" id="sourceItem" required>
+                                <option value="">Pilih barang asal...</option>
+                            </select>
+                        </div>
+
+                        <!-- Target Item -->
+                        <div class="mb-3">
+                            <label for="targetItem" class="form-label">Barang Tujuan (yang akan ditambah stoknya)</label>
+                            <select class="form-select" id="targetItem" required>
+                                <option value="">Pilih barang tujuan...</option>
+                            </select>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Jumlah</label>
+                            <input type="number" class="form-control" id="quantity" min="1" step="1" placeholder="Masukkan jumlah...">
+                        </div>
+
+                        <!-- Conversion Info -->
+                        <div class="mb-3">
+                            <label class="form-label">Info Konversi</label>
+                            <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 60px;">
+                                <span class="text-muted">Pilih item untuk melihat info konversi</span>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary" id="submit-transformation" disabled>
+                                <i class="bi bi-arrow-repeat me-1"></i>Lakukan Transformasi
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="initializeData()">
+                                <i class="bi bi-database-add me-1"></i>Inisialisasi Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="mt-3">
+                    <div id="status-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        console.log('🔧 Loading SIMPLE fix for transformasi barang...');
+
+        // SIMPLE DATA STRUCTURE - No complex objects
+        const sampleData = [
+            {
+                kode: 'BRG001-KG',
+                nama: 'Beras Premium (Kilogram)',
+                satuan: 'kg',
+                stok: 100,
+                baseProduct: 'BRG001'
+            },
+            {
+                kode: 'BRG001-GR',
+                nama: 'Beras Premium (Gram)',
+                satuan: 'gram',
+                stok: 50000,
+                baseProduct: 'BRG001'
+            },
+            {
+                kode: 'BRG002-LT',
+                nama: 'Minyak Goreng (Liter)',
+                satuan: 'liter',
+                stok: 50,
+                baseProduct: 'BRG002'
+            },
+            {
+                kode: 'BRG002-ML',
+                nama: 'Minyak Goreng (Mililiter)',
+                satuan: 'ml',
+                stok: 25000,
+                baseProduct: 'BRG002'
+            }
+        ];
+
+        const conversionRatios = [
+            {
+                baseProduct: 'BRG001',
+                conversions: [
+                    { from: 'kg', to: 'gram', ratio: 1000 },
+                    { from: 'gram', to: 'kg', ratio: 0.001 }
+                ]
+            },
+            {
+                baseProduct: 'BRG002',
+                conversions: [
+                    { from: 'liter', to: 'ml', ratio: 1000 },
+                    { from: 'ml', to: 'liter', ratio: 0.001 }
+                ]
+            }
+        ];
+
+        // SIMPLE INITIALIZATION
+        function initializeData() {
+            try {
+                localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                
+                showStatus('Data berhasil diinisialisasi!', 'success');
+                populateDropdowns();
+            } catch (error) {
+                showStatus('Error inisialisasi data: ' + error.message, 'danger');
+            }
+        }
+
+        // SIMPLE DROPDOWN POPULATION - NO UNDEFINED VALUES
+        function populateDropdowns() {
+            console.log('🎛️ Populating dropdowns...');
+            
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            if (!sourceSelect || !targetSelect) {
+                showStatus('Dropdown elements tidak ditemukan!', 'danger');
+                return;
+            }
+
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    showStatus('Tidak ada data barang. Klik "Inisialisasi Data" terlebih dahulu.', 'warning');
+                    return;
+                }
+
+                // Clear existing options
+                sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+                targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+
+                // Populate with SAFE values - NO UNDEFINED
+                masterBarang.forEach(item => {
+                    // Ensure all values are defined
+                    const kode = item.kode || 'UNKNOWN';
+                    const nama = item.nama || 'Unknown Item';
+                    const satuan = item.satuan || 'unit';
+                    const stok = typeof item.stok === 'number' ? item.stok : 0;
+
+                    // Create option text with guaranteed values
+                    const optionText = `${nama} - Stok: ${stok} ${satuan}`;
+
+                    // Source dropdown (only items with stock > 0)
+                    if (stok > 0) {
+                        const sourceOption = new Option(optionText, kode);
+                        sourceOption.dataset.nama = nama;
+                        sourceOption.dataset.satuan = satuan;
+                        sourceOption.dataset.stok = stok.toString();
+                        sourceOption.dataset.baseProduct = item.baseProduct || 'UNKNOWN';
+                        sourceSelect.add(sourceOption);
+                    }
+
+                    // Target dropdown (all items)
+                    const targetOption = new Option(optionText, kode);
+                    targetOption.dataset.nama = nama;
+                    targetOption.dataset.satuan = satuan;
+                    targetOption.dataset.stok = stok.toString();
+                    targetOption.dataset.baseProduct = item.baseProduct || 'UNKNOWN';
+                    targetSelect.add(targetOption);
+                });
+
+                const sourceCount = sourceSelect.options.length - 1;
+                const targetCount = targetSelect.options.length - 1;
+
+                showStatus(`Dropdown berhasil dipopulasi: ${sourceCount} item sumber, ${targetCount} item target`, 'success');
+                
+                // Setup event listeners
+                sourceSelect.addEventListener('change', updateConversionInfo);
+                targetSelect.addEventListener('change', updateConversionInfo);
+                document.getElementById('quantity').addEventListener('input', updateConversionInfo);
+
+            } catch (error) {
+                showStatus('Error populating dropdowns: ' + error.message, 'danger');
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // SIMPLE CONVERSION INFO UPDATE
+        function updateConversionInfo() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const conversionInfo = document.getElementById('conversion-info');
+            const submitButton = document.getElementById('submit-transformation');
+
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat info konversi</span>';
+                submitButton.disabled = true;
+                return;
+            }
+
+            if (sourceValue === targetValue) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item sumber dan target tidak boleh sama</span>';
+                submitButton.disabled = true;
+                return;
+            }
+
+            try {
+                // Get item data from dropdown options
+                const sourceOption = sourceSelect.selectedOptions[0];
+                const targetOption = targetSelect.selectedOptions[0];
+
+                const sourceNama = sourceOption.dataset.nama || 'Unknown';
+                const targetNama = targetOption.dataset.nama || 'Unknown';
+                const sourceSatuan = sourceOption.dataset.satuan || 'unit';
+                const targetSatuan = targetOption.dataset.satuan || 'unit';
+                const sourceStok = parseInt(sourceOption.dataset.stok) || 0;
+                const targetStok = parseInt(targetOption.dataset.stok) || 0;
+                const sourceBaseProduct = sourceOption.dataset.baseProduct || 'UNKNOWN';
+                const targetBaseProduct = targetOption.dataset.baseProduct || 'UNKNOWN';
+
+                if (sourceBaseProduct !== targetBaseProduct) {
+                    conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama</span>';
+                    submitButton.disabled = true;
+                    return;
+                }
+
+                // Get conversion ratio
+                let ratio = 1;
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceSatuan && c.to === targetSatuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+
+                const targetQuantity = quantity * ratio;
+                const stockSufficient = sourceStok >= quantity;
+
+                let infoHtml = `
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong>Rasio Konversi:</strong> 1 ${sourceSatuan} = ${ratio} ${targetSatuan}
+                        </div>
+                `;
+
+                if (quantity > 0) {
+                    infoHtml += `
+                        <div class="mb-2">
+                            <strong>Hasil:</strong> ${quantity} ${sourceSatuan} → ${targetQuantity.toFixed(3)} ${targetSatuan}
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                                    ${sourceNama}: ${sourceStok} ${sourceSatuan}
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="badge bg-info">
+                                    ${targetNama}: ${targetStok} ${targetSatuan}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    infoHtml += `
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="badge bg-primary">${sourceNama}: ${sourceStok} ${sourceSatuan}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="badge bg-info">${targetNama}: ${targetStok} ${targetSatuan}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                infoHtml += '</div>';
+                conversionInfo.innerHTML = infoHtml;
+
+                // Enable/disable submit button
+                const canSubmit = sourceValue && targetValue && quantity > 0 && stockSufficient && sourceValue !== targetValue;
+                submitButton.disabled = !canSubmit;
+
+            } catch (error) {
+                conversionInfo.innerHTML = '<span class="text-danger">Error: ' + error.message + '</span>';
+                submitButton.disabled = true;
+            }
+        }
+
+        // SIMPLE STATUS DISPLAY
+        function showStatus(message, type = 'info') {
+            const container = document.getElementById('status-container');
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'danger' ? 'alert-danger' : 
+                             type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            container.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // SIMPLE RESET
+        function resetForm() {
+            document.getElementById('sourceItem').value = '';
+            document.getElementById('targetItem').value = '';
+            document.getElementById('quantity').value = '';
+            document.getElementById('conversion-info').innerHTML = '<span class="text-muted">Pilih item untuk melihat info konversi</span>';
+            document.getElementById('submit-transformation').disabled = true;
+            showStatus('Form berhasil direset', 'info');
+        }
+
+        // SIMPLE TRANSFORMATION PROCESS
+        document.getElementById('submit-transformation').addEventListener('click', function() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            if (!sourceValue || !targetValue || quantity <= 0) {
+                showStatus('Silakan lengkapi form terlebih dahulu', 'warning');
+                return;
+            }
+
+            // Simulate transformation process
+            showStatus('Memproses transformasi...', 'info');
+            
+            setTimeout(() => {
+                showStatus(`Transformasi berhasil! ${quantity} unit dari ${sourceSelect.selectedOptions[0].text} ke ${targetSelect.selectedOptions[0].text}`, 'success');
+                resetForm();
+            }, 1000);
+        });
+
+        // AUTO-INITIALIZE when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM loaded, initializing...');
+            
+            // Check if data exists
+            const existingData = localStorage.getItem('masterBarang');
+            if (!existingData || JSON.parse(existingData).length === 0) {
+                showStatus('Menginisialisasi data sample...', 'info');
+                initializeData();
+            } else {
+                showStatus('Data ditemukan, memuat dropdown...', 'info');
+                populateDropdowns();
+            }
+        });
+
+        console.log('✅ SIMPLE fix loaded successfully!');
+    </script>
+</body>
+</html>

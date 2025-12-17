@@ -662,7 +662,7 @@
             }
         }
         
-        // Function to populate dropdowns safely
+        // SIMPLE DROPDOWN POPULATION - FIX UNDEFINED VALUES
         function populateDropdownsSafe() {
             const sourceSelect = document.getElementById('sourceItem');
             const targetSelect = document.getElementById('targetItem');
@@ -687,35 +687,35 @@
                 sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
                 targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
                 
-                // Group by base product
-                const baseProducts = {};
+                // SIMPLE POPULATION - NO UNDEFINED VALUES
                 masterBarang.forEach(item => {
-                    const baseProduct = item.baseProduct || item.kode.split('-')[0];
-                    if (!baseProducts[baseProduct]) {
-                        baseProducts[baseProduct] = [];
+                    // ENSURE ALL VALUES ARE DEFINED - NO UNDEFINED
+                    const kode = item.kode || 'UNKNOWN';
+                    const nama = item.nama || 'Unknown Item';
+                    const satuan = item.satuan || 'unit';
+                    const stok = (typeof item.stok === 'number' && !isNaN(item.stok)) ? item.stok : 0;
+                    const baseProduct = item.baseProduct || kode.split('-')[0] || 'UNKNOWN';
+
+                    // Create safe option text - GUARANTEED NO UNDEFINED
+                    const optionText = `${nama} - Stok: ${stok} ${satuan}`;
+
+                    // Source dropdown (only items with stock > 0)
+                    if (stok > 0) {
+                        const sourceOption = new Option(optionText, kode);
+                        sourceOption.dataset.nama = nama;
+                        sourceOption.dataset.satuan = satuan;
+                        sourceOption.dataset.stok = stok.toString();
+                        sourceOption.dataset.baseProduct = baseProduct;
+                        sourceSelect.add(sourceOption);
                     }
-                    baseProducts[baseProduct].push(item);
-                });
-                
-                // Populate dropdowns
-                Object.entries(baseProducts).forEach(([baseProduct, items]) => {
-                    if (items.length > 1) {
-                        items.forEach(item => {
-                            if (item.stok > 0) {
-                                const sourceOption = new Option(
-                                    `${item.nama} (Stok: ${item.stok} ${item.satuan})`, 
-                                    item.kode
-                                );
-                                sourceSelect.add(sourceOption);
-                            }
-                            
-                            const targetOption = new Option(
-                                `${item.nama} (Stok: ${item.stok} ${item.satuan})`, 
-                                item.kode
-                            );
-                            targetSelect.add(targetOption);
-                        });
-                    }
+
+                    // Target dropdown (all items)
+                    const targetOption = new Option(optionText, kode);
+                    targetOption.dataset.nama = nama;
+                    targetOption.dataset.satuan = satuan;
+                    targetOption.dataset.stok = stok.toString();
+                    targetOption.dataset.baseProduct = baseProduct;
+                    targetSelect.add(targetOption);
                 });
                 
                 targetSelect.disabled = false;
@@ -740,11 +740,12 @@
                 
             } catch (error) {
                 console.error('❌ Error populating dropdowns:', error);
+                showAlert('Error memuat dropdown: ' + error.message, 'danger');
             }
         }
         
-        // Update conversion info function with enhanced stock integration
-        async function updateConversionInfo() {
+        // SIMPLE UPDATE CONVERSION INFO - NO COMPLEX DEPENDENCIES
+        function updateConversionInfo() {
             const sourceSelect = document.getElementById('sourceItem');
             const targetSelect = document.getElementById('targetItem');
             const quantityInput = document.getElementById('quantity');
@@ -765,25 +766,32 @@
                 return;
             }
             
+            if (sourceValue === targetValue) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item sumber dan target tidak boleh sama</span>';
+                if (submitButton) submitButton.disabled = true;
+                return;
+            }
+            
             try {
-                // Initialize StockManager if needed
-                if (!window.stockManager) {
-                    window.stockManager = new StockManager();
-                    window.stockManager.initialize();
-                }
-                
-                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
-                const sourceItem = masterBarang.find(item => item.kode === sourceValue);
-                const targetItem = masterBarang.find(item => item.kode === targetValue);
-                
-                if (!sourceItem || !targetItem) {
+                // Get item data from dropdown options - SIMPLE AND SAFE
+                const sourceOption = sourceSelect.selectedOptions[0];
+                const targetOption = targetSelect.selectedOptions[0];
+
+                if (!sourceOption || !targetOption) {
                     conversionInfo.innerHTML = '<span class="text-danger">Item tidak ditemukan</span>';
                     if (submitButton) submitButton.disabled = true;
                     return;
                 }
-                
-                const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
-                const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
+
+                // Get safe values from dataset - NO UNDEFINED
+                const sourceNama = sourceOption.dataset.nama || 'Unknown';
+                const targetNama = targetOption.dataset.nama || 'Unknown';
+                const sourceSatuan = sourceOption.dataset.satuan || 'unit';
+                const targetSatuan = targetOption.dataset.satuan || 'unit';
+                const sourceStok = parseInt(sourceOption.dataset.stok) || 0;
+                const targetStok = parseInt(targetOption.dataset.stok) || 0;
+                const sourceBaseProduct = sourceOption.dataset.baseProduct || 'UNKNOWN';
+                const targetBaseProduct = targetOption.dataset.baseProduct || 'UNKNOWN';
                 
                 if (sourceBaseProduct !== targetBaseProduct) {
                     conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama</span>';
@@ -791,23 +799,14 @@
                     return;
                 }
                 
-                if (sourceValue === targetValue) {
-                    conversionInfo.innerHTML = '<span class="text-warning">Item sumber dan target tidak boleh sama</span>';
-                    if (submitButton) submitButton.disabled = true;
-                    return;
-                }
-                
-                // Get real-time stock from StockManager
-                const currentSourceStock = await window.stockManager.getStockBalance(sourceValue);
-                const currentTargetStock = await window.stockManager.getStockBalance(targetValue);
-                
+                // Get conversion ratio - SIMPLE, NO ASYNC
                 let ratio = 1;
                 const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
                 const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
                 
                 if (productRatios && productRatios.conversions) {
                     const conversion = productRatios.conversions.find(c => 
-                        c.from === sourceItem.satuan && c.to === targetItem.satuan
+                        c.from === sourceSatuan && c.to === targetSatuan
                     );
                     if (conversion) {
                         ratio = conversion.ratio;
@@ -815,65 +814,52 @@
                 }
                 
                 const targetQuantity = quantity * ratio;
-                const stockSufficient = currentSourceStock >= quantity;
-                const newSourceStock = currentSourceStock - quantity;
-                const newTargetStock = currentTargetStock + targetQuantity;
+                const stockSufficient = sourceStok >= quantity;
+                const newSourceStock = sourceStok - quantity;
+                const newTargetStock = targetStok + targetQuantity;
                 
-                conversionInfo.innerHTML = `
+                let infoHtml = `
                     <div class="small">
-                        <div class="row mb-2">
-                            <div class="col-12">
-                                <strong>Rasio Konversi:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}
-                            </div>
+                        <div class="mb-2">
+                            <strong>Rasio Konversi:</strong> 1 ${sourceSatuan} = ${ratio} ${targetSatuan}
                         </div>
-                        ${quantity > 0 ? `
-                        <div class="row mb-2">
-                            <div class="col-12">
-                                <strong>Hasil Konversi:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity.toFixed(3)} ${targetItem.satuan}
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="text-center p-2 border rounded">
-                                    <div class="fw-bold text-primary">Stok Sumber</div>
-                                    <div class="small">${sourceItem.nama}</div>
-                                    <div class="badge bg-${stockSufficient ? 'success' : 'danger'} mb-1">
-                                        ${currentSourceStock} ${sourceItem.satuan}
-                                    </div>
-                                    <div class="small">
-                                        Setelah: <span class="fw-bold ${newSourceStock >= 0 ? 'text-success' : 'text-danger'}">${newSourceStock} ${sourceItem.satuan}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-center p-2 border rounded">
-                                    <div class="fw-bold text-success">Stok Target</div>
-                                    <div class="small">${targetItem.nama}</div>
-                                    <div class="badge bg-info mb-1">
-                                        ${currentTargetStock} ${targetItem.satuan}
-                                    </div>
-                                    <div class="small">
-                                        Setelah: <span class="fw-bold text-success">${newTargetStock.toFixed(3)} ${targetItem.satuan}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        ` : `
-                        <div class="row">
-                            <div class="col-6">
-                                <span class="badge bg-${stockSufficient ? 'success' : 'danger'}">
-                                    Stok ${sourceItem.nama}: ${currentSourceStock} ${sourceItem.satuan}
-                                </span>
-                            </div>
-                            <div class="col-6">
-                                <span class="badge bg-info">
-                                    Stok ${targetItem.nama}: ${currentTargetStock} ${targetItem.satuan}
-                                </span>
-                            </div>
-                        </div>
-                        `}
-                    </div>
                 `;
+
+                if (quantity > 0) {
+                    infoHtml += `
+                        <div class="mb-2">
+                            <strong>Hasil:</strong> ${quantity} ${sourceSatuan} → ${targetQuantity.toFixed(3)} ${targetSatuan}
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                                    ${sourceNama}: ${sourceStok} ${sourceSatuan}
+                                </div>
+                                <div class="small mt-1">Setelah: ${newSourceStock}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="badge bg-info">
+                                    ${targetNama}: ${targetStok} ${targetSatuan}
+                                </div>
+                                <div class="small mt-1">Setelah: ${newTargetStock.toFixed(3)}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    infoHtml += `
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="badge bg-primary">${sourceNama}: ${sourceStok} ${sourceSatuan}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="badge bg-info">${targetNama}: ${targetStok} ${targetSatuan}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                infoHtml += '</div>';
+                conversionInfo.innerHTML = infoHtml;
                 
                 if (submitButton) {
                     const canSubmit = sourceValue && targetValue && quantity > 0 && stockSufficient && sourceValue !== targetValue;

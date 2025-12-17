@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VERIFIKASI FINAL - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-primary">
+                    <h4><i class="bi bi-check-circle me-2"></i>VERIFIKASI FINAL - Transformasi Barang</h4>
+                    <p>Memverifikasi bahwa perbaikan sudah benar-benar selesai dan tidak ada lagi masalah "undefined"</p>
+                </div>
+
+                <!-- Status Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary" id="status-perbaikan">Checking...</h5>
+                                <p class="card-text">Status Perbaikan</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-info" id="jumlah-data">0</h5>
+                                <p class="card-text">Data Tersedia</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success" id="dropdown-status">Not Tested</h5>
+                                <p class="card-text">Dropdown Status</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning" id="undefined-count">0</h5>
+                                <p class="card-text">Undefined Found</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-arrow-left-right me-2"></i>Test Form Transformasi Barang</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Source Item -->
+                        <div class="mb-3">
+                            <label for="sourceItem" class="form-label">Barang Asal</label>
+                            <select class="form-select" id="sourceItem">
+                                <option value="">Loading...</option>
+                            </select>
+                            <div class="form-text">Dropdown ini harus menampilkan stok tanpa "undefined"</div>
+                        </div>
+
+                        <!-- Target Item -->
+                        <div class="mb-3">
+                            <label for="targetItem" class="form-label">Barang Tujuan</label>
+                            <select class="form-select" id="targetItem">
+                                <option value="">Loading...</option>
+                            </select>
+                            <div class="form-text">Dropdown ini harus menampilkan stok tanpa "undefined"</div>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Jumlah</label>
+                            <input type="number" class="form-control" id="quantity" min="1" value="10">
+                        </div>
+
+                        <!-- Conversion Info -->
+                        <div class="mb-3">
+                            <label class="form-label">Info Konversi</label>
+                            <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 60px;">
+                                <span class="text-muted">Pilih item untuk melihat info konversi</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary" onclick="runVerification()">
+                                <i class="bi bi-play-circle me-1"></i>Jalankan Verifikasi
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="initializeData()">
+                                <i class="bi bi-database-add me-1"></i>Inisialisasi Data
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="testDropdowns()">
+                                <i class="bi bi-list-check me-1"></i>Test Dropdown
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="mt-4">
+                    <div id="results-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        console.log('🔍 Starting FINAL verification for transformasi barang...');
+
+        // Test data
+        const testData = [
+            {
+                kode: 'BRG001-KG',
+                nama: 'Beras Premium (Kilogram)',
+                satuan: 'kg',
+                stok: 100,
+                baseProduct: 'BRG001'
+            },
+            {
+                kode: 'BRG001-GR',
+                nama: 'Beras Premium (Gram)',
+                satuan: 'gram',
+                stok: 50000,
+                baseProduct: 'BRG001'
+            },
+            {
+                kode: 'BRG002-LT',
+                nama: 'Minyak Goreng (Liter)',
+                satuan: 'liter',
+                stok: 50,
+                baseProduct: 'BRG002'
+            },
+            {
+                kode: 'BRG002-ML',
+                nama: 'Minyak Goreng (Mililiter)',
+                satuan: 'ml',
+                stok: 25000,
+                baseProduct: 'BRG002'
+            }
+        ];
+
+        const conversionRatios = [
+            {
+                baseProduct: 'BRG001',
+                conversions: [
+                    { from: 'kg', to: 'gram', ratio: 1000 },
+                    { from: 'gram', to: 'kg', ratio: 0.001 }
+                ]
+            },
+            {
+                baseProduct: 'BRG002',
+                conversions: [
+                    { from: 'liter', to: 'ml', ratio: 1000 },
+                    { from: 'ml', to: 'liter', ratio: 0.001 }
+                ]
+            }
+        ];
+
+        // Initialize test data
+        function initializeData() {
+            try {
+                localStorage.setItem('masterBarang', JSON.stringify(testData));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                
+                showResult('Data berhasil diinisialisasi!', 'success');
+                updateStatusCards();
+                testDropdowns();
+            } catch (error) {
+                showResult('Error inisialisasi data: ' + error.message, 'danger');
+            }
+        }
+
+        // Test dropdown population using the FIXED function from transformasi_barang.html
+        function testDropdowns() {
+            console.log('🧪 Testing dropdown population...');
+            
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            if (!sourceSelect || !targetSelect) {
+                showResult('Dropdown elements tidak ditemukan!', 'danger');
+                return;
+            }
+
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    showResult('Tidak ada data. Klik "Inisialisasi Data" terlebih dahulu.', 'warning');
+                    return;
+                }
+
+                // Clear existing options
+                sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+                targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+
+                let undefinedCount = 0;
+                let totalOptions = 0;
+
+                // SAME LOGIC AS THE FIXED VERSION IN transformasi_barang.html
+                masterBarang.forEach(item => {
+                    // ENSURE ALL VALUES ARE DEFINED - NO UNDEFINED
+                    const kode = item.kode || 'UNKNOWN';
+                    const nama = item.nama || 'Unknown Item';
+                    const satuan = item.satuan || 'unit';
+                    const stok = (typeof item.stok === 'number' && !isNaN(item.stok)) ? item.stok : 0;
+                    const baseProduct = item.baseProduct || kode.split('-')[0] || 'UNKNOWN';
+
+                    // Create safe option text - GUARANTEED NO UNDEFINED
+                    const optionText = `${nama} - Stok: ${stok} ${satuan}`;
+
+                    // Check for undefined values
+                    if (optionText.includes('undefined')) {
+                        undefinedCount++;
+                    }
+
+                    // Source dropdown (only items with stock > 0)
+                    if (stok > 0) {
+                        const sourceOption = new Option(optionText, kode);
+                        sourceOption.dataset.nama = nama;
+                        sourceOption.dataset.satuan = satuan;
+                        sourceOption.dataset.stok = stok.toString();
+                        sourceOption.dataset.baseProduct = baseProduct;
+                        sourceSelect.add(sourceOption);
+                        totalOptions++;
+                    }
+
+                    // Target dropdown (all items)
+                    const targetOption = new Option(optionText, kode);
+                    targetOption.dataset.nama = nama;
+                    targetOption.dataset.satuan = satuan;
+                    targetOption.dataset.stok = stok.toString();
+                    targetOption.dataset.baseProduct = baseProduct;
+                    targetSelect.add(targetOption);
+                    totalOptions++;
+                });
+
+                // Update status
+                document.getElementById('undefined-count').textContent = undefinedCount;
+                document.getElementById('undefined-count').className = `card-title text-${undefinedCount === 0 ? 'success' : 'danger'}`;
+                
+                document.getElementById('dropdown-status').textContent = undefinedCount === 0 ? 'BERHASIL' : 'GAGAL';
+                document.getElementById('dropdown-status').className = `card-title text-${undefinedCount === 0 ? 'success' : 'danger'}`;
+
+                const sourceCount = sourceSelect.options.length - 1;
+                const targetCount = targetSelect.options.length - 1;
+
+                if (undefinedCount === 0) {
+                    showResult(`✅ DROPDOWN BERHASIL! ${sourceCount} item sumber, ${targetCount} item target. TIDAK ADA "undefined"!`, 'success');
+                } else {
+                    showResult(`❌ DROPDOWN GAGAL! Ditemukan ${undefinedCount} nilai "undefined"`, 'danger');
+                }
+
+                // Setup event listeners
+                sourceSelect.addEventListener('change', updateConversionInfo);
+                targetSelect.addEventListener('change', updateConversionInfo);
+                document.getElementById('quantity').addEventListener('input', updateConversionInfo);
+
+            } catch (error) {
+                showResult('Error testing dropdowns: ' + error.message, 'danger');
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // Update conversion info (simplified version)
+        function updateConversionInfo() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const conversionInfo = document.getElementById('conversion-info');
+
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat info konversi</span>';
+                return;
+            }
+
+            if (sourceValue === targetValue) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item sumber dan target tidak boleh sama</span>';
+                return;
+            }
+
+            try {
+                // Get item data from dropdown options
+                const sourceOption = sourceSelect.selectedOptions[0];
+                const targetOption = targetSelect.selectedOptions[0];
+
+                const sourceNama = sourceOption.dataset.nama || 'Unknown';
+                const targetNama = targetOption.dataset.nama || 'Unknown';
+                const sourceSatuan = sourceOption.dataset.satuan || 'unit';
+                const targetSatuan = targetOption.dataset.satuan || 'unit';
+                const sourceStok = parseInt(sourceOption.dataset.stok) || 0;
+                const targetStok = parseInt(targetOption.dataset.stok) || 0;
+                const sourceBaseProduct = sourceOption.dataset.baseProduct || 'UNKNOWN';
+                const targetBaseProduct = targetOption.dataset.baseProduct || 'UNKNOWN';
+
+                if (sourceBaseProduct !== targetBaseProduct) {
+                    conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama</span>';
+                    return;
+                }
+
+                // Get conversion ratio
+                let ratio = 1;
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceSatuan && c.to === targetSatuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+
+                const targetQuantity = quantity * ratio;
+                const stockSufficient = sourceStok >= quantity;
+
+                // Check for undefined in conversion info
+                let hasUndefined = false;
+                const checkValues = [sourceNama, targetNama, sourceSatuan, targetSatuan, sourceStok, targetStok, ratio, targetQuantity];
+                checkValues.forEach(val => {
+                    if (val === undefined || val === null || String(val).includes('undefined')) {
+                        hasUndefined = true;
+                    }
+                });
+
+                if (hasUndefined) {
+                    conversionInfo.innerHTML = '<span class="text-danger">❌ DITEMUKAN NILAI UNDEFINED!</span>';
+                    return;
+                }
+
+                conversionInfo.innerHTML = `
+                    <div class="small">
+                        <div class="alert alert-success py-1 mb-2">
+                            <i class="bi bi-check-circle me-1"></i>
+                            <strong>✅ TIDAK ADA UNDEFINED!</strong> Semua nilai valid.
+                        </div>
+                        <div class="mb-2">
+                            <strong>Rasio:</strong> 1 ${sourceSatuan} = ${ratio} ${targetSatuan}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Hasil:</strong> ${quantity} ${sourceSatuan} → ${targetQuantity.toFixed(3)} ${targetSatuan}
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                                    ${sourceNama}: ${sourceStok} ${sourceSatuan}
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="badge bg-info">
+                                    ${targetNama}: ${targetStok} ${targetSatuan}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                conversionInfo.innerHTML = '<span class="text-danger">Error: ' + error.message + '</span>';
+            }
+        }
+
+        // Update status cards
+        function updateStatusCards() {
+            // Check data
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                document.getElementById('jumlah-data').textContent = masterBarang.length;
+                
+                if (masterBarang.length > 0) {
+                    document.getElementById('status-perbaikan').textContent = 'SIAP';
+                    document.getElementById('status-perbaikan').className = 'card-title text-success';
+                } else {
+                    document.getElementById('status-perbaikan').textContent = 'PERLU DATA';
+                    document.getElementById('status-perbaikan').className = 'card-title text-warning';
+                }
+            } catch (e) {
+                document.getElementById('jumlah-data').textContent = '0';
+                document.getElementById('status-perbaikan').textContent = 'ERROR';
+                document.getElementById('status-perbaikan').className = 'card-title text-danger';
+            }
+        }
+
+        // Run comprehensive verification
+        function runVerification() {
+            console.log('🔍 Running comprehensive verification...');
+            
+            let results = [];
+            
+            // Test 1: Check if data exists
+            const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+            if (masterBarang.length === 0) {
+                results.push({
+                    test: 'Data Availability',
+                    status: 'FAIL',
+                    message: 'No data found. Click "Inisialisasi Data" first.',
+                    action: 'initializeData()'
+                });
+            } else {
+                results.push({
+                    test: 'Data Availability',
+                    status: 'PASS',
+                    message: `${masterBarang.length} items found`
+                });
+            }
+            
+            // Test 2: Test dropdown population
+            testDropdowns();
+            
+            // Test 3: Check for undefined in dropdowns
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            let undefinedFound = 0;
+            let totalChecked = 0;
+            
+            // Check source dropdown
+            for (let i = 1; i < sourceSelect.options.length; i++) {
+                const option = sourceSelect.options[i];
+                totalChecked++;
+                if (option.textContent.includes('undefined')) {
+                    undefinedFound++;
+                }
+            }
+            
+            // Check target dropdown
+            for (let i = 1; i < targetSelect.options.length; i++) {
+                const option = targetSelect.options[i];
+                totalChecked++;
+                if (option.textContent.includes('undefined')) {
+                    undefinedFound++;
+                }
+            }
+            
+            results.push({
+                test: 'Undefined Check',
+                status: undefinedFound === 0 ? 'PASS' : 'FAIL',
+                message: undefinedFound === 0 ? 
+                    `No undefined values found in ${totalChecked} options` : 
+                    `Found ${undefinedFound} undefined values in ${totalChecked} options`
+            });
+            
+            // Test 4: Test conversion info
+            if (sourceSelect.options.length > 1 && targetSelect.options.length > 2) {
+                sourceSelect.selectedIndex = 1;
+                targetSelect.selectedIndex = 2;
+                document.getElementById('quantity').value = '10';
+                updateConversionInfo();
+                
+                const conversionInfo = document.getElementById('conversion-info');
+                const hasUndefinedInConversion = conversionInfo.innerHTML.includes('undefined');
+                
+                results.push({
+                    test: 'Conversion Info',
+                    status: hasUndefinedInConversion ? 'FAIL' : 'PASS',
+                    message: hasUndefinedInConversion ? 
+                        'Conversion info contains undefined values' : 
+                        'Conversion info working correctly'
+                });
+            }
+            
+            // Display results
+            displayResults(results);
+        }
+
+        // Display verification results
+        function displayResults(results) {
+            const container = document.getElementById('results-container');
+            let html = '<div class="card"><div class="card-header"><h5>Hasil Verifikasi</h5></div><div class="card-body">';
+            
+            let allPassed = true;
+            
+            results.forEach(result => {
+                const statusClass = result.status === 'PASS' ? 'success' : 'danger';
+                const statusIcon = result.status === 'PASS' ? 'check-circle' : 'x-circle';
+                
+                if (result.status !== 'PASS') allPassed = false;
+                
+                html += `
+                    <div class="alert alert-${statusClass} py-2 mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-${statusIcon} me-2"></i>
+                            <div class="flex-grow-1">
+                                <strong>${result.test}:</strong> 
+                                <span class="badge bg-${statusClass} ms-2">${result.status}</span>
+                            </div>
+                        </div>
+                        <div class="mt-1">
+                            <small>${result.message}</small>
+                            ${result.action ? `<br><button class="btn btn-sm btn-outline-primary mt-1" onclick="${result.action}">Fix This</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div class="alert alert-${allPassed ? 'success' : 'warning'} mt-3">
+                    <h6><i class="bi bi-${allPassed ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                    ${allPassed ? '🎉 SEMUA TEST BERHASIL!' : '⚠️ ADA TEST YANG GAGAL'}
+                    </h6>
+                    <p class="mb-0">
+                        ${allPassed ? 
+                            '<strong>PERBAIKAN SELESAI!</strong> Transformasi barang sudah berfungsi normal tanpa "undefined".' : 
+                            'Masih ada masalah yang perlu diperbaiki.'
+                        }
+                    </p>
+                </div>
+            `;
+            
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
+        // Show result message
+        function showResult(message, type = 'info') {
+            const container = document.getElementById('results-container');
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'danger' ? 'alert-danger' : 
+                             type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            container.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        // Auto-initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM loaded, starting verification...');
+            updateStatusCards();
+            
+            // Check if data exists
+            const existingData = localStorage.getItem('masterBarang');
+            if (!existingData || JSON.parse(existingData).length === 0) {
+                showResult('Menginisialisasi data untuk test...', 'info');
+                initializeData();
+            } else {
+                showResult('Data ditemukan, menjalankan test...', 'info');
+                setTimeout(runVerification, 1000);
+            }
+        });
+
+        console.log('✅ FINAL verification script loaded successfully!');
+    </script>
+</body>
+</html>

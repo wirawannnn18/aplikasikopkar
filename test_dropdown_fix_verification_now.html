@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Fix Dropdown Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-card {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .test-card.success {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .test-card.error {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+        .dropdown-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="bi bi-check-circle me-2"></i>Verifikasi Fix Dropdown Transformasi Barang</h2>
+                        <p class="text-muted mb-0">Memverifikasi bahwa dropdown tidak lagi menampilkan "undefined"</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="runVerification()">
+                            <i class="bi bi-play-circle me-1"></i>Jalankan Verifikasi
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="applyFixAndTest()">
+                            <i class="bi bi-tools me-1"></i>Apply Fix & Test
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Overview -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary" id="fix-status">Checking...</h5>
+                                <p class="card-text">Fix Status</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-info" id="data-count">0</h5>
+                                <p class="card-text">Items Available</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success" id="dropdown-status">Not Tested</h5>
+                                <p class="card-text">Dropdown Status</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning" id="undefined-count">0</h5>
+                                <p class="card-text">"undefined" Found</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="test-card p-4 mb-4" id="test-results">
+                            <h4><i class="bi bi-clipboard-check me-2"></i>Test Results</h4>
+                            <div id="test-output">
+                                <p class="text-muted">Klik "Jalankan Verifikasi" untuk memulai test...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="test-card p-4 mb-4">
+                            <h4><i class="bi bi-list-ul me-2"></i>Dropdown Preview</h4>
+                            
+                            <!-- Test Dropdowns -->
+                            <div class="mb-3">
+                                <label class="form-label">Source Item (Barang Asal)</label>
+                                <select class="form-select" id="sourceItem">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Target Item (Barang Tujuan)</label>
+                                <select class="form-select" id="targetItem">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Dropdown Content Preview -->
+                            <div class="dropdown-preview" id="dropdown-content">
+                                <small class="text-muted">Dropdown content will appear here...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversion Info Test -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="test-card p-4">
+                            <h4><i class="bi bi-calculator me-2"></i>Conversion Info Test</h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="quantity" value="10" min="1">
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Conversion Info</label>
+                                    <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                                        <span class="text-muted">Select items to see conversion info</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the fix -->
+    <script src="js/transformasi-barang/DropdownStockDisplayFix.js"></script>
+    
+    <script>
+        let testResults = [];
+        let fixInstance = null;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Initializing dropdown fix verification...');
+            
+            // Check if fix is available
+            if (typeof DropdownStockDisplayFix !== 'undefined') {
+                document.getElementById('fix-status').textContent = 'Available';
+                document.getElementById('fix-status').className = 'card-title text-success';
+            } else {
+                document.getElementById('fix-status').textContent = 'Not Found';
+                document.getElementById('fix-status').className = 'card-title text-danger';
+            }
+            
+            // Auto-run verification after a short delay
+            setTimeout(() => {
+                runVerification();
+            }, 1000);
+        });
+
+        async function applyFixAndTest() {
+            console.log('🚀 Applying fix and running test...');
+            
+            try {
+                // Initialize fix if not already done
+                if (!fixInstance && typeof DropdownStockDisplayFix !== 'undefined') {
+                    fixInstance = new DropdownStockDisplayFix();
+                    await fixInstance.initialize();
+                }
+                
+                // Run verification
+                await runVerification();
+                
+                // Populate dropdowns
+                if (typeof window.populateTransformasiBarangDropdowns === 'function') {
+                    window.populateTransformasiBarangDropdowns('sourceItem', 'targetItem');
+                }
+                
+                showAlert('success', 'Fix applied and test completed successfully!');
+                
+            } catch (error) {
+                console.error('Error applying fix:', error);
+                showAlert('danger', `Error applying fix: ${error.message}`);
+            }
+        }
+
+        async function runVerification() {
+            console.log('🔍 Running verification...');
+            testResults = [];
+            
+            const testOutput = document.getElementById('test-output');
+            testOutput.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Running tests...';
+            
+            try {
+                // Test 1: Check if fix class is available
+                const test1 = testFixAvailability();
+                testResults.push(test1);
+                
+                // Test 2: Check data availability
+                const test2 = testDataAvailability();
+                testResults.push(test2);
+                
+                // Test 3: Test dropdown population
+                const test3 = await testDropdownPopulation();
+                testResults.push(test3);
+                
+                // Test 4: Check for undefined values
+                const test4 = testUndefinedValues();
+                testResults.push(test4);
+                
+                // Test 5: Test conversion info
+                const test5 = testConversionInfo();
+                testResults.push(test5);
+                
+                // Display results
+                displayTestResults();
+                updateStatusCards();
+                updateDropdownPreview();
+                
+            } catch (error) {
+                console.error('Verification error:', error);
+                testOutput.innerHTML = `<div class="alert alert-danger">Error during verification: ${error.message}</div>`;
+            }
+        }
+
+        function testFixAvailability() {
+            const available = typeof DropdownStockDisplayFix !== 'undefined';
+            return {
+                name: 'Fix Class Availability',
+                status: available ? 'PASS' : 'FAIL',
+                message: available ? 'DropdownStockDisplayFix class is available' : 'DropdownStockDisplayFix class not found',
+                details: available ? 'Fix can be instantiated' : 'Fix script may not be loaded'
+            };
+        }
+
+        function testDataAvailability() {
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const hasData = masterBarang.length > 0;
+                
+                return {
+                    name: 'Data Availability',
+                    status: hasData ? 'PASS' : 'WARN',
+                    message: hasData ? `${masterBarang.length} items found` : 'No data found, will use sample data',
+                    details: hasData ? 'masterBarang data is available' : 'Sample data will be created'
+                };
+            } catch (error) {
+                return {
+                    name: 'Data Availability',
+                    status: 'FAIL',
+                    message: 'Error reading data',
+                    details: error.message
+                };
+            }
+        }
+
+        async function testDropdownPopulation() {
+            try {
+                // Ensure fix is initialized
+                if (!fixInstance && typeof DropdownStockDisplayFix !== 'undefined') {
+                    fixInstance = new DropdownStockDisplayFix();
+                    await fixInstance.initialize();
+                }
+                
+                // Test dropdown population
+                if (typeof window.populateTransformasiBarangDropdowns === 'function') {
+                    const result = window.populateTransformasiBarangDropdowns('sourceItem', 'targetItem');
+                    
+                    return {
+                        name: 'Dropdown Population',
+                        status: result ? 'PASS' : 'FAIL',
+                        message: result ? 'Dropdowns populated successfully' : 'Failed to populate dropdowns',
+                        details: result ? 'Function executed without errors' : 'Check console for errors'
+                    };
+                } else {
+                    return {
+                        name: 'Dropdown Population',
+                        status: 'FAIL',
+                        message: 'Dropdown function not available',
+                        details: 'populateTransformasiBarangDropdowns function not found'
+                    };
+                }
+            } catch (error) {
+                return {
+                    name: 'Dropdown Population',
+                    status: 'FAIL',
+                    message: 'Error during population',
+                    details: error.message
+                };
+            }
+        }
+
+        function testUndefinedValues() {
+            try {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                let undefinedCount = 0;
+                let totalOptions = 0;
+                
+                // Check source dropdown
+                for (let option of sourceSelect.options) {
+                    if (option.value !== '') {
+                        totalOptions++;
+                        if (option.textContent.includes('undefined')) {
+                            undefinedCount++;
+                        }
+                    }
+                }
+                
+                // Check target dropdown
+                for (let option of targetSelect.options) {
+                    if (option.value !== '') {
+                        totalOptions++;
+                        if (option.textContent.includes('undefined')) {
+                            undefinedCount++;
+                        }
+                    }
+                }
+                
+                return {
+                    name: 'Undefined Values Check',
+                    status: undefinedCount === 0 ? 'PASS' : 'FAIL',
+                    message: undefinedCount === 0 ? 'No undefined values found' : `${undefinedCount} undefined values found`,
+                    details: `Checked ${totalOptions} options total`
+                };
+            } catch (error) {
+                return {
+                    name: 'Undefined Values Check',
+                    status: 'FAIL',
+                    message: 'Error checking values',
+                    details: error.message
+                };
+            }
+        }
+
+        function testConversionInfo() {
+            try {
+                if (typeof window.updateTransformasiBarangConversionInfo === 'function') {
+                    // Try to update conversion info
+                    window.updateTransformasiBarangConversionInfo('sourceItem', 'targetItem', 'quantity', 'conversion-info');
+                    
+                    return {
+                        name: 'Conversion Info Update',
+                        status: 'PASS',
+                        message: 'Conversion info function available',
+                        details: 'Function executed without errors'
+                    };
+                } else {
+                    return {
+                        name: 'Conversion Info Update',
+                        status: 'FAIL',
+                        message: 'Conversion info function not available',
+                        details: 'updateTransformasiBarangConversionInfo function not found'
+                    };
+                }
+            } catch (error) {
+                return {
+                    name: 'Conversion Info Update',
+                    status: 'FAIL',
+                    message: 'Error updating conversion info',
+                    details: error.message
+                };
+            }
+        }
+
+        function displayTestResults() {
+            const testOutput = document.getElementById('test-output');
+            const testCard = document.getElementById('test-results');
+            
+            let html = '<div class="test-results">';
+            let allPassed = true;
+            
+            testResults.forEach(test => {
+                const statusClass = test.status === 'PASS' ? 'success' : test.status === 'WARN' ? 'warning' : 'danger';
+                const statusIcon = test.status === 'PASS' ? 'check-circle' : test.status === 'WARN' ? 'exclamation-triangle' : 'x-circle';
+                
+                if (test.status !== 'PASS') allPassed = false;
+                
+                html += `
+                    <div class="alert alert-${statusClass} py-2 mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-${statusIcon} me-2"></i>
+                            <div class="flex-grow-1">
+                                <strong>${test.name}:</strong> 
+                                <span class="badge bg-${statusClass} ms-2">${test.status}</span>
+                            </div>
+                        </div>
+                        <div class="mt-1">
+                            <small><strong>Result:</strong> ${test.message}</small><br>
+                            <small class="text-muted">${test.details}</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            testOutput.innerHTML = html;
+            
+            // Update test card styling
+            testCard.className = `test-card p-4 mb-4 ${allPassed ? 'success' : 'error'}`;
+        }
+
+        function updateStatusCards() {
+            // Update data count
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                document.getElementById('data-count').textContent = masterBarang.length;
+            } catch (e) {
+                document.getElementById('data-count').textContent = '0';
+            }
+            
+            // Update dropdown status
+            const dropdownTest = testResults.find(t => t.name === 'Dropdown Population');
+            if (dropdownTest) {
+                document.getElementById('dropdown-status').textContent = dropdownTest.status;
+                document.getElementById('dropdown-status').className = `card-title text-${dropdownTest.status === 'PASS' ? 'success' : 'danger'}`;
+            }
+            
+            // Update undefined count
+            const undefinedTest = testResults.find(t => t.name === 'Undefined Values Check');
+            if (undefinedTest) {
+                const undefinedCount = undefinedTest.message.includes('No undefined') ? 0 : 
+                                     undefinedTest.message.match(/(\d+) undefined/) ? 
+                                     parseInt(undefinedTest.message.match(/(\d+) undefined/)[1]) : 0;
+                document.getElementById('undefined-count').textContent = undefinedCount;
+                document.getElementById('undefined-count').className = `card-title text-${undefinedCount === 0 ? 'success' : 'danger'}`;
+            }
+        }
+
+        function updateDropdownPreview() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const previewDiv = document.getElementById('dropdown-content');
+            
+            let html = '<div class="small">';
+            
+            // Show source options
+            html += '<div class="mb-2"><strong>Source Options:</strong></div>';
+            for (let i = 1; i < Math.min(sourceSelect.options.length, 6); i++) {
+                const option = sourceSelect.options[i];
+                const hasUndefined = option.textContent.includes('undefined');
+                html += `<div class="badge bg-${hasUndefined ? 'danger' : 'success'} me-1 mb-1">${option.textContent}</div>`;
+            }
+            
+            html += '<div class="mb-2 mt-3"><strong>Target Options:</strong></div>';
+            for (let i = 1; i < Math.min(targetSelect.options.length, 6); i++) {
+                const option = targetSelect.options[i];
+                const hasUndefined = option.textContent.includes('undefined');
+                html += `<div class="badge bg-${hasUndefined ? 'danger' : 'success'} me-1 mb-1">${option.textContent}</div>`;
+            }
+            
+            html += '</div>';
+            previewDiv.innerHTML = html;
+        }
+
+        function showAlert(type, message) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const container = document.querySelector('.container');
+            container.insertAdjacentHTML('afterbegin', alertHtml);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                const alert = container.querySelector('.alert');
+                if (alert) alert.remove();
+            }, 5000);
+        }
+
+        // Setup event listeners for conversion info testing
+        document.addEventListener('DOMContentLoaded', function() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            
+            if (sourceSelect) {
+                sourceSelect.addEventListener('change', () => {
+                    if (typeof window.updateTransformasiBarangConversionInfo === 'function') {
+                        window.updateTransformasiBarangConversionInfo('sourceItem', 'targetItem', 'quantity', 'conversion-info');
+                    }
+                });
+            }
+            
+            if (targetSelect) {
+                targetSelect.addEventListener('change', () => {
+                    if (typeof window.updateTransformasiBarangConversionInfo === 'function') {
+                        window.updateTransformasiBarangConversionInfo('sourceItem', 'targetItem', 'quantity', 'conversion-info');
+                    }
+                });
+            }
+            
+            if (quantityInput) {
+                quantityInput.addEventListener('input', () => {
+                    if (typeof window.updateTransformasiBarangConversionInfo === 'function') {
+                        window.updateTransformasiBarangConversionInfo('sourceItem', 'targetItem', 'quantity', 'conversion-info');
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
