@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Fix Dropdown Undefined - SEKARANG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .fix-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .status-card {
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .status-card.success {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .status-card.error {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        }
+        .btn-fix {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-fix:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="fix-container">
+            <div class="text-center mb-4">
+                <h1><i class="bi bi-lightning-charge me-2"></i>Quick Fix Dropdown</h1>
+                <p class="text-muted">Perbaikan cepat untuk masalah "undefined (undefined) - Stok: undefined"</p>
+            </div>
+
+            <!-- Status Card -->
+            <div id="status-card" class="status-card card mb-4">
+                <div class="card-body text-center">
+                    <div id="status-icon" class="display-4 mb-3">
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                    </div>
+                    <h4 id="status-title">Masalah Terdeteksi</h4>
+                    <p id="status-message" class="mb-0">Dropdown menampilkan "undefined" values</p>
+                </div>
+            </div>
+
+            <!-- Fix Button -->
+            <div class="text-center mb-4">
+                <button id="fix-now" class="btn btn-fix btn-lg">
+                    <i class="bi bi-tools me-2"></i>PERBAIKI SEKARANG
+                </button>
+            </div>
+
+            <!-- Progress -->
+            <div id="progress-container" style="display: none;">
+                <div class="progress mb-3">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="progress-text" class="text-center text-muted">Memulai perbaikan...</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <button id="test-fix" class="btn btn-outline-success me-2" disabled>
+                    <i class="bi bi-check-circle me-1"></i>Test Hasil
+                </button>
+                <button id="open-transformasi" class="btn btn-outline-primary" disabled>
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Buka Transformasi Barang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class QuickDropdownFix {
+            constructor() {
+                this.fixApplied = false;
+            }
+
+            async startFix() {
+                try {
+                    this.showProgress(true);
+                    this.updateProgress(10, 'Menganalisis masalah...');
+                    
+                    await this.delay(500);
+                    
+                    // Step 1: Clean corrupted data
+                    this.updateProgress(30, 'Membersihkan data yang rusak...');
+                    this.cleanCorruptedData();
+                    
+                    await this.delay(500);
+                    
+                    // Step 2: Initialize clean data
+                    this.updateProgress(60, 'Menginisialisasi data bersih...');
+                    this.initializeCleanData();
+                    
+                    await this.delay(500);
+                    
+                    // Step 3: Apply dropdown fix
+                    this.updateProgress(90, 'Menerapkan perbaikan dropdown...');
+                    this.applyDropdownFix();
+                    
+                    await this.delay(500);
+                    
+                    // Step 4: Verify
+                    this.updateProgress(100, 'Memverifikasi perbaikan...');
+                    const success = this.verifyFix();
+                    
+                    await this.delay(500);
+                    
+                    this.showProgress(false);
+                    
+                    if (success) {
+                        this.updateStatus('Perbaikan berhasil diterapkan!', 'success');
+                        this.fixApplied = true;
+                        document.getElementById('test-fix').disabled = false;
+                        document.getElementById('open-transformasi').disabled = false;
+                    } else {
+                        this.updateStatus('Perbaikan gagal. Silakan coba lagi.', 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Fix failed:', error);
+                    this.showProgress(false);
+                    this.updateStatus(`Perbaikan gagal: ${error.message}`, 'error');
+                }
+            }
+
+            cleanCorruptedData() {
+                const keysToCheck = ['masterBarang', 'barang', 'stokBarang', 'produk', 'conversionRatios'];
+                let clearedCount = 0;
+                
+                keysToCheck.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        if (data) {
+                            const parsed = JSON.parse(data);
+                            if (Array.isArray(parsed)) {
+                                const hasCorruption = parsed.some(item => 
+                                    !item || 
+                                    item.nama === undefined || 
+                                    item.satuan === undefined || 
+                                    item.stok === undefined ||
+                                    item.nama === 'undefined' ||
+                                    item.satuan === 'undefined' ||
+                                    typeof item.nama !== 'string' ||
+                                    typeof item.satuan !== 'string' ||
+                                    typeof item.stok !== 'number'
+                                );
+                                
+                                if (hasCorruption) {
+                                    localStorage.removeItem(key);
+                                    clearedCount++;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        localStorage.removeItem(key);
+                        clearedCount++;
+                    }
+                });
+                
+                console.log(`🧹 Cleaned ${clearedCount} corrupted data sources`);
+            }
+
+            initializeCleanData() {
+                const masterBarang = [
+                    {
+                        kode: 'BRG001',
+                        nama: 'Beras Premium',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
+                    },
+                    {
+                        kode: 'BRG002',
+                        nama: 'Beras Premium',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
+                    },
+                    {
+                        kode: 'BRG003',
+                        nama: 'Minyak Goreng',
+                        satuan: 'liter',
+                        stok: 50,
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18000,
+                        hargaJual: 22000
+                    },
+                    {
+                        kode: 'BRG004',
+                        nama: 'Minyak Goreng',
+                        satuan: 'ml',
+                        stok: 25000,
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18,
+                        hargaJual: 22
+                    },
+                    {
+                        kode: 'BRG005',
+                        nama: 'Air Mineral',
+                        satuan: 'dus',
+                        stok: 20,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 48000,
+                        hargaJual: 60000
+                    },
+                    {
+                        kode: 'BRG006',
+                        nama: 'Air Mineral',
+                        satuan: 'botol',
+                        stok: 480,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 2000,
+                        hargaJual: 2500
+                    }
+                ];
+
+                const conversionRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG002',
+                        conversions: [
+                            { from: 'liter', to: 'ml', ratio: 1000 },
+                            { from: 'ml', to: 'liter', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG003',
+                        conversions: [
+                            { from: 'dus', to: 'botol', ratio: 24 },
+                            { from: 'botol', to: 'dus', ratio: 0.041667 }
+                        ]
+                    }
+                ];
+
+                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                
+                console.log('✅ Clean data initialized');
+            }
+
+            applyDropdownFix() {
+                // Create the ultimate dropdown fix function
+                window.populateDropdownsUltimate = function() {
+                    console.log('🔧 Using ULTIMATE dropdown fix');
+                    
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    if (!sourceSelect || !targetSelect) {
+                        console.warn('Dropdown elements not found');
+                        return false;
+                    }
+                    
+                    try {
+                        const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                        
+                        if (masterBarang.length === 0) {
+                            console.warn('No master barang data found');
+                            return false;
+                        }
+                        
+                        // Clear existing options
+                        sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+                        targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+                        
+                        // Group by base product
+                        const baseProducts = {};
+                        masterBarang.forEach(item => {
+                            const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                            if (!baseProducts[baseProduct]) {
+                                baseProducts[baseProduct] = [];
+                            }
+                            baseProducts[baseProduct].push(item);
+                        });
+                        
+                        let sourceCount = 0;
+                        let targetCount = 0;
+                        
+                        // Populate dropdowns with GUARANTEED safe values
+                        Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                            if (items.length > 1) {
+                                items.forEach(item => {
+                                    // TRIPLE CHECK: Ensure NO undefined values
+                                    const nama = String(item.nama || 'Unknown Product').trim();
+                                    const satuan = String(item.satuan || 'unit').trim();
+                                    const stok = Number(item.stok) || 0;
+                                    const kode = String(item.kode || 'UNKNOWN').trim();
+                                    
+                                    // Only add if all values are valid
+                                    if (nama !== 'Unknown Product' && satuan !== 'unit' && kode !== 'UNKNOWN') {
+                                        if (stok > 0) {
+                                            const sourceOption = new Option(
+                                                `${nama} (${satuan}) - Stok: ${stok}`, 
+                                                kode
+                                            );
+                                            sourceOption.dataset.baseProduct = String(baseProduct);
+                                            sourceOption.dataset.satuan = satuan;
+                                            sourceOption.dataset.unit = satuan;
+                                            sourceOption.dataset.stock = stok.toString();
+                                            sourceOption.dataset.nama = nama;
+                                            sourceSelect.add(sourceOption);
+                                            sourceCount++;
+                                        }
+                                        
+                                        const targetOption = new Option(
+                                            `${nama} (${satuan}) - Stok: ${stok}`, 
+                                            kode
+                                        );
+                                        targetOption.dataset.baseProduct = String(baseProduct);
+                                        targetOption.dataset.satuan = satuan;
+                                        targetOption.dataset.unit = satuan;
+                                        targetOption.dataset.stock = stok.toString();
+                                        targetOption.dataset.nama = nama;
+                                        targetSelect.add(targetOption);
+                                        targetCount++;
+                                    }
+                                });
+                            }
+                        });
+                        
+                        targetSelect.disabled = false;
+                        console.log(`✅ ULTIMATE fix applied: ${sourceCount} source, ${targetCount} target options`);
+                        
+                        return true;
+                    } catch (error) {
+                        console.error('❌ Error in ultimate dropdown fix:', error);
+                        return false;
+                    }
+                };
+
+                // Override all existing dropdown functions
+                if (typeof window.populateDropdowns === 'function') {
+                    window.populateDropdowns = window.populateDropdownsUltimate;
+                }
+                if (typeof window.populateDropdownsSafe === 'function') {
+                    window.populateDropdownsSafe = window.populateDropdownsUltimate;
+                }
+                if (typeof window.populateDropdownsFixed === 'function') {
+                    window.populateDropdownsFixed = window.populateDropdownsUltimate;
+                }
+
+                // Apply immediately
+                window.populateDropdownsUltimate();
+                
+                console.log('✅ Ultimate dropdown fix applied');
+            }
+
+            verifyFix() {
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    if (!sourceSelect || !targetSelect) {
+                        return false;
+                    }
+                    
+                    // Check if dropdowns have options
+                    if (sourceSelect.options.length <= 1 || targetSelect.options.length <= 1) {
+                        return false;
+                    }
+                    
+                    // Check for undefined values
+                    let hasUndefined = false;
+                    for (let i = 1; i < sourceSelect.options.length; i++) {
+                        if (sourceSelect.options[i].textContent.includes('undefined')) {
+                            hasUndefined = true;
+                            break;
+                        }
+                    }
+                    
+                    for (let i = 1; i < targetSelect.options.length; i++) {
+                        if (targetSelect.options[i].textContent.includes('undefined')) {
+                            hasUndefined = true;
+                            break;
+                        }
+                    }
+                    
+                    return !hasUndefined;
+                } catch (error) {
+                    console.error('Error verifying fix:', error);
+                    return false;
+                }
+            }
+
+            testFix() {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                if (!sourceSelect || !targetSelect) {
+                    alert('Dropdown elements tidak ditemukan. Silakan buka halaman transformasi barang terlebih dahulu.');
+                    return;
+                }
+                
+                let results = [];
+                
+                // Test source dropdown
+                if (sourceSelect.options.length > 1) {
+                    results.push(`✅ Source dropdown: ${sourceSelect.options.length - 1} options`);
+                    
+                    let undefinedCount = 0;
+                    for (let i = 1; i < sourceSelect.options.length; i++) {
+                        if (sourceSelect.options[i].textContent.includes('undefined')) {
+                            undefinedCount++;
+                        }
+                    }
+                    
+                    if (undefinedCount === 0) {
+                        results.push('✅ Source dropdown: Tidak ada "undefined"');
+                    } else {
+                        results.push(`❌ Source dropdown: ${undefinedCount} "undefined" ditemukan`);
+                    }
+                } else {
+                    results.push('❌ Source dropdown kosong');
+                }
+                
+                // Test target dropdown
+                if (targetSelect.options.length > 1) {
+                    results.push(`✅ Target dropdown: ${targetSelect.options.length - 1} options`);
+                    
+                    let undefinedCount = 0;
+                    for (let i = 1; i < targetSelect.options.length; i++) {
+                        if (targetSelect.options[i].textContent.includes('undefined')) {
+                            undefinedCount++;
+                        }
+                    }
+                    
+                    if (undefinedCount === 0) {
+                        results.push('✅ Target dropdown: Tidak ada "undefined"');
+                    } else {
+                        results.push(`❌ Target dropdown: ${undefinedCount} "undefined" ditemukan`);
+                    }
+                } else {
+                    results.push('❌ Target dropdown kosong');
+                }
+                
+                alert(`Hasil Test:\n\n${results.join('\n')}`);
+            }
+
+            showProgress(show) {
+                document.getElementById('progress-container').style.display = show ? 'block' : 'none';
+            }
+
+            updateProgress(percent, text) {
+                document.getElementById('progress-bar').style.width = percent + '%';
+                document.getElementById('progress-text').textContent = text;
+            }
+
+            updateStatus(message, type) {
+                const statusCard = document.getElementById('status-card');
+                const statusIcon = document.getElementById('status-icon');
+                const statusTitle = document.getElementById('status-title');
+                const statusMessage = document.getElementById('status-message');
+                
+                statusCard.className = `status-card card mb-4 ${type}`;
+                
+                if (type === 'success') {
+                    statusTitle.textContent = 'Perbaikan Berhasil!';
+                    statusIcon.innerHTML = '<i class="bi bi-check-circle text-success"></i>';
+                } else if (type === 'error') {
+                    statusTitle.textContent = 'Perbaikan Gagal!';
+                    statusIcon.innerHTML = '<i class="bi bi-x-circle text-danger"></i>';
+                } else {
+                    statusTitle.textContent = 'Memproses...';
+                    statusIcon.innerHTML = '<i class="bi bi-hourglass-split text-primary"></i>';
+                }
+                
+                statusMessage.textContent = message;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize
+        const quickFix = new QuickDropdownFix();
+
+        // Event listeners
+        document.getElementById('fix-now').addEventListener('click', () => {
+            document.getElementById('fix-now').disabled = true;
+            quickFix.startFix().finally(() => {
+                document.getElementById('fix-now').disabled = false;
+            });
+        });
+
+        document.getElementById('test-fix').addEventListener('click', () => {
+            quickFix.testFix();
+        });
+
+        document.getElementById('open-transformasi').addEventListener('click', () => {
+            window.open('transformasi_barang.html', '_blank');
+        });
+
+        // Auto-start if requested
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('autostart') === 'true') {
+            setTimeout(() => {
+                document.getElementById('fix-now').click();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

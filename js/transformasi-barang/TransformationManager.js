@@ -41,10 +41,26 @@ class TransformationManager {
             // Ambil semua master barang dari localStorage
             const masterBarang = this._getMasterBarang();
             
+            // PERBAIKAN: Filter dan validasi data sebelum diproses
+            const validItems = masterBarang.filter(item => {
+                // Pastikan item memiliki properti yang diperlukan dan tidak undefined
+                return item && 
+                       typeof item.kode === 'string' && item.kode.trim() !== '' &&
+                       typeof item.nama === 'string' && item.nama.trim() !== '' && item.nama !== 'undefined' &&
+                       typeof item.satuan === 'string' && item.satuan.trim() !== '' && item.satuan !== 'undefined' &&
+                       typeof item.stok === 'number' && !isNaN(item.stok) && item.stok >= 0;
+            });
+            
+            if (validItems.length === 0) {
+                console.warn('No valid items found in masterBarang');
+                return [];
+            }
+            
             // Group items by base product
             const baseProducts = {};
-            masterBarang.forEach(item => {
-                const baseProduct = item.baseProduct || item.kode.split('-')[0];
+            validItems.forEach(item => {
+                // PERBAIKAN: Pastikan baseProduct tidak undefined
+                const baseProduct = item.baseProduct || item.kode.split('-')[0] || 'UNKNOWN';
                 if (!baseProducts[baseProduct]) {
                     baseProducts[baseProduct] = [];
                 }
@@ -58,24 +74,32 @@ class TransformationManager {
                     // Check if conversion ratios are defined
                     const hasConversionRatios = await this._hasConversionRatios(baseProduct);
                     if (hasConversionRatios) {
-                        transformableItems.push({
-                            baseProduct,
-                            items: items.map(item => ({
-                                id: item.kode,
-                                name: item.nama,
-                                unit: item.satuan,
-                                stock: item.stok || 0,
-                                baseProduct
-                            }))
-                        });
+                        // PERBAIKAN: Pastikan semua data item valid sebelum ditambahkan
+                        const validItemsForTransformation = items
+                            .filter(item => item.nama && item.satuan && typeof item.stok === 'number')
+                            .map(item => ({
+                                kode: item.kode,
+                                nama: String(item.nama).trim(),
+                                satuan: String(item.satuan).trim(),
+                                stok: Number(item.stok) || 0,
+                                baseProduct: baseProduct,
+                                hargaBeli: item.hargaBeli || 0,
+                                hargaJual: item.hargaJual || 0
+                            }));
+                        
+                        if (validItemsForTransformation.length > 1) {
+                            transformableItems.push(...validItemsForTransformation);
+                        }
                     }
                 }
             }
             
+            console.log(`✅ Found ${transformableItems.length} valid transformable items`);
             return transformableItems;
         } catch (error) {
             console.error('Error getting transformable items:', error);
-            throw error;
+            // Return empty array instead of throwing to prevent UI crash
+            return [];
         }
     }
 
@@ -402,11 +426,118 @@ class TransformationManager {
     _getMasterBarang() {
         try {
             const masterBarangData = localStorage.getItem('masterBarang');
-            return masterBarangData ? JSON.parse(masterBarangData) : [];
+            if (!masterBarangData) {
+                console.warn('No masterBarang data found in localStorage');
+                return this._getDefaultMasterBarang();
+            }
+            
+            const parsedData = JSON.parse(masterBarangData);
+            if (!Array.isArray(parsedData)) {
+                console.warn('masterBarang data is not an array, using default data');
+                return this._getDefaultMasterBarang();
+            }
+            
+            // PERBAIKAN: Validasi dan bersihkan data yang rusak
+            const cleanedData = parsedData.filter(item => {
+                if (!item || typeof item !== 'object') return false;
+                
+                // Pastikan properti penting ada dan valid
+                const hasValidKode = typeof item.kode === 'string' && item.kode.trim() !== '';
+                const hasValidNama = typeof item.nama === 'string' && item.nama.trim() !== '' && item.nama !== 'undefined';
+                const hasValidSatuan = typeof item.satuan === 'string' && item.satuan.trim() !== '' && item.satuan !== 'undefined';
+                const hasValidStok = typeof item.stok === 'number' && !isNaN(item.stok) && item.stok >= 0;
+                
+                return hasValidKode && hasValidNama && hasValidSatuan && hasValidStok;
+            });
+            
+            if (cleanedData.length === 0) {
+                console.warn('No valid items found in masterBarang, using default data');
+                return this._getDefaultMasterBarang();
+            }
+            
+            if (cleanedData.length !== parsedData.length) {
+                console.warn(`Removed ${parsedData.length - cleanedData.length} invalid items from masterBarang`);
+                // Simpan data yang sudah dibersihkan kembali ke localStorage
+                localStorage.setItem('masterBarang', JSON.stringify(cleanedData));
+            }
+            
+            return cleanedData;
         } catch (error) {
             console.error('Error loading master barang:', error);
-            return [];
+            return this._getDefaultMasterBarang();
         }
+    }
+
+    /**
+     * Mendapatkan data master barang default jika tidak ada data valid
+     * @returns {Object[]} Array master barang default
+     * @private
+     */
+    _getDefaultMasterBarang() {
+        const defaultData = [
+            {
+                kode: 'BRG001',
+                nama: 'Beras Premium',
+                satuan: 'kg',
+                stok: 100,
+                baseProduct: 'BRG001',
+                hargaBeli: 12000,
+                hargaJual: 15000
+            },
+            {
+                kode: 'BRG002',
+                nama: 'Beras Premium',
+                satuan: 'gram',
+                stok: 50000,
+                baseProduct: 'BRG001',
+                hargaBeli: 12,
+                hargaJual: 15
+            },
+            {
+                kode: 'BRG003',
+                nama: 'Minyak Goreng',
+                satuan: 'liter',
+                stok: 50,
+                baseProduct: 'BRG002',
+                hargaBeli: 18000,
+                hargaJual: 22000
+            },
+            {
+                kode: 'BRG004',
+                nama: 'Minyak Goreng',
+                satuan: 'ml',
+                stok: 25000,
+                baseProduct: 'BRG002',
+                hargaBeli: 18,
+                hargaJual: 22
+            }
+        ];
+        
+        // Simpan data default ke localStorage
+        localStorage.setItem('masterBarang', JSON.stringify(defaultData));
+        
+        // Juga buat conversion ratios default
+        const defaultConversionRatios = [
+            {
+                baseProduct: 'BRG001',
+                conversions: [
+                    { from: 'kg', to: 'gram', ratio: 1000 },
+                    { from: 'gram', to: 'kg', ratio: 0.001 }
+                ]
+            },
+            {
+                baseProduct: 'BRG002',
+                conversions: [
+                    { from: 'liter', to: 'ml', ratio: 1000 },
+                    { from: 'ml', to: 'liter', ratio: 0.001 }
+                ]
+            }
+        ];
+        
+        localStorage.setItem('conversionRatios', JSON.stringify(defaultConversionRatios));
+        
+        console.log('✅ Default master barang data initialized');
+        return defaultData;
     }
 
     /**

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dropdown Undefined Fix - Final</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .test-card {
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            margin-bottom: 1rem;
+        }
+        .test-card.success {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .test-card.error {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        }
+        .test-card.warning {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+        .dropdown-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .option-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .option-item.undefined {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .option-item.valid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="test-container">
+            <div class="text-center mb-4">
+                <h1><i class="bi bi-bug me-2"></i>Test Dropdown Undefined Fix</h1>
+                <p class="text-muted">Verifikasi perbaikan masalah "undefined (undefined) - Stok: undefined"</p>
+            </div>
+
+            <!-- Test Status -->
+            <div id="test-status" class="test-card card mb-4">
+                <div class="card-body text-center">
+                    <div id="status-icon" class="display-4 mb-3">
+                        <i class="bi bi-hourglass-split text-primary"></i>
+                    </div>
+                    <h4 id="status-title">Memulai Test...</h4>
+                    <p id="status-message" class="mb-0">Menginisialisasi test environment</p>
+                </div>
+            </div>
+
+            <!-- Test Controls -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-gear me-2"></i>Test Controls</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button id="btn-create-corrupted" class="btn btn-warning w-100 mb-2">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Buat Data Rusak
+                            </button>
+                            <button id="btn-apply-fix" class="btn btn-primary w-100 mb-2">
+                                <i class="bi bi-tools me-2"></i>Terapkan Perbaikan
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="btn-test-dropdown" class="btn btn-success w-100 mb-2">
+                                <i class="bi bi-check-circle me-2"></i>Test Dropdown
+                            </button>
+                            <button id="btn-reset-test" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Dropdowns -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-list me-2"></i>Test Dropdowns</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="sourceItem" class="form-label">Source Item</label>
+                            <select class="form-select" id="sourceItem">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="targetItem" class="form-label">Target Item</label>
+                            <select class="form-select" id="targetItem" disabled>
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-clipboard-data me-2"></i>Test Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="test-results">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-clock display-6 d-block mb-2"></i>
+                            Menunggu test dimulai...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dropdown Preview -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-eye me-2"></i>Dropdown Content Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Source Dropdown Options:</h6>
+                            <div id="source-preview" class="dropdown-preview">
+                                <div class="text-muted">Belum ada data</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Target Dropdown Options:</h6>
+                            <div id="target-preview" class="dropdown-preview">
+                                <div class="text-muted">Belum ada data</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load the fix -->
+    <script src="js/transformasi-barang/DropdownUndefinedFix.js"></script>
+    
+    <script>
+        class DropdownUndefinedFixTest {
+            constructor() {
+                this.testResults = [];
+                this.fixApplied = false;
+            }
+
+            initialize() {
+                this.setupEventListeners();
+                this.updateStatus('Test environment ready', 'info');
+                this.runInitialTest();
+            }
+
+            setupEventListeners() {
+                document.getElementById('btn-create-corrupted').addEventListener('click', () => {
+                    this.createCorruptedData();
+                });
+
+                document.getElementById('btn-apply-fix').addEventListener('click', () => {
+                    this.applyFix();
+                });
+
+                document.getElementById('btn-test-dropdown').addEventListener('click', () => {
+                    this.testDropdowns();
+                });
+
+                document.getElementById('btn-reset-test').addEventListener('click', () => {
+                    this.resetTest();
+                });
+            }
+
+            createCorruptedData() {
+                console.log('🔧 Creating corrupted test data...');
+                
+                // Create intentionally corrupted data
+                const corruptedData = [
+                    {
+                        kode: 'BRG001',
+                        nama: undefined,
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001'
+                    },
+                    {
+                        kode: 'BRG002',
+                        nama: 'Beras Premium',
+                        satuan: undefined,
+                        stok: 50000,
+                        baseProduct: 'BRG001'
+                    },
+                    {
+                        kode: 'BRG003',
+                        nama: 'undefined',
+                        satuan: 'liter',
+                        stok: 50,
+                        baseProduct: 'BRG002'
+                    },
+                    {
+                        kode: 'BRG004',
+                        nama: 'Minyak Goreng',
+                        satuan: 'undefined',
+                        stok: 25000,
+                        baseProduct: 'BRG002'
+                    }
+                ];
+
+                localStorage.setItem('masterBarang', JSON.stringify(corruptedData));
+                
+                this.updateStatus('Corrupted data created', 'warning');
+                this.testDropdowns();
+            }
+
+            applyFix() {
+                console.log('🔧 Applying dropdown undefined fix...');
+                
+                if (window.dropdownUndefinedFix) {
+                    window.dropdownUndefinedFix.reapplyFix();
+                    this.fixApplied = true;
+                    this.updateStatus('Fix applied successfully', 'success');
+                } else {
+                    this.updateStatus('Fix not available', 'error');
+                }
+                
+                this.testDropdowns();
+            }
+
+            testDropdowns() {
+                console.log('🧪 Testing dropdowns...');
+                
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                if (!sourceSelect || !targetSelect) {
+                    this.updateStatus('Dropdown elements not found', 'error');
+                    return;
+                }
+
+                // Populate dropdowns
+                if (window.dropdownUndefinedFix) {
+                    window.dropdownUndefinedFix.safePopulateDropdowns();
+                }
+
+                // Analyze dropdown content
+                const sourceAnalysis = this.analyzeDropdown(sourceSelect, 'Source');
+                const targetAnalysis = this.analyzeDropdown(targetSelect, 'Target');
+
+                // Update previews
+                this.updateDropdownPreview('source-preview', sourceSelect);
+                this.updateDropdownPreview('target-preview', targetSelect);
+
+                // Generate test results
+                this.generateTestResults(sourceAnalysis, targetAnalysis);
+            }
+
+            analyzeDropdown(selectElement, name) {
+                const options = Array.from(selectElement.options);
+                const analysis = {
+                    name: name,
+                    totalOptions: options.length,
+                    validOptions: 0,
+                    undefinedOptions: 0,
+                    emptyOptions: 0,
+                    issues: []
+                };
+
+                options.forEach((option, index) => {
+                    if (index === 0) return; // Skip placeholder
+
+                    const text = option.textContent;
+                    const value = option.value;
+
+                    if (!value || value.trim() === '') {
+                        analysis.emptyOptions++;
+                        analysis.issues.push(`Option ${index}: Empty value`);
+                    } else if (text.includes('undefined')) {
+                        analysis.undefinedOptions++;
+                        analysis.issues.push(`Option ${index}: Contains "undefined" - ${text}`);
+                    } else {
+                        analysis.validOptions++;
+                    }
+                });
+
+                return analysis;
+            }
+
+            updateDropdownPreview(containerId, selectElement) {
+                const container = document.getElementById(containerId);
+                const options = Array.from(selectElement.options);
+                
+                let html = '';
+                options.forEach((option, index) => {
+                    if (index === 0) return; // Skip placeholder
+                    
+                    const text = option.textContent;
+                    const isUndefined = text.includes('undefined');
+                    const cssClass = isUndefined ? 'undefined' : 'valid';
+                    
+                    html += `<div class="option-item ${cssClass}">
+                        <strong>Value:</strong> ${option.value}<br>
+                        <strong>Text:</strong> ${text}
+                    </div>`;
+                });
+
+                container.innerHTML = html || '<div class="text-muted">No options</div>';
+            }
+
+            generateTestResults(sourceAnalysis, targetAnalysis) {
+                const allAnalyses = [sourceAnalysis, targetAnalysis];
+                const totalUndefined = allAnalyses.reduce((sum, a) => sum + a.undefinedOptions, 0);
+                const totalValid = allAnalyses.reduce((sum, a) => sum + a.validOptions, 0);
+                
+                let status = 'success';
+                let title = 'All Tests Passed!';
+                let message = 'No undefined values found in dropdowns';
+                
+                if (totalUndefined > 0) {
+                    status = 'error';
+                    title = 'Test Failed!';
+                    message = `Found ${totalUndefined} undefined values in dropdowns`;
+                } else if (totalValid === 0) {
+                    status = 'warning';
+                    title = 'No Data Found';
+                    message = 'Dropdowns are empty or have no valid data';
+                }
+
+                this.updateStatus(message, status);
+
+                // Generate detailed results
+                let resultsHtml = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-${sourceAnalysis.undefinedOptions > 0 ? 'danger' : 'success'}">
+                                <div class="card-header">
+                                    <h6><i class="bi bi-box-seam me-2"></i>Source Dropdown Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Total Options:</strong> ${sourceAnalysis.totalOptions - 1}</p>
+                                    <p><strong>Valid Options:</strong> <span class="text-success">${sourceAnalysis.validOptions}</span></p>
+                                    <p><strong>Undefined Options:</strong> <span class="text-danger">${sourceAnalysis.undefinedOptions}</span></p>
+                                    <p><strong>Empty Options:</strong> <span class="text-warning">${sourceAnalysis.emptyOptions}</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-${targetAnalysis.undefinedOptions > 0 ? 'danger' : 'success'}">
+                                <div class="card-header">
+                                    <h6><i class="bi bi-bullseye me-2"></i>Target Dropdown Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Total Options:</strong> ${targetAnalysis.totalOptions - 1}</p>
+                                    <p><strong>Valid Options:</strong> <span class="text-success">${targetAnalysis.validOptions}</span></p>
+                                    <p><strong>Undefined Options:</strong> <span class="text-danger">${targetAnalysis.undefinedOptions}</span></p>
+                                    <p><strong>Empty Options:</strong> <span class="text-warning">${targetAnalysis.emptyOptions}</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add issues if any
+                const allIssues = [...sourceAnalysis.issues, ...targetAnalysis.issues];
+                if (allIssues.length > 0) {
+                    resultsHtml += `
+                        <div class="mt-3">
+                            <div class="alert alert-warning">
+                                <h6><i class="bi bi-exclamation-triangle me-2"></i>Issues Found:</h6>
+                                <ul class="mb-0">
+                                    ${allIssues.map(issue => `<li>${issue}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Add summary
+                resultsHtml += `
+                    <div class="mt-3">
+                        <div class="alert alert-${status}">
+                            <h6><i class="bi bi-info-circle me-2"></i>Test Summary:</h6>
+                            <p class="mb-0">
+                                <strong>Total Valid Options:</strong> ${totalValid}<br>
+                                <strong>Total Undefined Options:</strong> ${totalUndefined}<br>
+                                <strong>Fix Applied:</strong> ${this.fixApplied ? 'Yes' : 'No'}<br>
+                                <strong>Status:</strong> ${title}
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('test-results').innerHTML = resultsHtml;
+            }
+
+            resetTest() {
+                console.log('🔄 Resetting test...');
+                
+                // Clear localStorage
+                localStorage.removeItem('masterBarang');
+                localStorage.removeItem('conversionRatios');
+                
+                // Reset dropdowns
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                if (sourceSelect) {
+                    sourceSelect.innerHTML = '<option value="">Loading...</option>';
+                }
+                if (targetSelect) {
+                    targetSelect.innerHTML = '<option value="">Loading...</option>';
+                    targetSelect.disabled = true;
+                }
+
+                // Reset previews
+                document.getElementById('source-preview').innerHTML = '<div class="text-muted">Belum ada data</div>';
+                document.getElementById('target-preview').innerHTML = '<div class="text-muted">Belum ada data</div>';
+
+                // Reset results
+                document.getElementById('test-results').innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-clock display-6 d-block mb-2"></i>
+                        Menunggu test dimulai...
+                    </div>
+                `;
+
+                this.fixApplied = false;
+                this.updateStatus('Test environment reset', 'info');
+            }
+
+            runInitialTest() {
+                // Wait a bit for everything to load
+                setTimeout(() => {
+                    this.testDropdowns();
+                }, 1000);
+            }
+
+            updateStatus(message, type) {
+                const statusCard = document.getElementById('test-status');
+                const statusIcon = document.getElementById('status-icon');
+                const statusTitle = document.getElementById('status-title');
+                const statusMessage = document.getElementById('status-message');
+                
+                statusCard.className = `test-card card mb-4 ${type}`;
+                
+                const titles = {
+                    success: 'Test Passed!',
+                    error: 'Test Failed!',
+                    warning: 'Warning',
+                    info: 'Test Running...'
+                };
+                
+                const icons = {
+                    success: 'bi-check-circle text-success',
+                    error: 'bi-x-circle text-danger',
+                    warning: 'bi-exclamation-triangle text-warning',
+                    info: 'bi-hourglass-split text-primary'
+                };
+                
+                statusTitle.textContent = titles[type] || 'Status';
+                statusMessage.textContent = message;
+                statusIcon.innerHTML = `<i class="${icons[type] || icons.info}"></i>`;
+            }
+        }
+
+        // Initialize test when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const test = new DropdownUndefinedFixTest();
+            test.initialize();
+        });
+    </script>
+</body>
+</html>

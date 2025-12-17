@@ -137,28 +137,70 @@ class UIController {
         // Clear existing options
         this.formElements.sourceItemSelect.innerHTML = '<option value="">Pilih Item Sumber...</option>';
         
+        // PERBAIKAN: Validasi items sebelum diproses
+        const validItems = items.filter(item => {
+            return item && 
+                   typeof item.kode === 'string' && item.kode.trim() !== '' &&
+                   typeof item.nama === 'string' && item.nama.trim() !== '' && item.nama !== 'undefined' &&
+                   typeof item.satuan === 'string' && item.satuan.trim() !== '' && item.satuan !== 'undefined' &&
+                   typeof item.stok === 'number' && !isNaN(item.stok) && item.stok >= 0;
+        });
+        
+        if (validItems.length === 0) {
+            console.warn('No valid items to populate source dropdown');
+            const noDataOption = document.createElement('option');
+            noDataOption.value = '';
+            noDataOption.textContent = 'Tidak ada data barang yang valid';
+            noDataOption.disabled = true;
+            this.formElements.sourceItemSelect.appendChild(noDataOption);
+            return;
+        }
+        
         // Group items by base product
-        const groupedItems = this._groupItemsByBaseProduct(items);
+        const groupedItems = this._groupItemsByBaseProduct(validItems);
         
         Object.entries(groupedItems).forEach(([baseProduct, productItems]) => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = baseProduct;
+            // PERBAIKAN: Validasi productItems sebelum membuat optgroup
+            const validProductItems = productItems.filter(item => 
+                item && item.nama && item.satuan && typeof item.stok === 'number'
+            );
             
-            productItems.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.kode;
-                option.textContent = `${item.nama} (Stok: ${item.stok} ${item.satuan})`;
-                option.dataset.baseProduct = item.baseProduct;
-                option.dataset.unit = item.satuan;
-                option.dataset.stock = item.stok;
-                optgroup.appendChild(option);
+            if (validProductItems.length === 0) return;
+            
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = String(baseProduct).trim() || 'Unknown Product';
+            
+            validProductItems.forEach(item => {
+                try {
+                    const option = document.createElement('option');
+                    option.value = String(item.kode).trim();
+                    
+                    // PERBAIKAN: Pastikan semua nilai tidak undefined
+                    const nama = String(item.nama || 'Unknown').trim();
+                    const satuan = String(item.satuan || 'unit').trim();
+                    const stok = Number(item.stok) || 0;
+                    
+                    option.textContent = `${nama} (${satuan}) - Stok: ${stok}`;
+                    option.dataset.baseProduct = String(item.baseProduct || baseProduct).trim();
+                    option.dataset.unit = satuan;
+                    option.dataset.stock = stok.toString();
+                    option.dataset.nama = nama;
+                    
+                    optgroup.appendChild(option);
+                } catch (error) {
+                    console.warn('Error creating option for item:', item, error);
+                }
             });
             
-            this.formElements.sourceItemSelect.appendChild(optgroup);
+            if (optgroup.children.length > 0) {
+                this.formElements.sourceItemSelect.appendChild(optgroup);
+            }
         });
 
         // Setup auto-complete if available
-        this._setupAutoComplete(this.formElements.sourceItemSelect, items);
+        this._setupAutoComplete(this.formElements.sourceItemSelect, validItems);
+        
+        console.log(`✅ Source dropdown populated with ${validItems.length} valid items`);
     }
 
     /**
@@ -307,33 +349,68 @@ class UIController {
         if (!this.formElements.targetItemSelect) return;
 
         try {
+            // PERBAIKAN: Validasi sourceItem terlebih dahulu
+            if (!sourceItem || !sourceItem.baseProduct || !sourceItem.satuan) {
+                console.warn('Invalid source item for loading target items:', sourceItem);
+                this._clearTargetItemDropdown();
+                return;
+            }
+
             // Get all items with same base product but different unit
             const allItems = await this.transformationManager.getTransformableItems();
-            const compatibleItems = allItems.filter(item => 
-                item.baseProduct === sourceItem.baseProduct && 
-                item.satuan !== sourceItem.satuan
-            );
+            
+            // PERBAIKAN: Filter dengan validasi yang lebih ketat
+            const compatibleItems = allItems.filter(item => {
+                return item && 
+                       item.baseProduct === sourceItem.baseProduct && 
+                       item.satuan !== sourceItem.satuan &&
+                       typeof item.kode === 'string' && item.kode.trim() !== '' &&
+                       typeof item.nama === 'string' && item.nama.trim() !== '' && item.nama !== 'undefined' &&
+                       typeof item.satuan === 'string' && item.satuan.trim() !== '' && item.satuan !== 'undefined' &&
+                       typeof item.stok === 'number' && !isNaN(item.stok) && item.stok >= 0;
+            });
 
             // Clear and populate target dropdown
             this.formElements.targetItemSelect.innerHTML = '<option value="">Pilih Item Target...</option>';
             
             compatibleItems.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.kode;
-                option.textContent = `${item.nama} (Stok: ${item.stok} ${item.satuan})`;
-                option.dataset.baseProduct = item.baseProduct;
-                option.dataset.unit = item.satuan;
-                option.dataset.stock = item.stok;
-                this.formElements.targetItemSelect.appendChild(option);
+                try {
+                    const option = document.createElement('option');
+                    option.value = String(item.kode).trim();
+                    
+                    // PERBAIKAN: Pastikan semua nilai tidak undefined
+                    const nama = String(item.nama || 'Unknown').trim();
+                    const satuan = String(item.satuan || 'unit').trim();
+                    const stok = Number(item.stok) || 0;
+                    
+                    option.textContent = `${nama} (${satuan}) - Stok: ${stok}`;
+                    option.dataset.baseProduct = String(item.baseProduct || '').trim();
+                    option.dataset.unit = satuan;
+                    option.dataset.stock = stok.toString();
+                    option.dataset.nama = nama;
+                    
+                    this.formElements.targetItemSelect.appendChild(option);
+                } catch (error) {
+                    console.warn('Error creating target option for item:', item, error);
+                }
             });
 
             // Enable target dropdown
             this.formElements.targetItemSelect.disabled = compatibleItems.length === 0;
             
             if (compatibleItems.length === 0) {
+                // Add informative option
+                const noDataOption = document.createElement('option');
+                noDataOption.value = '';
+                noDataOption.textContent = 'Tidak ada item target yang kompatibel';
+                noDataOption.disabled = true;
+                this.formElements.targetItemSelect.appendChild(noDataOption);
+                
                 this.errorHandler.handleValidationError(
                     'Tidak ada item target yang kompatibel untuk transformasi'
                 );
+            } else {
+                console.log(`✅ Target dropdown populated with ${compatibleItems.length} compatible items`);
             }
         } catch (error) {
             this.errorHandler.handleSystemError(error, { context: 'loadTargetItems' });
@@ -631,16 +708,44 @@ class UIController {
      * @private
      */
     _getItemFromDropdown(selectElement) {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        if (!selectedOption || !selectedOption.value) return null;
+        try {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            if (!selectedOption || !selectedOption.value) return null;
 
-        return {
-            kode: selectedOption.value,
-            nama: selectedOption.textContent.split(' (Stok:')[0],
-            baseProduct: selectedOption.dataset.baseProduct,
-            satuan: selectedOption.dataset.unit,
-            stok: parseInt(selectedOption.dataset.stock)
-        };
+            // PERBAIKAN: Ekstrak nama dengan lebih aman
+            let nama = selectedOption.dataset.nama || selectedOption.textContent;
+            if (nama.includes(' (Stok:')) {
+                nama = nama.split(' (Stok:')[0];
+            }
+            if (nama.includes(' (') && nama.includes(') - Stok:')) {
+                nama = nama.split(' (')[0];
+            }
+            
+            // PERBAIKAN: Validasi dan sanitasi semua data
+            const kode = String(selectedOption.value || '').trim();
+            const baseProduct = String(selectedOption.dataset.baseProduct || '').trim();
+            const satuan = String(selectedOption.dataset.unit || selectedOption.dataset.satuan || '').trim();
+            const stok = Number(selectedOption.dataset.stock) || 0;
+            
+            // Pastikan semua data penting ada
+            if (!kode || !nama || !satuan) {
+                console.warn('Incomplete item data from dropdown:', {
+                    kode, nama, satuan, stok, baseProduct
+                });
+                return null;
+            }
+
+            return {
+                kode: kode,
+                nama: String(nama).trim(),
+                baseProduct: baseProduct,
+                satuan: satuan,
+                stok: stok
+            };
+        } catch (error) {
+            console.error('Error extracting item from dropdown:', error);
+            return null;
+        }
     }
 
     /**
