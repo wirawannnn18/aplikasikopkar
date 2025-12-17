@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Real Stock Integration - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .data-comparison {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .stock-card {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .stock-card.real {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .stock-card.demo {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .test-result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .dropdown-test {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 1rem 0;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="test-container">
+            <div class="text-center mb-4">
+                <h1><i class="bi bi-database-check me-2"></i>Test Real Stock Integration</h1>
+                <p class="text-muted">Verifikasi bahwa transformasi barang menggunakan stok real dari aplikasi, bukan data demo</p>
+            </div>
+
+            <!-- Data Comparison -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="stock-card card demo">
+                        <div class="card-header">
+                            <h5><i class="bi bi-exclamation-triangle text-warning me-2"></i>Data Demo (Sebelum)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="demo-data">
+                                <div class="text-center text-muted">
+                                    <i class="bi bi-hourglass-split display-4 d-block mb-2"></i>
+                                    Loading demo data...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stock-card card real">
+                        <div class="card-header">
+                            <h5><i class="bi bi-check-circle text-success me-2"></i>Data Real (Sesudah)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="real-data">
+                                <div class="text-center text-muted">
+                                    <i class="bi bi-hourglass-split display-4 d-block mb-2"></i>
+                                    Loading real data...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dropdown Test -->
+            <div class="dropdown-test">
+                <h3><i class="bi bi-list me-2"></i>Test Dropdown dengan Stok Real</h3>
+                <p class="text-muted">Dropdown ini sekarang menggunakan stok real dari aplikasi</p>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="sourceItem" class="form-label">
+                            <i class="bi bi-box-seam me-1"></i>Item Sumber (Stok Real)
+                        </label>
+                        <select class="form-select" id="sourceItem" required>
+                            <option value="">Pilih Item Sumber...</option>
+                        </select>
+                        <div class="form-text">Data dari localStorage 'barang' (stok real)</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="targetItem" class="form-label">
+                            <i class="bi bi-bullseye me-1"></i>Item Target (Stok Real)
+                        </label>
+                        <select class="form-select" id="targetItem" required>
+                            <option value="">Pilih Item Target...</option>
+                        </select>
+                        <div class="form-text">Data dari localStorage 'barang' (stok real)</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="quantity" class="form-label">
+                            <i class="bi bi-123 me-1"></i>Jumlah Transformasi
+                        </label>
+                        <input type="number" class="form-control" id="quantity" 
+                               min="1" step="1" placeholder="Masukkan jumlah..." required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-calculator me-1"></i>Info Konversi (Real-Time)
+                        </label>
+                        <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                            <span class="text-muted">Pilih item untuk melihat rasio konversi dengan stok real</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-clipboard-check me-2"></i>Hasil Test Integrasi</h4>
+                </div>
+                <div class="card-body">
+                    <div id="test-results">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-hourglass-split display-4 d-block mb-2"></i>
+                            Klik tombol "Run Integration Test" untuk memulai verifikasi
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <button id="run-integration-test" class="btn btn-primary btn-lg me-3">
+                    <i class="bi bi-play-fill me-2"></i>Run Integration Test
+                </button>
+                <button id="apply-real-stock" class="btn btn-success btn-lg me-3">
+                    <i class="bi bi-database-check me-2"></i>Apply Real Stock
+                </button>
+                <button id="refresh-data" class="btn btn-outline-info btn-lg me-3">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+                </button>
+                <button id="open-transformasi" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Buka Transformasi Barang
+                </button>
+            </div>
+
+            <!-- Alert Container -->
+            <div id="alert-container" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load the real stock integration -->
+    <script src="js/transformasi-barang/RealStockIntegration.js"></script>
+    
+    <script>
+        class RealStockTester {
+            constructor() {
+                this.testResults = [];
+                this.demoData = [];
+                this.realData = [];
+            }
+
+            async runIntegrationTest() {
+                this.testResults = [];
+                this.updateTestResults('Running integration tests...', 'info');
+                
+                try {
+                    // Test 1: Check data sources
+                    await this.testDataSources();
+                    
+                    // Test 2: Compare demo vs real data
+                    await this.testDataComparison();
+                    
+                    // Test 3: Test dropdown population
+                    await this.testDropdownPopulation();
+                    
+                    // Test 4: Test real-time stock updates
+                    await this.testRealTimeStock();
+                    
+                    // Test 5: Test conversion calculations
+                    await this.testConversionCalculations();
+                    
+                    // Show final results
+                    this.showFinalResults();
+                    
+                } catch (error) {
+                    console.error('Integration test failed:', error);
+                    this.addTestResult('Integration test execution failed', false, error.message);
+                    this.showFinalResults();
+                }
+            }
+
+            async testDataSources() {
+                this.addTestResult('Testing data sources...', true, 'Checking localStorage data');
+                
+                try {
+                    // Check real barang data
+                    const realBarang = JSON.parse(localStorage.getItem('barang') || '[]');
+                    this.addTestResult('Real barang data exists', realBarang.length > 0, `${realBarang.length} items`);
+                    
+                    // Check masterBarang data
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    this.addTestResult('MasterBarang data exists', masterBarang.length > 0, `${masterBarang.length} items`);
+                    
+                    // Check kategori and satuan
+                    const kategori = JSON.parse(localStorage.getItem('kategori') || '[]');
+                    const satuan = JSON.parse(localStorage.getItem('satuan') || '[]');
+                    this.addTestResult('Kategori data exists', kategori.length > 0, `${kategori.length} categories`);
+                    this.addTestResult('Satuan data exists', satuan.length > 0, `${satuan.length} units`);
+                    
+                    // Store for comparison
+                    this.realData = realBarang;
+                    
+                    // Update data display
+                    this.updateDataDisplay();
+                    
+                } catch (error) {
+                    this.addTestResult('Data sources test', false, error.message);
+                }
+                
+                await this.delay(500);
+            }
+
+            async testDataComparison() {
+                this.addTestResult('Comparing demo vs real data...', true, 'Analyzing data differences');
+                
+                try {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    const realBarang = JSON.parse(localStorage.getItem('barang') || '[]');
+                    
+                    // Check if masterBarang is based on real data
+                    let realDataUsed = 0;
+                    masterBarang.forEach(item => {
+                        if (item.originalId) {
+                            const realItem = realBarang.find(r => r.id === item.originalId);
+                            if (realItem) {
+                                realDataUsed++;
+                            }
+                        }
+                    });
+                    
+                    const percentageReal = realDataUsed > 0 ? (realDataUsed / masterBarang.length * 100).toFixed(1) : 0;
+                    this.addTestResult('Real data integration', realDataUsed > 0, 
+                        `${realDataUsed}/${masterBarang.length} items (${percentageReal}%) use real data`);
+                    
+                    // Check for demo data patterns
+                    const demoPatterns = ['BRG001', 'BRG002', 'BRG003', 'Beras Premium', 'Minyak Goreng', 'Air Mineral'];
+                    let demoDataFound = 0;
+                    
+                    masterBarang.forEach(item => {
+                        demoPatterns.forEach(pattern => {
+                            if (item.kode?.includes(pattern) || item.nama?.includes(pattern)) {
+                                demoDataFound++;
+                            }
+                        });
+                    });
+                    
+                    this.addTestResult('Demo data removed', demoDataFound === 0, 
+                        demoDataFound > 0 ? `${demoDataFound} demo patterns found` : 'No demo patterns detected');
+                    
+                } catch (error) {
+                    this.addTestResult('Data comparison test', false, error.message);
+                }
+                
+                await this.delay(500);
+            }
+
+            async testDropdownPopulation() {
+                this.addTestResult('Testing dropdown population...', true, 'Checking dropdown content');
+                
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    if (!sourceSelect || !targetSelect) {
+                        this.addTestResult('Dropdown elements exist', false, 'Elements not found');
+                        return;
+                    }
+                    
+                    // Apply real stock integration
+                    if (typeof window.populateDropdownsWithRealStock === 'function') {
+                        const success = window.populateDropdownsWithRealStock();
+                        this.addTestResult('Real stock dropdown function', success, 'Function executed');
+                    } else {
+                        this.addTestResult('Real stock dropdown function', false, 'Function not found');
+                    }
+                    
+                    // Check dropdown content
+                    const sourceCount = sourceSelect.options.length - 1;
+                    const targetCount = targetSelect.options.length - 1;
+                    
+                    this.addTestResult('Source dropdown populated', sourceCount > 0, `${sourceCount} options`);
+                    this.addTestResult('Target dropdown populated', targetCount > 0, `${targetCount} options`);
+                    
+                    // Check for real stock indicators
+                    let realStockIndicators = 0;
+                    for (let i = 1; i < sourceSelect.options.length; i++) {
+                        const option = sourceSelect.options[i];
+                        if (option.dataset.originalId) {
+                            realStockIndicators++;
+                        }
+                    }
+                    
+                    this.addTestResult('Real stock indicators', realStockIndicators > 0, 
+                        `${realStockIndicators} options have real stock references`);
+                    
+                } catch (error) {
+                    this.addTestResult('Dropdown population test', false, error.message);
+                }
+                
+                await this.delay(500);
+            }
+
+            async testRealTimeStock() {
+                this.addTestResult('Testing real-time stock updates...', true, 'Checking stock synchronization');
+                
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    if (sourceSelect.options.length > 1 && targetSelect.options.length > 1) {
+                        // Select first available items
+                        sourceSelect.selectedIndex = 1;
+                        
+                        // Find compatible target
+                        const sourceOption = sourceSelect.options[1];
+                        const sourceBaseProduct = sourceOption.dataset.baseProduct;
+                        
+                        let targetFound = false;
+                        for (let i = 1; i < targetSelect.options.length; i++) {
+                            const targetOption = targetSelect.options[i];
+                            if (targetOption.dataset.baseProduct === sourceBaseProduct && 
+                                targetOption.value !== sourceSelect.value) {
+                                targetSelect.selectedIndex = i;
+                                targetFound = true;
+                                break;
+                            }
+                        }
+                        
+                        if (targetFound) {
+                            // Test conversion info update
+                            if (typeof window.updateConversionInfoWithRealStock === 'function') {
+                                window.updateConversionInfoWithRealStock();
+                                this.addTestResult('Real-time conversion info', true, 'Function executed');
+                                
+                                // Check if conversion info shows real-time indicator
+                                const conversionInfo = document.getElementById('conversion-info');
+                                const hasRealTimeIndicator = conversionInfo && 
+                                    conversionInfo.textContent.includes('Real-Time');
+                                
+                                this.addTestResult('Real-time indicator displayed', hasRealTimeIndicator, 
+                                    hasRealTimeIndicator ? 'Real-time indicator found' : 'No real-time indicator');
+                            } else {
+                                this.addTestResult('Real-time conversion function', false, 'Function not found');
+                            }
+                        } else {
+                            this.addTestResult('Compatible items test', false, 'No compatible target found');
+                        }
+                    } else {
+                        this.addTestResult('Real-time stock test', false, 'Insufficient dropdown options');
+                    }
+                    
+                } catch (error) {
+                    this.addTestResult('Real-time stock test', false, error.message);
+                }
+                
+                await this.delay(500);
+            }
+
+            async testConversionCalculations() {
+                this.addTestResult('Testing conversion calculations...', true, 'Checking calculation accuracy');
+                
+                try {
+                    const quantityInput = document.getElementById('quantity');
+                    if (quantityInput) {
+                        quantityInput.value = '5';
+                        
+                        // Trigger conversion update
+                        if (typeof window.updateConversionInfoWithRealStock === 'function') {
+                            window.updateConversionInfoWithRealStock();
+                            
+                            const conversionInfo = document.getElementById('conversion-info');
+                            const hasCalculation = conversionInfo && 
+                                conversionInfo.textContent.includes('Hasil Konversi');
+                            
+                            this.addTestResult('Conversion calculation displayed', hasCalculation, 
+                                hasCalculation ? 'Calculation shown' : 'No calculation displayed');
+                        }
+                    }
+                    
+                } catch (error) {
+                    this.addTestResult('Conversion calculations test', false, error.message);
+                }
+                
+                await this.delay(500);
+            }
+
+            updateDataDisplay() {
+                // Display demo data patterns
+                const demoDataHtml = `
+                    <h6>Pola Data Demo:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-x-circle text-danger me-1"></i>BRG001 - Beras Premium (Demo)</li>
+                        <li><i class="bi bi-x-circle text-danger me-1"></i>BRG002 - Minyak Goreng (Demo)</li>
+                        <li><i class="bi bi-x-circle text-danger me-1"></i>BRG003 - Air Mineral (Demo)</li>
+                        <li><i class="bi bi-x-circle text-danger me-1"></i>Stok: 100, 50, 20 (Statis)</li>
+                    </ul>
+                    <div class="alert alert-warning">
+                        <small><i class="bi bi-exclamation-triangle me-1"></i>Data ini tidak berubah dan tidak mencerminkan stok real</small>
+                    </div>
+                `;
+                
+                // Display real data
+                const realBarang = JSON.parse(localStorage.getItem('barang') || '[]');
+                const realDataHtml = `
+                    <h6>Data Real dari Aplikasi:</h6>
+                    <ul class="list-unstyled">
+                        ${realBarang.slice(0, 5).map(item => `
+                            <li><i class="bi bi-check-circle text-success me-1"></i>${item.nama} - Stok: ${item.stok}</li>
+                        `).join('')}
+                        ${realBarang.length > 5 ? `<li class="text-muted">... dan ${realBarang.length - 5} item lainnya</li>` : ''}
+                    </ul>
+                    <div class="alert alert-success">
+                        <small><i class="bi bi-check-circle me-1"></i>Data ini real-time dan berubah sesuai transaksi aplikasi</small>
+                    </div>
+                `;
+                
+                document.getElementById('demo-data').innerHTML = demoDataHtml;
+                document.getElementById('real-data').innerHTML = realDataHtml;
+            }
+
+            addTestResult(testName, passed, details = '') {
+                this.testResults.push({
+                    name: testName,
+                    passed: passed,
+                    details: details
+                });
+            }
+
+            showFinalResults() {
+                const passedTests = this.testResults.filter(r => r.passed).length;
+                const totalTests = this.testResults.length;
+                const allPassed = passedTests === totalTests;
+                
+                const resultHtml = `
+                    <div class="test-result ${allPassed ? 'success' : 'error'}">
+                        <h5><i class="bi bi-${allPassed ? 'check-circle' : 'x-circle'} me-2"></i>
+                            Integration Test Results: ${passedTests}/${totalTests} Passed
+                        </h5>
+                        <div class="mt-3">
+                            ${this.testResults.map(result => `
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>
+                                        <i class="bi bi-${result.passed ? 'check-circle text-success' : 'x-circle text-danger'} me-2"></i>
+                                        ${result.name}
+                                    </span>
+                                    <span class="text-muted small">${result.details}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${allPassed ? 
+                            '<div class="alert alert-success mt-3 mb-0"><strong>✅ Integration successful!</strong> Transformasi barang sekarang menggunakan stok real dari aplikasi.</div>' :
+                            '<div class="alert alert-warning mt-3 mb-0"><strong>⚠️ Integration issues detected.</strong> Beberapa aspek integrasi perlu diperbaiki.</div>'
+                        }
+                    </div>
+                `;
+                
+                this.updateTestResults(resultHtml);
+            }
+
+            updateTestResults(content, type = '') {
+                const resultsContainer = document.getElementById('test-results');
+                if (type === 'info') {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center text-primary">
+                            <i class="bi bi-hourglass-split display-4 d-block mb-2"></i>
+                            ${content}
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = content;
+                }
+            }
+
+            applyRealStock() {
+                try {
+                    if (typeof window.realStockIntegration !== 'undefined') {
+                        window.realStockIntegration.initialize().then(success => {
+                            if (success) {
+                                this.showAlert('Real stock integration applied successfully!', 'success');
+                                this.updateDataDisplay();
+                            } else {
+                                this.showAlert('Failed to apply real stock integration', 'danger');
+                            }
+                        });
+                    } else {
+                        this.showAlert('Real stock integration not available', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Error applying real stock:', error);
+                    this.showAlert(`Error applying real stock: ${error.message}`, 'danger');
+                }
+            }
+
+            refreshData() {
+                try {
+                    if (typeof window.refreshRealStock === 'function') {
+                        window.refreshRealStock().then(success => {
+                            if (success) {
+                                this.showAlert('Real stock data refreshed successfully!', 'success');
+                                this.updateDataDisplay();
+                            } else {
+                                this.showAlert('Failed to refresh real stock data', 'danger');
+                            }
+                        });
+                    } else {
+                        // Fallback: reload integration
+                        if (typeof window.realStockIntegration !== 'undefined') {
+                            window.realStockIntegration.refreshRealStock().then(success => {
+                                if (success) {
+                                    this.showAlert('Data refreshed successfully!', 'success');
+                                    this.updateDataDisplay();
+                                } else {
+                                    this.showAlert('Failed to refresh data', 'danger');
+                                }
+                            });
+                        } else {
+                            this.showAlert('Refresh function not available', 'warning');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                    this.showAlert(`Error refreshing data: ${error.message}`, 'danger');
+                }
+            }
+
+            showAlert(message, type) {
+                const alertContainer = document.getElementById('alert-container');
+                alertContainer.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize tester
+        const realStockTester = new RealStockTester();
+
+        // Event listeners
+        document.getElementById('run-integration-test').addEventListener('click', () => {
+            realStockTester.runIntegrationTest();
+        });
+
+        document.getElementById('apply-real-stock').addEventListener('click', () => {
+            realStockTester.applyRealStock();
+        });
+
+        document.getElementById('refresh-data').addEventListener('click', () => {
+            realStockTester.refreshData();
+        });
+
+        document.getElementById('open-transformasi').addEventListener('click', () => {
+            window.open('transformasi_barang.html', '_blank');
+        });
+
+        // Setup event listeners for dropdown changes
+        document.getElementById('sourceItem').addEventListener('change', () => {
+            if (typeof window.updateConversionInfoWithRealStock === 'function') {
+                window.updateConversionInfoWithRealStock();
+            }
+        });
+
+        document.getElementById('targetItem').addEventListener('change', () => {
+            if (typeof window.updateConversionInfoWithRealStock === 'function') {
+                window.updateConversionInfoWithRealStock();
+            }
+        });
+
+        document.getElementById('quantity').addEventListener('input', () => {
+            if (typeof window.updateConversionInfoWithRealStock === 'function') {
+                window.updateConversionInfoWithRealStock();
+            }
+        });
+
+        // Auto-run test on page load
+        setTimeout(() => {
+            realStockTester.updateDataDisplay();
+            realStockTester.runIntegrationTest();
+        }, 2000);
+    </script>
+</body>
+</html>
