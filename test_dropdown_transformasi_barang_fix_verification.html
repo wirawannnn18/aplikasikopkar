@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Verifikasi - Dropdown Transformasi Barang Fix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .test-pass {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .dropdown-test {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card test-card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-check2-square me-2"></i>
+                            Test Verifikasi - Dropdown Transformasi Barang Fix
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Tujuan Test:</strong> Memverifikasi bahwa dropdown transformasi barang 
+                            sudah menampilkan data stok yang benar dari sistem (bukan "undefined").
+                        </div>
+
+                        <!-- Test Status -->
+                        <div id="test-status" class="alert alert-warning">
+                            <i class="bi bi-clock me-2"></i>
+                            Memulai test verifikasi...
+                        </div>
+
+                        <!-- Test Results Container -->
+                        <div id="test-results"></div>
+
+                        <!-- Dropdown Test Section -->
+                        <div class="dropdown-test">
+                            <h5><i class="bi bi-list-check me-2"></i>Test Dropdown Functionality</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Dropdown Sumber (Barang Asal)</label>
+                                    <select class="form-select" id="sourceItem">
+                                        <option value="">Loading...</option>
+                                    </select>
+                                    <div id="source-validation" class="form-text"></div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Dropdown Target (Barang Tujuan)</label>
+                                    <select class="form-select" id="targetItem">
+                                        <option value="">Loading...</option>
+                                    </select>
+                                    <div id="target-validation" class="form-text"></div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Jumlah Transformasi</label>
+                                    <input type="number" class="form-control" id="quantity" value="5" min="1">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Info Konversi</label>
+                                    <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                                        <span class="text-muted">Pilih item untuk test konversi</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-primary" onclick="runDropdownTest()">
+                                    <i class="bi bi-play-circle me-2"></i>Run Dropdown Test
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="runAllTests()">
+                                    <i class="bi bi-check-all me-2"></i>Run All Tests
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Data Inspection -->
+                        <div class="dropdown-test">
+                            <h5><i class="bi bi-database me-2"></i>Data Inspection</h5>
+                            <div id="data-inspection"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/transformasi-barang/StockDropdownFix.js"></script>
+    
+    <script>
+        // Test framework
+        class DropdownTestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.stockDropdownFix = null;
+            }
+
+            // Add test case
+            addTest(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+
+            // Run all tests
+            async runAllTests() {
+                this.results = [];
+                this.updateStatus('Menjalankan semua test...', 'info');
+
+                for (const test of this.tests) {
+                    try {
+                        const result = await test.testFunction();
+                        this.results.push({
+                            name: test.name,
+                            passed: result.passed,
+                            message: result.message,
+                            details: result.details || null
+                        });
+                    } catch (error) {
+                        this.results.push({
+                            name: test.name,
+                            passed: false,
+                            message: `Error: ${error.message}`,
+                            details: error.stack
+                        });
+                    }
+                }
+
+                this.displayResults();
+            }
+
+            // Display test results
+            displayResults() {
+                const resultsContainer = document.getElementById('test-results');
+                const passedTests = this.results.filter(r => r.passed).length;
+                const totalTests = this.results.length;
+
+                let html = `
+                    <div class="test-result ${passedTests === totalTests ? 'test-pass' : 'test-fail'}">
+                        <h5><i class="bi bi-${passedTests === totalTests ? 'check-circle' : 'x-circle'} me-2"></i>
+                        Test Summary: ${passedTests}/${totalTests} Passed</h5>
+                    </div>
+                `;
+
+                this.results.forEach(result => {
+                    html += `
+                        <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6><i class="bi bi-${result.passed ? 'check' : 'x'} me-2"></i>${result.name}</h6>
+                                    <p class="mb-0">${result.message}</p>
+                                    ${result.details ? `<small class="text-muted">${result.details}</small>` : ''}
+                                </div>
+                                <span class="badge bg-${result.passed ? 'success' : 'danger'}">
+                                    ${result.passed ? 'PASS' : 'FAIL'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                resultsContainer.innerHTML = html;
+
+                // Update overall status
+                if (passedTests === totalTests) {
+                    this.updateStatus('Semua test berhasil! Dropdown transformasi barang berfungsi dengan benar.', 'success');
+                } else {
+                    this.updateStatus(`${totalTests - passedTests} test gagal. Perlu perbaikan lebih lanjut.`, 'error');
+                }
+            }
+
+            // Update status
+            updateStatus(message, type = 'info') {
+                const statusElement = document.getElementById('test-status');
+                const alertClass = {
+                    'success': 'alert-success',
+                    'error': 'alert-danger',
+                    'warning': 'alert-warning',
+                    'info': 'alert-info'
+                };
+                
+                statusElement.className = `alert ${alertClass[type]}`;
+                statusElement.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>${message}`;
+            }
+        }
+
+        // Initialize test framework
+        const testFramework = new DropdownTestFramework();
+
+        // Test 1: StockDropdownFix Initialization
+        testFramework.addTest('StockDropdownFix Initialization', async () => {
+            try {
+                testFramework.stockDropdownFix = new StockDropdownFix();
+                const initResult = await testFramework.stockDropdownFix.initialize();
+                
+                return {
+                    passed: initResult === true,
+                    message: initResult ? 'StockDropdownFix berhasil diinisialisasi' : 'Gagal menginisialisasi StockDropdownFix'
+                };
+            } catch (error) {
+                return {
+                    passed: false,
+                    message: `Error inisialisasi: ${error.message}`
+                };
+            }
+        });
+
+        // Test 2: Data Loading
+        testFramework.addTest('Data Loading from localStorage', async () => {
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                
+                const hasData = masterBarang.length > 0;
+                const hasRatios = conversionRatios.length > 0;
+                
+                return {
+                    passed: hasData && hasRatios,
+                    message: `Data loaded: ${masterBarang.length} items, ${conversionRatios.length} conversion ratios`,
+                    details: hasData && hasRatios ? 'Data tersedia dan valid' : 'Data tidak lengkap atau kosong'
+                };
+            } catch (error) {
+                return {
+                    passed: false,
+                    message: `Error loading data: ${error.message}`
+                };
+            }
+        });
+
+        // Test 3: Dropdown Population
+        testFramework.addTest('Dropdown Population', async () => {
+            try {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                
+                // Wait a bit for population to complete
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const sourceOptions = sourceSelect.options.length - 1; // Exclude placeholder
+                const targetOptions = targetSelect.options.length - 1; // Exclude placeholder
+                
+                const hasSourceOptions = sourceOptions > 0;
+                const hasTargetOptions = targetOptions > 0;
+                
+                // Check if options contain actual data (not "undefined")
+                let hasValidData = true;
+                for (let i = 1; i < sourceSelect.options.length; i++) {
+                    if (sourceSelect.options[i].textContent.includes('undefined')) {
+                        hasValidData = false;
+                        break;
+                    }
+                }
+                
+                return {
+                    passed: hasSourceOptions && hasTargetOptions && hasValidData,
+                    message: `Source: ${sourceOptions} options, Target: ${targetOptions} options`,
+                    details: hasValidData ? 'Semua data valid (tidak ada "undefined")' : 'Ditemukan data "undefined" di dropdown'
+                };
+            } catch (error) {
+                return {
+                    passed: false,
+                    message: `Error populating dropdowns: ${error.message}`
+                };
+            }
+        });
+
+        // Test 4: Data Validation
+        testFramework.addTest('Data Validation', async () => {
+            try {
+                const sourceSelect = document.getElementById('sourceItem');
+                let validationErrors = [];
+                
+                // Check each option for required data attributes
+                for (let i = 1; i < sourceSelect.options.length; i++) {
+                    const option = sourceSelect.options[i];
+                    
+                    if (!option.dataset.nama || option.dataset.nama === 'undefined') {
+                        validationErrors.push(`Option ${i}: nama undefined`);
+                    }
+                    
+                    if (!option.dataset.satuan || option.dataset.satuan === 'undefined') {
+                        validationErrors.push(`Option ${i}: satuan undefined`);
+                    }
+                    
+                    if (!option.dataset.stok || option.dataset.stok === 'undefined') {
+                        validationErrors.push(`Option ${i}: stok undefined`);
+                    }
+                }
+                
+                return {
+                    passed: validationErrors.length === 0,
+                    message: validationErrors.length === 0 ? 'Semua data valid' : `${validationErrors.length} validation errors`,
+                    details: validationErrors.length > 0 ? validationErrors.join(', ') : 'Semua field memiliki data yang valid'
+                };
+            } catch (error) {
+                return {
+                    passed: false,
+                    message: `Error validating data: ${error.message}`
+                };
+            }
+        });
+
+        // Test 5: Conversion Calculation
+        testFramework.addTest('Conversion Calculation', async () => {
+            try {
+                if (!testFramework.stockDropdownFix) {
+                    throw new Error('StockDropdownFix not initialized');
+                }
+                
+                // Test conversion ratio calculation
+                const ratio1 = testFramework.stockDropdownFix.getConversionRatio('kg', 'gram', 'BRG001');
+                const ratio2 = testFramework.stockDropdownFix.getConversionRatio('liter', 'ml', 'BRG002');
+                
+                const validRatio1 = ratio1 === 1000;
+                const validRatio2 = ratio2 === 1000;
+                
+                return {
+                    passed: validRatio1 && validRatio2,
+                    message: `kg→gram: ${ratio1}, liter→ml: ${ratio2}`,
+                    details: validRatio1 && validRatio2 ? 'Conversion ratios correct' : 'Conversion ratios incorrect'
+                };
+            } catch (error) {
+                return {
+                    passed: false,
+                    message: `Error calculating conversion: ${error.message}`
+                };
+            }
+        });
+
+        // Test 6: Transformation Validation
+        testFramework.addTest('Transformation Validation', async () => {
+            try {
+                if (!testFramework.stockDropdownFix) {
+                    throw new Error('StockDropdownFix not initialized');
+                }
+                
+                // Test valid transformation
+                const validResult = testFramework.stockDropdownFix.validateTransformation('BRG001', 'BRG002', 5);
+                
+                // Test invalid transformation (same item)
+                const invalidResult = testFramework.stockDropdownFix.validateTransformation('BRG001', 'BRG001', 5);
+                
+                // Test insufficient stock
+                const insufficientResult = testFramework.stockDropdownFix.validateTransformation('BRG001', 'BRG002', 999999);
+                
+                return {
+                    passed: validResult.isValid && !invalidResult.isValid && !insufficientResult.isValid,
+                    message: `Valid: ${validResult.isValid}, Same item: ${!invalidResult.isValid}, Insufficient: ${!insufficientResult.isValid}`,
+                    details: 'Validation logic working correctly'
+                };
+            } catch (error) {
+                return {
+                    passed: false,
+                    message: `Error validating transformation: ${error.message}`
+                };
+            }
+        });
+
+        // Dropdown test function
+        async function runDropdownTest() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const sourceValidation = document.getElementById('source-validation');
+            const targetValidation = document.getElementById('target-validation');
+            
+            // Test source dropdown
+            let sourceValid = true;
+            let sourceMessage = '';
+            
+            if (sourceSelect.options.length <= 1) {
+                sourceValid = false;
+                sourceMessage = 'Tidak ada opsi tersedia';
+            } else {
+                for (let i = 1; i < sourceSelect.options.length; i++) {
+                    if (sourceSelect.options[i].textContent.includes('undefined')) {
+                        sourceValid = false;
+                        sourceMessage = 'Ditemukan data "undefined"';
+                        break;
+                    }
+                }
+                if (sourceValid) {
+                    sourceMessage = `${sourceSelect.options.length - 1} opsi valid tersedia`;
+                }
+            }
+            
+            // Test target dropdown
+            let targetValid = true;
+            let targetMessage = '';
+            
+            if (targetSelect.options.length <= 1) {
+                targetValid = false;
+                targetMessage = 'Tidak ada opsi tersedia';
+            } else {
+                for (let i = 1; i < targetSelect.options.length; i++) {
+                    if (targetSelect.options[i].textContent.includes('undefined')) {
+                        targetValid = false;
+                        targetMessage = 'Ditemukan data "undefined"';
+                        break;
+                    }
+                }
+                if (targetValid) {
+                    targetMessage = `${targetSelect.options.length - 1} opsi valid tersedia`;
+                }
+            }
+            
+            // Update validation messages
+            sourceValidation.innerHTML = `<span class="text-${sourceValid ? 'success' : 'danger'}">
+                <i class="bi bi-${sourceValid ? 'check' : 'x'}-circle me-1"></i>${sourceMessage}
+            </span>`;
+            
+            targetValidation.innerHTML = `<span class="text-${targetValid ? 'success' : 'danger'}">
+                <i class="bi bi-${targetValid ? 'check' : 'x'}-circle me-1"></i>${targetMessage}
+            </span>`;
+            
+            // Update dropdown classes
+            sourceSelect.className = `form-select ${sourceValid ? 'is-valid' : 'is-invalid'}`;
+            targetSelect.className = `form-select ${targetValid ? 'is-valid' : 'is-invalid'}`;
+        }
+
+        // Data inspection function
+        function inspectData() {
+            const inspectionContainer = document.getElementById('data-inspection');
+            
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                
+                let html = '<div class="row">';
+                
+                // Master Barang inspection
+                html += '<div class="col-md-6">';
+                html += '<h6>Master Barang Data:</h6>';
+                html += '<div class="table-responsive">';
+                html += '<table class="table table-sm table-striped">';
+                html += '<thead><tr><th>Kode</th><th>Nama</th><th>Satuan</th><th>Stok</th></tr></thead>';
+                html += '<tbody>';
+                
+                masterBarang.slice(0, 10).forEach(item => {
+                    html += `<tr>
+                        <td>${item.kode || 'N/A'}</td>
+                        <td>${item.nama || 'N/A'}</td>
+                        <td>${item.satuan || 'N/A'}</td>
+                        <td>${item.stok !== undefined ? item.stok : 'N/A'}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                html += `<small class="text-muted">Showing ${Math.min(10, masterBarang.length)} of ${masterBarang.length} items</small>`;
+                html += '</div>';
+                
+                // Conversion Ratios inspection
+                html += '<div class="col-md-6">';
+                html += '<h6>Conversion Ratios:</h6>';
+                html += '<div class="table-responsive">';
+                html += '<table class="table table-sm table-striped">';
+                html += '<thead><tr><th>Base Product</th><th>From</th><th>To</th><th>Ratio</th></tr></thead>';
+                html += '<tbody>';
+                
+                conversionRatios.forEach(product => {
+                    if (product.conversions) {
+                        product.conversions.forEach(conversion => {
+                            html += `<tr>
+                                <td>${product.baseProduct}</td>
+                                <td>${conversion.from}</td>
+                                <td>${conversion.to}</td>
+                                <td>${conversion.ratio}</td>
+                            </tr>`;
+                        });
+                    }
+                });
+                
+                html += '</tbody></table></div>';
+                html += '</div>';
+                html += '</div>';
+                
+                inspectionContainer.innerHTML = html;
+                
+            } catch (error) {
+                inspectionContainer.innerHTML = `<div class="alert alert-danger">Error inspecting data: ${error.message}</div>`;
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            
+            [sourceSelect, targetSelect, quantityInput].forEach(element => {
+                if (element) {
+                    element.addEventListener('change', updateConversionInfo);
+                    element.addEventListener('input', updateConversionInfo);
+                }
+            });
+        }
+
+        // Update conversion info
+        function updateConversionInfo() {
+            if (!testFramework.stockDropdownFix) return;
+            
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const conversionInfo = document.getElementById('conversion-info');
+            
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk test konversi</span>';
+                return;
+            }
+            
+            try {
+                // Get item details
+                const sourceOption = sourceSelect.options[sourceSelect.selectedIndex];
+                const targetOption = targetSelect.options[targetSelect.selectedIndex];
+                
+                const ratio = testFramework.stockDropdownFix.getConversionRatio(
+                    sourceOption.dataset.satuan,
+                    targetOption.dataset.satuan,
+                    sourceOption.dataset.baseProduct
+                );
+                
+                const targetQuantity = quantity * ratio;
+                
+                conversionInfo.innerHTML = `
+                    <div class="small">
+                        <strong>Test Konversi:</strong><br>
+                        ${quantity} ${sourceOption.dataset.satuan} → ${targetQuantity.toFixed(3)} ${targetOption.dataset.satuan}<br>
+                        <strong>Rasio:</strong> 1 ${sourceOption.dataset.satuan} = ${ratio} ${targetOption.dataset.satuan}
+                    </div>
+                `;
+                
+            } catch (error) {
+                conversionInfo.innerHTML = `<span class="text-danger">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Run all tests function
+        async function runAllTests() {
+            await testFramework.runAllTests();
+            await runDropdownTest();
+        }
+
+        // Initialize everything
+        async function initializeTest() {
+            testFramework.updateStatus('Menginisialisasi test environment...', 'info');
+            
+            try {
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Inspect data
+                inspectData();
+                
+                // Run initial dropdown test
+                setTimeout(runDropdownTest, 1000);
+                
+                testFramework.updateStatus('Test environment siap. Klik "Run All Tests" untuk memulai.', 'success');
+                
+            } catch (error) {
+                testFramework.updateStatus(`Error inisialisasi: ${error.message}`, 'error');
+            }
+        }
+
+        // Start when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeTest);
+    </script>
+</body>
+</html>

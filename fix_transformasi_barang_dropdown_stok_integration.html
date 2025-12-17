@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Transformasi Barang - Dropdown Stok Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .fix-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .dropdown-preview {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .stock-info {
+            background: white;
+            border-radius: 6px;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="fix-container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card status-card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-tools me-2"></i>
+                            Fix Transformasi Barang - Dropdown Stok Integration
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Masalah:</strong> Dropdown sumber dan tujuan barang menampilkan "undefined" 
+                            karena tidak mengambil data stok yang benar dari sistem.
+                        </div>
+
+                        <!-- Status Perbaikan -->
+                        <div id="fix-status" class="alert alert-warning">
+                            <i class="bi bi-clock me-2"></i>
+                            Memulai perbaikan dropdown transformasi barang...
+                        </div>
+
+                        <!-- Test Section -->
+                        <div class="test-section">
+                            <h5><i class="bi bi-clipboard-check me-2"></i>Test Dropdown Integration</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-box-seam me-1"></i>Barang Asal (yang akan dikurangi stoknya)
+                                    </label>
+                                    <select class="form-select" id="sourceItem">
+                                        <option value="">Pilih Item Sumber...</option>
+                                    </select>
+                                    <div class="form-text">Pilih barang asal (yang akan dikurangi stoknya)</div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-bullseye me-1"></i>Barang Tujuan (yang akan ditambah stoknya)
+                                    </label>
+                                    <select class="form-select" id="targetItem">
+                                        <option value="">Pilih Item Target...</option>
+                                    </select>
+                                    <div class="form-text">Pilih barang tujuan (yang akan ditambah stoknya)</div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-123 me-1"></i>Jumlah barang asal yang akan ditransformasi
+                                    </label>
+                                    <input type="number" class="form-control" id="quantity" 
+                                           min="1" step="1" placeholder="Masukkan jumlah..." value="10">
+                                    <div class="form-text">Jumlah barang asal yang akan ditransformasi</div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-calculator me-1"></i>Info Konversi
+                                    </label>
+                                    <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                                        <span class="text-muted">Pilih item untuk melihat rasio konversi</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-primary" onclick="testTransformation()">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Test Transformasi
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="refreshDropdowns()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Data Preview -->
+                        <div class="test-section">
+                            <h5><i class="bi bi-database me-2"></i>Data Stok Tersedia</h5>
+                            <div id="stock-preview"></div>
+                        </div>
+
+                        <!-- Conversion Preview -->
+                        <div id="conversion-preview" class="test-section" style="display: none;">
+                            <h5><i class="bi bi-arrow-left-right me-2"></i>Preview Konversi</h5>
+                            <div id="conversion-details"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Global variables
+        let masterBarang = [];
+        let conversionRatios = [];
+        let fixStatus = document.getElementById('fix-status');
+
+        // Update status function
+        function updateStatus(message, type = 'info') {
+            const alertClass = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            };
+            
+            fixStatus.className = `alert ${alertClass[type]}`;
+            fixStatus.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>${message}`;
+        }
+
+        // Initialize sample data with proper stock integration
+        function initializeStockData() {
+            updateStatus('Menginisialisasi data stok barang...', 'info');
+            
+            // Sample data dengan stok yang realistis
+            masterBarang = [
+                // Beras Premium - KG ke Gram (1 kg = 1000 gram)
+                {
+                    kode: 'BRG001',
+                    nama: 'Beras Premium',
+                    satuan: 'kg',
+                    stok: 100,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12000,
+                    hargaJual: 15000
+                },
+                {
+                    kode: 'BRG002',
+                    nama: 'Beras Premium',
+                    satuan: 'gram',
+                    stok: 50000,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12,
+                    hargaJual: 15
+                },
+                // Minyak Goreng - Liter ke ML (1 liter = 1000 ml)
+                {
+                    kode: 'BRG003',
+                    nama: 'Minyak Goreng',
+                    satuan: 'liter',
+                    stok: 50,
+                    baseProduct: 'BRG002',
+                    hargaBeli: 18000,
+                    hargaJual: 22000
+                },
+                {
+                    kode: 'BRG004',
+                    nama: 'Minyak Goreng',
+                    satuan: 'ml',
+                    stok: 25000,
+                    baseProduct: 'BRG002',
+                    hargaBeli: 18,
+                    hargaJual: 22
+                },
+                // Air Mineral - Dus ke Botol (1 dus = 24 botol)
+                {
+                    kode: 'BRG005',
+                    nama: 'Air Mineral',
+                    satuan: 'dus',
+                    stok: 20,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 48000,
+                    hargaJual: 60000
+                },
+                {
+                    kode: 'BRG006',
+                    nama: 'Air Mineral',
+                    satuan: 'botol',
+                    stok: 480,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 2000,
+                    hargaJual: 2500
+                }
+            ];
+
+            // Conversion ratios
+            conversionRatios = [
+                {
+                    baseProduct: 'BRG001',
+                    conversions: [
+                        { from: 'kg', to: 'gram', ratio: 1000 },
+                        { from: 'gram', to: 'kg', ratio: 0.001 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG002',
+                    conversions: [
+                        { from: 'liter', to: 'ml', ratio: 1000 },
+                        { from: 'ml', to: 'liter', ratio: 0.001 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG003',
+                    conversions: [
+                        { from: 'dus', to: 'botol', ratio: 24 },
+                        { from: 'botol', to: 'dus', ratio: 0.041667 }
+                    ]
+                }
+            ];
+
+            // Save to localStorage
+            localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+            localStorage.setItem('barang', JSON.stringify(masterBarang));
+            localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+            
+            updateStatus('Data stok berhasil diinisialisasi', 'success');
+            return true;
+        }
+
+        // Load data from localStorage or initialize
+        function loadStockData() {
+            try {
+                const storedMasterBarang = localStorage.getItem('masterBarang');
+                const storedConversionRatios = localStorage.getItem('conversionRatios');
+                
+                if (storedMasterBarang && storedConversionRatios) {
+                    masterBarang = JSON.parse(storedMasterBarang);
+                    conversionRatios = JSON.parse(storedConversionRatios);
+                    
+                    // Validate data integrity
+                    if (masterBarang.length === 0) {
+                        throw new Error('Data master barang kosong');
+                    }
+                    
+                    updateStatus(`Data stok dimuat: ${masterBarang.length} item`, 'success');
+                    return true;
+                } else {
+                    throw new Error('Data tidak ditemukan di localStorage');
+                }
+            } catch (error) {
+                console.warn('Error loading data:', error);
+                updateStatus('Data tidak ditemukan, menginisialisasi data baru...', 'warning');
+                return initializeStockData();
+            }
+        }
+
+        // Populate dropdowns with proper stock data
+        function populateDropdowns() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            if (!sourceSelect || !targetSelect) {
+                updateStatus('Error: Dropdown elements tidak ditemukan', 'error');
+                return;
+            }
+
+            // Clear existing options
+            sourceSelect.innerHTML = '<option value="">Pilih barang asal (yang akan dikurangi stoknya)...</option>';
+            targetSelect.innerHTML = '<option value="">Pilih barang tujuan (yang akan ditambah stoknya)...</option>';
+
+            // Group by base product
+            const baseProducts = {};
+            masterBarang.forEach(item => {
+                const baseProduct = item.baseProduct;
+                if (!baseProducts[baseProduct]) {
+                    baseProducts[baseProduct] = [];
+                }
+                baseProducts[baseProduct].push(item);
+            });
+
+            // Populate source dropdown (only items with stock > 0)
+            Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                if (items.length > 1) { // Only show items that can be transformed
+                    items.forEach(item => {
+                        if (item.stok > 0) { // Only show items with stock
+                            const option = new Option(
+                                `${item.nama} (${item.satuan}) - Stok: ${item.stok}`, 
+                                item.kode
+                            );
+                            option.dataset.baseProduct = item.baseProduct;
+                            option.dataset.satuan = item.satuan;
+                            option.dataset.stok = item.stok;
+                            option.dataset.nama = item.nama;
+                            sourceSelect.add(option);
+                        }
+                    });
+                }
+            });
+
+            // Populate target dropdown (all transformable items)
+            Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                if (items.length > 1) { // Only show items that can be transformed
+                    items.forEach(item => {
+                        const option = new Option(
+                            `${item.nama} (${item.satuan}) - Stok: ${item.stok}`, 
+                            item.kode
+                        );
+                        option.dataset.baseProduct = item.baseProduct;
+                        option.dataset.satuan = item.satuan;
+                        option.dataset.stok = item.stok;
+                        option.dataset.nama = item.nama;
+                        targetSelect.add(option);
+                    });
+                }
+            });
+
+            updateStatus(`Dropdown berhasil diisi: ${sourceSelect.options.length - 1} sumber, ${targetSelect.options.length - 1} target`, 'success');
+        }
+
+        // Display stock preview
+        function displayStockPreview() {
+            const stockPreview = document.getElementById('stock-preview');
+            
+            if (masterBarang.length === 0) {
+                stockPreview.innerHTML = '<div class="alert alert-warning">Tidak ada data stok tersedia</div>';
+                return;
+            }
+
+            // Group by base product
+            const baseProducts = {};
+            masterBarang.forEach(item => {
+                const baseProduct = item.baseProduct;
+                if (!baseProducts[baseProduct]) {
+                    baseProducts[baseProduct] = [];
+                }
+                baseProducts[baseProduct].push(item);
+            });
+
+            let html = '';
+            Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                if (items.length > 1) {
+                    html += `
+                        <div class="dropdown-preview">
+                            <h6 class="text-primary">${items[0].nama}</h6>
+                            <div class="row">
+                    `;
+                    
+                    items.forEach(item => {
+                        const stockStatus = item.stok > 0 ? 'success' : 'danger';
+                        html += `
+                            <div class="col-md-6">
+                                <div class="stock-info">
+                                    <strong>Kode:</strong> ${item.kode}<br>
+                                    <strong>Satuan:</strong> ${item.satuan}<br>
+                                    <strong>Stok:</strong> <span class="badge bg-${stockStatus}">${item.stok}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            stockPreview.innerHTML = html || '<div class="alert alert-info">Tidak ada item yang dapat ditransformasi</div>';
+        }
+
+        // Update conversion info
+        function updateConversionInfo() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const conversionInfo = document.getElementById('conversion-info');
+            
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat rasio konversi</span>';
+                document.getElementById('conversion-preview').style.display = 'none';
+                return;
+            }
+            
+            // Get item details from dropdown options
+            const sourceOption = sourceSelect.options[sourceSelect.selectedIndex];
+            const targetOption = targetSelect.options[targetSelect.selectedIndex];
+            
+            const sourceItem = {
+                kode: sourceValue,
+                nama: sourceOption.dataset.nama,
+                satuan: sourceOption.dataset.satuan,
+                stok: parseInt(sourceOption.dataset.stok),
+                baseProduct: sourceOption.dataset.baseProduct
+            };
+            
+            const targetItem = {
+                kode: targetValue,
+                nama: targetOption.dataset.nama,
+                satuan: targetOption.dataset.satuan,
+                stok: parseInt(targetOption.dataset.stok),
+                baseProduct: targetOption.dataset.baseProduct
+            };
+            
+            // Check if same base product
+            if (sourceItem.baseProduct !== targetItem.baseProduct) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama</span>';
+                document.getElementById('conversion-preview').style.display = 'none';
+                return;
+            }
+            
+            if (sourceValue === targetValue) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item sumber dan target tidak boleh sama</span>';
+                document.getElementById('conversion-preview').style.display = 'none';
+                return;
+            }
+            
+            // Get conversion ratio
+            let ratio = 1;
+            const productRatios = conversionRatios.find(r => r.baseProduct === sourceItem.baseProduct);
+            if (productRatios && productRatios.conversions) {
+                const conversion = productRatios.conversions.find(c => 
+                    c.from === sourceItem.satuan && c.to === targetItem.satuan
+                );
+                if (conversion) {
+                    ratio = conversion.ratio;
+                }
+            }
+            
+            const targetQuantity = quantity * ratio;
+            const stockSufficient = sourceItem.stok >= quantity;
+            const newSourceStock = sourceItem.stok - quantity;
+            const newTargetStock = targetItem.stok + targetQuantity;
+            
+            // Update conversion info
+            conversionInfo.innerHTML = `
+                <div class="small">
+                    <strong>Rasio:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}<br>
+                    ${quantity > 0 ? `<strong>Hasil:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity.toFixed(3)} ${targetItem.satuan}` : ''}
+                </div>
+            `;
+            
+            // Show detailed conversion preview
+            if (quantity > 0) {
+                const conversionPreview = document.getElementById('conversion-preview');
+                const conversionDetails = document.getElementById('conversion-details');
+                
+                conversionDetails.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <strong>Barang Asal (Dikurangi)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <h6>${sourceItem.nama}</h6>
+                                    <p class="mb-1"><strong>Satuan:</strong> ${sourceItem.satuan}</p>
+                                    <p class="mb-1"><strong>Jumlah dikurangi:</strong> ${quantity}</p>
+                                    <p class="mb-1"><strong>Stok sebelum:</strong> ${sourceItem.stok}</p>
+                                    <p class="mb-0"><strong>Stok sesudah:</strong> 
+                                        <span class="${stockSufficient ? 'text-success' : 'text-danger'}">
+                                            ${newSourceStock} ${sourceItem.satuan}
+                                        </span>
+                                    </p>
+                                    ${!stockSufficient ? '<div class="alert alert-danger mt-2 mb-0">Stok tidak mencukupi!</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <strong>Barang Tujuan (Ditambah)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <h6>${targetItem.nama}</h6>
+                                    <p class="mb-1"><strong>Satuan:</strong> ${targetItem.satuan}</p>
+                                    <p class="mb-1"><strong>Jumlah ditambah:</strong> ${targetQuantity.toFixed(3)}</p>
+                                    <p class="mb-1"><strong>Stok sebelum:</strong> ${targetItem.stok}</p>
+                                    <p class="mb-0"><strong>Stok sesudah:</strong> 
+                                        <span class="text-success">${newTargetStock.toFixed(3)} ${targetItem.satuan}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Rasio Konversi:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Status:</strong> 
+                                    <span class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                                        ${stockSufficient ? 'Dapat dilakukan' : 'Stok tidak cukup'}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                conversionPreview.style.display = 'block';
+            } else {
+                document.getElementById('conversion-preview').style.display = 'none';
+            }
+        }
+
+        // Test transformation
+        function testTransformation() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            
+            if (!sourceValue || !targetValue || quantity <= 0) {
+                updateStatus('Silakan lengkapi semua field untuk test transformasi', 'warning');
+                return;
+            }
+            
+            // Get item details
+            const sourceOption = sourceSelect.options[sourceSelect.selectedIndex];
+            const targetOption = targetSelect.options[targetSelect.selectedIndex];
+            
+            const sourceStok = parseInt(sourceOption.dataset.stok);
+            
+            if (sourceStok < quantity) {
+                updateStatus('Test gagal: Stok barang asal tidak mencukupi', 'error');
+                return;
+            }
+            
+            if (sourceValue === targetValue) {
+                updateStatus('Test gagal: Barang asal dan tujuan tidak boleh sama', 'error');
+                return;
+            }
+            
+            updateStatus('Test transformasi berhasil! Semua validasi passed.', 'success');
+        }
+
+        // Refresh dropdowns
+        function refreshDropdowns() {
+            updateStatus('Memuat ulang data dropdown...', 'info');
+            loadStockData();
+            populateDropdowns();
+            displayStockPreview();
+            updateConversionInfo();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            
+            if (sourceSelect) {
+                sourceSelect.addEventListener('change', updateConversionInfo);
+            }
+            
+            if (targetSelect) {
+                targetSelect.addEventListener('change', updateConversionInfo);
+            }
+            
+            if (quantityInput) {
+                quantityInput.addEventListener('input', updateConversionInfo);
+            }
+        }
+
+        // Initialize everything
+        function initializeSystem() {
+            updateStatus('Memulai inisialisasi sistem...', 'info');
+            
+            try {
+                // Load data
+                if (!loadStockData()) {
+                    throw new Error('Gagal memuat data stok');
+                }
+                
+                // Populate dropdowns
+                populateDropdowns();
+                
+                // Display stock preview
+                displayStockPreview();
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Initial conversion info update
+                updateConversionInfo();
+                
+                updateStatus('Sistem berhasil diinisialisasi! Dropdown sudah menampilkan data stok yang benar.', 'success');
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                updateStatus(`Error inisialisasi: ${error.message}`, 'error');
+            }
+        }
+
+        // Start initialization when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeSystem);
+    </script>
+</body>
+</html>
