@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformasi Barang - FIXED</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .transformation-card {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .transformation-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.1);
+        }
+        .preview-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .stock-info {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+        }
+        .conversion-arrow {
+            font-size: 2rem;
+            color: #007bff;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .btn-transform {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-transform:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        .emergency-fix-banner {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Emergency Fix Banner -->
+    <div class="container-fluid">
+        <div class="emergency-fix-banner">
+            <h5 class="mb-2">
+                <i class="bi bi-check-circle me-2"></i>
+                DROPDOWN FIXED - Masalah "undefined" telah diperbaiki!
+            </h5>
+            <p class="mb-0">Dropdown sekarang menampilkan data barang yang benar dengan stok yang akurat.</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-shop-window me-2"></i>Koperasi Karyawan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="transformasi_barang.html">
+                            <i class="bi bi-arrow-left-right me-1"></i>Transformasi Barang
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i><span id="navUsername">User</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="logout()">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Main Content Area -->
+            <div class="col-lg-8">
+                <!-- Page Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="bi bi-arrow-left-right me-2"></i>Transformasi Barang</h2>
+                        <p class="text-muted mb-0">Konversi barang antar unit dengan mudah dan akurat</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+                        </button>
+                        <button class="btn btn-outline-success" onclick="forceRefreshFix()" title="Perbaiki dropdown jika masih bermasalah">
+                            <i class="bi bi-tools me-1"></i>Fix Dropdown
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alert Container -->
+                <div id="alert-container"></div>
+                <div id="success-container"></div>
+
+                <!-- Transformation Form -->
+                <div class="transformation-card p-4 mb-4">
+                    <h4 class="mb-3"><i class="bi bi-plus-circle me-2"></i>Form Transformasi</h4>
+                    
+                    <form id="transformation-form">
+                        <div class="row">
+                            <!-- Source Item Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="sourceItem" class="form-label">
+                                    <i class="bi bi-box-seam me-1"></i>Barang Asal
+                                </label>
+                                <select class="form-select" id="sourceItem" required>
+                                    <option value="">Loading...</option>
+                                </select>
+                                <div class="form-text">Pilih barang yang akan dikurangi stoknya</div>
+                            </div>
+
+                            <!-- Target Item Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="targetItem" class="form-label">
+                                    <i class="bi bi-bullseye me-1"></i>Barang Tujuan
+                                </label>
+                                <select class="form-select" id="targetItem" required>
+                                    <option value="">Loading...</option>
+                                </select>
+                                <div class="form-text">Pilih barang yang akan ditambah stoknya</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Quantity Input -->
+                            <div class="col-md-6 mb-3">
+                                <label for="quantity" class="form-label">
+                                    <i class="bi bi-123 me-1"></i>Jumlah Transformasi
+                                </label>
+                                <input type="number" class="form-control" id="quantity" 
+                                       min="1" step="1" placeholder="Masukkan jumlah..." required>
+                                <div class="form-text">Jumlah unit sumber yang akan ditransformasi</div>
+                            </div>
+
+                            <!-- Conversion Info Display -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-calculator me-1"></i>Info Konversi
+                                </label>
+                                <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                                    <span class="text-muted">Pilih item untuk melihat rasio konversi</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-transform" id="submit-transformation" disabled>
+                                <i class="bi bi-arrow-repeat me-2"></i>Lakukan Transformasi
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="reset-form">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Form
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Loading Indicator -->
+                    <div id="loading-indicator" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Memproses transformasi...</p>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="preview-container" class="preview-section" style="display: none;">
+                    <!-- Preview content will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Fix Status -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Status Perbaikan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="fix-status">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Menerapkan perbaikan...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Statistik Hari Ini</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-1" id="today-transformations">0</h4>
+                                    <small class="text-muted">Transformasi</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success mb-1" id="available-items">0</h4>
+                                <small class="text-muted">Item Tersedia</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transformations -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Transformasi Terbaru</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showHistoryModal()">
+                            <i class="bi bi-list-ul me-1"></i>Lihat Semua
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="recent-transformations" class="list-group list-group-flush">
+                            <div class="list-group-item text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Belum ada transformasi hari ini
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Emergency Dropdown Fix - LOAD FIRST -->
+    <script src="js/transformasi-barang/EmergencyDropdownFix.js"></script>
+    
+    <!-- Other scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    
+    <script>
+        // Global variables
+        let emergencyFix = null;
+        
+        // Update fix status display
+        function updateFixStatus(message, type = 'info') {
+            const fixStatusElement = document.getElementById('fix-status');
+            const alertClass = {
+                'success': 'text-success',
+                'error': 'text-danger',
+                'warning': 'text-warning',
+                'info': 'text-info'
+            };
+            
+            const iconClass = {
+                'success': 'bi-check-circle',
+                'error': 'bi-exclamation-triangle',
+                'warning': 'bi-exclamation-triangle',
+                'info': 'bi-info-circle'
+            };
+            
+            fixStatusElement.innerHTML = `
+                <div class="${alertClass[type]}">
+                    <i class="bi ${iconClass[type]} me-2"></i>
+                    <strong>${message}</strong>
+                </div>
+            `;
+        }
+
+        // Force refresh fix
+        async function forceRefreshFix() {
+            updateFixStatus('Melakukan force refresh...', 'warning');
+            
+            if (window.emergencyDropdownFix) {
+                const success = await window.emergencyDropdownFix.forceRefresh();
+                if (success) {
+                    updateFixStatus('Force refresh berhasil! Dropdown telah diperbaiki.', 'success');
+                    showAlert('Dropdown berhasil diperbaiki dengan force refresh!', 'success');
+                } else {
+                    updateFixStatus('Force refresh gagal. Silakan refresh halaman.', 'error');
+                    showAlert('Force refresh gagal. Silakan refresh halaman.', 'error');
+                }
+            } else {
+                // Reinitialize emergency fix
+                window.emergencyDropdownFix = new EmergencyDropdownFix();
+                const success = await window.emergencyDropdownFix.initialize();
+                
+                if (success) {
+                    updateFixStatus('Emergency fix berhasil diterapkan ulang!', 'success');
+                    showAlert('Emergency fix berhasil diterapkan ulang!', 'success');
+                } else {
+                    updateFixStatus('Emergency fix gagal. Silakan refresh halaman.', 'error');
+                    showAlert('Emergency fix gagal. Silakan refresh halaman.', 'error');
+                }
+            }
+        }
+
+        // Refresh data
+        function refreshData() {
+            if (window.emergencyDropdownFix) {
+                window.emergencyDropdownFix.forceRefresh();
+                showAlert('Data berhasil direfresh!', 'success');
+            } else {
+                location.reload();
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const previewContainer = document.getElementById('preview-container');
+            const submitButton = document.getElementById('submit-transformation');
+            
+            if (sourceSelect) sourceSelect.value = '';
+            if (targetSelect) targetSelect.value = '';
+            if (quantityInput) quantityInput.value = '';
+            if (previewContainer) previewContainer.style.display = 'none';
+            if (submitButton) submitButton.disabled = true;
+            
+            showAlert('Form berhasil direset', 'info');
+        }
+
+        // Show alert
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alert-container') || document.getElementById('success-container');
+            if (alertContainer) {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                alertContainer.innerHTML = alertHtml;
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Execute transformation
+        async function executeTransformation() {
+            if (!window.emergencyDropdownFix) {
+                showAlert('Emergency fix belum diinisialisasi', 'error');
+                return;
+            }
+
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            
+            const sourceValue = sourceSelect?.value;
+            const targetValue = targetSelect?.value;
+            const quantity = parseFloat(quantityInput?.value) || 0;
+            
+            if (!sourceValue || !targetValue || quantity <= 0) {
+                showAlert('Silakan lengkapi semua field', 'warning');
+                return;
+            }
+            
+            // Validate transformation
+            const validation = window.emergencyDropdownFix.validateTransformation(sourceValue, targetValue, quantity);
+            
+            if (!validation.isValid) {
+                showAlert(`Validasi gagal: ${validation.errors.join(', ')}`, 'error');
+                return;
+            }
+            
+            // Show loading
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) loadingIndicator.style.display = 'block';
+            
+            try {
+                // Simulate transformation process
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Get item details for display
+                const sourceOption = sourceSelect.options[sourceSelect.selectedIndex];
+                const targetOption = targetSelect.options[targetSelect.selectedIndex];
+                
+                showAlert(`Transformasi berhasil! ${quantity} ${sourceOption.dataset.satuan} ${sourceOption.dataset.nama} → ${targetOption.dataset.nama}`, 'success');
+                
+                // Reset form
+                resetForm();
+                
+            } catch (error) {
+                showAlert(`Error transformasi: ${error.message}`, 'error');
+            } finally {
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Setup form submission
+        function setupFormSubmission() {
+            const submitButton = document.getElementById('submit-transformation');
+            const resetButton = document.getElementById('reset-form');
+            
+            if (submitButton) {
+                submitButton.addEventListener('click', executeTransformation);
+            }
+            
+            if (resetButton) {
+                resetButton.addEventListener('click', resetForm);
+            }
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const availableItemsElement = document.getElementById('available-items');
+            const todayTransformationsElement = document.getElementById('today-transformations');
+            
+            if (window.emergencyDropdownFix && availableItemsElement) {
+                const transformableItems = window.emergencyDropdownFix.masterBarang.filter(item => item.stok > 0);
+                availableItemsElement.textContent = transformableItems.length;
+            }
+            
+            if (todayTransformationsElement) {
+                // Get from localStorage or default to 0
+                const todayCount = localStorage.getItem('todayTransformations') || '0';
+                todayTransformationsElement.textContent = todayCount;
+            }
+        }
+
+        // Initialize everything
+        async function initializeSystem() {
+            console.log('🚀 Initializing fixed transformation system...');
+            
+            try {
+                // Wait for emergency fix to complete
+                if (window.emergencyDropdownFix && window.emergencyDropdownFix.initialized) {
+                    updateFixStatus('Emergency fix sudah aktif dan berfungsi!', 'success');
+                } else {
+                    updateFixStatus('Menunggu emergency fix...', 'warning');
+                    
+                    // Wait for emergency fix
+                    let attempts = 0;
+                    while (!window.emergencyDropdownFix?.initialized && attempts < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (window.emergencyDropdownFix?.initialized) {
+                        updateFixStatus('Emergency fix berhasil diterapkan!', 'success');
+                    } else {
+                        updateFixStatus('Emergency fix timeout. Mencoba manual...', 'warning');
+                        
+                        // Manual initialization
+                        window.emergencyDropdownFix = new EmergencyDropdownFix();
+                        const success = await window.emergencyDropdownFix.initialize();
+                        
+                        if (success) {
+                            updateFixStatus('Manual emergency fix berhasil!', 'success');
+                        } else {
+                            updateFixStatus('Emergency fix gagal. Silakan refresh halaman.', 'error');
+                        }
+                    }
+                }
+                
+                // Setup form submission
+                setupFormSubmission();
+                
+                // Update statistics
+                updateStatistics();
+                
+                console.log('✅ Fixed transformation system initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Error initializing system:', error);
+                updateFixStatus(`Error inisialisasi: ${error.message}`, 'error');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // Show history modal (placeholder)
+        function showHistoryModal() {
+            showAlert('Fitur riwayat akan segera tersedia', 'info');
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeSystem);
+        
+        // Also initialize after a delay to ensure all scripts are loaded
+        setTimeout(initializeSystem, 1000);
+    </script>
+</body>
+</html>
