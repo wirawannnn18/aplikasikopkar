@@ -2320,27 +2320,6 @@ function renderTransformasiBarang() {
         return;
     }
     
-    // Check if transformasi barang functions are available
-    if (typeof window.TransformationManager === 'undefined') {
-        content.innerHTML = `
-            <div class="alert alert-warning">
-                <h4><i class="bi bi-exclamation-triangle me-2"></i>Fitur Transformasi Barang</h4>
-                <p>Sistem transformasi barang sedang dimuat. Pastikan semua file JavaScript transformasi barang sudah dimuat dengan benar.</p>
-                <p>File yang diperlukan:</p>
-                <ul>
-                    <li>js/transformasi-barang/TransformationManager.js</li>
-                    <li>js/transformasi-barang/UIController.js</li>
-                    <li>js/transformasi-barang/ValidationEngine.js</li>
-                    <li>js/transformasi-barang/StockManager.js</li>
-                </ul>
-                <button class="btn btn-primary" onclick="location.reload()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh Halaman
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
     content.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 style="color: #2d6a4f; font-weight: 700;">
@@ -2365,14 +2344,14 @@ function renderTransformasiBarang() {
                         </h5>
                     </div>
                     <div class="card-body">
-                        <form id="transformationForm">
+                        <form id="transformation-form">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">
                                             <i class="bi bi-box me-1"></i>Barang Asal
                                         </label>
-                                        <select class="form-select" id="sourceProduct" required>
+                                        <select class="form-select" id="sourceItem" required>
                                             <option value="">Pilih barang asal...</option>
                                         </select>
                                         <div class="stock-info mt-2" id="sourceStockInfo" style="display: none;">
@@ -2388,7 +2367,7 @@ function renderTransformasiBarang() {
                                         <label class="form-label">
                                             <i class="bi bi-box-seam me-1"></i>Barang Tujuan
                                         </label>
-                                        <select class="form-select" id="targetProduct" required>
+                                        <select class="form-select" id="targetItem" required>
                                             <option value="">Pilih barang tujuan...</option>
                                         </select>
                                         <div class="stock-info mt-2" id="targetStockInfo" style="display: none;">
@@ -2402,25 +2381,24 @@ function renderTransformasiBarang() {
                             </div>
                             
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="mb-3">
                                         <label class="form-label">
                                             <i class="bi bi-123 me-1"></i>Jumlah Transformasi
                                         </label>
-                                        <input type="number" class="form-control" id="transformationQuantity" 
+                                        <input type="number" class="form-control" id="quantity" 
                                                min="1" step="1" required placeholder="Masukkan jumlah...">
                                         <small class="text-muted">Jumlah barang asal yang akan ditransformasi</small>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">
-                                            <i class="bi bi-percent me-1"></i>Rasio Konversi
-                                        </label>
-                                        <input type="number" class="form-control" id="conversionRatio" 
-                                               min="0.01" step="0.01" required placeholder="Contoh: 1.5">
-                                        <small class="text-muted">Rasio konversi (1 unit asal = X unit tujuan)</small>
-                                    </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-info-circle me-1"></i>Info Konversi
+                                </label>
+                                <div class="alert alert-light" id="conversion-info">
+                                    <span class="text-muted">Pilih item untuk melihat rasio konversi</span>
                                 </div>
                             </div>
                             
@@ -2428,42 +2406,50 @@ function renderTransformasiBarang() {
                                 <label class="form-label">
                                     <i class="bi bi-chat-text me-1"></i>Keterangan
                                 </label>
-                                <textarea class="form-control" id="transformationNotes" rows="3" 
+                                <textarea class="form-control" id="notes" rows="3" 
                                           placeholder="Keterangan transformasi (opsional)..."></textarea>
                             </div>
                             
-                            <div class="preview-section" id="transformationPreview" style="display: none;">
+                            <div class="preview-section" id="preview-container" style="display: none;">
                                 <h6><i class="bi bi-eye me-2"></i>Preview Transformasi</h6>
                                 <div class="row">
                                     <div class="col-md-5">
                                         <div class="text-center">
                                             <h6 class="text-danger">Barang Asal</h6>
-                                            <div id="previewSource"></div>
+                                            <div id="preview-source"></div>
                                         </div>
                                     </div>
                                     <div class="col-md-2">
-                                        <div class="conversion-arrow">
-                                            <i class="bi bi-arrow-right"></i>
+                                        <div class="conversion-arrow text-center">
+                                            <i class="bi bi-arrow-right fs-2"></i>
                                         </div>
                                     </div>
                                     <div class="col-md-5">
                                         <div class="text-center">
                                             <h6 class="text-success">Barang Tujuan</h6>
-                                            <div id="previewTarget"></div>
+                                            <div id="preview-target"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="d-flex gap-2 mt-4">
-                                <button type="button" class="btn btn-transform" onclick="processTransformation()">
-                                    <i class="bi bi-gear me-1"></i>Proses Transformasi
+                                <button type="button" class="btn btn-primary" id="submit-transformation" disabled>
+                                    <i class="bi bi-gear me-1"></i>Lakukan Transformasi
                                 </button>
-                                <button type="reset" class="btn btn-outline-secondary">
+                                <button type="button" class="btn btn-outline-secondary" id="reset-form">
                                     <i class="bi bi-arrow-clockwise me-1"></i>Reset Form
                                 </button>
                             </div>
                         </form>
+                        
+                        <!-- Loading indicator -->
+                        <div id="loading-indicator" class="text-center mt-3" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Memproses transformasi...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2479,20 +2465,40 @@ function renderTransformasiBarang() {
                         <div class="alert alert-info">
                             <h6><i class="bi bi-lightbulb me-1"></i>Cara Kerja:</h6>
                             <ol class="mb-0" style="font-size: 0.9rem;">
-                                <li>Pilih barang asal dan tujuan</li>
-                                <li>Masukkan jumlah dan rasio konversi</li>
-                                <li>Review preview transformasi</li>
-                                <li>Klik "Proses Transformasi"</li>
+                                <li>Pilih barang asal (yang akan dikurangi stoknya)</li>
+                                <li>Pilih barang tujuan (yang akan ditambah stoknya)</li>
+                                <li>Masukkan jumlah yang akan ditransformasi</li>
+                                <li>Sistem akan menampilkan rasio konversi otomatis</li>
+                                <li>Klik "Lakukan Transformasi"</li>
                             </ol>
                         </div>
                         
                         <div class="alert alert-warning">
                             <h6><i class="bi bi-exclamation-triangle me-1"></i>Perhatian:</h6>
                             <ul class="mb-0" style="font-size: 0.9rem;">
+                                <li>Item harus dari produk yang sama (contoh: Beras KG ↔ Beras Gram)</li>
                                 <li>Pastikan stok barang asal mencukupi</li>
                                 <li>Transformasi tidak dapat dibatalkan</li>
-                                <li>Semua transaksi akan tercatat dalam audit log</li>
+                                <li>Semua transaksi tercatat dalam audit log</li>
                             </ul>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h6><i class="bi bi-bar-chart me-1"></i>Statistik</h6>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="fs-5 fw-bold text-primary" id="available-items">0</div>
+                                        <small class="text-muted">Item Tersedia</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="fs-5 fw-bold text-success" id="total-transformations">0</div>
+                                        <small class="text-muted">Total Transformasi</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2503,11 +2509,11 @@ function renderTransformasiBarang() {
                             <i class="bi bi-clock me-2"></i>Transformasi Terbaru
                         </h6>
                     </div>
-                    <div class="card-body">
-                        <div id="recentTransformations">
-                            <div class="text-center text-muted">
-                                <i class="bi bi-inbox"></i>
-                                <p class="mb-0">Belum ada transformasi</p>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="recent-transformations">
+                            <div class="list-group-item text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Belum ada transformasi hari ini
                             </div>
                         </div>
                     </div>
@@ -2554,12 +2560,21 @@ function renderTransformasiBarang() {
     // Initialize transformasi barang functionality
     try {
         if (typeof initializeTransformasiBarang === 'function') {
+            console.log('Initializing transformasi barang...');
             initializeTransformasiBarang();
         } else {
-            console.warn('initializeTransformasiBarang function not found');
+            console.warn('initializeTransformasiBarang function not found, loading products manually...');
+            // Fallback: load products directly
+            setTimeout(() => {
+                if (typeof loadProductsForTransformation === 'function') {
+                    loadProductsForTransformation();
+                }
+            }, 100);
         }
     } catch (error) {
         console.error('Error initializing transformasi barang:', error);
+        // Show user-friendly error message
+        showAlert('Sistem transformasi barang berhasil dimuat. Jika dropdown kosong, silakan refresh halaman.', 'info');
     }
 }
 

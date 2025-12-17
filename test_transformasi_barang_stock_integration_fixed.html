@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Stock Integration - Fixed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .dropdown-test {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">
+            <i class="bi bi-arrow-left-right me-2"></i>
+            Test Transformasi Barang Stock Integration - Fixed
+        </h1>
+        
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle me-2"></i>Test Overview</h5>
+            <p>Testing the fixed integration between Transformasi Barang menu and stock data system.</p>
+        </div>
+
+        <!-- Test 1: Check Dependencies -->
+        <div class="test-section">
+            <h3><i class="bi bi-check-circle me-2"></i>Test 1: Dependencies Check</h3>
+            <div id="dependenciesTest"></div>
+        </div>
+
+        <!-- Test 2: Initialize Sample Data -->
+        <div class="test-section">
+            <h3><i class="bi bi-database me-2"></i>Test 2: Initialize Sample Data</h3>
+            <div id="sampleDataTest"></div>
+            <button class="btn btn-primary" onclick="initializeSampleData()">Initialize Sample Data</button>
+        </div>
+
+        <!-- Test 3: Render Transformasi Barang Page -->
+        <div class="test-section">
+            <h3><i class="bi bi-layout-text-window me-2"></i>Test 3: Render Transformasi Barang Page</h3>
+            <div id="renderPageTest"></div>
+            <button class="btn btn-success" onclick="testRenderPage()">Render Page</button>
+        </div>
+
+        <!-- Test 4: Check Dropdown Population -->
+        <div class="test-section">
+            <h3><i class="bi bi-list me-2"></i>Test 4: Dropdown Population</h3>
+            <div id="dropdownTest"></div>
+            <button class="btn btn-info" onclick="testDropdownPopulation()">Test Dropdowns</button>
+        </div>
+
+        <!-- Test 5: Test Stock Integration -->
+        <div class="test-section">
+            <h3><i class="bi bi-box me-2"></i>Test 5: Stock Integration</h3>
+            <div id="stockIntegrationTest"></div>
+            <button class="btn btn-warning" onclick="testStockIntegration()">Test Stock Integration</button>
+        </div>
+
+        <!-- Test 6: Test Transformation Process -->
+        <div class="test-section">
+            <h3><i class="bi bi-gear me-2"></i>Test 6: Transformation Process</h3>
+            <div id="transformationTest"></div>
+            <button class="btn btn-danger" onclick="testTransformationProcess()">Test Transformation</button>
+        </div>
+
+        <!-- Main Content Area (for rendering the page) -->
+        <div class="test-section">
+            <h3><i class="bi bi-window me-2"></i>Rendered Page</h3>
+            <div id="mainContent" style="min-height: 400px; border: 2px dashed #ccc; padding: 20px;">
+                <p class="text-muted text-center">Page will be rendered here...</p>
+            </div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="test-section">
+            <h3><i class="bi bi-clipboard-check me-2"></i>Test Results Summary</h3>
+            <div id="testSummary"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load required scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Transformasi Barang System -->
+    <script src="js/transformasi-barang/types.js"></script>
+    <script src="js/transformasi-barang/DataModels.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+    <script src="js/transformasi-barang/ErrorHandler.js"></script>
+    <script src="js/transformasi-barang/UIController.js"></script>
+    <script src="js/transformasi-barang/ReportManager.js"></script>
+    <script src="js/transformasi-barang/ConfigurationManager.js"></script>
+    <script src="js/transformasi-barang/PerformanceOptimizer.js"></script>
+    <script src="js/transformasiBarangInit.js"></script>
+    
+    <!-- Auth script (contains renderTransformasiBarang function) -->
+    <script src="js/auth.js"></script>
+
+    <script>
+        let testResults = [];
+        let currentUser = { name: 'Test User', role: 'administrator' };
+
+        // Mock functions
+        function showAlert(message, type = 'info') {
+            console.log(`Alert (${type}): ${message}`);
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Test 1: Check Dependencies
+        function checkDependencies() {
+            const results = [];
+            
+            // Check if required classes exist
+            const requiredClasses = [
+                'TransformationManager',
+                'UIController', 
+                'ValidationEngine',
+                'StockManager',
+                'TransformasiBarangAuditLogger',
+                'ErrorHandler',
+                'ConversionCalculator'
+            ];
+            
+            requiredClasses.forEach(className => {
+                if (window[className]) {
+                    results.push(`✅ ${className} class loaded`);
+                } else {
+                    results.push(`❌ ${className} class missing`);
+                }
+            });
+            
+            // Check if required functions exist
+            const requiredFunctions = [
+                'renderTransformasiBarang',
+                'initializeTransformasiBarang',
+                'loadProductsForTransformation',
+                'processTransformation'
+            ];
+            
+            requiredFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    results.push(`✅ ${funcName} function available`);
+                } else {
+                    results.push(`❌ ${funcName} function missing`);
+                }
+            });
+            
+            document.getElementById('dependenciesTest').innerHTML = results.map(r => 
+                `<div class="test-result ${r.includes('✅') ? 'test-success' : 'test-error'}">${r}</div>`
+            ).join('');
+            
+            return results.filter(r => r.includes('✅')).length === (requiredClasses.length + requiredFunctions.length);
+        }
+
+        // Test 2: Initialize Sample Data
+        function initializeSampleData() {
+            try {
+                const results = [];
+                
+                // Create sample barang data
+                if (typeof createSampleBarangData === 'function') {
+                    const sampleData = createSampleBarangData();
+                    localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+                    localStorage.setItem('barang', JSON.stringify(sampleData));
+                    results.push(`✅ Created ${sampleData.length} sample barang items`);
+                } else {
+                    results.push('❌ createSampleBarangData function not found');
+                }
+                
+                // Create sample conversion ratios
+                if (typeof createSampleConversionRatios === 'function') {
+                    const conversionRatios = createSampleConversionRatios();
+                    localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                    results.push(`✅ Created ${conversionRatios.length} conversion ratio sets`);
+                } else {
+                    results.push('❌ createSampleConversionRatios function not found');
+                }
+                
+                // Initialize empty transformation history
+                localStorage.setItem('transformationHistory', JSON.stringify([]));
+                results.push('✅ Initialized transformation history');
+                
+                document.getElementById('sampleDataTest').innerHTML = results.map(r => 
+                    `<div class="test-result ${r.includes('✅') ? 'test-success' : 'test-error'}">${r}</div>`
+                ).join('');
+                
+                return results.filter(r => r.includes('✅')).length === 3;
+                
+            } catch (error) {
+                document.getElementById('sampleDataTest').innerHTML = 
+                    `<div class="test-result test-error">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test 3: Render Transformasi Barang Page
+        function testRenderPage() {
+            try {
+                const results = [];
+                
+                if (typeof renderTransformasiBarang === 'function') {
+                    renderTransformasiBarang();
+                    results.push('✅ renderTransformasiBarang function executed');
+                    
+                    // Check if main content was populated
+                    const mainContent = document.getElementById('mainContent');
+                    if (mainContent && mainContent.innerHTML.includes('Transformasi Barang')) {
+                        results.push('✅ Page content rendered successfully');
+                    } else {
+                        results.push('❌ Page content not rendered properly');
+                    }
+                    
+                    // Check if form elements exist
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    const quantityInput = document.getElementById('quantity');
+                    
+                    if (sourceSelect) results.push('✅ Source item dropdown created');
+                    else results.push('❌ Source item dropdown missing');
+                    
+                    if (targetSelect) results.push('✅ Target item dropdown created');
+                    else results.push('❌ Target item dropdown missing');
+                    
+                    if (quantityInput) results.push('✅ Quantity input created');
+                    else results.push('❌ Quantity input missing');
+                    
+                } else {
+                    results.push('❌ renderTransformasiBarang function not found');
+                }
+                
+                document.getElementById('renderPageTest').innerHTML = results.map(r => 
+                    `<div class="test-result ${r.includes('✅') ? 'test-success' : 'test-error'}">${r}</div>`
+                ).join('');
+                
+                return results.filter(r => r.includes('✅')).length >= 4;
+                
+            } catch (error) {
+                document.getElementById('renderPageTest').innerHTML = 
+                    `<div class="test-result test-error">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test 4: Check Dropdown Population
+        function testDropdownPopulation() {
+            try {
+                const results = [];
+                
+                // Load products for transformation
+                if (typeof loadProductsForTransformation === 'function') {
+                    loadProductsForTransformation();
+                    results.push('✅ loadProductsForTransformation function executed');
+                } else {
+                    results.push('❌ loadProductsForTransformation function not found');
+                }
+                
+                // Check dropdown contents
+                setTimeout(() => {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    if (sourceSelect) {
+                        const sourceOptions = sourceSelect.options.length - 1; // Exclude default option
+                        if (sourceOptions > 0) {
+                            results.push(`✅ Source dropdown populated with ${sourceOptions} items`);
+                            
+                            // Show dropdown contents
+                            let dropdownContent = '<div class="dropdown-test"><h6>Source Items:</h6>';
+                            for (let i = 1; i < sourceSelect.options.length; i++) {
+                                dropdownContent += `<div>${sourceSelect.options[i].text}</div>`;
+                            }
+                            dropdownContent += '</div>';
+                            results.push(dropdownContent);
+                        } else {
+                            results.push('❌ Source dropdown is empty');
+                        }
+                    } else {
+                        results.push('❌ Source dropdown not found');
+                    }
+                    
+                    if (targetSelect) {
+                        const targetOptions = targetSelect.options.length - 1; // Exclude default option
+                        if (targetOptions > 0) {
+                            results.push(`✅ Target dropdown populated with ${targetOptions} items`);
+                            
+                            // Show dropdown contents
+                            let dropdownContent = '<div class="dropdown-test"><h6>Target Items:</h6>';
+                            for (let i = 1; i < targetSelect.options.length; i++) {
+                                dropdownContent += `<div>${targetSelect.options[i].text}</div>`;
+                            }
+                            dropdownContent += '</div>';
+                            results.push(dropdownContent);
+                        } else {
+                            results.push('❌ Target dropdown is empty');
+                        }
+                    } else {
+                        results.push('❌ Target dropdown not found');
+                    }
+                    
+                    document.getElementById('dropdownTest').innerHTML = results.map(r => {
+                        if (r.includes('dropdown-test')) {
+                            return r; // HTML content
+                        }
+                        return `<div class="test-result ${r.includes('✅') ? 'test-success' : 'test-error'}">${r}</div>`;
+                    }).join('');
+                }, 1000);
+                
+            } catch (error) {
+                document.getElementById('dropdownTest').innerHTML = 
+                    `<div class="test-result test-error">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test 5: Test Stock Integration
+        function testStockIntegration() {
+            try {
+                const results = [];
+                
+                // Check if stock data exists
+                const barang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                if (barang.length > 0) {
+                    results.push(`✅ Found ${barang.length} items in stock data`);
+                    
+                    // Show stock information
+                    let stockInfo = '<div class="dropdown-test"><h6>Stock Information:</h6>';
+                    barang.forEach(item => {
+                        stockInfo += `<div><strong>${item.nama}</strong>: ${item.stok} ${item.satuan}</div>`;
+                    });
+                    stockInfo += '</div>';
+                    results.push(stockInfo);
+                    
+                    // Test conversion ratios
+                    const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                    if (conversionRatios.length > 0) {
+                        results.push(`✅ Found ${conversionRatios.length} conversion ratio sets`);
+                        
+                        let ratioInfo = '<div class="dropdown-test"><h6>Conversion Ratios:</h6>';
+                        conversionRatios.forEach(ratio => {
+                            ratioInfo += `<div><strong>${ratio.baseProduct}:</strong></div>`;
+                            ratio.conversions.forEach(conv => {
+                                ratioInfo += `<div>&nbsp;&nbsp;${conv.from} → ${conv.to}: ${conv.ratio}x</div>`;
+                            });
+                        });
+                        ratioInfo += '</div>';
+                        results.push(ratioInfo);
+                    } else {
+                        results.push('❌ No conversion ratios found');
+                    }
+                } else {
+                    results.push('❌ No stock data found');
+                }
+                
+                document.getElementById('stockIntegrationTest').innerHTML = results.map(r => {
+                    if (r.includes('dropdown-test')) {
+                        return r; // HTML content
+                    }
+                    return `<div class="test-result ${r.includes('✅') ? 'test-success' : 'test-error'}">${r}</div>`;
+                }).join('');
+                
+            } catch (error) {
+                document.getElementById('stockIntegrationTest').innerHTML = 
+                    `<div class="test-result test-error">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test 6: Test Transformation Process
+        function testTransformationProcess() {
+            try {
+                const results = [];
+                
+                // Set up test transformation
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                const quantityInput = document.getElementById('quantity');
+                
+                if (sourceSelect && targetSelect && quantityInput) {
+                    // Select first available items (should be from same product)
+                    if (sourceSelect.options.length > 1 && targetSelect.options.length > 1) {
+                        sourceSelect.selectedIndex = 1; // First item (BRG001-KG)
+                        targetSelect.selectedIndex = 2; // Second item (BRG001-GR)
+                        quantityInput.value = '1';
+                        
+                        results.push('✅ Test values set in form');
+                        
+                        // Trigger conversion info update
+                        if (typeof updateConversionInfo === 'function') {
+                            updateConversionInfo();
+                            results.push('✅ Conversion info updated');
+                            
+                            // Check if conversion info is displayed
+                            const conversionInfo = document.getElementById('conversion-info');
+                            if (conversionInfo && conversionInfo.innerHTML.includes('Rasio')) {
+                                results.push('✅ Conversion info displayed correctly');
+                            } else {
+                                results.push('❌ Conversion info not displayed');
+                            }
+                        } else {
+                            results.push('❌ updateConversionInfo function not found');
+                        }
+                        
+                        // Test submit button state
+                        const submitButton = document.getElementById('submit-transformation');
+                        if (submitButton) {
+                            if (!submitButton.disabled) {
+                                results.push('✅ Submit button is enabled');
+                            } else {
+                                results.push('❌ Submit button is disabled');
+                            }
+                        } else {
+                            results.push('❌ Submit button not found');
+                        }
+                        
+                    } else {
+                        results.push('❌ Dropdowns not populated with items');
+                    }
+                } else {
+                    results.push('❌ Form elements not found');
+                }
+                
+                document.getElementById('transformationTest').innerHTML = results.map(r => 
+                    `<div class="test-result ${r.includes('✅') ? 'test-success' : 'test-error'}">${r}</div>`
+                ).join('');
+                
+            } catch (error) {
+                document.getElementById('transformationTest').innerHTML = 
+                    `<div class="test-result test-error">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Run all tests
+        function runAllTests() {
+            const results = [];
+            
+            results.push({ name: 'Dependencies Check', passed: checkDependencies() });
+            
+            setTimeout(() => {
+                results.push({ name: 'Sample Data', passed: initializeSampleData() });
+                
+                setTimeout(() => {
+                    results.push({ name: 'Render Page', passed: testRenderPage() });
+                    
+                    setTimeout(() => {
+                        testDropdownPopulation();
+                        testStockIntegration();
+                        testTransformationProcess();
+                        
+                        // Show summary after all tests
+                        setTimeout(() => {
+                            const passed = results.filter(r => r.passed).length;
+                            const total = results.length;
+                            
+                            let summaryHtml = `
+                                <div class="alert ${passed === total ? 'alert-success' : 'alert-warning'}">
+                                    <h5>Test Results: ${passed}/${total} tests passed</h5>
+                                    <ul>
+                            `;
+                            
+                            results.forEach(result => {
+                                summaryHtml += `<li>${result.passed ? '✅' : '❌'} ${result.name}</li>`;
+                            });
+                            
+                            summaryHtml += `
+                                    </ul>
+                                </div>
+                            `;
+                            
+                            document.getElementById('testSummary').innerHTML = summaryHtml;
+                        }, 2000);
+                        
+                    }, 1000);
+                }, 500);
+            }, 500);
+        }
+
+        // Initialize tests when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Starting Transformasi Barang Stock Integration Tests...');
+            runAllTests();
+        });
+    </script>
+</body>
+</html>

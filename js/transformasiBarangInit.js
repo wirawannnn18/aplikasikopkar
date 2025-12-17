@@ -38,6 +38,9 @@ function initializeTransformasiBarang() {
         // Load recent transformations (legacy support)
         loadRecentTransformations();
         
+        // Update statistics
+        updateStats();
+        
         console.log('Transformasi Barang system initialized successfully');
         
         // Show success message
@@ -151,6 +154,16 @@ function loadProductsForTransformation() {
                 sourceProduct: !!document.getElementById('sourceProduct'),
                 targetProduct: !!document.getElementById('targetProduct')
             });
+            
+            // Try to wait a bit and retry
+            setTimeout(() => {
+                const retrySource = document.getElementById('sourceItem');
+                const retryTarget = document.getElementById('targetItem');
+                if (retrySource && retryTarget) {
+                    console.log('Retrying to load products after delay...');
+                    loadProductsForTransformation();
+                }
+            }, 500);
             return;
         }
         
@@ -1125,6 +1138,30 @@ function processTransformationWrapper() {
     }
 }
 
+/**
+ * Update statistics display
+ */
+function updateStats() {
+    try {
+        // Update available items count
+        const barang = JSON.parse(localStorage.getItem('masterBarang') || localStorage.getItem('barang') || '[]');
+        const availableItemsElement = document.getElementById('available-items');
+        if (availableItemsElement) {
+            availableItemsElement.textContent = barang.length;
+        }
+        
+        // Update total transformations count
+        const history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+        const totalTransformationsElement = document.getElementById('total-transformations');
+        if (totalTransformationsElement) {
+            totalTransformationsElement.textContent = history.length;
+        }
+        
+    } catch (error) {
+        console.error('Error updating stats:', error);
+    }
+}
+
 // Make functions globally available
 window.initializeTransformasiBarang = initializeTransformasiBarang;
 window.processTransformation = processTransformationWrapper;
@@ -1138,3 +1175,4 @@ window.showTransformationAlert = showTransformationAlert;
 window.loadProductsForTransformation = loadProductsForTransformation;
 window.createSampleBarangData = createSampleBarangData;
 window.createSampleConversionRatios = createSampleConversionRatios;
+window.updateStats = updateStats;
