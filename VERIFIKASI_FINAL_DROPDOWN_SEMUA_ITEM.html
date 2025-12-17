@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Final - Dropdown Semua Item Master Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-card {
+            border-left: 4px solid #007bff;
+        }
+        .success-card {
+            border-left: 4px solid #28a745;
+        }
+        .error-card {
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card test-card">
+                    <div class="card-header bg-primary text-white">
+                        <h3><i class="bi bi-check2-square me-2"></i>Verifikasi Final: Dropdown Semua Item Master Barang</h3>
+                        <p class="mb-0">Memastikan dropdown sourceItem menampilkan SEMUA item dari master_barang</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Status Panel -->
+                        <div id="status-panel" class="alert alert-info">
+                            <i class="bi bi-hourglass-split me-2"></i>Memulai verifikasi...
+                        </div>
+
+                        <!-- Test Results -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="bi bi-database me-2"></i>Data Master Barang</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="master-barang-stats">
+                                            <div class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Memuat data master barang...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="bi bi-list me-2"></i>Dropdown Results</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="dropdown-stats">
+                                            <div class="text-center">
+                                                <div class="spinner-border text-success" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Memuat dropdown...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Test -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h5>Source Item Dropdown (Harus Menampilkan SEMUA Item)</h5>
+                                <select class="form-select" id="sourceItem" size="8">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Target Item Dropdown</h5>
+                                <select class="form-select" id="targetItem" size="8">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Test Controls -->
+                        <div class="mt-4">
+                            <button class="btn btn-primary" onclick="runFullVerification()">
+                                <i class="bi bi-play-fill me-1"></i>Run Full Verification
+                            </button>
+                            <button class="btn btn-success" onclick="refreshTest()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Refresh Test
+                            </button>
+                            <button class="btn btn-info" onclick="showDetailedInfo()">
+                                <i class="bi bi-info-circle me-1"></i>Show Details
+                            </button>
+                        </div>
+
+                        <!-- Detailed Info -->
+                        <div id="detailed-info" class="mt-4" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="bi bi-list-ul me-2"></i>Detailed Item List</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="item-list" class="table-responsive">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/transformasi-barang/RealDataIntegration.js"></script>
+    
+    <script>
+        console.log('🔍 VERIFIKASI FINAL: Starting comprehensive test...');
+
+        let realDataIntegration;
+        let testResults = {
+            masterBarangCount: 0,
+            activeItemsCount: 0,
+            itemsWithStockCount: 0,
+            sourceDropdownCount: 0,
+            targetDropdownCount: 0,
+            testPassed: false
+        };
+
+        async function initializeVerification() {
+            try {
+                updateStatus('Initializing Real Data Integration...', 'info');
+                
+                // Create and initialize RealDataIntegration
+                realDataIntegration = new RealDataIntegration();
+                await realDataIntegration.initialize();
+                
+                updateStatus('Populating dropdowns...', 'info');
+                
+                // Populate dropdowns
+                if (typeof window.populateDropdownsWithRealData === 'function') {
+                    window.populateDropdownsWithRealData();
+                }
+                
+                // Analyze results
+                analyzeResults();
+                
+                updateStatus('Verification completed!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Verification failed:', error);
+                updateStatus(`Verification failed: ${error.message}`, 'danger');
+            }
+        }
+
+        function analyzeResults() {
+            // Analyze master barang data
+            const masterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+            const activeItems = masterBarang.filter(item => item.status !== 'nonaktif');
+            const itemsWithStock = activeItems.filter(item => (item.stok || 0) > 0);
+            
+            testResults.masterBarangCount = masterBarang.length;
+            testResults.activeItemsCount = activeItems.length;
+            testResults.itemsWithStockCount = itemsWithStock.length;
+            
+            // Analyze dropdown results
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            testResults.sourceDropdownCount = sourceSelect.options.length - 1; // Exclude placeholder
+            testResults.targetDropdownCount = targetSelect.options.length - 1;
+            
+            // Determine if test passed
+            testResults.testPassed = testResults.sourceDropdownCount === testResults.itemsWithStockCount;
+            
+            // Update UI
+            updateMasterBarangStats();
+            updateDropdownStats();
+        }
+
+        function updateMasterBarangStats() {
+            const statsDiv = document.getElementById('master-barang-stats');
+            statsDiv.innerHTML = `
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h4 class="text-primary">${testResults.masterBarangCount}</h4>
+                        <small>Total Items</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="text-success">${testResults.activeItemsCount}</h4>
+                        <small>Active Items</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="text-info">${testResults.itemsWithStockCount}</h4>
+                        <small>Items with Stock</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="alert alert-info mb-0">
+                    <small><i class="bi bi-info-circle me-1"></i>Expected: ${testResults.itemsWithStockCount} items in sourceItem dropdown</small>
+                </div>
+            `;
+        }
+
+        function updateDropdownStats() {
+            const statsDiv = document.getElementById('dropdown-stats');
+            const passed = testResults.testPassed;
+            
+            statsDiv.innerHTML = `
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-${passed ? 'success' : 'danger'}">${testResults.sourceDropdownCount}</h4>
+                        <small>Source Options</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-info">${testResults.targetDropdownCount}</h4>
+                        <small>Target Options</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="alert alert-${passed ? 'success' : 'danger'} mb-0">
+                    <i class="bi bi-${passed ? 'check-circle' : 'x-circle'} me-1"></i>
+                    <strong>${passed ? 'TEST PASSED' : 'TEST FAILED'}</strong>
+                    <br>
+                    <small>
+                        ${passed ? 
+                            'Dropdown menampilkan SEMUA item dari master_barang dengan stok > 0' :
+                            `Expected ${testResults.itemsWithStockCount} items, got ${testResults.sourceDropdownCount} items`
+                        }
+                    </small>
+                </div>
+            `;
+        }
+
+        function updateStatus(message, type) {
+            const statusPanel = document.getElementById('status-panel');
+            const icons = {
+                info: 'info-circle',
+                success: 'check-circle',
+                danger: 'x-circle',
+                warning: 'exclamation-triangle'
+            };
+            
+            statusPanel.className = `alert alert-${type}`;
+            statusPanel.innerHTML = `<i class="bi bi-${icons[type]} me-2"></i>${message}`;
+        }
+
+        function runFullVerification() {
+            updateStatus('Running full verification...', 'info');
+            
+            setTimeout(() => {
+                analyzeResults();
+                
+                const passed = testResults.testPassed;
+                const message = passed ? 
+                    '✅ VERIFIKASI BERHASIL: Dropdown menampilkan SEMUA item dari master_barang!' :
+                    '❌ VERIFIKASI GAGAL: Dropdown tidak menampilkan semua item.';
+                
+                updateStatus(message, passed ? 'success' : 'danger');
+                
+                // Show detailed results
+                console.log('📊 Test Results:', testResults);
+            }, 1000);
+        }
+
+        function refreshTest() {
+            updateStatus('Refreshing test...', 'info');
+            
+            if (typeof window.populateDropdownsWithRealData === 'function') {
+                window.populateDropdownsWithRealData();
+            }
+            
+            setTimeout(() => {
+                analyzeResults();
+                updateStatus('Test refreshed successfully!', 'success');
+            }, 500);
+        }
+
+        function showDetailedInfo() {
+            const detailedDiv = document.getElementById('detailed-info');
+            const isVisible = detailedDiv.style.display !== 'none';
+            
+            if (isVisible) {
+                detailedDiv.style.display = 'none';
+                return;
+            }
+            
+            // Show detailed item list
+            const masterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+            const activeItems = masterBarang.filter(item => item.status !== 'nonaktif');
+            
+            let tableHTML = `
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Kode</th>
+                            <th>Nama</th>
+                            <th>Kategori</th>
+                            <th>Satuan</th>
+                            <th>Stok</th>
+                            <th>Status</th>
+                            <th>In Dropdown?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            const sourceSelect = document.getElementById('sourceItem');
+            
+            activeItems.forEach(item => {
+                const stok = item.stok || 0;
+                const inDropdown = Array.from(sourceSelect.options).some(option => option.value === (item.kode || item.id));
+                const shouldBeInDropdown = stok > 0;
+                
+                tableHTML += `
+                    <tr class="${shouldBeInDropdown && !inDropdown ? 'table-danger' : ''}">
+                        <td>${item.kode || item.id}</td>
+                        <td>${item.nama}</td>
+                        <td>${item.kategori_nama || 'Umum'}</td>
+                        <td>${item.satuan_nama || 'pcs'}</td>
+                        <td class="${stok > 0 ? 'text-success' : 'text-muted'}">${stok}</td>
+                        <td><span class="badge bg-${item.status === 'aktif' ? 'success' : 'secondary'}">${item.status || 'aktif'}</span></td>
+                        <td>
+                            ${shouldBeInDropdown ? 
+                                (inDropdown ? '<i class="bi bi-check-circle text-success"></i>' : '<i class="bi bi-x-circle text-danger"></i>') :
+                                '<i class="bi bi-dash-circle text-muted"></i>'
+                            }
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            
+            document.getElementById('item-list').innerHTML = tableHTML;
+            detailedDiv.style.display = 'block';
+        }
+
+        // Auto-initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initializeVerification, 1000);
+        });
+    </script>
+</body>
+</html>

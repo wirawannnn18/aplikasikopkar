@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test All Items Dropdown - Transformasi Barang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="bi bi-check-circle me-2"></i>Test: Dropdown Semua Item dari Master Barang</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Tujuan Test:</strong> Memverifikasi bahwa dropdown sourceItem menampilkan SEMUA item dari master_barang, bukan hanya item dengan multiple units.
+                </div>
+
+                <div id="test-results" class="mb-4"></div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Source Item Dropdown</h5>
+                        <select class="form-select" id="sourceItem">
+                            <option value="">Loading...</option>
+                        </select>
+                        <div class="mt-2">
+                            <small class="text-muted">Total options: <span id="source-count" class="fw-bold">0</span></small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Target Item Dropdown</h5>
+                        <select class="form-select" id="targetItem">
+                            <option value="">Loading...</option>
+                        </select>
+                        <div class="mt-2">
+                            <small class="text-muted">Total options: <span id="target-count" class="fw-bold">0</span></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h5>Master Barang Data</h5>
+                    <div id="master-barang-info" class="alert alert-secondary">
+                        <small>Loading master barang data...</small>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button class="btn btn-primary" onclick="runTest()">
+                        <i class="bi bi-play-fill me-1"></i>Run Test
+                    </button>
+                    <button class="btn btn-success" onclick="refreshDropdowns()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh Dropdowns
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/transformasi-barang/RealDataIntegration.js"></script>
+    
+    <script>
+        console.log('🧪 Starting All Items Dropdown Test...');
+
+        // Initialize test
+        let realDataIntegration;
+
+        async function initializeTest() {
+            try {
+                // Create instance
+                realDataIntegration = new RealDataIntegration();
+                
+                // Initialize
+                await realDataIntegration.initialize();
+                
+                // Populate dropdowns
+                if (typeof window.populateDropdownsWithRealData === 'function') {
+                    window.populateDropdownsWithRealData();
+                }
+                
+                // Update counts
+                updateCounts();
+                
+                // Show master barang info
+                showMasterBarangInfo();
+                
+                console.log('✅ Test initialized successfully');
+            } catch (error) {
+                console.error('❌ Test initialization failed:', error);
+            }
+        }
+
+        function updateCounts() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            const sourceCount = sourceSelect.options.length - 1; // Exclude placeholder
+            const targetCount = targetSelect.options.length - 1;
+            
+            document.getElementById('source-count').textContent = sourceCount;
+            document.getElementById('target-count').textContent = targetCount;
+        }
+
+        function showMasterBarangInfo() {
+            const masterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+            const activeItems = masterBarang.filter(item => item.status !== 'nonaktif');
+            const itemsWithStock = activeItems.filter(item => (item.stok || 0) > 0);
+            
+            const infoDiv = document.getElementById('master-barang-info');
+            infoDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Total Items:</strong> ${masterBarang.length}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Active Items:</strong> ${activeItems.length}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Items with Stock:</strong> ${itemsWithStock.length}
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">Dropdown sourceItem harus menampilkan ${itemsWithStock.length} items</small>
+                </div>
+            `;
+        }
+
+        function runTest() {
+            const testResults = document.getElementById('test-results');
+            const masterBarang = JSON.parse(localStorage.getItem('master_barang') || '[]');
+            const activeItems = masterBarang.filter(item => item.status !== 'nonaktif');
+            const itemsWithStock = activeItems.filter(item => (item.stok || 0) > 0);
+            
+            const sourceSelect = document.getElementById('sourceItem');
+            const sourceCount = sourceSelect.options.length - 1;
+            
+            const passed = sourceCount === itemsWithStock.length;
+            
+            testResults.innerHTML = `
+                <div class="alert alert-${passed ? 'success' : 'danger'}">
+                    <h5><i class="bi bi-${passed ? 'check-circle' : 'x-circle'} me-2"></i>Test Result: ${passed ? 'PASSED' : 'FAILED'}</h5>
+                    <hr>
+                    <p><strong>Expected:</strong> ${itemsWithStock.length} items in sourceItem dropdown</p>
+                    <p><strong>Actual:</strong> ${sourceCount} items in sourceItem dropdown</p>
+                    ${passed ? 
+                        '<p class="mb-0"><i class="bi bi-check-lg me-1"></i>Dropdown menampilkan SEMUA item dari master_barang dengan stok > 0</p>' :
+                        '<p class="mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Dropdown tidak menampilkan semua item. Periksa logika populateDropdowns.</p>'
+                    }
+                </div>
+            `;
+        }
+
+        function refreshDropdowns() {
+            if (typeof window.populateDropdownsWithRealData === 'function') {
+                window.populateDropdownsWithRealData();
+                updateCounts();
+                showMasterBarangInfo();
+                console.log('✅ Dropdowns refreshed');
+            }
+        }
+
+        // Auto-initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initializeTest, 500);
+        });
+    </script>
+</body>
+</html>
