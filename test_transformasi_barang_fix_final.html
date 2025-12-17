@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Fix - Final Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-passed {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .test-failed {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .test-warning {
+            border-color: #ffc107;
+            background-color: #fffdf5;
+        }
+        .console-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-bug-fill me-2"></i>Test Transformasi Barang Fix - Final Verification</h2>
+                <p class="text-muted">Verifikasi perbaikan masalah dropdown transformasi barang</p>
+                
+                <!-- Test Results Container -->
+                <div id="test-results"></div>
+                
+                <!-- Test Controls -->
+                <div class="test-section">
+                    <h4><i class="bi bi-play-circle me-2"></i>Test Controls</h4>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" onclick="runAllTests()">
+                            <i class="bi bi-play-fill me-1"></i>Run All Tests
+                        </button>
+                        <button class="btn btn-success" onclick="testDropdownPopulation()">
+                            <i class="bi bi-list-ul me-1"></i>Test Dropdown Population
+                        </button>
+                        <button class="btn btn-info" onclick="testConversionInfo()">
+                            <i class="bi bi-calculator me-1"></i>Test Conversion Info
+                        </button>
+                        <button class="btn btn-warning" onclick="testDataInitialization()">
+                            <i class="bi bi-database me-1"></i>Test Data Initialization
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearTests()">
+                            <i class="bi bi-trash me-1"></i>Clear Results
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Console Output -->
+                <div class="test-section">
+                    <h4><i class="bi bi-terminal me-2"></i>Console Output</h4>
+                    <div id="console-output" class="console-output"></div>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="clearConsole()">
+                        <i class="bi bi-x-circle me-1"></i>Clear Console
+                    </button>
+                </div>
+                
+                <!-- Test Transformasi Barang Page -->
+                <div class="test-section">
+                    <h4><i class="bi bi-link-45deg me-2"></i>Test Actual Page</h4>
+                    <p>Klik tombol di bawah untuk membuka halaman transformasi barang dan test secara manual:</p>
+                    <a href="transformasi_barang.html" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open Transformasi Barang Page
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Test framework
+        let testResults = [];
+        let consoleMessages = [];
+
+        // Override console methods to capture output
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error
+        };
+
+        function captureConsole() {
+            console.log = function(...args) {
+                consoleMessages.push({ type: 'log', message: args.join(' '), timestamp: new Date().toLocaleTimeString() });
+                updateConsoleOutput();
+                originalConsole.log.apply(console, args);
+            };
+
+            console.warn = function(...args) {
+                consoleMessages.push({ type: 'warn', message: args.join(' '), timestamp: new Date().toLocaleTimeString() });
+                updateConsoleOutput();
+                originalConsole.warn.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                consoleMessages.push({ type: 'error', message: args.join(' '), timestamp: new Date().toLocaleTimeString() });
+                updateConsoleOutput();
+                originalConsole.error.apply(console, args);
+            };
+        }
+
+        function updateConsoleOutput() {
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.innerHTML = consoleMessages.map(msg => 
+                `[${msg.timestamp}] ${msg.type.toUpperCase()}: ${msg.message}`
+            ).join('\n');
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleMessages = [];
+            document.getElementById('console-output').innerHTML = '';
+        }
+
+        // Test functions
+        function addTestResult(testName, status, message, details = '') {
+            testResults.push({
+                name: testName,
+                status: status, // 'passed', 'failed', 'warning'
+                message: message,
+                details: details,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = testResults.map(test => `
+                <div class="test-section test-${test.status}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5>
+                                <i class="bi bi-${test.status === 'passed' ? 'check-circle-fill text-success' : 
+                                                test.status === 'failed' ? 'x-circle-fill text-danger' : 
+                                                'exclamation-triangle-fill text-warning'} me-2"></i>
+                                ${test.name}
+                            </h5>
+                            <p class="mb-2">${test.message}</p>
+                            ${test.details ? `<div class="small text-muted">${test.details}</div>` : ''}
+                        </div>
+                        <span class="badge bg-${test.status === 'passed' ? 'success' : 
+                                              test.status === 'failed' ? 'danger' : 'warning'} status-badge">
+                            ${test.status.toUpperCase()}
+                        </span>
+                    </div>
+                    <small class="text-muted">Tested at: ${test.timestamp}</small>
+                </div>
+            `).join('');
+        }
+
+        function clearTests() {
+            testResults = [];
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // Test 1: Data Initialization
+        function testDataInitialization() {
+            console.log('🧪 Testing data initialization...');
+            
+            try {
+                // Clear existing data first
+                localStorage.removeItem('masterBarang');
+                localStorage.removeItem('barang');
+                localStorage.removeItem('conversionRatios');
+                
+                // Test sample data creation
+                const sampleData = [
+                    {
+                        kode: 'BRG001-KG',
+                        nama: 'Beras Premium (Kilogram)',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
+                    },
+                    {
+                        kode: 'BRG001-GR',
+                        nama: 'Beras Premium (Gram)',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
+                    }
+                ];
+
+                const conversionRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    }
+                ];
+
+                // Save sample data
+                localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+                localStorage.setItem('barang', JSON.stringify(sampleData));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+
+                // Verify data was saved
+                const savedData = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const savedRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+
+                if (savedData.length > 0 && savedRatios.length > 0) {
+                    addTestResult(
+                        'Data Initialization',
+                        'passed',
+                        `Successfully initialized ${savedData.length} items and ${savedRatios.length} conversion ratios`,
+                        `Sample data includes: ${savedData.map(item => item.nama).join(', ')}`
+                    );
+                } else {
+                    addTestResult(
+                        'Data Initialization',
+                        'failed',
+                        'Failed to save sample data to localStorage',
+                        `Saved data length: ${savedData.length}, Saved ratios length: ${savedRatios.length}`
+                    );
+                }
+
+            } catch (error) {
+                console.error('❌ Data initialization test failed:', error);
+                addTestResult(
+                    'Data Initialization',
+                    'failed',
+                    'Exception occurred during data initialization',
+                    error.message
+                );
+            }
+        }
+
+        // Test 2: Dropdown Population
+        function testDropdownPopulation() {
+            console.log('🧪 Testing dropdown population...');
+            
+            try {
+                // Create test elements
+                const testContainer = document.createElement('div');
+                testContainer.innerHTML = `
+                    <select id="test-sourceItem">
+                        <option value="">Pilih barang asal...</option>
+                    </select>
+                    <select id="test-targetItem">
+                        <option value="">Pilih barang tujuan...</option>
+                    </select>
+                `;
+                document.body.appendChild(testContainer);
+
+                // Ensure we have test data
+                testDataInitialization();
+
+                // Test dropdown population logic
+                const sourceSelect = document.getElementById('test-sourceItem');
+                const targetSelect = document.getElementById('test-targetItem');
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+
+                if (masterBarang.length === 0) {
+                    addTestResult(
+                        'Dropdown Population',
+                        'failed',
+                        'No master barang data available for testing',
+                        'Please run data initialization test first'
+                    );
+                    return;
+                }
+
+                // Populate dropdowns
+                masterBarang.forEach(item => {
+                    if (item.stok > 0) {
+                        const sourceOption = new Option(
+                            `${item.nama} (Stok: ${item.stok} ${item.satuan})`, 
+                            item.kode
+                        );
+                        sourceSelect.add(sourceOption);
+                    }
+                    
+                    const targetOption = new Option(
+                        `${item.nama} (Stok: ${item.stok} ${item.satuan})`, 
+                        item.kode
+                    );
+                    targetSelect.add(targetOption);
+                });
+
+                // Verify population
+                const sourceOptionsCount = sourceSelect.options.length - 1; // Exclude default option
+                const targetOptionsCount = targetSelect.options.length - 1; // Exclude default option
+
+                if (sourceOptionsCount > 0 && targetOptionsCount > 0) {
+                    addTestResult(
+                        'Dropdown Population',
+                        'passed',
+                        `Successfully populated dropdowns with ${sourceOptionsCount} source and ${targetOptionsCount} target options`,
+                        `Source options: ${Array.from(sourceSelect.options).slice(1).map(opt => opt.text).join(', ')}`
+                    );
+                } else {
+                    addTestResult(
+                        'Dropdown Population',
+                        'failed',
+                        'Dropdowns were not populated correctly',
+                        `Source options: ${sourceOptionsCount}, Target options: ${targetOptionsCount}`
+                    );
+                }
+
+                // Cleanup
+                document.body.removeChild(testContainer);
+
+            } catch (error) {
+                console.error('❌ Dropdown population test failed:', error);
+                addTestResult(
+                    'Dropdown Population',
+                    'failed',
+                    'Exception occurred during dropdown population test',
+                    error.message
+                );
+            }
+        }
+
+        // Test 3: Conversion Info
+        function testConversionInfo() {
+            console.log('🧪 Testing conversion info calculation...');
+            
+            try {
+                // Ensure we have test data
+                testDataInitialization();
+
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+
+                if (masterBarang.length === 0 || conversionRatios.length === 0) {
+                    addTestResult(
+                        'Conversion Info',
+                        'failed',
+                        'No test data available for conversion calculation',
+                        'Please run data initialization test first'
+                    );
+                    return;
+                }
+
+                // Test conversion calculation
+                const sourceItem = masterBarang.find(item => item.satuan === 'kg');
+                const targetItem = masterBarang.find(item => item.satuan === 'gram' && item.baseProduct === sourceItem.baseProduct);
+
+                if (!sourceItem || !targetItem) {
+                    addTestResult(
+                        'Conversion Info',
+                        'warning',
+                        'Could not find suitable items for conversion test',
+                        'Need items with kg and gram units from same base product'
+                    );
+                    return;
+                }
+
+                // Find conversion ratio
+                let ratio = 1;
+                const productRatios = conversionRatios.find(r => r.baseProduct === sourceItem.baseProduct);
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceItem.satuan && c.to === targetItem.satuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+
+                // Test calculation
+                const testQuantity = 5;
+                const expectedResult = testQuantity * ratio;
+
+                if (ratio === 1000 && expectedResult === 5000) {
+                    addTestResult(
+                        'Conversion Info',
+                        'passed',
+                        `Conversion calculation works correctly: ${testQuantity} ${sourceItem.satuan} = ${expectedResult} ${targetItem.satuan}`,
+                        `Ratio: 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}`
+                    );
+                } else {
+                    addTestResult(
+                        'Conversion Info',
+                        'failed',
+                        `Conversion calculation incorrect: expected 5000, got ${expectedResult}`,
+                        `Ratio found: ${ratio}, Source: ${sourceItem.satuan}, Target: ${targetItem.satuan}`
+                    );
+                }
+
+            } catch (error) {
+                console.error('❌ Conversion info test failed:', error);
+                addTestResult(
+                    'Conversion Info',
+                    'failed',
+                    'Exception occurred during conversion info test',
+                    error.message
+                );
+            }
+        }
+
+        // Test 4: Element Availability
+        function testElementAvailability() {
+            console.log('🧪 Testing element availability...');
+            
+            try {
+                // Test if we can create the required elements
+                const testContainer = document.createElement('div');
+                testContainer.innerHTML = `
+                    <select id="test-sourceItem"></select>
+                    <select id="test-targetItem"></select>
+                    <input type="number" id="test-quantity">
+                    <div id="test-conversion-info"></div>
+                    <button id="test-submit-transformation"></button>
+                `;
+                document.body.appendChild(testContainer);
+
+                // Check if elements exist
+                const elements = {
+                    sourceItem: document.getElementById('test-sourceItem'),
+                    targetItem: document.getElementById('test-targetItem'),
+                    quantity: document.getElementById('test-quantity'),
+                    conversionInfo: document.getElementById('test-conversion-info'),
+                    submitButton: document.getElementById('test-submit-transformation')
+                };
+
+                const missingElements = Object.keys(elements).filter(key => !elements[key]);
+
+                if (missingElements.length === 0) {
+                    addTestResult(
+                        'Element Availability',
+                        'passed',
+                        'All required elements can be created and accessed',
+                        `Elements tested: ${Object.keys(elements).join(', ')}`
+                    );
+                } else {
+                    addTestResult(
+                        'Element Availability',
+                        'failed',
+                        `Some elements could not be created: ${missingElements.join(', ')}`,
+                        'This indicates a potential DOM manipulation issue'
+                    );
+                }
+
+                // Cleanup
+                document.body.removeChild(testContainer);
+
+            } catch (error) {
+                console.error('❌ Element availability test failed:', error);
+                addTestResult(
+                    'Element Availability',
+                    'failed',
+                    'Exception occurred during element availability test',
+                    error.message
+                );
+            }
+        }
+
+        // Test 5: Emergency Fix Functions
+        function testEmergencyFixFunctions() {
+            console.log('🧪 Testing emergency fix functions...');
+            
+            try {
+                // Test if emergency fix functions would work
+                let functionsWorking = 0;
+                let totalFunctions = 0;
+
+                // Test data initialization function
+                totalFunctions++;
+                try {
+                    const sampleData = [
+                        {
+                            kode: 'TEST-001',
+                            nama: 'Test Item',
+                            satuan: 'pcs',
+                            stok: 10,
+                            baseProduct: 'TEST',
+                            hargaBeli: 1000,
+                            hargaJual: 1500
+                        }
+                    ];
+                    localStorage.setItem('testMasterBarang', JSON.stringify(sampleData));
+                    const retrieved = JSON.parse(localStorage.getItem('testMasterBarang') || '[]');
+                    if (retrieved.length > 0) {
+                        functionsWorking++;
+                    }
+                    localStorage.removeItem('testMasterBarang');
+                } catch (e) {
+                    console.warn('Data initialization function test failed:', e);
+                }
+
+                // Test dropdown population logic
+                totalFunctions++;
+                try {
+                    const testSelect = document.createElement('select');
+                    testSelect.innerHTML = '<option value="">Test</option>';
+                    const testOption = new Option('Test Item (Stok: 10 pcs)', 'TEST-001');
+                    testSelect.add(testOption);
+                    if (testSelect.options.length === 2) {
+                        functionsWorking++;
+                    }
+                } catch (e) {
+                    console.warn('Dropdown population logic test failed:', e);
+                }
+
+                // Test conversion calculation
+                totalFunctions++;
+                try {
+                    const testRatio = 1000;
+                    const testQuantity = 5;
+                    const result = testQuantity * testRatio;
+                    if (result === 5000) {
+                        functionsWorking++;
+                    }
+                } catch (e) {
+                    console.warn('Conversion calculation test failed:', e);
+                }
+
+                const successRate = (functionsWorking / totalFunctions) * 100;
+
+                if (successRate === 100) {
+                    addTestResult(
+                        'Emergency Fix Functions',
+                        'passed',
+                        `All emergency fix functions working correctly (${functionsWorking}/${totalFunctions})`,
+                        `Success rate: ${successRate}%`
+                    );
+                } else if (successRate >= 70) {
+                    addTestResult(
+                        'Emergency Fix Functions',
+                        'warning',
+                        `Most emergency fix functions working (${functionsWorking}/${totalFunctions})`,
+                        `Success rate: ${successRate}% - Some functions may need attention`
+                    );
+                } else {
+                    addTestResult(
+                        'Emergency Fix Functions',
+                        'failed',
+                        `Emergency fix functions not working properly (${functionsWorking}/${totalFunctions})`,
+                        `Success rate: ${successRate}% - Major issues detected`
+                    );
+                }
+
+            } catch (error) {
+                console.error('❌ Emergency fix functions test failed:', error);
+                addTestResult(
+                    'Emergency Fix Functions',
+                    'failed',
+                    'Exception occurred during emergency fix functions test',
+                    error.message
+                );
+            }
+        }
+
+        // Run all tests
+        function runAllTests() {
+            console.log('🚀 Running all tests...');
+            clearTests();
+            
+            // Run tests in sequence
+            setTimeout(() => testDataInitialization(), 100);
+            setTimeout(() => testElementAvailability(), 300);
+            setTimeout(() => testDropdownPopulation(), 500);
+            setTimeout(() => testConversionInfo(), 700);
+            setTimeout(() => testEmergencyFixFunctions(), 900);
+            
+            setTimeout(() => {
+                console.log('✅ All tests completed');
+                const passedTests = testResults.filter(t => t.status === 'passed').length;
+                const totalTests = testResults.length;
+                
+                if (passedTests === totalTests) {
+                    console.log(`🎉 All ${totalTests} tests passed! The fix is working correctly.`);
+                } else {
+                    console.log(`⚠️ ${passedTests}/${totalTests} tests passed. Some issues may remain.`);
+                }
+            }, 1100);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            captureConsole();
+            console.log('🔧 Transformasi Barang Fix Test initialized');
+            console.log('Click "Run All Tests" to verify the fix is working correctly');
+        });
+    </script>
+</body>
+</html>

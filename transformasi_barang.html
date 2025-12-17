@@ -370,6 +370,311 @@
     <!-- Transformasi Barang Initialization -->
     <script src="js/transformasiBarangInit.js"></script>
     
+    <!-- EMERGENCY FIX: Element-safe loader for transformasi barang -->
+    <script>
+    (function() {
+        'use strict';
+        
+        console.log('🔧 Loading emergency fix for transformasi barang...');
+        
+        // Initialize data if not exists
+        function initializeDataIfNeeded() {
+            let masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+            
+            if (masterBarang.length === 0) {
+                console.log('🔄 Initializing sample data...');
+                masterBarang = [
+                    {
+                        kode: 'BRG001-KG',
+                        nama: 'Beras Premium (Kilogram)',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
+                    },
+                    {
+                        kode: 'BRG001-GR',
+                        nama: 'Beras Premium (Gram)',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
+                    },
+                    {
+                        kode: 'BRG002-LT',
+                        nama: 'Minyak Goreng (Liter)',
+                        satuan: 'liter',
+                        stok: 50,
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18000,
+                        hargaJual: 22000
+                    },
+                    {
+                        kode: 'BRG002-ML',
+                        nama: 'Minyak Goreng (Mililiter)',
+                        satuan: 'ml',
+                        stok: 25000,
+                        baseProduct: 'BRG002',
+                        hargaBeli: 18,
+                        hargaJual: 22
+                    },
+                    {
+                        kode: 'BRG003-DUS',
+                        nama: 'Air Mineral (Dus)',
+                        satuan: 'dus',
+                        stok: 20,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 48000,
+                        hargaJual: 60000
+                    },
+                    {
+                        kode: 'BRG003-BTL',
+                        nama: 'Air Mineral (Botol)',
+                        satuan: 'botol',
+                        stok: 480,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 2000,
+                        hargaJual: 2500
+                    }
+                ];
+                
+                const conversionRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG002',
+                        conversions: [
+                            { from: 'liter', to: 'ml', ratio: 1000 },
+                            { from: 'ml', to: 'liter', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG003',
+                        conversions: [
+                            { from: 'dus', to: 'botol', ratio: 24 },
+                            { from: 'botol', to: 'dus', ratio: 0.041667 }
+                        ]
+                    }
+                ];
+                
+                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+                localStorage.setItem('barang', JSON.stringify(masterBarang));
+                localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+                console.log('✅ Sample data initialized');
+            }
+        }
+        
+        // Function to populate dropdowns safely
+        function populateDropdownsSafe() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            
+            if (!sourceSelect || !targetSelect) {
+                console.warn('Dropdown elements not found, retrying in 500ms...');
+                setTimeout(populateDropdownsSafe, 500);
+                return;
+            }
+            
+            console.log('✅ Dropdown elements found, populating...');
+            
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                if (masterBarang.length === 0) {
+                    console.warn('No master barang data found');
+                    return;
+                }
+                
+                // Clear existing options
+                sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+                targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+                
+                // Group by base product
+                const baseProducts = {};
+                masterBarang.forEach(item => {
+                    const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                    if (!baseProducts[baseProduct]) {
+                        baseProducts[baseProduct] = [];
+                    }
+                    baseProducts[baseProduct].push(item);
+                });
+                
+                // Populate dropdowns
+                Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                    if (items.length > 1) {
+                        items.forEach(item => {
+                            if (item.stok > 0) {
+                                const sourceOption = new Option(
+                                    `${item.nama} (Stok: ${item.stok} ${item.satuan})`, 
+                                    item.kode
+                                );
+                                sourceSelect.add(sourceOption);
+                            }
+                            
+                            const targetOption = new Option(
+                                `${item.nama} (Stok: ${item.stok} ${item.satuan})`, 
+                                item.kode
+                            );
+                            targetSelect.add(targetOption);
+                        });
+                    }
+                });
+                
+                targetSelect.disabled = false;
+                console.log(`✅ Dropdowns populated: ${sourceSelect.options.length - 1} source, ${targetSelect.options.length - 1} target options`);
+                
+                // Setup event listeners
+                sourceSelect.addEventListener('change', updateConversionInfo);
+                targetSelect.addEventListener('change', updateConversionInfo);
+                const quantityInput = document.getElementById('quantity');
+                if (quantityInput) {
+                    quantityInput.addEventListener('input', updateConversionInfo);
+                }
+                
+                // Update statistics
+                const availableItemsElement = document.getElementById('available-items');
+                if (availableItemsElement) {
+                    availableItemsElement.textContent = masterBarang.length;
+                }
+                
+                // Show success message
+                showAlert('Sistem transformasi barang berhasil dimuat!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error populating dropdowns:', error);
+            }
+        }
+        
+        // Update conversion info function
+        function updateConversionInfo() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const conversionInfo = document.getElementById('conversion-info');
+            const submitButton = document.getElementById('submit-transformation');
+            
+            if (!sourceSelect || !targetSelect || !quantityInput || !conversionInfo) {
+                return;
+            }
+            
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat rasio konversi</span>';
+                if (submitButton) submitButton.disabled = true;
+                return;
+            }
+            
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                const sourceItem = masterBarang.find(item => item.kode === sourceValue);
+                const targetItem = masterBarang.find(item => item.kode === targetValue);
+                
+                if (!sourceItem || !targetItem) {
+                    conversionInfo.innerHTML = '<span class="text-danger">Item tidak ditemukan</span>';
+                    if (submitButton) submitButton.disabled = true;
+                    return;
+                }
+                
+                const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+                const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
+                
+                if (sourceBaseProduct !== targetBaseProduct) {
+                    conversionInfo.innerHTML = '<span class="text-warning">Item harus dari produk yang sama</span>';
+                    if (submitButton) submitButton.disabled = true;
+                    return;
+                }
+                
+                let ratio = 1;
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+                
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceItem.satuan && c.to === targetItem.satuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+                
+                const targetQuantity = quantity * ratio;
+                const stockSufficient = sourceItem.stok >= quantity;
+                
+                conversionInfo.innerHTML = `
+                    <div class="small">
+                        <div><strong>Rasio:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}</div>
+                        ${quantity > 0 ? `<div><strong>Hasil:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity.toFixed(3)} ${targetItem.satuan}</div>` : ''}
+                        <div class="mt-1">
+                            <span class="badge bg-${stockSufficient ? 'success' : 'danger'}">
+                                Stok ${sourceItem.nama}: ${sourceItem.stok} ${sourceItem.satuan}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                if (submitButton) {
+                    const canSubmit = sourceValue && targetValue && quantity > 0 && stockSufficient && sourceValue !== targetValue;
+                    submitButton.disabled = !canSubmit;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error updating conversion info:', error);
+                conversionInfo.innerHTML = '<span class="text-danger">Error memuat info konversi</span>';
+            }
+        }
+        
+        // Show alert function
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alert-container') || document.getElementById('success-container');
+            if (alertContainer) {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                alertContainer.innerHTML = alertHtml;
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
+        // Make function global
+        window.updateConversionInfo = updateConversionInfo;
+        
+        // Initialize data first
+        initializeDataIfNeeded();
+        
+        // Start population when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', populateDropdownsSafe);
+        } else {
+            populateDropdownsSafe();
+        }
+        
+        // Also try after delays to ensure elements are loaded
+        setTimeout(populateDropdownsSafe, 1000);
+        setTimeout(populateDropdownsSafe, 3000);
+        
+        console.log('🔧 Emergency fix loaded and ready!');
+        
+    })();
+    </script>
+    
     <script>
         // Global flag to track initialization status
         let systemInitialized = false;
