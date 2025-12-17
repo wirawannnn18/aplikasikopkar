@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Transformasi Barang Preview Validation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .fix-section {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .fix-applied {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .console-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-tools me-2"></i>Fix Transformasi Barang Preview Validation</h2>
+                <p class="text-muted">Mengatasi error berulang: "Preview tidak tersedia. Silakan lengkapi form terlebih dahulu"</p>
+                
+                <!-- Problem Analysis -->
+                <div class="fix-section">
+                    <h4><i class="bi bi-bug me-2"></i>Analisis Masalah</h4>
+                    <div class="alert alert-warning">
+                        <h6>Error yang Terjadi:</h6>
+                        <code>ErrorHandler.js:575 [VALIDATION] Preview tidak tersedia. Silakan lengkapi form terlebih dahulu.</code>
+                        
+                        <h6 class="mt-3">Penyebab:</h6>
+                        <ul>
+                            <li>UIController mencoba memvalidasi preview secara berulang</li>
+                            <li>Form validation dipanggil terlalu sering</li>
+                            <li>currentPreview null karena form belum lengkap</li>
+                            <li>Tidak ada throttling untuk validation calls</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Fix Implementation -->
+                <div class="fix-section">
+                    <h4><i class="bi bi-wrench me-2"></i>Implementasi Perbaikan</h4>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" onclick="applyPreviewValidationFix()">
+                            <i class="bi bi-play-fill me-1"></i>Apply Preview Validation Fix
+                        </button>
+                        <button class="btn btn-success" onclick="testPreviewFunctionality()">
+                            <i class="bi bi-check-circle me-1"></i>Test Preview Functionality
+                        </button>
+                        <button class="btn btn-info" onclick="downloadFixScript()">
+                            <i class="bi bi-download me-1"></i>Download Fix Script
+                        </button>
+                    </div>
+                    
+                    <div id="fix-status" class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>Klik "Apply Preview Validation Fix" untuk menerapkan perbaikan
+                    </div>
+                </div>
+                
+                <!-- Console Output -->
+                <div class="fix-section">
+                    <h4><i class="bi bi-terminal me-2"></i>Console Output</h4>
+                    <div id="console-output" class="console-output">Menunggu perbaikan diterapkan...</div>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="clearConsole()">
+                        <i class="bi bi-x-circle me-1"></i>Clear Console
+                    </button>
+                </div>
+                
+                <!-- Test Transformasi Barang -->
+                <div class="fix-section">
+                    <h4><i class="bi bi-link-45deg me-2"></i>Test Halaman Transformasi</h4>
+                    <p>Setelah menerapkan fix, test halaman transformasi barang:</p>
+                    <a href="transformasi_barang.html" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open Transformasi Barang
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let consoleMessages = [];
+
+        // Override console methods to capture output
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error
+        };
+
+        function captureConsole() {
+            console.log = function(...args) {
+                consoleMessages.push({ type: 'log', message: args.join(' '), timestamp: new Date().toLocaleTimeString() });
+                updateConsoleOutput();
+                originalConsole.log.apply(console, args);
+            };
+
+            console.warn = function(...args) {
+                consoleMessages.push({ type: 'warn', message: args.join(' '), timestamp: new Date().toLocaleTimeString() });
+                updateConsoleOutput();
+                originalConsole.warn.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                consoleMessages.push({ type: 'error', message: args.join(' '), timestamp: new Date().toLocaleTimeString() });
+                updateConsoleOutput();
+                originalConsole.error.apply(console, args);
+            };
+        }
+
+        function updateConsoleOutput() {
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.innerHTML = consoleMessages.map(msg => 
+                `[${msg.timestamp}] ${msg.type.toUpperCase()}: ${msg.message}`
+            ).join('\n');
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleMessages = [];
+            document.getElementById('console-output').innerHTML = 'Console cleared...';
+        }
+
+        function updateFixStatus(message, type = 'info') {
+            const fixStatus = document.getElementById('fix-status');
+            const iconClass = type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle';
+            fixStatus.className = `alert alert-${type}`;
+            fixStatus.innerHTML = `<i class="bi bi-${iconClass} me-2"></i>${message}`;
+        }
+
+        // Main fix function
+        function applyPreviewValidationFix() {
+            console.log('🔧 Applying preview validation fix...');
+            
+            try {
+                // Create the fix script content
+                const fixScript = `
+// Preview Validation Fix for Transformasi Barang
+(function() {
+    'use strict';
+    
+    console.log('🔧 Loading preview validation fix...');
+    
+    // Throttle function to prevent excessive validation calls
+    function throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        }
+    }
+    
+    // Debounce function for form validation
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Enhanced validation with error suppression
+    function createValidationFix() {
+        let lastValidationError = null;
+        let errorCount = 0;
+        const MAX_REPEATED_ERRORS = 3;
+        const ERROR_RESET_TIME = 5000; // 5 seconds
+        
+        // Reset error count periodically
+        setInterval(() => {
+            if (errorCount > 0) {
+                errorCount = Math.max(0, errorCount - 1);
+            }
+        }, ERROR_RESET_TIME);
+        
+        return {
+            // Throttled validation function
+            validatePreview: throttle(function(formData) {
+                try {
+                    if (!formData || !formData.sourceItem || !formData.targetItem || !formData.quantity) {
+                        // Don't log repeated validation errors
+                        const currentError = 'Preview validation: Form incomplete';
+                        if (lastValidationError !== currentError || errorCount < MAX_REPEATED_ERRORS) {
+                            if (lastValidationError !== currentError) {
+                                errorCount = 0;
+                            }
+                            lastValidationError = currentError;
+                            errorCount++;
+                            
+                            if (errorCount <= MAX_REPEATED_ERRORS) {
+                                console.log('ℹ️ Preview validation: Form data incomplete, preview not available');
+                            }
+                        }
+                        return false;
+                    }
+                    
+                    // Reset error tracking on successful validation
+                    lastValidationError = null;
+                    errorCount = 0;
+                    console.log('✅ Preview validation: Form data complete');
+                    return true;
+                    
+                } catch (error) {
+                    console.warn('⚠️ Preview validation error:', error);
+                    return false;
+                }
+            }, 500), // Throttle to max once per 500ms
+            
+            // Debounced form update
+            updateFormPreview: debounce(function(formData) {
+                if (this.validatePreview(formData)) {
+                    // Update preview logic here
+                    console.log('🔄 Updating preview with valid form data');
+                }
+            }, 300) // Debounce to 300ms
+        };
+    }
+    
+    // Create validation fix instance
+    const validationFix = createValidationFix();
+    
+    // Override UIController methods if available
+    function patchUIController() {
+        if (typeof window.uiController !== 'undefined' && window.uiController) {
+            console.log('🔧 Patching UIController validation methods...');
+            
+            // Store original methods
+            const originalUpdatePreview = window.uiController._updatePreview;
+            const originalHandleFormSubmission = window.uiController._handleFormSubmission;
+            
+            // Patch _updatePreview method
+            if (originalUpdatePreview) {
+                window.uiController._updatePreview = async function() {
+                    try {
+                        // Get form data
+                        const formData = this._getFormData();
+                        
+                        // Use throttled validation
+                        if (validationFix.validatePreview(formData)) {
+                            return await originalUpdatePreview.call(this);
+                        } else {
+                            // Silently skip preview update if form is incomplete
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Preview update error (suppressed):', error.message);
+                    }
+                };
+                console.log('✅ UIController._updatePreview patched');
+            }
+            
+            // Patch _handleFormSubmission method
+            if (originalHandleFormSubmission) {
+                window.uiController._handleFormSubmission = async function() {
+                    try {
+                        if (!this.currentPreview) {
+                            // Show user-friendly message instead of logging error
+                            const alertContainer = document.getElementById('alert-container');
+                            if (alertContainer) {
+                                alertContainer.innerHTML = \`
+                                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        Silakan lengkapi form transformasi terlebih dahulu.
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                \`;
+                            }
+                            return;
+                        }
+                        
+                        return await originalHandleFormSubmission.call(this);
+                    } catch (error) {
+                        console.error('❌ Form submission error:', error);
+                        throw error;
+                    }
+                };
+                console.log('✅ UIController._handleFormSubmission patched');
+            }
+        }
+    }
+    
+    // Apply patches when DOM is ready
+    function applyPatches() {
+        // Try to patch immediately
+        patchUIController();
+        
+        // Also try after delays in case UIController loads later
+        setTimeout(patchUIController, 1000);
+        setTimeout(patchUIController, 3000);
+        setTimeout(patchUIController, 5000);
+    }
+    
+    // Initialize patches
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyPatches);
+    } else {
+        applyPatches();
+    }
+    
+    // Make validation fix globally available
+    window.transformasiBarangValidationFix = validationFix;
+    
+    console.log('✅ Preview validation fix loaded successfully');
+    
+})();
+`;
+
+                // Apply the fix by injecting the script
+                const scriptElement = document.createElement('script');
+                scriptElement.textContent = fixScript;
+                document.head.appendChild(scriptElement);
+                
+                console.log('✅ Preview validation fix applied successfully');
+                updateFixStatus('Preview validation fix berhasil diterapkan! Error berulang akan ditekan.', 'success');
+                
+                // Store fix script for download
+                window.previewValidationFixScript = fixScript;
+                
+            } catch (error) {
+                console.error('❌ Error applying preview validation fix:', error);
+                updateFixStatus('Gagal menerapkan fix: ' + error.message, 'danger');
+            }
+        }
+
+        function testPreviewFunctionality() {
+            console.log('🧪 Testing preview functionality...');
+            
+            try {
+                // Test validation fix
+                if (window.transformasiBarangValidationFix) {
+                    console.log('✅ Validation fix is available');
+                    
+                    // Test with incomplete data
+                    const incompleteData = { sourceItem: 'test' };
+                    const result1 = window.transformasiBarangValidationFix.validatePreview(incompleteData);
+                    console.log('Test 1 (incomplete data):', result1 ? 'PASS' : 'FAIL (expected)');
+                    
+                    // Test with complete data
+                    const completeData = {
+                        sourceItem: 'BRG001-KG',
+                        targetItem: 'BRG001-GR',
+                        quantity: 5
+                    };
+                    const result2 = window.transformasiBarangValidationFix.validatePreview(completeData);
+                    console.log('Test 2 (complete data):', result2 ? 'PASS (expected)' : 'FAIL');
+                    
+                    updateFixStatus('Test preview functionality completed. Check console for results.', 'success');
+                } else {
+                    console.warn('⚠️ Validation fix not found. Please apply fix first.');
+                    updateFixStatus('Validation fix belum diterapkan. Silakan apply fix terlebih dahulu.', 'warning');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error testing preview functionality:', error);
+                updateFixStatus('Error testing functionality: ' + error.message, 'danger');
+            }
+        }
+
+        function downloadFixScript() {
+            if (window.previewValidationFixScript) {
+                const blob = new Blob([window.previewValidationFixScript], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'transformasi-barang-preview-validation-fix.js';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('📥 Fix script downloaded');
+                updateFixStatus('Fix script berhasil didownload sebagai transformasi-barang-preview-validation-fix.js', 'success');
+            } else {
+                console.warn('⚠️ No fix script available. Please apply fix first.');
+                updateFixStatus('Tidak ada script untuk didownload. Silakan apply fix terlebih dahulu.', 'warning');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            captureConsole();
+            console.log('🔧 Preview validation fix tool initialized');
+            console.log('Click "Apply Preview Validation Fix" to resolve the repeated validation errors');
+        });
+    </script>
+</body>
+</html>

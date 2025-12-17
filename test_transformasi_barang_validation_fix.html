@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Validation Fix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-passed {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .test-failed {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .console-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .error-count {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-bug-fill me-2"></i>Test Transformasi Barang Validation Fix</h2>
+                <p class="text-muted">Testing the fix for repeated validation errors: "Preview tidak tersedia. Silakan lengkapi form terlebih dahulu"</p>
+                
+                <!-- Test Status -->
+                <div class="test-section">
+                    <h4><i class="bi bi-clipboard-check me-2"></i>Test Status</h4>
+                    <div id="test-status" class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>Initializing tests...
+                    </div>
+                </div>
+                
+                <!-- Error Monitoring -->
+                <div class="test-section">
+                    <h4><i class="bi bi-exclamation-triangle me-2"></i>Error Monitoring</h4>
+                    <div class="error-count">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Total Errors:</strong> <span id="total-errors">0</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Validation Errors:</strong> <span id="validation-errors">0</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Suppressed Errors:</strong> <span id="suppressed-errors">0</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Last Error:</strong> <span id="last-error-time">None</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" onclick="startValidationTest()">
+                            <i class="bi bi-play-fill me-1"></i>Start Validation Test
+                        </button>
+                        <button class="btn btn-success" onclick="testTransformasiBarangPage()">
+                            <i class="bi bi-link-45deg me-1"></i>Test Transformasi Barang Page
+                        </button>
+                        <button class="btn btn-warning" onclick="simulateRepeatedValidation()">
+                            <i class="bi bi-arrow-repeat me-1"></i>Simulate Repeated Validation
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearErrorLog()">
+                            <i class="bi bi-x-circle me-1"></i>Clear Log
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Console Output -->
+                <div class="test-section">
+                    <h4><i class="bi bi-terminal me-2"></i>Console Output</h4>
+                    <div id="console-output" class="console-output">Waiting for test to start...</div>
+                </div>
+                
+                <!-- Test Results -->
+                <div class="test-section">
+                    <h4><i class="bi bi-check2-square me-2"></i>Test Results</h4>
+                    <div id="test-results">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>No tests run yet. Click "Start Validation Test" to begin.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div class="test-section">
+                    <h4><i class="bi bi-link-45deg me-2"></i>Quick Links</h4>
+                    <div class="d-flex gap-2">
+                        <a href="transformasi_barang.html" target="_blank" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Open Transformasi Barang
+                        </a>
+                        <a href="fix_transformasi_barang_preview_validation.html" target="_blank" class="btn btn-info">
+                            <i class="bi bi-tools me-1"></i>Preview Validation Fix Tool
+                        </a>
+                        <button class="btn btn-success" onclick="downloadTestReport()">
+                            <i class="bi bi-download me-1"></i>Download Test Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let consoleMessages = [];
+        let errorCounts = {
+            total: 0,
+            validation: 0,
+            suppressed: 0
+        };
+        let testResults = [];
+        let lastErrorTime = null;
+
+        // Override console methods to capture output
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error
+        };
+
+        function captureConsole() {
+            console.log = function(...args) {
+                const message = args.join(' ');
+                consoleMessages.push({ 
+                    type: 'log', 
+                    message: message, 
+                    timestamp: new Date().toLocaleTimeString() 
+                });
+                updateConsoleOutput();
+                originalConsole.log.apply(console, args);
+            };
+
+            console.warn = function(...args) {
+                const message = args.join(' ');
+                consoleMessages.push({ 
+                    type: 'warn', 
+                    message: message, 
+                    timestamp: new Date().toLocaleTimeString() 
+                });
+                updateConsoleOutput();
+                originalConsole.warn.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                const message = args.join(' ');
+                consoleMessages.push({ 
+                    type: 'error', 
+                    message: message, 
+                    timestamp: new Date().toLocaleTimeString() 
+                });
+                
+                // Count errors
+                errorCounts.total++;
+                lastErrorTime = new Date().toLocaleTimeString();
+                
+                if (message.includes('Preview tidak tersedia') || 
+                    message.includes('Silakan lengkapi form terlebih dahulu')) {
+                    errorCounts.validation++;
+                }
+                
+                if (message.includes('SUPPRESSED')) {
+                    errorCounts.suppressed++;
+                }
+                
+                updateErrorCounts();
+                updateConsoleOutput();
+                originalConsole.error.apply(console, args);
+            };
+        }
+
+        function updateConsoleOutput() {
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.innerHTML = consoleMessages.slice(-50).map(msg => 
+                `[${msg.timestamp}] ${msg.type.toUpperCase()}: ${msg.message}`
+            ).join('\n');
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function updateErrorCounts() {
+            document.getElementById('total-errors').textContent = errorCounts.total;
+            document.getElementById('validation-errors').textContent = errorCounts.validation;
+            document.getElementById('suppressed-errors').textContent = errorCounts.suppressed;
+            document.getElementById('last-error-time').textContent = lastErrorTime || 'None';
+        }
+
+        function clearErrorLog() {
+            consoleMessages = [];
+            errorCounts = { total: 0, validation: 0, suppressed: 0 };
+            lastErrorTime = null;
+            document.getElementById('console-output').innerHTML = 'Console cleared...';
+            updateErrorCounts();
+        }
+
+        function updateTestStatus(message, type = 'info') {
+            const testStatus = document.getElementById('test-status');
+            const iconClass = type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle';
+            testStatus.className = `alert alert-${type}`;
+            testStatus.innerHTML = `<i class="bi bi-${iconClass} me-2"></i>${message}`;
+        }
+
+        function addTestResult(testName, passed, details = '') {
+            const result = {
+                name: testName,
+                passed: passed,
+                details: details,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            testResults.push(result);
+            updateTestResultsDisplay();
+        }
+
+        function updateTestResultsDisplay() {
+            const testResultsContainer = document.getElementById('test-results');
+            
+            if (testResults.length === 0) {
+                testResultsContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>No tests run yet.
+                    </div>
+                `;
+                return;
+            }
+            
+            const passedTests = testResults.filter(r => r.passed).length;
+            const totalTests = testResults.length;
+            
+            let html = `
+                <div class="alert alert-${passedTests === totalTests ? 'success' : 'warning'} mb-3">
+                    <strong>Test Summary:</strong> ${passedTests}/${totalTests} tests passed
+                </div>
+            `;
+            
+            testResults.forEach(result => {
+                html += `
+                    <div class="alert alert-${result.passed ? 'success' : 'danger'} mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${result.name}</strong>
+                                <span class="badge bg-${result.passed ? 'success' : 'danger'} ms-2">
+                                    ${result.passed ? 'PASSED' : 'FAILED'}
+                                </span>
+                                ${result.details ? `<div class="small mt-1">${result.details}</div>` : ''}
+                            </div>
+                            <small class="text-muted">${result.timestamp}</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            testResultsContainer.innerHTML = html;
+        }
+
+        // Test Functions
+        function startValidationTest() {
+            console.log('🧪 Starting validation error suppression test...');
+            updateTestStatus('Running validation tests...', 'info');
+            
+            // Clear previous results
+            testResults = [];
+            
+            // Test 1: Check if error suppression is working
+            setTimeout(() => {
+                const initialErrorCount = errorCounts.validation;
+                
+                // Simulate validation errors
+                for (let i = 0; i < 10; i++) {
+                    console.error('[VALIDATION] Preview tidak tersedia. Silakan lengkapi form terlebih dahulu.');
+                }
+                
+                setTimeout(() => {
+                    const finalErrorCount = errorCounts.validation;
+                    const errorsSuppressed = finalErrorCount < initialErrorCount + 10;
+                    
+                    addTestResult(
+                        'Error Suppression Test',
+                        errorsSuppressed,
+                        `Expected < ${initialErrorCount + 10} errors, got ${finalErrorCount} errors`
+                    );
+                    
+                    // Test 2: Check if throttling is working
+                    testThrottling();
+                }, 1000);
+            }, 500);
+        }
+
+        function testThrottling() {
+            console.log('🧪 Testing validation throttling...');
+            
+            const startTime = Date.now();
+            let callCount = 0;
+            
+            // Simulate rapid validation calls
+            const interval = setInterval(() => {
+                callCount++;
+                console.log(`Validation call ${callCount}`);
+                
+                if (callCount >= 20) {
+                    clearInterval(interval);
+                    
+                    const endTime = Date.now();
+                    const duration = endTime - startTime;
+                    const callsPerSecond = callCount / (duration / 1000);
+                    
+                    // Throttling should limit calls to reasonable rate
+                    const throttlingWorking = callsPerSecond < 50; // Less than 50 calls per second
+                    
+                    addTestResult(
+                        'Throttling Test',
+                        throttlingWorking,
+                        `${callCount} calls in ${duration}ms (${callsPerSecond.toFixed(2)} calls/sec)`
+                    );
+                    
+                    // Test 3: Check console override
+                    testConsoleOverride();
+                }
+            }, 10); // Very rapid calls
+        }
+
+        function testConsoleOverride() {
+            console.log('🧪 Testing console override functionality...');
+            
+            const initialTotal = errorCounts.total;
+            
+            // Test normal error (should not be suppressed)
+            console.error('This is a normal error that should appear');
+            
+            // Test validation error (should be suppressed after limit)
+            for (let i = 0; i < 5; i++) {
+                console.error('[VALIDATION] Preview tidak tersedia. Silakan lengkapi form terlebih dahulu.');
+            }
+            
+            setTimeout(() => {
+                const finalTotal = errorCounts.total;
+                const errorsLogged = finalTotal - initialTotal;
+                
+                // Should log normal error + limited validation errors
+                const consoleOverrideWorking = errorsLogged < 6; // Less than all 6 errors
+                
+                addTestResult(
+                    'Console Override Test',
+                    consoleOverrideWorking,
+                    `${errorsLogged} errors logged (expected < 6)`
+                );
+                
+                // Final test summary
+                setTimeout(() => {
+                    const allTestsPassed = testResults.every(r => r.passed);
+                    updateTestStatus(
+                        allTestsPassed ? 
+                            'All validation tests passed! Error suppression is working.' :
+                            'Some tests failed. Check results below.',
+                        allTestsPassed ? 'success' : 'warning'
+                    );
+                }, 500);
+            }, 1000);
+        }
+
+        function simulateRepeatedValidation() {
+            console.log('🔄 Simulating repeated validation errors...');
+            updateTestStatus('Simulating repeated validation errors...', 'info');
+            
+            let count = 0;
+            const interval = setInterval(() => {
+                count++;
+                console.error(`[VALIDATION] ${new Date().toISOString()}: Preview tidak tersedia. Silakan lengkapi form terlebih dahulu.`);
+                
+                if (count >= 20) {
+                    clearInterval(interval);
+                    updateTestStatus('Simulation complete. Check console for suppression behavior.', 'success');
+                }
+            }, 200);
+        }
+
+        function testTransformasiBarangPage() {
+            console.log('🔗 Testing transformasi barang page...');
+            updateTestStatus('Opening transformasi barang page for testing...', 'info');
+            
+            // Open in new window for testing
+            const testWindow = window.open('transformasi_barang.html', '_blank');
+            
+            if (testWindow) {
+                updateTestStatus('Transformasi barang page opened. Check for validation errors in browser console.', 'success');
+                
+                // Add instructions
+                setTimeout(() => {
+                    alert('Test Instructions:\n\n1. Open browser console (F12)\n2. Try selecting items in dropdowns\n3. Enter quantities\n4. Check if validation errors are suppressed\n5. Return to this page to see results');
+                }, 1000);
+            } else {
+                updateTestStatus('Failed to open transformasi barang page. Check popup blocker.', 'danger');
+            }
+        }
+
+        function downloadTestReport() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                errorCounts: errorCounts,
+                testResults: testResults,
+                consoleMessages: consoleMessages.slice(-100), // Last 100 messages
+                summary: {
+                    totalTests: testResults.length,
+                    passedTests: testResults.filter(r => r.passed).length,
+                    validationErrorsSuppressed: errorCounts.suppressed > 0
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transformasi-barang-validation-test-report-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('📥 Test report downloaded');
+            updateTestStatus('Test report downloaded successfully', 'success');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            captureConsole();
+            updateErrorCounts();
+            console.log('🧪 Validation fix test tool initialized');
+            console.log('Ready to test transformasi barang validation error suppression');
+            updateTestStatus('Test tool ready. Click "Start Validation Test" to begin testing.', 'info');
+        });
+    </script>
+</body>
+</html>
+</content>

@@ -377,6 +377,69 @@
         
         console.log('🔧 Loading emergency fix for transformasi barang...');
         
+        // PREVIEW VALIDATION FIX: Prevent repeated validation errors
+        let lastValidationError = null;
+        let errorCount = 0;
+        const MAX_REPEATED_ERRORS = 2;
+        const ERROR_RESET_TIME = 5000; // 5 seconds
+        
+        // Reset error count periodically
+        setInterval(() => {
+            if (errorCount > 0) {
+                errorCount = Math.max(0, errorCount - 1);
+            }
+        }, ERROR_RESET_TIME);
+        
+        // Throttle function to prevent excessive validation calls
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+        
+        // Enhanced validation with error suppression
+        function suppressRepeatedValidationErrors() {
+            // Override console.error to suppress repeated validation errors
+            const originalConsoleError = console.error;
+            console.error = function(...args) {
+                const message = args.join(' ');
+                
+                // Check if this is a repeated validation error
+                if (message.includes('Preview tidak tersedia') || 
+                    message.includes('Silakan lengkapi form terlebih dahulu')) {
+                    
+                    if (lastValidationError !== message || errorCount < MAX_REPEATED_ERRORS) {
+                        if (lastValidationError !== message) {
+                            errorCount = 0;
+                        }
+                        lastValidationError = message;
+                        errorCount++;
+                        
+                        if (errorCount <= MAX_REPEATED_ERRORS) {
+                            originalConsoleError.apply(console, args);
+                        } else {
+                            // Suppress repeated errors, just log once more with suppression notice
+                            originalConsoleError.call(console, `[SUPPRESSED] ${message} (${errorCount - MAX_REPEATED_ERRORS} more suppressed)`);
+                        }
+                    }
+                    return;
+                }
+                
+                // For non-validation errors, log normally
+                originalConsoleError.apply(console, args);
+            };
+        }
+        
+        // Apply error suppression immediately
+        suppressRepeatedValidationErrors();
+        
         // Initialize data if not exists
         function initializeDataIfNeeded() {
             let masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
@@ -671,6 +734,102 @@
         setTimeout(populateDropdownsSafe, 3000);
         
         console.log('🔧 Emergency fix loaded and ready!');
+        
+        // PATCH UIController to prevent repeated validation errors
+        function patchUIControllerValidation() {
+            // Wait for UIController to be available
+            if (typeof window.UIController !== 'undefined') {
+                console.log('🔧 Patching UIController validation methods...');
+                
+                // Create a throttled validation function
+                const throttledValidation = throttle(function(formData) {
+                    if (!formData || !formData.sourceItem || !formData.targetItem || !formData.quantity) {
+                        // Only log validation errors occasionally, not repeatedly
+                        if (errorCount <= MAX_REPEATED_ERRORS) {
+                            console.log('ℹ️ Form validation: Preview not available (form incomplete)');
+                        }
+                        return false;
+                    }
+                    return true;
+                }, 1000); // Throttle to max once per second
+                
+                // Store original methods if they exist
+                const originalUIControllerMethods = {};
+                
+                // Patch UIController prototype if available
+                if (window.UIController.prototype) {
+                    // Patch _updatePreview method
+                    if (window.UIController.prototype._updatePreview) {
+                        originalUIControllerMethods._updatePreview = window.UIController.prototype._updatePreview;
+                        window.UIController.prototype._updatePreview = async function() {
+                            try {
+                                const formData = this._getFormData ? this._getFormData() : {};
+                                
+                                // Use throttled validation
+                                if (throttledValidation(formData)) {
+                                    return await originalUIControllerMethods._updatePreview.call(this);
+                                } else {
+                                    // Silently skip preview update if form is incomplete
+                                    return;
+                                }
+                            } catch (error) {
+                                // Suppress validation errors, only log system errors
+                                if (!error.message.includes('Preview tidak tersedia')) {
+                                    console.warn('⚠️ Preview update error:', error.message);
+                                }
+                            }
+                        };
+                    }
+                    
+                    // Patch _handleFormSubmission method
+                    if (window.UIController.prototype._handleFormSubmission) {
+                        originalUIControllerMethods._handleFormSubmission = window.UIController.prototype._handleFormSubmission;
+                        window.UIController.prototype._handleFormSubmission = async function() {
+                            try {
+                                if (!this.currentPreview) {
+                                    // Show user-friendly message instead of logging error
+                                    const alertContainer = document.getElementById('alert-container');
+                                    if (alertContainer) {
+                                        alertContainer.innerHTML = `
+                                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                Silakan lengkapi form transformasi terlebih dahulu.
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            </div>
+                                        `;
+                                    }
+                                    return;
+                                }
+                                
+                                return await originalUIControllerMethods._handleFormSubmission.call(this);
+                            } catch (error) {
+                                console.error('❌ Form submission error:', error);
+                                throw error;
+                            }
+                        };
+                    }
+                    
+                    console.log('✅ UIController validation methods patched');
+                }
+            }
+        }
+        
+        // Apply patches when UIController is available
+        function applyUIControllerPatches() {
+            patchUIControllerValidation();
+            
+            // Also try after delays in case UIController loads later
+            setTimeout(patchUIControllerValidation, 1000);
+            setTimeout(patchUIControllerValidation, 3000);
+            setTimeout(patchUIControllerValidation, 5000);
+        }
+        
+        // Initialize patches
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', applyUIControllerPatches);
+        } else {
+            applyUIControllerPatches();
+        }
         
     })();
     </script>
