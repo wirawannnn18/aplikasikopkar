@@ -735,7 +735,7 @@
         }
         
         // Update conversion info function with enhanced stock integration
-        function updateConversionInfo() {
+        async function updateConversionInfo() {
             const sourceSelect = document.getElementById('sourceItem');
             const targetSelect = document.getElementById('targetItem');
             const quantityInput = document.getElementById('quantity');
@@ -757,6 +757,12 @@
             }
             
             try {
+                // Initialize StockManager if needed
+                if (!window.stockManager) {
+                    window.stockManager = new StockManager();
+                    window.stockManager.initialize();
+                }
+                
                 const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
                 const sourceItem = masterBarang.find(item => item.kode === sourceValue);
                 const targetItem = masterBarang.find(item => item.kode === targetValue);
@@ -782,6 +788,10 @@
                     return;
                 }
                 
+                // Get real-time stock from StockManager
+                const currentSourceStock = await window.stockManager.getStockBalance(sourceValue);
+                const currentTargetStock = await window.stockManager.getStockBalance(targetValue);
+                
                 let ratio = 1;
                 const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
                 const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
@@ -796,9 +806,9 @@
                 }
                 
                 const targetQuantity = quantity * ratio;
-                const stockSufficient = sourceItem.stok >= quantity;
-                const newSourceStock = sourceItem.stok - quantity;
-                const newTargetStock = targetItem.stok + targetQuantity;
+                const stockSufficient = currentSourceStock >= quantity;
+                const newSourceStock = currentSourceStock - quantity;
+                const newTargetStock = currentTargetStock + targetQuantity;
                 
                 conversionInfo.innerHTML = `
                     <div class="small">
@@ -819,7 +829,7 @@
                                     <div class="fw-bold text-primary">Stok Sumber</div>
                                     <div class="small">${sourceItem.nama}</div>
                                     <div class="badge bg-${stockSufficient ? 'success' : 'danger'} mb-1">
-                                        ${sourceItem.stok} ${sourceItem.satuan}
+                                        ${currentSourceStock} ${sourceItem.satuan}
                                     </div>
                                     <div class="small">
                                         Setelah: <span class="fw-bold ${newSourceStock >= 0 ? 'text-success' : 'text-danger'}">${newSourceStock} ${sourceItem.satuan}</span>
@@ -831,7 +841,7 @@
                                     <div class="fw-bold text-success">Stok Target</div>
                                     <div class="small">${targetItem.nama}</div>
                                     <div class="badge bg-info mb-1">
-                                        ${targetItem.stok} ${targetItem.satuan}
+                                        ${currentTargetStock} ${targetItem.satuan}
                                     </div>
                                     <div class="small">
                                         Setelah: <span class="fw-bold text-success">${newTargetStock.toFixed(3)} ${targetItem.satuan}</span>
@@ -843,12 +853,12 @@
                         <div class="row">
                             <div class="col-6">
                                 <span class="badge bg-${stockSufficient ? 'success' : 'danger'}">
-                                    Stok ${sourceItem.nama}: ${sourceItem.stok} ${sourceItem.satuan}
+                                    Stok ${sourceItem.nama}: ${currentSourceStock} ${sourceItem.satuan}
                                 </span>
                             </div>
                             <div class="col-6">
                                 <span class="badge bg-info">
-                                    Stok ${targetItem.nama}: ${targetItem.stok} ${targetItem.satuan}
+                                    Stok ${targetItem.nama}: ${currentTargetStock} ${targetItem.satuan}
                                 </span>
                             </div>
                         </div>
@@ -1809,9 +1819,9 @@
         }
         
         /**
-         * Load products for transformation (fallback version)
+         * Load products for transformation with proper stock integration
          */
-        function loadProductsForTransformationFallback() {
+        async function loadProductsForTransformationFallback() {
             try {
                 const sourceSelect = document.getElementById('sourceItem');
                 const targetSelect = document.getElementById('targetItem');
@@ -1821,73 +1831,100 @@
                     return;
                 }
                 
-                // Coba ambil data dari berbagai sumber localStorage
-                let barang = [];
+                // Initialize StockManager if not already done
+                if (!window.stockManager) {
+                    window.stockManager = new StockManager();
+                    window.stockManager.initialize();
+                }
                 
-                // Prioritas: masterBarang -> barang -> stokBarang -> produk
-                const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
-                
-                for (const source of dataSources) {
+                // Get transformable items using TransformationManager
+                let transformableItems = [];
+                if (window.transformationManager && window.transformationManager.getTransformableItems) {
                     try {
-                        const data = localStorage.getItem(source);
-                        if (data) {
-                            const parsedData = JSON.parse(data);
-                            if (Array.isArray(parsedData) && parsedData.length > 0) {
-                                barang = parsedData;
-                                console.log(`Data barang berhasil dimuat dari ${source}: ${barang.length} items`);
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn(`Error parsing data from ${source}:`, e);
+                        const items = await window.transformationManager.getTransformableItems();
+                        transformableItems = items;
+                    } catch (error) {
+                        console.warn('Error getting transformable items from manager:', error);
                     }
                 }
                 
-                // Jika tidak ada data, buat data sample
-                if (barang.length === 0) {
-                    console.log('Tidak ada data barang ditemukan, membuat data sample...');
-                    barang = createSampleBarangData();
-                    // Simpan data sample ke localStorage
-                    localStorage.setItem('masterBarang', JSON.stringify(barang));
+                // Fallback: load from localStorage directly
+                if (transformableItems.length === 0) {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    
+                    // If no data, create sample data
+                    if (masterBarang.length === 0) {
+                        console.log('Tidak ada data barang ditemukan, membuat data sample...');
+                        const sampleData = createSampleBarangData();
+                        localStorage.setItem('masterBarang', JSON.stringify(sampleData));
+                        
+                        // Also create sample conversion ratios
+                        const sampleRatios = createSampleConversionRatios();
+                        localStorage.setItem('conversionRatios', JSON.stringify(sampleRatios));
+                    }
+                    
+                    // Group by base product for transformable items
+                    const baseProducts = {};
+                    masterBarang.forEach(item => {
+                        const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                        if (!baseProducts[baseProduct]) {
+                            baseProducts[baseProduct] = [];
+                        }
+                        baseProducts[baseProduct].push(item);
+                    });
+                    
+                    // Convert to transformable items format
+                    transformableItems = Object.entries(baseProducts)
+                        .filter(([baseProduct, items]) => items.length > 1)
+                        .map(([baseProduct, items]) => ({
+                            baseProduct,
+                            items: items.map(item => ({
+                                id: item.kode,
+                                name: item.nama,
+                                unit: item.satuan,
+                                stock: item.stok || 0,
+                                baseProduct
+                            }))
+                        }));
                 }
                 
                 // Clear existing options
                 sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
                 targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
                 
-                // Populate dropdowns
-                barang.forEach(item => {
-                    const itemId = item.kode || item.id || item.barcode;
-                    const itemName = item.nama || item.name || item.namaBarang;
-                    const itemUnit = item.satuan || item.unit || 'pcs';
-                    const itemStock = item.stok || item.stock || item.qty || 0;
-                    
-                    if (itemId && itemName) {
-                        // Source dropdown - hanya item dengan stok > 0
-                        if (itemStock > 0) {
+                // Populate dropdowns with stock-aware filtering
+                let sourceCount = 0;
+                let targetCount = 0;
+                
+                transformableItems.forEach(productGroup => {
+                    productGroup.items.forEach(item => {
+                        // Source dropdown - only items with stock > 0
+                        if (item.stock > 0) {
                             const sourceOption = new Option(
-                                `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
-                                itemId
+                                `${item.name} (Stok: ${item.stock} ${item.unit})`, 
+                                item.id
                             );
                             sourceSelect.add(sourceOption);
+                            sourceCount++;
                         }
                         
-                        // Target dropdown - semua item
+                        // Target dropdown - all items (for conversion targets)
                         const targetOption = new Option(
-                            `${itemName} (Stok: ${itemStock} ${itemUnit})`, 
-                            itemId
+                            `${item.name} (Stok: ${item.stock} ${item.unit})`, 
+                            item.id
                         );
                         targetSelect.add(targetOption);
-                    }
+                        targetCount++;
+                    });
                 });
                 
-                console.log(`Berhasil memuat ${barang.length} produk untuk transformasi`);
+                console.log(`✅ Berhasil memuat produk untuk transformasi: ${sourceCount} source items, ${targetCount} target items`);
                 
                 // Update statistik
-                updateAvailableItemsCount(barang.length);
+                updateAvailableItemsCount(sourceCount);
                 
             } catch (error) {
-                console.error('Error loading products (fallback):', error);
+                console.error('❌ Error loading products for transformation:', error);
                 showAlert('Gagal memuat data barang. Silakan refresh halaman.', 'warning');
             }
         }
@@ -1955,6 +1992,38 @@
         }
         
         /**
+         * Buat data sample conversion ratios untuk testing
+         */
+        function createSampleConversionRatios() {
+            return [
+                {
+                    baseProduct: 'BRG001',
+                    productName: 'Beras Premium',
+                    conversions: [
+                        { from: 'kg', to: 'gram', ratio: 1000 },
+                        { from: 'gram', to: 'kg', ratio: 0.001 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG002',
+                    productName: 'Minyak Goreng',
+                    conversions: [
+                        { from: 'liter', to: 'ml', ratio: 1000 },
+                        { from: 'ml', to: 'liter', ratio: 0.001 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG003',
+                    productName: 'Air Mineral',
+                    conversions: [
+                        { from: 'dus', to: 'botol', ratio: 24 },
+                        { from: 'botol', to: 'dus', ratio: 0.041667 }
+                    ]
+                }
+            ];
+        }
+        
+        /**
          * Update jumlah item tersedia di statistik
          */
         function updateAvailableItemsCount(count) {
@@ -1965,7 +2034,7 @@
         }
         
         /**
-         * Process transformation with stock integration
+         * Process transformation with proper stock integration
          */
         async function processTransformation() {
             const sourceSelect = document.getElementById('sourceItem');
@@ -1999,93 +2068,88 @@
                 if (loadingIndicator) loadingIndicator.style.display = 'block';
                 if (submitButton) submitButton.disabled = true;
                 
-                // Get master barang data
-                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
-                const sourceItem = masterBarang.find(item => item.kode === sourceValue);
-                const targetItem = masterBarang.find(item => item.kode === targetValue);
-                
-                if (!sourceItem || !targetItem) {
-                    throw new Error('Item tidak ditemukan');
+                // Initialize managers if not already done
+                if (!window.stockManager) {
+                    window.stockManager = new StockManager();
+                    window.stockManager.initialize();
                 }
                 
-                // Validate same base product
-                const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
-                const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
-                
-                if (sourceBaseProduct !== targetBaseProduct) {
-                    throw new Error('Item harus dari produk yang sama');
+                if (!window.transformationManager) {
+                    // Initialize transformation manager with dependencies
+                    window.transformationManager = new TransformationManager();
+                    
+                    // Create minimal dependencies for fallback
+                    const validationEngine = {
+                        validateProductMatch: async (source, target) => {
+                            const sourceBase = source.baseProduct || source.kode.split('-')[0];
+                            const targetBase = target.baseProduct || target.kode.split('-')[0];
+                            return {
+                                isValid: sourceBase === targetBase,
+                                errors: sourceBase !== targetBase ? ['Item harus dari produk yang sama'] : []
+                            };
+                        },
+                        validateStockAvailability: async (item, qty) => {
+                            return {
+                                isValid: item.stok >= qty,
+                                errors: item.stok < qty ? [`Stok tidak mencukupi. Tersedia: ${item.stok}, diminta: ${qty}`] : []
+                            };
+                        },
+                        validateConversionRatio: async (fromUnit, toUnit) => {
+                            return { isValid: true, errors: [] };
+                        },
+                        validateQuantityCalculation: async (qty, targetQty, ratio) => {
+                            return { isValid: true, errors: [] };
+                        }
+                    };
+                    
+                    const calculator = {
+                        getConversionRatio: async (fromUnit, toUnit) => {
+                            const ratios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                            for (const productRatio of ratios) {
+                                const conversion = productRatio.conversions.find(c => 
+                                    c.from === fromUnit && c.to === toUnit
+                                );
+                                if (conversion) return conversion.ratio;
+                            }
+                            return 1;
+                        },
+                        calculateTargetQuantity: async (qty, ratio) => qty * ratio
+                    };
+                    
+                    const auditLogger = {
+                        logTransformation: async (record) => {
+                            const history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+                            history.unshift(record);
+                            localStorage.setItem('transformationHistory', JSON.stringify(history));
+                        }
+                    };
+                    
+                    window.transformationManager.initialize({
+                        validationEngine,
+                        calculator,
+                        stockManager: window.stockManager,
+                        auditLogger
+                    });
                 }
                 
-                // Validate stock availability
-                if (sourceItem.stok < quantity) {
-                    throw new Error(`Stok tidak mencukupi. Stok tersedia: ${sourceItem.stok} ${sourceItem.satuan}, diminta: ${quantity} ${sourceItem.satuan}`);
-                }
-                
-                // Get conversion ratio
-                let ratio = 1;
-                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
-                const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
-                
-                if (productRatios && productRatios.conversions) {
-                    const conversion = productRatios.conversions.find(c => 
-                        c.from === sourceItem.satuan && c.to === targetItem.satuan
-                    );
-                    if (conversion) {
-                        ratio = conversion.ratio;
-                    }
-                }
-                
-                const targetQuantity = quantity * ratio;
-                
-                // Create transformation record
-                const transformationId = `TRF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-                const transformationRecord = {
-                    id: transformationId,
-                    timestamp: new Date().toISOString(),
-                    user: window.currentUser?.name || 'Test User',
-                    sourceItem: {
-                        id: sourceItem.kode,
-                        name: sourceItem.nama,
-                        unit: sourceItem.satuan,
-                        quantity: quantity,
-                        stockBefore: sourceItem.stok,
-                        stockAfter: sourceItem.stok - quantity,
-                        baseProduct: sourceBaseProduct
-                    },
-                    targetItem: {
-                        id: targetItem.kode,
-                        name: targetItem.nama,
-                        unit: targetItem.satuan,
-                        quantity: targetQuantity,
-                        stockBefore: targetItem.stok,
-                        stockAfter: targetItem.stok + targetQuantity,
-                        baseProduct: targetBaseProduct
-                    },
-                    conversionRatio: ratio,
-                    status: 'completed'
+                // Use TransformationManager for proper processing
+                const transformationData = {
+                    sourceItemId: sourceValue,
+                    targetItemId: targetValue,
+                    quantity: quantity,
+                    user: window.currentUser?.name || 'Test User'
                 };
                 
-                // Update stock in masterBarang
-                const sourceIndex = masterBarang.findIndex(item => item.kode === sourceValue);
-                const targetIndex = masterBarang.findIndex(item => item.kode === targetValue);
-                
-                masterBarang[sourceIndex].stok = sourceItem.stok - quantity;
-                masterBarang[targetIndex].stok = targetItem.stok + targetQuantity;
-                
-                // Save updated data
-                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
-                
-                // Save transformation history
-                const history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
-                history.unshift(transformationRecord);
-                localStorage.setItem('transformationHistory', JSON.stringify(history));
+                // Execute transformation using the manager
+                const transformationRecord = await window.transformationManager.executeTransformation(transformationData);
                 
                 // Show success message
                 showAlert(`
                     <strong>Transformasi Berhasil!</strong><br>
                     <small>
-                        ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}<br>
-                        ID Transaksi: ${transformationId}
+                        ${transformationRecord.sourceItem.quantity} ${transformationRecord.sourceItem.unit} ${transformationRecord.sourceItem.name} → 
+                        ${transformationRecord.targetItem.quantity.toFixed(3)} ${transformationRecord.targetItem.unit} ${transformationRecord.targetItem.name}<br>
+                        ID Transaksi: ${transformationRecord.id}
                     </small>
                 `, 'success');
                 
@@ -2182,7 +2246,7 @@
         /**
          * Enhanced dropdown population with stock filtering
          */
-        function populateDropdownsEnhanced() {
+        async function populateDropdownsEnhanced() {
             try {
                 const sourceSelect = document.getElementById('sourceItem');
                 const targetSelect = document.getElementById('targetItem');
@@ -2190,6 +2254,12 @@
                 if (!sourceSelect || !targetSelect) {
                     console.warn('Dropdown elements not found');
                     return;
+                }
+                
+                // Initialize StockManager if needed
+                if (!window.stockManager) {
+                    window.stockManager = new StockManager();
+                    window.stockManager.initialize();
                 }
                 
                 const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
@@ -2213,25 +2283,33 @@
                     baseProducts[baseProduct].push(item);
                 });
                 
+                // Check conversion ratios exist
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                
                 // Populate dropdowns with enhanced information
-                Object.entries(baseProducts).forEach(([baseProduct, items]) => {
-                    if (items.length > 1) { // Only show products with multiple units
-                        items.forEach(item => {
-                            const stockInfo = item.stok > 0 ? `(Stok: ${item.stok} ${item.satuan})` : '(Stok Habis)';
+                for (const [baseProduct, items] of Object.entries(baseProducts)) {
+                    // Only show products with multiple units AND conversion ratios
+                    const hasConversionRatios = conversionRatios.some(ratio => ratio.baseProduct === baseProduct);
+                    
+                    if (items.length > 1 && hasConversionRatios) {
+                        for (const item of items) {
+                            // Get real-time stock
+                            const currentStock = await window.stockManager.getStockBalance(item.kode);
+                            const stockInfo = currentStock > 0 ? `(Stok: ${currentStock} ${item.satuan})` : '(Stok Habis)';
                             const itemLabel = `${item.nama} ${stockInfo}`;
                             
                             // Source dropdown - only items with stock > 0
-                            if (item.stok > 0) {
+                            if (currentStock > 0) {
                                 const sourceOption = new Option(itemLabel, item.kode);
                                 sourceSelect.add(sourceOption);
                             }
                             
-                            // Target dropdown - all items
+                            // Target dropdown - all items (for conversion targets)
                             const targetOption = new Option(itemLabel, item.kode);
                             targetSelect.add(targetOption);
-                        });
+                        }
                     }
-                });
+                }
                 
                 console.log(`✅ Enhanced dropdowns populated: ${sourceSelect.options.length - 1} source, ${targetSelect.options.length - 1} target options`);
                 
@@ -2258,11 +2336,11 @@
                 const resetButton = document.getElementById('reset-form');
                 
                 if (sourceSelect) {
-                    sourceSelect.addEventListener('change', function() {
-                        updateConversionInfo();
+                    sourceSelect.addEventListener('change', async function() {
+                        await updateConversionInfo();
                         // Auto-populate target dropdown based on source selection
                         if (sourceSelect.value) {
-                            filterTargetOptions(sourceSelect.value);
+                            await filterTargetOptions(sourceSelect.value);
                         }
                     });
                 }
@@ -2301,10 +2379,16 @@
         /**
          * Filter target options based on source selection
          */
-        function filterTargetOptions(sourceItemId) {
+        async function filterTargetOptions(sourceItemId) {
             try {
                 const targetSelect = document.getElementById('targetItem');
                 if (!targetSelect) return;
+                
+                // Initialize StockManager if needed
+                if (!window.stockManager) {
+                    window.stockManager = new StockManager();
+                    window.stockManager.initialize();
+                }
                 
                 const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
                 const sourceItem = masterBarang.find(item => item.kode === sourceItemId);
@@ -2316,15 +2400,26 @@
                 // Clear and repopulate target dropdown with same base product items only
                 targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
                 
-                masterBarang.forEach(item => {
+                // Check if conversion ratios exist for this base product
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                const hasConversionRatios = conversionRatios.some(ratio => ratio.baseProduct === sourceBaseProduct);
+                
+                if (!hasConversionRatios) {
+                    console.warn(`No conversion ratios found for base product: ${sourceBaseProduct}`);
+                    return;
+                }
+                
+                for (const item of masterBarang) {
                     const itemBaseProduct = item.baseProduct || item.kode.split('-')[0];
                     if (itemBaseProduct === sourceBaseProduct && item.kode !== sourceItemId) {
-                        const stockInfo = `(Stok: ${item.stok} ${item.satuan})`;
+                        // Get real-time stock
+                        const currentStock = await window.stockManager.getStockBalance(item.kode);
+                        const stockInfo = `(Stok: ${currentStock} ${item.satuan})`;
                         const itemLabel = `${item.nama} ${stockInfo}`;
                         const option = new Option(itemLabel, item.kode);
                         targetSelect.add(option);
                     }
-                });
+                }
                 
             } catch (error) {
                 console.error('❌ Error filtering target options:', error);
@@ -2332,23 +2427,33 @@
         }
         
         // Initialize enhanced system
-        function initializeEnhancedTransformationSystem() {
+        async function initializeEnhancedTransformationSystem() {
             console.log('🚀 Initializing enhanced transformation system...');
             
-            // Initialize sample data if needed
-            initializeSampleDataIfNeeded();
-            
-            // Populate dropdowns with enhanced features
-            populateDropdownsEnhanced();
-            
-            // Setup enhanced event listeners
-            setupEnhancedEventListeners();
-            
-            // Load initial data
-            loadInitialData();
-            updateStats();
-            
-            console.log('✅ Enhanced transformation system initialized');
+            try {
+                // Initialize sample data if needed
+                initializeSampleDataIfNeeded();
+                
+                // Initialize StockManager
+                if (!window.stockManager) {
+                    window.stockManager = new StockManager();
+                    window.stockManager.initialize();
+                }
+                
+                // Populate dropdowns with enhanced features
+                await populateDropdownsEnhanced();
+                
+                // Setup enhanced event listeners
+                setupEnhancedEventListeners();
+                
+                // Load initial data
+                loadInitialData();
+                updateStats();
+                
+                console.log('✅ Enhanced transformation system initialized');
+            } catch (error) {
+                console.error('❌ Error initializing enhanced transformation system:', error);
+            }
         }
         
         // Auto-initialize enhanced system

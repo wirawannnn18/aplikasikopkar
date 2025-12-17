@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang - Stock Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test Transformasi Barang - Stock Integration</h1>
+        <p class="text-muted">Testing the stock integration functionality for transformation form</p>
+        
+        <div class="test-section">
+            <h3>Test 1: StockManager Initialization</h3>
+            <button class="btn btn-primary" onclick="testStockManagerInit()">Run Test</button>
+            <div id="test1-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 2: Sample Data Creation</h3>
+            <button class="btn btn-primary" onclick="testSampleDataCreation()">Run Test</button>
+            <div id="test2-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 3: Stock Balance Retrieval</h3>
+            <button class="btn btn-primary" onclick="testStockBalance()">Run Test</button>
+            <div id="test3-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 4: Stock Update (Transformation Simulation)</h3>
+            <button class="btn btn-primary" onclick="testStockUpdate()">Run Test</button>
+            <div id="test4-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 5: Conversion Ratio Calculation</h3>
+            <button class="btn btn-primary" onclick="testConversionRatio()">Run Test</button>
+            <div id="test5-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 6: Full Transformation Process</h3>
+            <button class="btn btn-primary" onclick="testFullTransformation()">Run Test</button>
+            <div id="test6-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 7: Stock Validation</h3>
+            <button class="btn btn-primary" onclick="testStockValidation()">Run Test</button>
+            <div id="test7-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Current Stock Status</h3>
+            <button class="btn btn-info" onclick="showCurrentStock()">Show Current Stock</button>
+            <div id="stock-status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Reset Test Data</h3>
+            <button class="btn btn-warning" onclick="resetTestData()">Reset All Data</button>
+            <div id="reset-result"></div>
+        </div>
+    </div>
+
+    <!-- Include required JavaScript files -->
+    <script src="js/transformasi-barang/StockManager.js"></script>
+    <script src="js/transformasi-barang/TransformationManager.js"></script>
+    <script src="js/transformasi-barang/ValidationEngine.js"></script>
+    <script src="js/transformasi-barang/ConversionCalculator.js"></script>
+    <script src="js/transformasi-barang/AuditLogger.js"></script>
+
+    <script>
+        // Test functions
+        function showResult(testId, success, message) {
+            const resultDiv = document.getElementById(testId + '-result');
+            resultDiv.innerHTML = `
+                <div class="test-result ${success ? 'test-pass' : 'test-fail'}">
+                    <strong>${success ? 'PASS' : 'FAIL'}:</strong> ${message}
+                </div>
+            `;
+        }
+
+        async function testStockManagerInit() {
+            try {
+                // Initialize StockManager
+                const stockManager = new StockManager();
+                stockManager.initialize();
+                
+                if (stockManager.initialized) {
+                    showResult('test1', true, 'StockManager initialized successfully');
+                    window.testStockManager = stockManager;
+                } else {
+                    showResult('test1', false, 'StockManager failed to initialize');
+                }
+            } catch (error) {
+                showResult('test1', false, `Error: ${error.message}`);
+            }
+        }
+
+        function testSampleDataCreation() {
+            try {
+                // Create sample data
+                const sampleBarang = [
+                    {
+                        kode: 'BRG001-KG',
+                        nama: 'Beras Premium (Kilogram)',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
+                    },
+                    {
+                        kode: 'BRG001-GR',
+                        nama: 'Beras Premium (Gram)',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
+                    },
+                    {
+                        kode: 'BRG003-DUS',
+                        nama: 'Air Mineral (Dus)',
+                        satuan: 'dus',
+                        stok: 20,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 48000,
+                        hargaJual: 60000
+                    },
+                    {
+                        kode: 'BRG003-BTL',
+                        nama: 'Air Mineral (Botol)',
+                        satuan: 'botol',
+                        stok: 480,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 2000,
+                        hargaJual: 2500
+                    }
+                ];
+
+                const sampleRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        productName: 'Beras Premium',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG003',
+                        productName: 'Air Mineral',
+                        conversions: [
+                            { from: 'dus', to: 'botol', ratio: 24 },
+                            { from: 'botol', to: 'dus', ratio: 0.041667 }
+                        ]
+                    }
+                ];
+
+                localStorage.setItem('masterBarang', JSON.stringify(sampleBarang));
+                localStorage.setItem('conversionRatios', JSON.stringify(sampleRatios));
+
+                showResult('test2', true, `Created ${sampleBarang.length} sample items and ${sampleRatios.length} conversion ratio sets`);
+            } catch (error) {
+                showResult('test2', false, `Error: ${error.message}`);
+            }
+        }
+
+        async function testStockBalance() {
+            try {
+                if (!window.testStockManager) {
+                    await testStockManagerInit();
+                }
+
+                const stockManager = window.testStockManager;
+                
+                // Test getting stock balance
+                const berasKgStock = await stockManager.getStockBalance('BRG001-KG');
+                const berasGrStock = await stockManager.getStockBalance('BRG001-GR');
+                
+                if (berasKgStock === 100 && berasGrStock === 50000) {
+                    showResult('test3', true, `Stock balances correct: Beras KG=${berasKgStock}, Beras GR=${berasGrStock}`);
+                } else {
+                    showResult('test3', false, `Stock balances incorrect: Beras KG=${berasKgStock}, Beras GR=${berasGrStock}`);
+                }
+            } catch (error) {
+                showResult('test3', false, `Error: ${error.message}`);
+            }
+        }
+
+        async function testStockUpdate() {
+            try {
+                if (!window.testStockManager) {
+                    await testStockManagerInit();
+                }
+
+                const stockManager = window.testStockManager;
+                
+                // Test atomic stock update (simulate transformation: 1 kg -> 1000 gram)
+                const updateResult = await stockManager.atomicTransformationUpdate(
+                    { itemId: 'BRG001-KG', quantityChange: -1 }, // Reduce 1 kg
+                    { itemId: 'BRG001-GR', quantityChange: 1000 } // Add 1000 gram
+                );
+                
+                if (updateResult.success) {
+                    const newKgStock = await stockManager.getStockBalance('BRG001-KG');
+                    const newGrStock = await stockManager.getStockBalance('BRG001-GR');
+                    
+                    showResult('test4', true, `Stock update successful: KG=${newKgStock}, GR=${newGrStock}`);
+                } else {
+                    showResult('test4', false, 'Stock update failed');
+                }
+            } catch (error) {
+                showResult('test4', false, `Error: ${error.message}`);
+            }
+        }
+
+        function testConversionRatio() {
+            try {
+                const conversionRatios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                const berasRatios = conversionRatios.find(r => r.baseProduct === 'BRG001');
+                
+                if (berasRatios) {
+                    const kgToGramRatio = berasRatios.conversions.find(c => c.from === 'kg' && c.to === 'gram');
+                    const gramToKgRatio = berasRatios.conversions.find(c => c.from === 'gram' && c.to === 'kg');
+                    
+                    if (kgToGramRatio && kgToGramRatio.ratio === 1000 && gramToKgRatio && gramToKgRatio.ratio === 0.001) {
+                        showResult('test5', true, `Conversion ratios correct: 1 kg = ${kgToGramRatio.ratio} gram, 1 gram = ${gramToKgRatio.ratio} kg`);
+                    } else {
+                        showResult('test5', false, 'Conversion ratios incorrect');
+                    }
+                } else {
+                    showResult('test5', false, 'No conversion ratios found for Beras');
+                }
+            } catch (error) {
+                showResult('test5', false, `Error: ${error.message}`);
+            }
+        }
+
+        async function testFullTransformation() {
+            try {
+                if (!window.testStockManager) {
+                    await testStockManagerInit();
+                }
+
+                // Initialize TransformationManager
+                const transformationManager = new TransformationManager();
+                
+                // Create minimal dependencies
+                const validationEngine = {
+                    validateProductMatch: async (source, target) => {
+                        const sourceBase = source.baseProduct || source.kode.split('-')[0];
+                        const targetBase = target.baseProduct || target.kode.split('-')[0];
+                        return {
+                            isValid: sourceBase === targetBase,
+                            errors: sourceBase !== targetBase ? ['Item harus dari produk yang sama'] : []
+                        };
+                    },
+                    validateStockAvailability: async (item, qty) => {
+                        return {
+                            isValid: item.stok >= qty,
+                            errors: item.stok < qty ? [`Stok tidak mencukupi`] : []
+                        };
+                    },
+                    validateConversionRatio: async () => ({ isValid: true, errors: [] }),
+                    validateQuantityCalculation: async () => ({ isValid: true, errors: [] })
+                };
+                
+                const calculator = {
+                    getConversionRatio: async (fromUnit, toUnit) => {
+                        const ratios = JSON.parse(localStorage.getItem('conversionRatios') || '[]');
+                        for (const productRatio of ratios) {
+                            const conversion = productRatio.conversions.find(c => 
+                                c.from === fromUnit && c.to === toUnit
+                            );
+                            if (conversion) return conversion.ratio;
+                        }
+                        return 1;
+                    },
+                    calculateTargetQuantity: async (qty, ratio) => qty * ratio
+                };
+                
+                const auditLogger = {
+                    logTransformation: async (record) => {
+                        const history = JSON.parse(localStorage.getItem('transformationHistory') || '[]');
+                        history.unshift(record);
+                        localStorage.setItem('transformationHistory', JSON.stringify(history));
+                    }
+                };
+                
+                transformationManager.initialize({
+                    validationEngine,
+                    calculator,
+                    stockManager: window.testStockManager,
+                    auditLogger
+                });
+
+                // Execute transformation: 2 kg -> gram
+                const transformationData = {
+                    sourceItemId: 'BRG001-KG',
+                    targetItemId: 'BRG001-GR',
+                    quantity: 2,
+                    user: 'Test User'
+                };
+                
+                const result = await transformationManager.executeTransformation(transformationData);
+                
+                if (result.status === 'completed') {
+                    showResult('test6', true, `Transformation completed: ${result.sourceItem.quantity} ${result.sourceItem.unit} -> ${result.targetItem.quantity} ${result.targetItem.unit}`);
+                } else {
+                    showResult('test6', false, 'Transformation failed');
+                }
+            } catch (error) {
+                showResult('test6', false, `Error: ${error.message}`);
+            }
+        }
+
+        async function testStockValidation() {
+            try {
+                if (!window.testStockManager) {
+                    await testStockManagerInit();
+                }
+
+                const stockManager = window.testStockManager;
+                
+                // Test stock sufficiency check
+                const sufficientStock = await stockManager.isStockSufficient('BRG001-KG', 5);
+                const insufficientStock = await stockManager.isStockSufficient('BRG001-KG', 1000);
+                
+                if (sufficientStock && !insufficientStock) {
+                    showResult('test7', true, 'Stock validation working correctly');
+                } else {
+                    showResult('test7', false, `Stock validation failed: sufficient=${sufficientStock}, insufficient=${insufficientStock}`);
+                }
+            } catch (error) {
+                showResult('test7', false, `Error: ${error.message}`);
+            }
+        }
+
+        async function showCurrentStock() {
+            try {
+                const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                
+                let stockHtml = '<div class="mt-3"><h5>Current Stock Levels:</h5><ul>';
+                
+                for (const item of masterBarang) {
+                    stockHtml += `<li><strong>${item.nama}:</strong> ${item.stok} ${item.satuan}</li>`;
+                }
+                
+                stockHtml += '</ul></div>';
+                
+                document.getElementById('stock-status').innerHTML = stockHtml;
+            } catch (error) {
+                document.getElementById('stock-status').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+
+        function resetTestData() {
+            try {
+                localStorage.removeItem('masterBarang');
+                localStorage.removeItem('conversionRatios');
+                localStorage.removeItem('transformationHistory');
+                
+                // Reinitialize StockManager
+                if (window.testStockManager) {
+                    window.testStockManager.refreshStockCache();
+                }
+                
+                showResult('reset', true, 'All test data has been reset');
+            } catch (error) {
+                showResult('reset', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Auto-run basic tests on page load
+        window.addEventListener('load', async function() {
+            console.log('Running basic initialization tests...');
+            await testStockManagerInit();
+            testSampleDataCreation();
+        });
+    </script>
+</body>
+</html>
