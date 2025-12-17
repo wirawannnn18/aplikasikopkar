@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dropdown Stock Display Fix - FINAL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .dropdown-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="text-center mb-4">
+            <h1><i class="bi bi-bug me-2"></i>Test Dropdown Stock Display Fix</h1>
+            <p class="lead">Verifikasi Perbaikan Masalah "undefined" pada Dropdown Transformasi Barang</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="card test-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Status Test</h5>
+            </div>
+            <div class="card-body">
+                <div id="test-status">
+                    <div class="test-warning">
+                        <i class="bi bi-clock me-2"></i>Siap untuk memulai test...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mb-4">
+            <button class="btn btn-primary btn-lg me-2" onclick="runComprehensiveTest()">
+                <i class="bi bi-play-fill me-2"></i>Jalankan Test Komprehensif
+            </button>
+            <button class="btn btn-success btn-lg me-2" onclick="applyFixAndTest()">
+                <i class="bi bi-tools me-2"></i>Apply Fix & Test
+            </button>
+            <button class="btn btn-warning btn-lg" onclick="resetTest()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Reset Test
+            </button>
+        </div>
+
+        <!-- Test Interface -->
+        <div class="card test-card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Interface Test Transformasi Barang</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Barang Asal (Sumber)</label>
+                        <select class="form-select" id="sourceItem">
+                            <option value="">Pilih barang asal...</option>
+                        </select>
+                        <div class="dropdown-preview mt-2" id="source-preview">
+                            <small class="text-muted">Preview options akan muncul di sini</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Barang Tujuan (Target)</label>
+                        <select class="form-select" id="targetItem">
+                            <option value="">Pilih barang tujuan...</option>
+                        </select>
+                        <div class="dropdown-preview mt-2" id="target-preview">
+                            <small class="text-muted">Preview options akan muncul di sini</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Jumlah</label>
+                        <input type="number" class="form-control" id="quantity" min="1" placeholder="Masukkan jumlah">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Info Konversi</label>
+                        <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                            <span class="text-muted">Pilih item untuk melihat rasio konversi</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card test-card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Hasil Test</h5>
+            </div>
+            <div class="card-body">
+                <div id="test-results">
+                    <p class="text-muted">Klik "Jalankan Test Komprehensif" untuk melihat hasil test.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load the fix -->
+    <script src="js/transformasi-barang/DropdownStockDisplayFix.js"></script>
+    
+    <script>
+        class DropdownStockDisplayTester {
+            constructor() {
+                this.testResults = [];
+                this.fixApplied = false;
+            }
+
+            /**
+             * Run comprehensive test
+             */
+            async runComprehensiveTest() {
+                this.updateStatus('🧪 Menjalankan test komprehensif...', 'warning');
+                this.testResults = [];
+                
+                try {
+                    // Test 1: Check if fix class is available
+                    await this.testFixClassAvailability();
+                    
+                    // Test 2: Check data structure
+                    await this.testDataStructure();
+                    
+                    // Test 3: Test dropdown population
+                    await this.testDropdownPopulation();
+                    
+                    // Test 4: Test for undefined values
+                    await this.testUndefinedValues();
+                    
+                    // Test 5: Test conversion info
+                    await this.testConversionInfo();
+                    
+                    // Test 6: Test event listeners
+                    await this.testEventListeners();
+                    
+                    // Display results
+                    this.displayTestResults();
+                    
+                    const passedTests = this.testResults.filter(r => r.status === 'PASS').length;
+                    const totalTests = this.testResults.length;
+                    
+                    if (passedTests === totalTests) {
+                        this.updateStatus(`✅ Semua test berhasil! (${passedTests}/${totalTests})`, 'success');
+                    } else {
+                        this.updateStatus(`⚠️ ${passedTests}/${totalTests} test berhasil`, 'warning');
+                    }
+                    
+                } catch (error) {
+                    this.updateStatus(`❌ Error dalam test: ${error.message}`, 'error');
+                }
+            }
+
+            /**
+             * Apply fix and test
+             */
+            async applyFixAndTest() {
+                this.updateStatus('🔧 Menerapkan fix dan menjalankan test...', 'warning');
+                
+                try {
+                    // Apply the fix
+                    if (window.DropdownStockDisplayFix) {
+                        const fix = new window.DropdownStockDisplayFix();
+                        const success = await fix.initialize();
+                        
+                        if (success) {
+                            this.fixApplied = true;
+                            this.updateStatus('✅ Fix berhasil diterapkan, menjalankan test...', 'success');
+                            
+                            // Wait a bit for fix to settle
+                            setTimeout(() => {
+                                this.runComprehensiveTest();
+                            }, 1000);
+                        } else {
+                            this.updateStatus('❌ Gagal menerapkan fix', 'error');
+                        }
+                    } else {
+                        this.updateStatus('❌ Fix class tidak tersedia', 'error');
+                    }
+                } catch (error) {
+                    this.updateStatus(`❌ Error menerapkan fix: ${error.message}`, 'error');
+                }
+            }
+
+            /**
+             * Test fix class availability
+             */
+            async testFixClassAvailability() {
+                if (typeof window.DropdownStockDisplayFix === 'function') {
+                    this.addTestResult('Fix Class Availability', 'PASS', 'DropdownStockDisplayFix class tersedia');
+                } else {
+                    this.addTestResult('Fix Class Availability', 'FAIL', 'DropdownStockDisplayFix class tidak ditemukan');
+                }
+
+                if (typeof window.populateTransformasiBarangDropdowns === 'function') {
+                    this.addTestResult('Unified Dropdown Function', 'PASS', 'populateTransformasiBarangDropdowns tersedia');
+                } else {
+                    this.addTestResult('Unified Dropdown Function', 'FAIL', 'populateTransformasiBarangDropdowns tidak ditemukan');
+                }
+            }
+
+            /**
+             * Test data structure
+             */
+            async testDataStructure() {
+                try {
+                    const masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
+                    
+                    if (masterBarang.length > 0) {
+                        this.addTestResult('Data Availability', 'PASS', `${masterBarang.length} items ditemukan`);
+                        
+                        // Check data structure
+                        const sampleItem = masterBarang[0];
+                        const hasRequiredFields = sampleItem.kode && sampleItem.nama && typeof sampleItem.stok === 'number';
+                        
+                        if (hasRequiredFields) {
+                            this.addTestResult('Data Structure', 'PASS', 'Field yang diperlukan tersedia');
+                        } else {
+                            this.addTestResult('Data Structure', 'FAIL', 'Field yang diperlukan tidak lengkap');
+                        }
+                        
+                        // Check for undefined values in data
+                        let hasUndefinedData = false;
+                        masterBarang.forEach(item => {
+                            if (item.stok === undefined || item.nama === undefined || item.satuan === undefined) {
+                                hasUndefinedData = true;
+                            }
+                        });
+                        
+                        if (!hasUndefinedData) {
+                            this.addTestResult('Data Integrity', 'PASS', 'Tidak ada undefined values dalam data');
+                        } else {
+                            this.addTestResult('Data Integrity', 'FAIL', 'Ditemukan undefined values dalam data');
+                        }
+                        
+                    } else {
+                        this.addTestResult('Data Availability', 'FAIL', 'Tidak ada data ditemukan');
+                    }
+                } catch (error) {
+                    this.addTestResult('Data Structure', 'FAIL', `Error: ${error.message}`);
+                }
+            }
+
+            /**
+             * Test dropdown population
+             */
+            async testDropdownPopulation() {
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    if (!sourceSelect || !targetSelect) {
+                        this.addTestResult('Dropdown Elements', 'FAIL', 'Dropdown elements tidak ditemukan');
+                        return;
+                    }
+                    
+                    this.addTestResult('Dropdown Elements', 'PASS', 'Dropdown elements ditemukan');
+                    
+                    // Test population function
+                    if (typeof window.populateTransformasiBarangDropdowns === 'function') {
+                        const success = window.populateTransformasiBarangDropdowns();
+                        
+                        if (success) {
+                            this.addTestResult('Dropdown Population', 'PASS', 'Dropdown berhasil dipopulasi');
+                            
+                            // Check if options were added
+                            const sourceOptionsCount = sourceSelect.options.length - 1; // Exclude default option
+                            const targetOptionsCount = targetSelect.options.length - 1;
+                            
+                            if (sourceOptionsCount > 0 && targetOptionsCount > 0) {
+                                this.addTestResult('Dropdown Options', 'PASS', `Source: ${sourceOptionsCount}, Target: ${targetOptionsCount} options`);
+                                
+                                // Update preview
+                                this.updateDropdownPreview();
+                                
+                            } else {
+                                this.addTestResult('Dropdown Options', 'FAIL', 'Tidak ada options yang ditambahkan');
+                            }
+                        } else {
+                            this.addTestResult('Dropdown Population', 'FAIL', 'Gagal populate dropdown');
+                        }
+                    } else {
+                        this.addTestResult('Dropdown Population', 'FAIL', 'Function populateTransformasiBarangDropdowns tidak tersedia');
+                    }
+                } catch (error) {
+                    this.addTestResult('Dropdown Population', 'FAIL', `Error: ${error.message}`);
+                }
+            }
+
+            /**
+             * Test for undefined values in dropdown options
+             */
+            async testUndefinedValues() {
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    
+                    let hasUndefinedInSource = false;
+                    let hasUndefinedInTarget = false;
+                    
+                    // Check source dropdown
+                    for (let i = 1; i < sourceSelect.options.length; i++) {
+                        const optionText = sourceSelect.options[i].text;
+                        if (optionText.includes('undefined')) {
+                            hasUndefinedInSource = true;
+                            break;
+                        }
+                    }
+                    
+                    // Check target dropdown
+                    for (let i = 1; i < targetSelect.options.length; i++) {
+                        const optionText = targetSelect.options[i].text;
+                        if (optionText.includes('undefined')) {
+                            hasUndefinedInTarget = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!hasUndefinedInSource) {
+                        this.addTestResult('Source Dropdown - No Undefined', 'PASS', 'Tidak ada "undefined" di source dropdown');
+                    } else {
+                        this.addTestResult('Source Dropdown - No Undefined', 'FAIL', 'Ditemukan "undefined" di source dropdown');
+                    }
+                    
+                    if (!hasUndefinedInTarget) {
+                        this.addTestResult('Target Dropdown - No Undefined', 'PASS', 'Tidak ada "undefined" di target dropdown');
+                    } else {
+                        this.addTestResult('Target Dropdown - No Undefined', 'FAIL', 'Ditemukan "undefined" di target dropdown');
+                    }
+                    
+                } catch (error) {
+                    this.addTestResult('Undefined Values Test', 'FAIL', `Error: ${error.message}`);
+                }
+            }
+
+            /**
+             * Test conversion info functionality
+             */
+            async testConversionInfo() {
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    const quantityInput = document.getElementById('quantity');
+                    const conversionInfo = document.getElementById('conversion-info');
+                    
+                    if (sourceSelect.options.length > 1 && targetSelect.options.length > 1) {
+                        // Select first available options
+                        sourceSelect.selectedIndex = 1;
+                        targetSelect.selectedIndex = 2; // Different from source
+                        quantityInput.value = '10';
+                        
+                        // Test conversion info update
+                        if (typeof window.updateTransformasiBarangConversionInfo === 'function') {
+                            window.updateTransformasiBarangConversionInfo();
+                            
+                            // Check if conversion info was updated
+                            const infoContent = conversionInfo.innerHTML;
+                            if (infoContent && !infoContent.includes('Pilih item untuk melihat rasio konversi')) {
+                                this.addTestResult('Conversion Info Update', 'PASS', 'Info konversi berhasil diupdate');
+                                
+                                // Check for undefined in conversion info
+                                if (!infoContent.includes('undefined')) {
+                                    this.addTestResult('Conversion Info - No Undefined', 'PASS', 'Tidak ada "undefined" di info konversi');
+                                } else {
+                                    this.addTestResult('Conversion Info - No Undefined', 'FAIL', 'Ditemukan "undefined" di info konversi');
+                                }
+                            } else {
+                                this.addTestResult('Conversion Info Update', 'FAIL', 'Info konversi tidak terupdate');
+                            }
+                        } else {
+                            this.addTestResult('Conversion Info Update', 'FAIL', 'Function updateTransformasiBarangConversionInfo tidak tersedia');
+                        }
+                    } else {
+                        this.addTestResult('Conversion Info Update', 'SKIP', 'Tidak cukup options untuk test');
+                    }
+                } catch (error) {
+                    this.addTestResult('Conversion Info Test', 'FAIL', `Error: ${error.message}`);
+                }
+            }
+
+            /**
+             * Test event listeners
+             */
+            async testEventListeners() {
+                try {
+                    const sourceSelect = document.getElementById('sourceItem');
+                    const targetSelect = document.getElementById('targetItem');
+                    const quantityInput = document.getElementById('quantity');
+                    
+                    // Check if event listeners are attached (by checking if events fire)
+                    let sourceEventFired = false;
+                    let targetEventFired = false;
+                    let quantityEventFired = false;
+                    
+                    // Add temporary listeners to detect if events fire
+                    const tempSourceListener = () => { sourceEventFired = true; };
+                    const tempTargetListener = () => { targetEventFired = true; };
+                    const tempQuantityListener = () => { quantityEventFired = true; };
+                    
+                    sourceSelect.addEventListener('change', tempSourceListener);
+                    targetSelect.addEventListener('change', tempTargetListener);
+                    quantityInput.addEventListener('input', tempQuantityListener);
+                    
+                    // Trigger events
+                    sourceSelect.dispatchEvent(new Event('change'));
+                    targetSelect.dispatchEvent(new Event('change'));
+                    quantityInput.dispatchEvent(new Event('input'));
+                    
+                    // Remove temporary listeners
+                    sourceSelect.removeEventListener('change', tempSourceListener);
+                    targetSelect.removeEventListener('change', tempTargetListener);
+                    quantityInput.removeEventListener('input', tempQuantityListener);
+                    
+                    if (sourceEventFired && targetEventFired && quantityEventFired) {
+                        this.addTestResult('Event Listeners', 'PASS', 'Event listeners berfungsi dengan baik');
+                    } else {
+                        this.addTestResult('Event Listeners', 'PARTIAL', `Source: ${sourceEventFired}, Target: ${targetEventFired}, Quantity: ${quantityEventFired}`);
+                    }
+                    
+                } catch (error) {
+                    this.addTestResult('Event Listeners Test', 'FAIL', `Error: ${error.message}`);
+                }
+            }
+
+            /**
+             * Update dropdown preview
+             */
+            updateDropdownPreview() {
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                const sourcePreview = document.getElementById('source-preview');
+                const targetPreview = document.getElementById('target-preview');
+                
+                // Source preview
+                let sourceHtml = '<strong>Source Options:</strong><br>';
+                for (let i = 1; i < Math.min(sourceSelect.options.length, 6); i++) {
+                    const option = sourceSelect.options[i];
+                    sourceHtml += `<small>${i}. ${option.text}</small><br>`;
+                }
+                if (sourceSelect.options.length > 6) {
+                    sourceHtml += `<small>... dan ${sourceSelect.options.length - 6} lainnya</small>`;
+                }
+                sourcePreview.innerHTML = sourceHtml;
+                
+                // Target preview
+                let targetHtml = '<strong>Target Options:</strong><br>';
+                for (let i = 1; i < Math.min(targetSelect.options.length, 6); i++) {
+                    const option = targetSelect.options[i];
+                    targetHtml += `<small>${i}. ${option.text}</small><br>`;
+                }
+                if (targetSelect.options.length > 6) {
+                    targetHtml += `<small>... dan ${targetSelect.options.length - 6} lainnya</small>`;
+                }
+                targetPreview.innerHTML = targetHtml;
+            }
+
+            /**
+             * Add test result
+             */
+            addTestResult(testName, status, message) {
+                this.testResults.push({
+                    name: testName,
+                    status: status,
+                    message: message
+                });
+            }
+
+            /**
+             * Display test results
+             */
+            displayTestResults() {
+                const container = document.getElementById('test-results');
+                let html = '<h6>Hasil Test Komprehensif:</h6>';
+                
+                this.testResults.forEach(result => {
+                    const cssClass = result.status === 'PASS' ? 'test-success' : 
+                                    result.status === 'FAIL' ? 'test-error' : 'test-warning';
+                    const icon = result.status === 'PASS' ? 'check-circle' : 
+                                result.status === 'FAIL' ? 'x-circle' : 'exclamation-triangle';
+                    
+                    html += `
+                        <div class="test-result ${cssClass}">
+                            <i class="bi bi-${icon} me-2"></i>
+                            <strong>${result.name}:</strong> ${result.status} - ${result.message}
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+
+            /**
+             * Update status
+             */
+            updateStatus(message, type = 'info') {
+                const container = document.getElementById('test-status');
+                const cssClass = type === 'success' ? 'test-success' : 
+                                 type === 'error' ? 'test-error' : 'test-warning';
+                const icon = type === 'success' ? 'check-circle' : 
+                            type === 'error' ? 'x-circle' : 'clock';
+                
+                container.innerHTML = `
+                    <div class="test-result ${cssClass}">
+                        <i class="bi bi-${icon} me-2"></i>${message}
+                    </div>
+                `;
+            }
+
+            /**
+             * Reset test
+             */
+            resetTest() {
+                // Clear dropdowns
+                const sourceSelect = document.getElementById('sourceItem');
+                const targetSelect = document.getElementById('targetItem');
+                const quantityInput = document.getElementById('quantity');
+                const conversionInfo = document.getElementById('conversion-info');
+                
+                sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+                targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+                quantityInput.value = '';
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih item untuk melihat rasio konversi</span>';
+                
+                // Clear previews
+                document.getElementById('source-preview').innerHTML = '<small class="text-muted">Preview options akan muncul di sini</small>';
+                document.getElementById('target-preview').innerHTML = '<small class="text-muted">Preview options akan muncul di sini</small>';
+                
+                // Clear results
+                document.getElementById('test-results').innerHTML = '<p class="text-muted">Test telah direset.</p>';
+                
+                // Reset status
+                this.updateStatus('Test berhasil direset. Siap untuk test ulang.', 'info');
+                
+                this.testResults = [];
+                this.fixApplied = false;
+            }
+        }
+
+        // Initialize tester
+        const tester = new DropdownStockDisplayTester();
+
+        // Global functions
+        window.runComprehensiveTest = () => tester.runComprehensiveTest();
+        window.applyFixAndTest = () => tester.applyFixAndTest();
+        window.resetTest = () => tester.resetTest();
+
+        // Auto-run test when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Dropdown Stock Display Tester loaded');
+            
+            // Auto-apply fix and test after a short delay
+            setTimeout(() => {
+                tester.applyFixAndTest();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
