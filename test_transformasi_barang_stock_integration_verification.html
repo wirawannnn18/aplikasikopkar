@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Verifikasi - Transformasi Barang Stock Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+        }
+        .test-success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .test-warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .test-error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .dropdown-preview {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .stock-info {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Test Verifikasi - Transformasi Barang Stock Integration
+                </h1>
+                <p class="lead">
+                    Halaman ini memverifikasi bahwa perbaikan integrasi stok barang berfungsi dengan benar.
+                </p>
+            </div>
+        </div>
+
+        <!-- Test Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card test-card" id="overall-status">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-gear me-2"></i>
+                            Status Keseluruhan
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="overall-status-content">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Menjalankan verifikasi sistem...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Tests -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card test-card" id="test-stock-data">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-database me-2"></i>
+                            Test 1: Data Stok
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-stock-data-content">
+                            <div class="text-muted">Memeriksa ketersediaan data stok...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card test-card" id="test-conversion-ratios">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-arrow-left-right me-2"></i>
+                            Test 2: Rasio Konversi
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-conversion-ratios-content">
+                            <div class="text-muted">Memeriksa rasio konversi...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card test-card" id="test-integration-fix">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-puzzle me-2"></i>
+                            Test 3: Integration Fix
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-integration-fix-content">
+                            <div class="text-muted">Memeriksa StockIntegrationFix...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card test-card" id="test-dropdown-simulation">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-list me-2"></i>
+                            Test 4: Simulasi Dropdown
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-dropdown-simulation-content">
+                            <div class="text-muted">Mensimulasikan dropdown...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dropdown Preview -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-box-seam me-2"></i>
+                            Preview: Dropdown Barang Asal
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="dropdown-preview" id="source-dropdown-preview">
+                            <div class="text-muted text-center">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-bullseye me-2"></i>
+                            Preview: Dropdown Barang Tujuan
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="dropdown-preview" id="target-dropdown-preview">
+                            <div class="text-muted text-center">Pilih barang asal terlebih dahulu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-primary" id="run-tests">
+                        <i class="bi bi-play-circle me-2"></i>
+                        Jalankan Ulang Test
+                    </button>
+                    <button class="btn btn-success" id="simulate-transformation">
+                        <i class="bi bi-arrow-repeat me-2"></i>
+                        Simulasi Transformasi
+                    </button>
+                    <button class="btn btn-info" onclick="window.location.href='transformasi_barang.html'">
+                        <i class="bi bi-arrow-right me-2"></i>
+                        Buka Transformasi Barang
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='fix_transformasi_barang_stock_integration_final.html'">
+                        <i class="bi bi-tools me-2"></i>
+                        Buka Tool Perbaikan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/transformasi-barang/StockIntegrationFix.js"></script>
+    
+    <script>
+        class TransformasiBarangVerification {
+            constructor() {
+                this.testResults = {};
+                this.stockData = [];
+                this.conversionRatios = [];
+            }
+
+            async initialize() {
+                console.log('🔍 Starting verification tests...');
+                
+                try {
+                    await this.runAllTests();
+                    this.updateOverallStatus();
+                    this.generateDropdownPreviews();
+                } catch (error) {
+                    console.error('❌ Error during verification:', error);
+                    this.showError('Error during verification: ' + error.message);
+                }
+            }
+
+            async runAllTests() {
+                const tests = [
+                    { id: 'stock-data', name: 'Data Stok', test: () => this.testStockData() },
+                    { id: 'conversion-ratios', name: 'Rasio Konversi', test: () => this.testConversionRatios() },
+                    { id: 'integration-fix', name: 'Integration Fix', test: () => this.testIntegrationFix() },
+                    { id: 'dropdown-simulation', name: 'Simulasi Dropdown', test: () => this.testDropdownSimulation() }
+                ];
+
+                for (const test of tests) {
+                    try {
+                        console.log(`🧪 Running test: ${test.name}`);
+                        const result = await test.test();
+                        this.testResults[test.id] = result;
+                        this.updateTestCard(test.id, result);
+                    } catch (error) {
+                        console.error(`❌ Test ${test.name} failed:`, error);
+                        this.testResults[test.id] = {
+                            success: false,
+                            message: 'Test failed: ' + error.message,
+                            details: null
+                        };
+                        this.updateTestCard(test.id, this.testResults[test.id]);
+                    }
+                }
+            }
+
+            async testStockData() {
+                const dataSources = ['masterBarang', 'barang', 'stokBarang', 'produk'];
+                let foundData = null;
+                let dataSource = '';
+
+                for (const source of dataSources) {
+                    try {
+                        const data = localStorage.getItem(source);
+                        if (data) {
+                            const parsedData = JSON.parse(data);
+                            if (Array.isArray(parsedData) && parsedData.length > 0) {
+                                foundData = parsedData;
+                                dataSource = source;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        // Continue checking
+                    }
+                }
+
+                if (foundData) {
+                    this.stockData = foundData;
+                    const itemsWithStock = foundData.filter(item => (item.stok || 0) > 0).length;
+                    
+                    return {
+                        success: true,
+                        message: `✅ ${foundData.length} items ditemukan di ${dataSource} (${itemsWithStock} ada stok)`,
+                        details: {
+                            source: dataSource,
+                            totalItems: foundData.length,
+                            itemsWithStock: itemsWithStock,
+                            sampleItems: foundData.slice(0, 3).map(item => ({
+                                kode: item.kode || item.id,
+                                nama: item.nama,
+                                stok: item.stok || 0,
+                                satuan: item.satuan
+                            }))
+                        }
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: '❌ Tidak ada data stok ditemukan',
+                        details: { checkedSources: dataSources }
+                    };
+                }
+            }
+
+            async testConversionRatios() {
+                try {
+                    const ratiosData = localStorage.getItem('conversionRatios');
+                    if (!ratiosData) {
+                        return {
+                            success: false,
+                            message: '❌ Conversion ratios tidak ditemukan',
+                            details: null
+                        };
+                    }
+
+                    const ratios = JSON.parse(ratiosData);
+                    this.conversionRatios = ratios;
+                    
+                    const totalConversions = ratios.reduce((sum, ratio) => sum + (ratio.conversions?.length || 0), 0);
+
+                    return {
+                        success: totalConversions > 0,
+                        message: `✅ ${ratios.length} base products, ${totalConversions} conversion rules`,
+                        details: {
+                            baseProducts: ratios.length,
+                            totalConversions: totalConversions,
+                            ratios: ratios.map(r => ({
+                                baseProduct: r.baseProduct,
+                                conversions: r.conversions?.length || 0
+                            }))
+                        }
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: '❌ Error parsing conversion ratios: ' + error.message,
+                        details: null
+                    };
+                }
+            }
+
+            async testIntegrationFix() {
+                try {
+                    // Check if StockIntegrationFix class is available
+                    if (typeof StockIntegrationFix === 'undefined') {
+                        return {
+                            success: false,
+                            message: '❌ StockIntegrationFix class tidak ditemukan',
+                            details: null
+                        };
+                    }
+
+                    // Create instance and test
+                    const integrationFix = new StockIntegrationFix();
+                    
+                    // Test initialization
+                    await integrationFix.initialize();
+
+                    // Test methods
+                    const stockData = integrationFix.getStockData();
+                    const conversionRatios = integrationFix.getConversionRatios();
+
+                    return {
+                        success: stockData.length > 0,
+                        message: `✅ StockIntegrationFix aktif (${stockData.length} items, ${conversionRatios.length} ratios)`,
+                        details: {
+                            stockItems: stockData.length,
+                            conversionRules: conversionRatios.length,
+                            initialized: integrationFix.initialized
+                        }
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: '❌ Error testing StockIntegrationFix: ' + error.message,
+                        details: null
+                    };
+                }
+            }
+
+            async testDropdownSimulation() {
+                try {
+                    if (this.stockData.length === 0) {
+                        return {
+                            success: false,
+                            message: '❌ Tidak ada data stok untuk simulasi',
+                            details: null
+                        };
+                    }
+
+                    // Simulate dropdown population
+                    const sourceItems = this.stockData.filter(item => (item.stok || 0) > 0);
+                    
+                    // Group by base product
+                    const groupedItems = this.groupItemsByBaseProduct(sourceItems);
+                    
+                    // Test conversion compatibility
+                    let compatiblePairs = 0;
+                    for (const [baseProduct, items] of Object.entries(groupedItems)) {
+                        if (items.length > 1) {
+                            // Check if conversion ratios exist for this base product
+                            const hasRatios = this.conversionRatios.some(r => r.baseProduct === baseProduct);
+                            if (hasRatios) {
+                                compatiblePairs += items.length * (items.length - 1); // n*(n-1) pairs
+                            }
+                        }
+                    }
+
+                    return {
+                        success: compatiblePairs > 0,
+                        message: `✅ ${sourceItems.length} source items, ${compatiblePairs} transformation pairs`,
+                        details: {
+                            sourceItems: sourceItems.length,
+                            baseProducts: Object.keys(groupedItems).length,
+                            compatiblePairs: compatiblePairs,
+                            groupedItems: Object.entries(groupedItems).map(([bp, items]) => ({
+                                baseProduct: bp,
+                                itemCount: items.length
+                            }))
+                        }
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: '❌ Error simulating dropdown: ' + error.message,
+                        details: null
+                    };
+                }
+            }
+
+            groupItemsByBaseProduct(items) {
+                return items.reduce((groups, item) => {
+                    const baseProduct = item.baseProduct || item.kode?.split('-')[0] || 'Other';
+                    if (!groups[baseProduct]) {
+                        groups[baseProduct] = [];
+                    }
+                    groups[baseProduct].push(item);
+                    return groups;
+                }, {});
+            }
+
+            updateTestCard(testId, result) {
+                const card = document.getElementById(`test-${testId}`);
+                const content = document.getElementById(`test-${testId}-content`);
+                
+                if (!card || !content) return;
+
+                // Update card class
+                card.className = `card test-card ${result.success ? 'test-success' : 'test-error'}`;
+
+                // Update content
+                let html = `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-${result.success ? 'check-circle text-success' : 'x-circle text-danger'} me-2"></i>
+                        <strong>${result.success ? 'PASS' : 'FAIL'}</strong>
+                    </div>
+                    <div class="mb-2">${result.message}</div>
+                `;
+
+                if (result.details) {
+                    html += `
+                        <div class="mt-2">
+                            <small class="text-muted">Details:</small>
+                            <pre class="small mt-1" style="font-size: 0.8em; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 3px;">${JSON.stringify(result.details, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+
+                content.innerHTML = html;
+            }
+
+            updateOverallStatus() {
+                const card = document.getElementById('overall-status');
+                const content = document.getElementById('overall-status-content');
+                
+                const totalTests = Object.keys(this.testResults).length;
+                const passedTests = Object.values(this.testResults).filter(r => r.success).length;
+                const allPassed = passedTests === totalTests;
+
+                // Update card class
+                card.className = `card test-card ${allPassed ? 'test-success' : passedTests > 0 ? 'test-warning' : 'test-error'}`;
+
+                // Update content
+                const statusIcon = allPassed ? 'check-circle text-success' : passedTests > 0 ? 'exclamation-triangle text-warning' : 'x-circle text-danger';
+                const statusText = allPassed ? 'Semua test berhasil' : passedTests > 0 ? 'Beberapa test berhasil' : 'Semua test gagal';
+                
+                content.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-${statusIcon} me-2 fs-4"></i>
+                            <div>
+                                <div class="fw-bold">${statusText}</div>
+                                <div class="text-muted">Test Results: ${passedTests}/${totalTests} passed</div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="h2 mb-0">${Math.round((passedTests/totalTests) * 100)}%</div>
+                            <div class="small text-muted">Success Rate</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateDropdownPreviews() {
+                this.generateSourceDropdownPreview();
+                this.generateTargetDropdownPreview();
+            }
+
+            generateSourceDropdownPreview() {
+                const container = document.getElementById('source-dropdown-preview');
+                
+                if (this.stockData.length === 0) {
+                    container.innerHTML = '<div class="text-danger">Tidak ada data stok tersedia</div>';
+                    return;
+                }
+
+                const sourceItems = this.stockData.filter(item => (item.stok || 0) > 0);
+                const groupedItems = this.groupItemsByBaseProduct(sourceItems);
+
+                let html = '<div class="small">';
+                
+                Object.entries(groupedItems).forEach(([baseProduct, items]) => {
+                    html += `
+                        <div class="mb-2">
+                            <div class="fw-bold text-primary">${baseProduct}</div>
+                    `;
+                    
+                    items.forEach(item => {
+                        html += `
+                            <div class="ms-3 mb-1 p-1 border-bottom">
+                                <div>${item.nama}</div>
+                                <div class="stock-info">Stok: ${item.stok} ${item.satuan}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            generateTargetDropdownPreview() {
+                const container = document.getElementById('target-dropdown-preview');
+                
+                if (this.stockData.length === 0) {
+                    container.innerHTML = '<div class="text-muted">Tidak ada data stok tersedia</div>';
+                    return;
+                }
+
+                // Show example for first base product with multiple items
+                const groupedItems = this.groupItemsByBaseProduct(this.stockData);
+                let exampleBaseProduct = null;
+                let exampleItems = [];
+
+                for (const [baseProduct, items] of Object.entries(groupedItems)) {
+                    if (items.length > 1) {
+                        exampleBaseProduct = baseProduct;
+                        exampleItems = items;
+                        break;
+                    }
+                }
+
+                if (!exampleBaseProduct) {
+                    container.innerHTML = '<div class="text-warning">Tidak ada base product dengan multiple items</div>';
+                    return;
+                }
+
+                let html = `
+                    <div class="small">
+                        <div class="text-muted mb-2">Contoh untuk base product: <strong>${exampleBaseProduct}</strong></div>
+                `;
+
+                exampleItems.forEach(item => {
+                    html += `
+                        <div class="mb-1 p-1 border-bottom">
+                            <div>${item.nama}</div>
+                            <div class="stock-info">Stok: ${item.stok || 0} ${item.satuan}</div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            async simulateTransformation() {
+                if (this.stockData.length === 0) {
+                    alert('Tidak ada data stok untuk simulasi');
+                    return;
+                }
+
+                // Find first valid transformation pair
+                const groupedItems = this.groupItemsByBaseProduct(this.stockData);
+                let sourceItem = null;
+                let targetItem = null;
+
+                for (const [baseProduct, items] of Object.entries(groupedItems)) {
+                    if (items.length > 1) {
+                        const itemsWithStock = items.filter(item => (item.stok || 0) > 0);
+                        if (itemsWithStock.length >= 2) {
+                            sourceItem = itemsWithStock[0];
+                            targetItem = itemsWithStock[1];
+                            break;
+                        }
+                    }
+                }
+
+                if (!sourceItem || !targetItem) {
+                    alert('Tidak ada pasangan item yang valid untuk simulasi transformasi');
+                    return;
+                }
+
+                // Find conversion ratio
+                const baseProduct = sourceItem.baseProduct || sourceItem.kode?.split('-')[0];
+                const productRatios = this.conversionRatios.find(r => r.baseProduct === baseProduct);
+                let ratio = 1;
+
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceItem.satuan && c.to === targetItem.satuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+
+                const quantity = 1;
+                const targetQuantity = quantity * ratio;
+
+                const simulationResult = `
+Simulasi Transformasi:
+
+Source Item: ${sourceItem.nama}
+- Stok saat ini: ${sourceItem.stok} ${sourceItem.satuan}
+- Quantity transformasi: ${quantity} ${sourceItem.satuan}
+- Stok setelah: ${sourceItem.stok - quantity} ${sourceItem.satuan}
+
+Target Item: ${targetItem.nama}
+- Stok saat ini: ${targetItem.stok || 0} ${targetItem.satuan}
+- Quantity hasil: ${targetQuantity} ${targetItem.satuan}
+- Stok setelah: ${(targetItem.stok || 0) + targetQuantity} ${targetItem.satuan}
+
+Rasio Konversi: 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}
+                `;
+
+                alert(simulationResult);
+            }
+
+            showError(message) {
+                const alertHtml = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('afterbegin', alertHtml);
+            }
+        }
+
+        // Initialize verification when page loads
+        const verification = new TransformasiBarangVerification();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            verification.initialize();
+
+            // Setup event listeners
+            document.getElementById('run-tests').addEventListener('click', function() {
+                this.disabled = true;
+                this.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div>Running Tests...';
+                
+                setTimeout(async () => {
+                    await verification.initialize();
+                    this.disabled = false;
+                    this.innerHTML = '<i class="bi bi-play-circle me-2"></i>Jalankan Ulang Test';
+                }, 1000);
+            });
+
+            document.getElementById('simulate-transformation').addEventListener('click', function() {
+                verification.simulateTransformation();
+            });
+        });
+    </script>
+</body>
+</html>
