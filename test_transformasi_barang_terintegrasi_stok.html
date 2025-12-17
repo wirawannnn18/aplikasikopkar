@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transformasi Barang Terintegrasi Stok</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 1rem;
+        }
+        .test-success {
+            border-left-color: #28a745;
+        }
+        .test-error {
+            border-left-color: #dc3545;
+        }
+        .test-warning {
+            border-left-color: #ffc107;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1><i class="bi bi-check-circle me-2"></i>Test Transformasi Barang Terintegrasi Stok</h1>
+                <p class="text-muted">Verifikasi fungsi transformasi barang dengan integrasi stok otomatis</p>
+                
+                <div class="d-flex gap-2 mb-4">
+                    <button class="btn btn-primary" onclick="runAllTests()">
+                        <i class="bi bi-play-fill me-1"></i>Jalankan Semua Test
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="clearResults()">
+                        <i class="bi bi-trash me-1"></i>Clear Results
+                    </button>
+                    <button class="btn btn-outline-info" onclick="resetTestData()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset Data Test
+                    </button>
+                </div>
+
+                <div id="test-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Test framework
+        class TransformationTester {
+            constructor() {
+                this.results = [];
+                this.masterBarang = [];
+                this.conversionRatios = [];
+                this.transformationHistory = [];
+            }
+
+            // Initialize test data
+            initializeTestData() {
+                this.masterBarang = [
+                    {
+                        kode: 'BRG001-KG',
+                        nama: 'Beras Premium (Kilogram)',
+                        satuan: 'kg',
+                        stok: 100,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12000,
+                        hargaJual: 15000
+                    },
+                    {
+                        kode: 'BRG001-GR',
+                        nama: 'Beras Premium (Gram)',
+                        satuan: 'gram',
+                        stok: 50000,
+                        baseProduct: 'BRG001',
+                        hargaBeli: 12,
+                        hargaJual: 15
+                    },
+                    {
+                        kode: 'BRG003-DUS',
+                        nama: 'Air Mineral (Dus)',
+                        satuan: 'dus',
+                        stok: 20,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 48000,
+                        hargaJual: 60000
+                    },
+                    {
+                        kode: 'BRG003-BTL',
+                        nama: 'Air Mineral (Botol)',
+                        satuan: 'botol',
+                        stok: 480,
+                        baseProduct: 'BRG003',
+                        hargaBeli: 2000,
+                        hargaJual: 2500
+                    }
+                ];
+
+                this.conversionRatios = [
+                    {
+                        baseProduct: 'BRG001',
+                        conversions: [
+                            { from: 'kg', to: 'gram', ratio: 1000 },
+                            { from: 'gram', to: 'kg', ratio: 0.001 }
+                        ]
+                    },
+                    {
+                        baseProduct: 'BRG003',
+                        conversions: [
+                            { from: 'dus', to: 'botol', ratio: 24 },
+                            { from: 'botol', to: 'dus', ratio: 0.041667 }
+                        ]
+                    }
+                ];
+
+                this.transformationHistory = [];
+            }
+
+            // Test helper methods
+            assert(condition, message) {
+                if (condition) {
+                    this.addResult('success', message, 'Test Passed');
+                    return true;
+                } else {
+                    this.addResult('error', message, 'Test Failed');
+                    return false;
+                }
+            }
+
+            assertEqual(actual, expected, message) {
+                const condition = actual === expected;
+                const details = condition ? 
+                    `Expected: ${expected}, Got: ${actual}` :
+                    `Expected: ${expected}, Got: ${actual} (MISMATCH)`;
+                
+                if (condition) {
+                    this.addResult('success', message, details);
+                } else {
+                    this.addResult('error', message, details);
+                }
+                return condition;
+            }
+
+            addResult(type, title, details) {
+                this.results.push({
+                    type,
+                    title,
+                    details,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+            }
+
+            // Core transformation logic for testing
+            getConversionRatio(fromUnit, toUnit, baseProduct) {
+                const productRatios = this.conversionRatios.find(r => r.baseProduct === baseProduct);
+                if (!productRatios) return 1;
+
+                const conversion = productRatios.conversions.find(c => 
+                    c.from === fromUnit && c.to === toUnit
+                );
+                return conversion ? conversion.ratio : 1;
+            }
+
+            validateTransformation(sourceItemId, targetItemId, quantity) {
+                const sourceItem = this.masterBarang.find(item => item.kode === sourceItemId);
+                const targetItem = this.masterBarang.find(item => item.kode === targetItemId);
+
+                if (!sourceItem || !targetItem) {
+                    return { valid: false, error: 'Item tidak ditemukan' };
+                }
+
+                if (sourceItem.kode === targetItem.kode) {
+                    return { valid: false, error: 'Item asal dan tujuan tidak boleh sama' };
+                }
+
+                const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+                const targetBaseProduct = targetItem.baseProduct || targetItem.kode.split('-')[0];
+
+                if (sourceBaseProduct !== targetBaseProduct) {
+                    return { valid: false, error: 'Item harus dari produk yang sama' };
+                }
+
+                if (sourceItem.stok < quantity) {
+                    return { valid: false, error: 'Stok tidak mencukupi' };
+                }
+
+                return { valid: true };
+            }
+
+            executeTransformation(sourceItemId, targetItemId, quantity) {
+                const validation = this.validateTransformation(sourceItemId, targetItemId, quantity);
+                if (!validation.valid) {
+                    throw new Error(validation.error);
+                }
+
+                const sourceItem = this.masterBarang.find(item => item.kode === sourceItemId);
+                const targetItem = this.masterBarang.find(item => item.kode === targetItemId);
+                const baseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+
+                const ratio = this.getConversionRatio(sourceItem.satuan, targetItem.satuan, baseProduct);
+                const targetQuantity = quantity * ratio;
+
+                // Update stock
+                const sourceIndex = this.masterBarang.findIndex(item => item.kode === sourceItemId);
+                const targetIndex = this.masterBarang.findIndex(item => item.kode === targetItemId);
+
+                const originalSourceStock = this.masterBarang[sourceIndex].stok;
+                const originalTargetStock = this.masterBarang[targetIndex].stok;
+
+                this.masterBarang[sourceIndex].stok -= quantity;
+                this.masterBarang[targetIndex].stok += targetQuantity;
+
+                return {
+                    sourceItem: {
+                        id: sourceItemId,
+                        name: sourceItem.nama,
+                        originalStock: originalSourceStock,
+                        newStock: this.masterBarang[sourceIndex].stok,
+                        quantityReduced: quantity
+                    },
+                    targetItem: {
+                        id: targetItemId,
+                        name: targetItem.nama,
+                        originalStock: originalTargetStock,
+                        newStock: this.masterBarang[targetIndex].stok,
+                        quantityAdded: targetQuantity
+                    },
+                    ratio: ratio
+                };
+            }
+
+            // Test cases
+            testBasicTransformation() {
+                this.addResult('info', 'Test 1: Basic Transformation (Beras KG → Gram)', 'Testing basic transformation functionality');
+                
+                try {
+                    const result = this.executeTransformation('BRG001-KG', 'BRG001-GR', 5);
+                    
+                    this.assertEqual(result.sourceItem.quantityReduced, 5, 'Source quantity reduced correctly');
+                    this.assertEqual(result.targetItem.quantityAdded, 5000, 'Target quantity added correctly (5 kg = 5000 gram)');
+                    this.assertEqual(result.ratio, 1000, 'Conversion ratio is correct (1 kg = 1000 gram)');
+                    this.assertEqual(result.sourceItem.newStock, 95, 'Source stock updated correctly (100 - 5 = 95)');
+                    this.assertEqual(result.targetItem.newStock, 55000, 'Target stock updated correctly (50000 + 5000 = 55000)');
+                    
+                } catch (error) {
+                    this.addResult('error', 'Basic transformation failed', error.message);
+                }
+            }
+
+            testDusToBottleTransformation() {
+                this.addResult('info', 'Test 2: Dus to Bottle Transformation', 'Testing dus to bottle conversion');
+                
+                try {
+                    const result = this.executeTransformation('BRG003-DUS', 'BRG003-BTL', 2);
+                    
+                    this.assertEqual(result.sourceItem.quantityReduced, 2, 'Source quantity reduced correctly');
+                    this.assertEqual(result.targetItem.quantityAdded, 48, 'Target quantity added correctly (2 dus = 48 botol)');
+                    this.assertEqual(result.ratio, 24, 'Conversion ratio is correct (1 dus = 24 botol)');
+                    this.assertEqual(result.sourceItem.newStock, 18, 'Source stock updated correctly (20 - 2 = 18)');
+                    this.assertEqual(result.targetItem.newStock, 528, 'Target stock updated correctly (480 + 48 = 528)');
+                    
+                } catch (error) {
+                    this.addResult('error', 'Dus to bottle transformation failed', error.message);
+                }
+            }
+
+            testReverseTransformation() {
+                this.addResult('info', 'Test 3: Reverse Transformation (Gram → KG)', 'Testing reverse transformation');
+                
+                try {
+                    const result = this.executeTransformation('BRG001-GR', 'BRG001-KG', 3000);
+                    
+                    this.assertEqual(result.sourceItem.quantityReduced, 3000, 'Source quantity reduced correctly');
+                    this.assertEqual(result.targetItem.quantityAdded, 3, 'Target quantity added correctly (3000 gram = 3 kg)');
+                    this.assertEqual(result.ratio, 0.001, 'Conversion ratio is correct (1 gram = 0.001 kg)');
+                    
+                } catch (error) {
+                    this.addResult('error', 'Reverse transformation failed', error.message);
+                }
+            }
+
+            testInsufficientStock() {
+                this.addResult('info', 'Test 4: Insufficient Stock Validation', 'Testing stock validation');
+                
+                try {
+                    this.executeTransformation('BRG001-KG', 'BRG001-GR', 200); // More than available stock (95)
+                    this.addResult('error', 'Should have failed due to insufficient stock', 'Test should not reach here');
+                } catch (error) {
+                    this.assertEqual(error.message, 'Stok tidak mencukupi', 'Correct error message for insufficient stock');
+                }
+            }
+
+            testSameItemValidation() {
+                this.addResult('info', 'Test 5: Same Item Validation', 'Testing same item validation');
+                
+                try {
+                    this.executeTransformation('BRG001-KG', 'BRG001-KG', 5);
+                    this.addResult('error', 'Should have failed due to same item', 'Test should not reach here');
+                } catch (error) {
+                    this.assertEqual(error.message, 'Item asal dan tujuan tidak boleh sama', 'Correct error message for same item');
+                }
+            }
+
+            testDifferentProductValidation() {
+                this.addResult('info', 'Test 6: Different Product Validation', 'Testing different product validation');
+                
+                try {
+                    this.executeTransformation('BRG001-KG', 'BRG003-DUS', 5);
+                    this.addResult('error', 'Should have failed due to different products', 'Test should not reach here');
+                } catch (error) {
+                    this.assertEqual(error.message, 'Item harus dari produk yang sama', 'Correct error message for different products');
+                }
+            }
+
+            testStockConsistency() {
+                this.addResult('info', 'Test 7: Stock Consistency Check', 'Testing stock consistency after multiple transformations');
+                
+                // Record initial total stock value for BRG001 (in grams)
+                const initialKgStock = this.masterBarang.find(item => item.kode === 'BRG001-KG').stok;
+                const initialGramStock = this.masterBarang.find(item => item.kode === 'BRG001-GR').stok;
+                const initialTotalInGrams = (initialKgStock * 1000) + initialGramStock;
+                
+                try {
+                    // Do transformation: 10 kg → gram
+                    this.executeTransformation('BRG001-KG', 'BRG001-GR', 10);
+                    
+                    // Check final total stock value (should be same)
+                    const finalKgStock = this.masterBarang.find(item => item.kode === 'BRG001-KG').stok;
+                    const finalGramStock = this.masterBarang.find(item => item.kode === 'BRG001-GR').stok;
+                    const finalTotalInGrams = (finalKgStock * 1000) + finalGramStock;
+                    
+                    this.assertEqual(finalTotalInGrams, initialTotalInGrams, 'Total stock value preserved after transformation');
+                    
+                } catch (error) {
+                    this.addResult('error', 'Stock consistency test failed', error.message);
+                }
+            }
+
+            testDecimalTransformation() {
+                this.addResult('info', 'Test 8: Decimal Transformation', 'Testing transformation with decimal quantities');
+                
+                try {
+                    const result = this.executeTransformation('BRG001-KG', 'BRG001-GR', 2.5);
+                    
+                    this.assertEqual(result.sourceItem.quantityReduced, 2.5, 'Decimal source quantity handled correctly');
+                    this.assertEqual(result.targetItem.quantityAdded, 2500, 'Decimal conversion calculated correctly (2.5 kg = 2500 gram)');
+                    
+                } catch (error) {
+                    this.addResult('error', 'Decimal transformation failed', error.message);
+                }
+            }
+
+            // Run all tests
+            runAllTests() {
+                this.results = [];
+                this.initializeTestData();
+                
+                this.addResult('info', 'Starting Transformation Tests', 'Running comprehensive test suite...');
+                
+                this.testBasicTransformation();
+                this.testDusToBottleTransformation();
+                this.testReverseTransformation();
+                this.testInsufficientStock();
+                this.testSameItemValidation();
+                this.testDifferentProductValidation();
+                this.testStockConsistency();
+                this.testDecimalTransformation();
+                
+                // Summary
+                const successCount = this.results.filter(r => r.type === 'success').length;
+                const errorCount = this.results.filter(r => r.type === 'error').length;
+                const totalTests = successCount + errorCount;
+                
+                this.addResult('info', 'Test Summary', 
+                    `Total Tests: ${totalTests}, Passed: ${successCount}, Failed: ${errorCount}`);
+                
+                if (errorCount === 0) {
+                    this.addResult('success', 'All Tests Passed! ✅', 'Transformation system is working correctly');
+                } else {
+                    this.addResult('warning', `${errorCount} Test(s) Failed ⚠️`, 'Please review failed tests');
+                }
+            }
+
+            // Display results
+            displayResults() {
+                const container = document.getElementById('test-results');
+                if (!container) return;
+
+                const html = this.results.map(result => {
+                    const iconMap = {
+                        success: 'bi-check-circle-fill text-success',
+                        error: 'bi-x-circle-fill text-danger',
+                        warning: 'bi-exclamation-triangle-fill text-warning',
+                        info: 'bi-info-circle-fill text-info'
+                    };
+
+                    return `
+                        <div class="card test-card test-${result.type}">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi ${iconMap[result.type]} me-3 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title mb-1">${result.title}</h6>
+                                        <div class="code-block">${result.details}</div>
+                                        <small class="text-muted">Time: ${result.timestamp}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = html;
+            }
+        }
+
+        // Global tester instance
+        const tester = new TransformationTester();
+
+        // Global functions
+        function runAllTests() {
+            tester.runAllTests();
+            tester.displayResults();
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        function resetTestData() {
+            tester.initializeTestData();
+            alert('Test data has been reset to initial values');
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Transformation Test Suite Ready');
+            
+            // Show initial message
+            document.getElementById('test-results').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Test Suite Ready</strong><br>
+                    Klik "Jalankan Semua Test" untuk memverifikasi fungsi transformasi barang.
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>

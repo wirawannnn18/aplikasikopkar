@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformasi Barang - Terintegrasi Stok</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .transformation-card {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        .transformation-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.1);
+        }
+        .stock-info {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+        }
+        .conversion-preview {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .btn-transform {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-transform:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        .stock-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-shop-window me-2"></i>Koperasi Karyawan
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="index.html">
+                    <i class="bi bi-house me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Main Content Area -->
+            <div class="col-lg-8">
+                <!-- Page Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="bi bi-arrow-left-right me-2"></i>Transformasi Barang</h2>
+                        <p class="text-muted mb-0">Konversi barang antar unit dengan otomatis update stok</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alert Container -->
+                <div id="alert-container"></div>
+
+                <!-- Transformation Form -->
+                <div class="transformation-card p-4 mb-4">
+                    <h4 class="mb-3"><i class="bi bi-plus-circle me-2"></i>Form Transformasi Barang</h4>
+                    
+                    <form id="transformation-form">
+                        <div class="row">
+                            <!-- Source Item Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="sourceItem" class="form-label">
+                                    <i class="bi bi-box-seam me-1"></i>Barang Asal (Dikurangi Stoknya)
+                                </label>
+                                <select class="form-select" id="sourceItem" required>
+                                    <option value="">Pilih barang asal...</option>
+                                </select>
+                                <div class="form-text">Pilih barang yang akan dikurangi stoknya</div>
+                            </div>
+
+                            <!-- Target Item Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="targetItem" class="form-label">
+                                    <i class="bi bi-bullseye me-1"></i>Barang Tujuan (Ditambah Stoknya)
+                                </label>
+                                <select class="form-select" id="targetItem" required>
+                                    <option value="">Pilih barang tujuan...</option>
+                                </select>
+                                <div class="form-text">Pilih barang yang akan ditambah stoknya</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Quantity Input -->
+                            <div class="col-md-6 mb-3">
+                                <label for="quantity" class="form-label">
+                                    <i class="bi bi-123 me-1"></i>Jumlah Transformasi
+                                </label>
+                                <input type="number" class="form-control" id="quantity" 
+                                       min="1" step="0.001" placeholder="Masukkan jumlah..." required>
+                                <div class="form-text">Jumlah unit asal yang akan ditransformasi</div>
+                            </div>
+
+                            <!-- Conversion Info Display -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-calculator me-1"></i>Info Konversi
+                                </label>
+                                <div id="conversion-info" class="form-control bg-light" style="height: auto; min-height: 38px;">
+                                    <span class="text-muted">Pilih barang untuk melihat rasio konversi</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div id="preview-section" class="conversion-preview" style="display: none;">
+                            <h5><i class="bi bi-eye me-2"></i>Preview Transformasi</h5>
+                            <div id="preview-content"></div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-transform" id="submit-transformation" disabled>
+                                <i class="bi bi-arrow-repeat me-2"></i>Lakukan Transformasi
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="reset-form">
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Form
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Loading Indicator -->
+                    <div id="loading-indicator" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Memproses transformasi...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Quick Stats -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Statistik Hari Ini</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-1" id="today-transformations">0</h4>
+                                    <small class="text-muted">Transformasi</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success mb-1" id="available-items">0</h4>
+                                <small class="text-muted">Item Tersedia</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transformations -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Transformasi Terbaru</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="recent-transformations" class="list-group list-group-flush">
+                            <div class="list-group-item text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Belum ada transformasi hari ini
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Global variables
+        let masterBarang = [];
+        let conversionRatios = [];
+        let transformationHistory = [];
+
+        // Initialize sample data
+        function initializeSampleData() {
+            // Sample master barang with different units for same products
+            masterBarang = [
+                // Beras Premium - Contoh: 1 kg = 1000 gram
+                {
+                    kode: 'BRG001-KG',
+                    nama: 'Beras Premium (Kilogram)',
+                    satuan: 'kg',
+                    stok: 100,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12000,
+                    hargaJual: 15000
+                },
+                {
+                    kode: 'BRG001-GR',
+                    nama: 'Beras Premium (Gram)',
+                    satuan: 'gram',
+                    stok: 50000,
+                    baseProduct: 'BRG001',
+                    hargaBeli: 12,
+                    hargaJual: 15
+                },
+                // Air Mineral - Contoh: 1 dus = 24 botol
+                {
+                    kode: 'BRG003-DUS',
+                    nama: 'Air Mineral (Dus)',
+                    satuan: 'dus',
+                    stok: 20,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 48000,
+                    hargaJual: 60000
+                },
+                {
+                    kode: 'BRG003-BTL',
+                    nama: 'Air Mineral (Botol)',
+                    satuan: 'botol',
+                    stok: 480,
+                    baseProduct: 'BRG003',
+                    hargaBeli: 2000,
+                    hargaJual: 2500
+                },
+                // Gula Pasir - Contoh: 1 karung = 50 kg
+                {
+                    kode: 'BRG004-KRG',
+                    nama: 'Gula Pasir (Karung)',
+                    satuan: 'karung',
+                    stok: 10,
+                    baseProduct: 'BRG004',
+                    hargaBeli: 650000,
+                    hargaJual: 750000
+                },
+                {
+                    kode: 'BRG004-KG',
+                    nama: 'Gula Pasir (Kilogram)',
+                    satuan: 'kg',
+                    stok: 200,
+                    baseProduct: 'BRG004',
+                    hargaBeli: 13000,
+                    hargaJual: 15000
+                }
+            ];
+
+            // Conversion ratios between units
+            conversionRatios = [
+                {
+                    baseProduct: 'BRG001',
+                    conversions: [
+                        { from: 'kg', to: 'gram', ratio: 1000 },
+                        { from: 'gram', to: 'kg', ratio: 0.001 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG003',
+                    conversions: [
+                        { from: 'dus', to: 'botol', ratio: 24 },
+                        { from: 'botol', to: 'dus', ratio: 0.041667 }
+                    ]
+                },
+                {
+                    baseProduct: 'BRG004',
+                    conversions: [
+                        { from: 'karung', to: 'kg', ratio: 50 },
+                        { from: 'kg', to: 'karung', ratio: 0.02 }
+                    ]
+                }
+            ];
+
+            // Save to localStorage
+            localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+            localStorage.setItem('conversionRatios', JSON.stringify(conversionRatios));
+            
+            console.log('✅ Sample data initialized with', masterBarang.length, 'items');
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            try {
+                const storedBarang = localStorage.getItem('masterBarang');
+                const storedRatios = localStorage.getItem('conversionRatios');
+                const storedHistory = localStorage.getItem('transformationHistory');
+
+                if (storedBarang) {
+                    masterBarang = JSON.parse(storedBarang);
+                } else {
+                    initializeSampleData();
+                }
+
+                if (storedRatios) {
+                    conversionRatios = JSON.parse(storedRatios);
+                }
+
+                if (storedHistory) {
+                    transformationHistory = JSON.parse(storedHistory);
+                } else {
+                    transformationHistory = [];
+                }
+
+                console.log('✅ Data loaded successfully');
+            } catch (error) {
+                console.error('❌ Error loading data:', error);
+                initializeSampleData();
+            }
+        }
+
+        // Populate dropdowns with items that can be transformed
+        function populateDropdowns() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+
+            if (!sourceSelect || !targetSelect) return;
+
+            // Clear existing options
+            sourceSelect.innerHTML = '<option value="">Pilih barang asal...</option>';
+            targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+
+            // Group items by base product
+            const baseProducts = {};
+            masterBarang.forEach(item => {
+                const baseProduct = item.baseProduct || item.kode.split('-')[0];
+                if (!baseProducts[baseProduct]) {
+                    baseProducts[baseProduct] = [];
+                }
+                baseProducts[baseProduct].push(item);
+            });
+
+            // Only show products with multiple units and conversion ratios
+            Object.entries(baseProducts).forEach(([baseProduct, items]) => {
+                if (items.length > 1) {
+                    const hasConversionRatio = conversionRatios.some(ratio => ratio.baseProduct === baseProduct);
+                    if (hasConversionRatio) {
+                        items.forEach(item => {
+                            const stockInfo = `(Stok: ${item.stok} ${item.satuan})`;
+                            const itemLabel = `${item.nama} ${stockInfo}`;
+                            
+                            // Source dropdown - only items with stock > 0
+                            if (item.stok > 0) {
+                                const sourceOption = new Option(itemLabel, item.kode);
+                                sourceSelect.add(sourceOption);
+                            }
+                            
+                            // Target dropdown - all items
+                            const targetOption = new Option(itemLabel, item.kode);
+                            targetSelect.add(targetOption);
+                        });
+                    }
+                }
+            });
+
+            console.log(`✅ Dropdowns populated: ${sourceSelect.options.length - 1} source, ${targetSelect.options.length - 1} target options`);
+        }
+
+        // Filter target options based on source selection
+        function filterTargetOptions(sourceItemId) {
+            const targetSelect = document.getElementById('targetItem');
+            if (!targetSelect || !sourceItemId) return;
+
+            const sourceItem = masterBarang.find(item => item.kode === sourceItemId);
+            if (!sourceItem) return;
+
+            const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+
+            // Clear and repopulate target dropdown with same base product items only
+            targetSelect.innerHTML = '<option value="">Pilih barang tujuan...</option>';
+
+            masterBarang.forEach(item => {
+                const itemBaseProduct = item.baseProduct || item.kode.split('-')[0];
+                if (itemBaseProduct === sourceBaseProduct && item.kode !== sourceItemId) {
+                    const stockInfo = `(Stok: ${item.stok} ${item.satuan})`;
+                    const itemLabel = `${item.nama} ${stockInfo}`;
+                    const option = new Option(itemLabel, item.kode);
+                    targetSelect.add(option);
+                }
+            });
+        }
+
+        // Update conversion info and preview
+        function updateConversionInfo() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const conversionInfo = document.getElementById('conversion-info');
+            const previewSection = document.getElementById('preview-section');
+            const previewContent = document.getElementById('preview-content');
+            const submitButton = document.getElementById('submit-transformation');
+
+            if (!sourceSelect || !targetSelect || !quantityInput || !conversionInfo) return;
+
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            // Reset preview
+            previewSection.style.display = 'none';
+            
+            if (!sourceValue || !targetValue) {
+                conversionInfo.innerHTML = '<span class="text-muted">Pilih barang untuk melihat rasio konversi</span>';
+                if (submitButton) submitButton.disabled = true;
+                return;
+            }
+
+            const sourceItem = masterBarang.find(item => item.kode === sourceValue);
+            const targetItem = masterBarang.find(item => item.kode === targetValue);
+
+            if (!sourceItem || !targetItem) {
+                conversionInfo.innerHTML = '<span class="text-danger">Item tidak ditemukan</span>';
+                if (submitButton) submitButton.disabled = true;
+                return;
+            }
+
+            if (sourceValue === targetValue) {
+                conversionInfo.innerHTML = '<span class="text-warning">Item asal dan tujuan tidak boleh sama</span>';
+                if (submitButton) submitButton.disabled = true;
+                return;
+            }
+
+            // Get conversion ratio
+            const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+            const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+            
+            let ratio = 1;
+            if (productRatios && productRatios.conversions) {
+                const conversion = productRatios.conversions.find(c => 
+                    c.from === sourceItem.satuan && c.to === targetItem.satuan
+                );
+                if (conversion) {
+                    ratio = conversion.ratio;
+                }
+            }
+
+            const targetQuantity = quantity * ratio;
+            const stockSufficient = sourceItem.stok >= quantity;
+            const newSourceStock = sourceItem.stok - quantity;
+            const newTargetStock = targetItem.stok + targetQuantity;
+
+            // Update conversion info
+            conversionInfo.innerHTML = `
+                <div class="small">
+                    <strong>Rasio:</strong> 1 ${sourceItem.satuan} = ${ratio} ${targetItem.satuan}
+                    ${quantity > 0 ? `<br><strong>Hasil:</strong> ${quantity} ${sourceItem.satuan} → ${targetQuantity.toFixed(3)} ${targetItem.satuan}` : ''}
+                </div>
+            `;
+
+            // Show preview if quantity is entered
+            if (quantity > 0) {
+                previewContent.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h6 class="text-primary mb-2">
+                                    <i class="bi bi-box-arrow-down me-1"></i>Barang Asal (Dikurangi)
+                                </h6>
+                                <div class="fw-bold">${sourceItem.nama}</div>
+                                <div class="badge bg-${stockSufficient ? 'success' : 'danger'} mb-2">
+                                    Stok Saat Ini: ${sourceItem.stok} ${sourceItem.satuan}
+                                </div>
+                                <div class="small">
+                                    Akan dikurangi: <span class="fw-bold text-danger">${quantity} ${sourceItem.satuan}</span><br>
+                                    Stok setelah: <span class="fw-bold ${newSourceStock >= 0 ? 'text-success' : 'text-danger'}">${newSourceStock} ${sourceItem.satuan}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h6 class="text-success mb-2">
+                                    <i class="bi bi-box-arrow-up me-1"></i>Barang Tujuan (Ditambah)
+                                </h6>
+                                <div class="fw-bold">${targetItem.nama}</div>
+                                <div class="badge bg-info mb-2">
+                                    Stok Saat Ini: ${targetItem.stok} ${targetItem.satuan}
+                                </div>
+                                <div class="small">
+                                    Akan ditambah: <span class="fw-bold text-success">${targetQuantity.toFixed(3)} ${targetItem.satuan}</span><br>
+                                    Stok setelah: <span class="fw-bold text-success">${newTargetStock.toFixed(3)} ${targetItem.satuan}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ${!stockSufficient ? '<div class="alert alert-danger mt-3 mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Stok tidak mencukupi untuk transformasi ini!</div>' : ''}
+                `;
+                previewSection.style.display = 'block';
+            }
+
+            // Enable/disable submit button
+            if (submitButton) {
+                const canSubmit = sourceValue && targetValue && quantity > 0 && stockSufficient && sourceValue !== targetValue;
+                submitButton.disabled = !canSubmit;
+            }
+        }
+
+        // Process transformation
+        async function processTransformation() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const submitButton = document.getElementById('submit-transformation');
+
+            const sourceValue = sourceSelect.value;
+            const targetValue = targetSelect.value;
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            if (!sourceValue || !targetValue || quantity <= 0) {
+                showAlert('Silakan lengkapi semua field dengan benar', 'warning');
+                return;
+            }
+
+            try {
+                // Show loading
+                if (loadingIndicator) loadingIndicator.style.display = 'block';
+                if (submitButton) submitButton.disabled = true;
+
+                const sourceItem = masterBarang.find(item => item.kode === sourceValue);
+                const targetItem = masterBarang.find(item => item.kode === targetValue);
+
+                if (!sourceItem || !targetItem) {
+                    throw new Error('Item tidak ditemukan');
+                }
+
+                if (sourceItem.stok < quantity) {
+                    throw new Error(`Stok tidak mencukupi. Stok tersedia: ${sourceItem.stok} ${sourceItem.satuan}`);
+                }
+
+                // Get conversion ratio
+                const sourceBaseProduct = sourceItem.baseProduct || sourceItem.kode.split('-')[0];
+                const productRatios = conversionRatios.find(r => r.baseProduct === sourceBaseProduct);
+                
+                let ratio = 1;
+                if (productRatios && productRatios.conversions) {
+                    const conversion = productRatios.conversions.find(c => 
+                        c.from === sourceItem.satuan && c.to === targetItem.satuan
+                    );
+                    if (conversion) {
+                        ratio = conversion.ratio;
+                    }
+                }
+
+                const targetQuantity = quantity * ratio;
+
+                // Update stock
+                const sourceIndex = masterBarang.findIndex(item => item.kode === sourceValue);
+                const targetIndex = masterBarang.findIndex(item => item.kode === targetValue);
+
+                masterBarang[sourceIndex].stok -= quantity;
+                masterBarang[targetIndex].stok += targetQuantity;
+
+                // Save updated data
+                localStorage.setItem('masterBarang', JSON.stringify(masterBarang));
+
+                // Create transformation record
+                const transformationRecord = {
+                    id: `TRF-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    timestamp: new Date().toISOString(),
+                    user: 'User',
+                    sourceItem: {
+                        id: sourceItem.kode,
+                        name: sourceItem.nama,
+                        unit: sourceItem.satuan,
+                        quantity: quantity
+                    },
+                    targetItem: {
+                        id: targetItem.kode,
+                        name: targetItem.nama,
+                        unit: targetItem.satuan,
+                        quantity: targetQuantity
+                    },
+                    conversionRatio: ratio,
+                    status: 'completed'
+                };
+
+                // Save transformation history
+                transformationHistory.unshift(transformationRecord);
+                localStorage.setItem('transformationHistory', JSON.stringify(transformationHistory));
+
+                // Show success message
+                showAlert(`
+                    <strong>Transformasi Berhasil!</strong><br>
+                    <small>
+                        ${quantity} ${sourceItem.satuan} ${sourceItem.nama} → ${targetQuantity.toFixed(3)} ${targetItem.satuan} ${targetItem.nama}<br>
+                        ID: ${transformationRecord.id}
+                    </small>
+                `, 'success');
+
+                // Reset form and refresh data
+                resetForm();
+                refreshData();
+
+            } catch (error) {
+                console.error('❌ Error processing transformation:', error);
+                showAlert(`Gagal memproses transformasi: ${error.message}`, 'danger');
+            } finally {
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (submitButton) submitButton.disabled = false;
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('sourceItem').value = '';
+            document.getElementById('targetItem').value = '';
+            document.getElementById('quantity').value = '';
+            document.getElementById('conversion-info').innerHTML = '<span class="text-muted">Pilih barang untuk melihat rasio konversi</span>';
+            document.getElementById('preview-section').style.display = 'none';
+            document.getElementById('submit-transformation').disabled = true;
+        }
+
+        // Show alert
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alert-container');
+            if (alertContainer) {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                alertContainer.innerHTML = alertHtml;
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadData();
+            populateDropdowns();
+            updateStats();
+            loadRecentTransformations();
+            showAlert('Data berhasil diperbarui', 'success');
+        }
+
+        // Update statistics
+        function updateStats() {
+            const todayElement = document.getElementById('today-transformations');
+            const availableElement = document.getElementById('available-items');
+
+            if (todayElement) {
+                const today = new Date().toDateString();
+                const todayCount = transformationHistory.filter(t => 
+                    new Date(t.timestamp).toDateString() === today
+                ).length;
+                todayElement.textContent = todayCount;
+            }
+
+            if (availableElement) {
+                availableElement.textContent = masterBarang.length;
+            }
+        }
+
+        // Load recent transformations
+        function loadRecentTransformations() {
+            const container = document.getElementById('recent-transformations');
+            if (!container) return;
+
+            const today = new Date().toDateString();
+            const todayTransformations = transformationHistory
+                .filter(t => new Date(t.timestamp).toDateString() === today)
+                .slice(0, 5);
+
+            if (todayTransformations.length === 0) {
+                container.innerHTML = `
+                    <div class="list-group-item text-center text-muted py-4">
+                        <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                        Belum ada transformasi hari ini
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = todayTransformations.map(t => `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${t.sourceItem.name} → ${t.targetItem.name}</h6>
+                            <p class="mb-1 small text-muted">
+                                ${t.sourceItem.quantity} ${t.sourceItem.unit} → 
+                                ${t.targetItem.quantity.toFixed(3)} ${t.targetItem.unit}
+                            </p>
+                            <small class="text-muted">${new Date(t.timestamp).toLocaleTimeString('id-ID')}</small>
+                        </div>
+                        <span class="badge bg-success">Berhasil</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const sourceSelect = document.getElementById('sourceItem');
+            const targetSelect = document.getElementById('targetItem');
+            const quantityInput = document.getElementById('quantity');
+            const submitButton = document.getElementById('submit-transformation');
+            const resetButton = document.getElementById('reset-form');
+
+            if (sourceSelect) {
+                sourceSelect.addEventListener('change', function() {
+                    filterTargetOptions(sourceSelect.value);
+                    updateConversionInfo();
+                });
+            }
+
+            if (targetSelect) {
+                targetSelect.addEventListener('change', updateConversionInfo);
+            }
+
+            if (quantityInput) {
+                quantityInput.addEventListener('input', updateConversionInfo);
+                quantityInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !submitButton.disabled) {
+                        processTransformation();
+                    }
+                });
+            }
+
+            if (submitButton) {
+                submitButton.addEventListener('click', processTransformation);
+            }
+
+            if (resetButton) {
+                resetButton.addEventListener('click', resetForm);
+            }
+        }
+
+        // Initialize application
+        function initializeApp() {
+            console.log('🚀 Initializing Enhanced Transformation System...');
+            
+            loadData();
+            populateDropdowns();
+            setupEventListeners();
+            updateStats();
+            loadRecentTransformations();
+            
+            showAlert('Sistem transformasi barang berhasil dimuat!', 'success');
+            console.log('✅ Enhanced Transformation System ready!');
+        }
+
+        // Start application when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
