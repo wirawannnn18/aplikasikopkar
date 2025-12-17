@@ -440,6 +440,125 @@
         // Apply error suppression immediately
         suppressRepeatedValidationErrors();
         
+        // ADVANCED FIX: Intercept ErrorHandler logging
+        function interceptErrorHandlerLogging() {
+            // Wait for ErrorHandler to be available and patch its _logError method
+            function patchErrorHandler() {
+                if (window.ErrorHandler && window.ErrorHandler.prototype && window.ErrorHandler.prototype._logError) {
+                    const originalLogError = window.ErrorHandler.prototype._logError;
+                    
+                    window.ErrorHandler.prototype._logError = function(errorInfo) {
+                        // Check if this is a validation error we want to suppress
+                        const errorMessage = errorInfo.originalError?.message || errorInfo.originalError || '';
+                        
+                        if (typeof errorMessage === 'string' && 
+                            (errorMessage.includes('Preview tidak tersedia') || 
+                             errorMessage.includes('Silakan lengkapi form terlebih dahulu'))) {
+                            
+                            // Apply the same suppression logic
+                            if (lastValidationError !== errorMessage || errorCount < MAX_REPEATED_ERRORS) {
+                                if (lastValidationError !== errorMessage) {
+                                    errorCount = 0;
+                                }
+                                lastValidationError = errorMessage;
+                                errorCount++;
+                                
+                                if (errorCount <= MAX_REPEATED_ERRORS) {
+                                    return originalLogError.call(this, errorInfo);
+                                } else {
+                                    // Suppress the error logging
+                                    console.log(`[SUPPRESSED] Validation error suppressed (${errorCount - MAX_REPEATED_ERRORS} more)`);
+                                    return;
+                                }
+                            }
+                            return; // Skip logging
+                        }
+                        
+                        // For non-validation errors, log normally
+                        return originalLogError.call(this, errorInfo);
+                    };
+                    
+                    console.log('✅ ErrorHandler._logError patched for validation suppression');
+                }
+            }
+            
+            // Try to patch immediately and with delays
+            patchErrorHandler();
+            setTimeout(patchErrorHandler, 1000);
+            setTimeout(patchErrorHandler, 3000);
+            setTimeout(patchErrorHandler, 5000);
+        }
+        
+        // Apply ErrorHandler patching
+        interceptErrorHandlerLogging();
+        
+        // ULTIMATE FIX: Intercept handleValidationError calls
+        function interceptValidationErrorCalls() {
+            function patchValidationMethods() {
+                if (window.ErrorHandler && window.ErrorHandler.prototype) {
+                    // Patch handleValidationError method
+                    if (window.ErrorHandler.prototype.handleValidationError) {
+                        const originalHandleValidationError = window.ErrorHandler.prototype.handleValidationError;
+                        
+                        window.ErrorHandler.prototype.handleValidationError = function(error, context = {}) {
+                            const errorMessage = error?.message || error || '';
+                            
+                            // Suppress specific validation errors
+                            if (typeof errorMessage === 'string' && 
+                                (errorMessage.includes('Preview tidak tersedia') || 
+                                 errorMessage.includes('Silakan lengkapi form terlebih dahulu'))) {
+                                
+                                // Apply suppression logic
+                                if (lastValidationError !== errorMessage || errorCount < MAX_REPEATED_ERRORS) {
+                                    if (lastValidationError !== errorMessage) {
+                                        errorCount = 0;
+                                    }
+                                    lastValidationError = errorMessage;
+                                    errorCount++;
+                                    
+                                    if (errorCount <= MAX_REPEATED_ERRORS) {
+                                        return originalHandleValidationError.call(this, error, context);
+                                    } else {
+                                        // Return a suppressed response instead of logging
+                                        return {
+                                            success: false,
+                                            category: 'validation',
+                                            message: 'Form validation suppressed',
+                                            suppressed: true,
+                                            timestamp: new Date().toISOString()
+                                        };
+                                    }
+                                }
+                                
+                                // Return suppressed response
+                                return {
+                                    success: false,
+                                    category: 'validation',
+                                    message: 'Form validation suppressed',
+                                    suppressed: true,
+                                    timestamp: new Date().toISOString()
+                                };
+                            }
+                            
+                            // For other errors, handle normally
+                            return originalHandleValidationError.call(this, error, context);
+                        };
+                        
+                        console.log('✅ ErrorHandler.handleValidationError patched');
+                    }
+                }
+            }
+            
+            // Try to patch with multiple attempts
+            patchValidationMethods();
+            setTimeout(patchValidationMethods, 1000);
+            setTimeout(patchValidationMethods, 3000);
+            setTimeout(patchValidationMethods, 5000);
+        }
+        
+        // Apply validation method patching
+        interceptValidationErrorCalls();
+        
         // Initialize data if not exists
         function initializeDataIfNeeded() {
             let masterBarang = JSON.parse(localStorage.getItem('masterBarang') || '[]');
