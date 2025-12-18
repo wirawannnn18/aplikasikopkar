@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnosis Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-tools text-warning"></i> Diagnosis Pembayaran Hutang Piutang</h1>
+        <p class="lead">Mendiagnosis dan memperbaiki masalah menu Pembayaran Hutang/Piutang yang tidak bisa dibuka</p>
+
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle"></i> Masalah yang Dilaporkan</h5>
+            <p>Menu "Pembayaran Hutang/Piutang" tidak bisa dibuka atau tidak merespons saat diklik.</p>
+        </div>
+
+        <!-- Test Results -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clipboard-check"></i> Hasil Diagnosis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="diagnosisResults">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Menjalankan diagnosis...</span>
+                                </div>
+                                <p class="mt-2">Sedang menjalankan diagnosis...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fix Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-wrench"></i> Aksi Perbaikan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button class="btn btn-primary" onclick="runDiagnosis()">
+                                <i class="bi bi-arrow-clockwise"></i> Jalankan Ulang Diagnosis
+                            </button>
+                            <button class="btn btn-warning" onclick="fixDependencies()">
+                                <i class="bi bi-tools"></i> Perbaiki Dependencies
+                            </button>
+                            <button class="btn btn-success" onclick="testNavigation()">
+                                <i class="bi bi-play-circle"></i> Test Navigasi
+                            </button>
+                            <button class="btn btn-info" onclick="clearCache()">
+                                <i class="bi bi-trash"></i> Clear Cache
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Area -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> Area Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testArea">
+                            <!-- Test content will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        let diagnosisLog = [];
+
+        function addToLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            diagnosisLog.push({
+                timestamp,
+                message,
+                type
+            });
+            console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+        }
+
+        function displayResults() {
+            const container = document.getElementById('diagnosisResults');
+            
+            let html = '<div class="diagnosis-log">';
+            
+            diagnosisLog.forEach(log => {
+                const badgeClass = {
+                    'success': 'bg-success',
+                    'error': 'bg-danger',
+                    'warning': 'bg-warning',
+                    'info': 'bg-info'
+                }[log.type] || 'bg-secondary';
+                
+                html += `
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge ${badgeClass} me-2">${log.timestamp}</span>
+                        <span>${log.message}</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function runDiagnosis() {
+            diagnosisLog = [];
+            addToLog('Memulai diagnosis pembayaran hutang piutang...', 'info');
+            
+            // Test 1: Check if scripts are loaded
+            addToLog('Test 1: Memeriksa script yang dimuat...', 'info');
+            
+            const requiredFunctions = [
+                'renderPembayaranHutangPiutang',
+                'hitungSaldoHutang',
+                'hitungSaldoPiutang',
+                'checkPembayaranAccess'
+            ];
+            
+            let missingFunctions = [];
+            requiredFunctions.forEach(func => {
+                if (typeof window[func] === 'function') {
+                    addToLog(`✓ ${func} tersedia`, 'success');
+                } else {
+                    addToLog(`✗ ${func} tidak ditemukan`, 'error');
+                    missingFunctions.push(func);
+                }
+            });
+            
+            // Test 2: Check dependencies
+            addToLog('Test 2: Memeriksa dependencies...', 'info');
+            
+            const dependencies = [
+                'generateId',
+                'showAlert',
+                'formatRupiah',
+                'filterTransactableAnggota',
+                'validateAnggotaForHutangPiutang',
+                'addJurnal'
+            ];
+            
+            let missingDeps = [];
+            dependencies.forEach(dep => {
+                if (typeof window[dep] === 'function') {
+                    addToLog(`✓ ${dep} tersedia`, 'success');
+                } else {
+                    addToLog(`✗ ${dep} tidak ditemukan`, 'error');
+                    missingDeps.push(dep);
+                }
+            });
+            
+            // Test 3: Check DOM elements
+            addToLog('Test 3: Memeriksa elemen DOM...', 'info');
+            
+            const contentElement = document.getElementById('content') || document.getElementById('mainContent');
+            if (contentElement) {
+                addToLog('✓ Content element ditemukan', 'success');
+            } else {
+                addToLog('✗ Content element tidak ditemukan', 'error');
+            }
+            
+            // Test 4: Check localStorage data
+            addToLog('Test 4: Memeriksa data localStorage...', 'info');
+            
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                
+                addToLog(`✓ Data anggota: ${anggota.length} records`, 'success');
+                addToLog(`✓ Data pembayaran: ${pembayaran.length} records`, 'success');
+                addToLog(`✓ Current user: ${currentUser.nama || 'tidak login'}`, currentUser.nama ? 'success' : 'warning');
+            } catch (error) {
+                addToLog(`✗ Error membaca localStorage: ${error.message}`, 'error');
+            }
+            
+            // Test 5: Try to call the function
+            addToLog('Test 5: Mencoba memanggil fungsi utama...', 'info');
+            
+            try {
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    // Create a temporary content div for testing
+                    const tempDiv = document.createElement('div');
+                    tempDiv.id = 'content';
+                    document.body.appendChild(tempDiv);
+                    
+                    renderPembayaranHutangPiutang();
+                    
+                    if (tempDiv.innerHTML.includes('Pembayaran Hutang / Piutang')) {
+                        addToLog('✓ Fungsi berhasil dijalankan dan menghasilkan output', 'success');
+                    } else {
+                        addToLog('✗ Fungsi dijalankan tapi tidak menghasilkan output yang diharapkan', 'error');
+                    }
+                    
+                    // Clean up
+                    document.body.removeChild(tempDiv);
+                } else {
+                    addToLog('✗ Fungsi renderPembayaranHutangPiutang tidak tersedia', 'error');
+                }
+            } catch (error) {
+                addToLog(`✗ Error saat menjalankan fungsi: ${error.message}`, 'error');
+            }
+            
+            // Summary
+            addToLog('=== RINGKASAN DIAGNOSIS ===', 'info');
+            
+            if (missingFunctions.length === 0 && missingDeps.length === 0) {
+                addToLog('✓ Semua fungsi dan dependencies tersedia', 'success');
+                addToLog('Kemungkinan masalah: Routing atau event handler', 'warning');
+            } else {
+                if (missingFunctions.length > 0) {
+                    addToLog(`✗ Fungsi yang hilang: ${missingFunctions.join(', ')}`, 'error');
+                }
+                if (missingDeps.length > 0) {
+                    addToLog(`✗ Dependencies yang hilang: ${missingDeps.join(', ')}`, 'error');
+                }
+            }
+            
+            displayResults();
+        }
+
+        function fixDependencies() {
+            addToLog('Memulai perbaikan dependencies...', 'info');
+            
+            // Create missing functions if they don't exist
+            if (typeof generateId !== 'function') {
+                window.generateId = function() {
+                    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                };
+                addToLog('✓ generateId function dibuat', 'success');
+            }
+            
+            if (typeof showAlert !== 'function') {
+                window.showAlert = function(message, type = 'info') {
+                    const alertClass = {
+                        'success': 'alert-success',
+                        'error': 'alert-danger',
+                        'danger': 'alert-danger',
+                        'warning': 'alert-warning',
+                        'info': 'alert-info'
+                    }[type] || 'alert-info';
+                    
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert ${alertClass} alert-dismissible fade show`;
+                    alertDiv.innerHTML = `
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    
+                    document.body.insertBefore(alertDiv, document.body.firstChild);
+                    
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.parentNode.removeChild(alertDiv);
+                        }
+                    }, 5000);
+                };
+                addToLog('✓ showAlert function dibuat', 'success');
+            }
+            
+            if (typeof formatRupiah !== 'function') {
+                window.formatRupiah = function(amount) {
+                    return new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0
+                    }).format(amount || 0);
+                };
+                addToLog('✓ formatRupiah function dibuat', 'success');
+            }
+            
+            if (typeof filterTransactableAnggota !== 'function') {
+                window.filterTransactableAnggota = function() {
+                    try {
+                        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                        return anggotaList.filter(anggota => 
+                            anggota.status === 'Aktif' && 
+                            (!anggota.statusKeanggotaan || anggota.statusKeanggotaan !== 'Keluar')
+                        );
+                    } catch (error) {
+                        console.error('Error filtering anggota:', error);
+                        return [];
+                    }
+                };
+                addToLog('✓ filterTransactableAnggota function dibuat', 'success');
+            }
+            
+            if (typeof validateAnggotaForHutangPiutang !== 'function') {
+                window.validateAnggotaForHutangPiutang = function(anggotaId) {
+                    try {
+                        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+                        const anggota = anggotaList.find(a => a.id === anggotaId);
+                        
+                        if (!anggota) {
+                            return { valid: false, error: 'Anggota tidak ditemukan' };
+                        }
+                        
+                        if (anggota.status !== 'Aktif') {
+                            return { valid: false, error: 'Anggota tidak aktif' };
+                        }
+                        
+                        if (anggota.statusKeanggotaan === 'Keluar') {
+                            return { valid: false, error: 'Anggota sudah keluar' };
+                        }
+                        
+                        return { valid: true };
+                    } catch (error) {
+                        return { valid: false, error: 'Error validasi anggota: ' + error.message };
+                    }
+                };
+                addToLog('✓ validateAnggotaForHutangPiutang function dibuat', 'success');
+            }
+            
+            if (typeof addJurnal !== 'function') {
+                window.addJurnal = function(keterangan, entries, tanggal) {
+                    try {
+                        const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                        const newEntry = {
+                            id: generateId(),
+                            tanggal: tanggal || new Date().toISOString().split('T')[0],
+                            keterangan: keterangan,
+                            entries: entries,
+                            createdAt: new Date().toISOString()
+                        };
+                        jurnal.push(newEntry);
+                        localStorage.setItem('jurnal', JSON.stringify(jurnal));
+                        return newEntry;
+                    } catch (error) {
+                        console.error('Error adding jurnal:', error);
+                        throw error;
+                    }
+                };
+                addToLog('✓ addJurnal function dibuat', 'success');
+            }
+            
+            addToLog('Perbaikan dependencies selesai', 'success');
+            displayResults();
+        }
+
+        function testNavigation() {
+            addToLog('Memulai test navigasi...', 'info');
+            
+            try {
+                // Setup test environment
+                if (!document.getElementById('content')) {
+                    const contentDiv = document.createElement('div');
+                    contentDiv.id = 'content';
+                    document.getElementById('testArea').appendChild(contentDiv);
+                    addToLog('✓ Content div dibuat untuk test', 'success');
+                }
+                
+                // Setup test user
+                const testUser = {
+                    id: 'test_user',
+                    nama: 'Test User',
+                    role: 'admin'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                addToLog('✓ Test user setup', 'success');
+                
+                // Setup test data
+                const testAnggota = [
+                    {
+                        id: 'anggota_1',
+                        nama: 'John Doe',
+                        nik: '1234567890',
+                        status: 'Aktif'
+                    }
+                ];
+                localStorage.setItem('anggota', JSON.stringify(testAnggota));
+                addToLog('✓ Test data anggota setup', 'success');
+                
+                // Test navigation
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    renderPembayaranHutangPiutang();
+                    addToLog('✓ renderPembayaranHutangPiutang() berhasil dipanggil', 'success');
+                    
+                    // Check if content was rendered
+                    const content = document.getElementById('content');
+                    if (content && content.innerHTML.includes('Pembayaran Hutang / Piutang')) {
+                        addToLog('✓ Content berhasil di-render', 'success');
+                        addToLog('Menu pembayaran hutang piutang berfungsi dengan baik!', 'success');
+                    } else {
+                        addToLog('✗ Content tidak di-render dengan benar', 'error');
+                    }
+                } else {
+                    addToLog('✗ Function renderPembayaranHutangPiutang tidak tersedia', 'error');
+                }
+                
+            } catch (error) {
+                addToLog(`✗ Error saat test navigasi: ${error.message}`, 'error');
+            }
+            
+            displayResults();
+        }
+
+        function clearCache() {
+            addToLog('Membersihkan cache dan data test...', 'info');
+            
+            // Clear test data
+            const keysToRemove = ['currentUser', 'anggota', 'pembayaranHutangPiutang'];
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                addToLog(`✓ ${key} dihapus dari localStorage`, 'success');
+            });
+            
+            // Clear test content
+            const testContent = document.getElementById('content');
+            if (testContent) {
+                testContent.innerHTML = '';
+                addToLog('✓ Test content dibersihkan', 'success');
+            }
+            
+            addToLog('Cache berhasil dibersihkan', 'success');
+            displayResults();
+        }
+
+        // Auto-run diagnosis on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runDiagnosis, 1000);
+        });
+    </script>
+</body>
+</html>
