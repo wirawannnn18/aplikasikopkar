@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnosis Pembayaran Hutang Piutang - Comprehensive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .test-pass {
+            background-color: #d1edff;
+            border-left: 4px solid #0d6efd;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .test-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h1><i class="bi bi-bug"></i> Diagnosis Pembayaran Hutang Piutang - Comprehensive</h1>
+        <p class="text-muted">Diagnosis menyeluruh untuk mengidentifikasi masalah menu Pembayaran Hutang/Piutang</p>
+        
+        <div id="diagnosisResults"></div>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="runDiagnosis()">
+                <i class="bi bi-play-circle"></i> Jalankan Diagnosis
+            </button>
+            <button class="btn btn-success" onclick="testMenuClick()">
+                <i class="bi bi-cursor-fill"></i> Test Klik Menu
+            </button>
+            <button class="btn btn-warning" onclick="testDirectNavigation()">
+                <i class="bi bi-arrow-right-circle"></i> Test Navigasi Langsung
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        let diagnosisResults = [];
+
+        function addResult(test, status, message, details = '') {
+            diagnosisResults.push({
+                test: test,
+                status: status, // 'pass', 'fail', 'warning'
+                message: message,
+                details: details,
+                timestamp: new Date().toLocaleTimeString()
+            });
+        }
+
+        function displayResults() {
+            const container = document.getElementById('diagnosisResults');
+            container.innerHTML = diagnosisResults.map(result => {
+                const statusClass = result.status === 'pass' ? 'test-pass' : 
+                                   result.status === 'fail' ? 'test-fail' : 'test-warning';
+                const icon = result.status === 'pass' ? 'check-circle-fill' : 
+                            result.status === 'fail' ? 'x-circle-fill' : 'exclamation-triangle-fill';
+                
+                return `
+                    <div class="test-result ${statusClass}">
+                        <h6><i class="bi bi-${icon}"></i> ${result.test}</h6>
+                        <p><strong>${result.message}</strong></p>
+                        ${result.details ? `<div class="code-block">${result.details}</div>` : ''}
+                        <small class="text-muted">Waktu: ${result.timestamp}</small>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function runDiagnosis() {
+            diagnosisResults = [];
+            
+            // Test 1: Check if functions exist
+            console.log('=== Test 1: Function Existence ===');
+            
+            if (typeof renderPembayaranHutangPiutang === 'function') {
+                addResult('Function Existence', 'pass', 'renderPembayaranHutangPiutang function exists');
+            } else {
+                addResult('Function Existence', 'fail', 'renderPembayaranHutangPiutang function NOT found', 
+                    'Function mungkin tidak dimuat atau ada error dalam file js/pembayaranHutangPiutang.js');
+            }
+
+            if (typeof navigateTo === 'function') {
+                addResult('Navigation Function', 'pass', 'navigateTo function exists');
+            } else {
+                addResult('Navigation Function', 'fail', 'navigateTo function NOT found');
+            }
+
+            if (typeof renderPage === 'function') {
+                addResult('Render Function', 'pass', 'renderPage function exists');
+            } else {
+                addResult('Render Function', 'fail', 'renderPage function NOT found');
+            }
+
+            // Test 2: Check DOM elements
+            console.log('=== Test 2: DOM Elements ===');
+            
+            const content = document.getElementById('content') || document.getElementById('mainContent');
+            if (content) {
+                addResult('Content Container', 'pass', 'Content container found', `Element ID: ${content.id}`);
+            } else {
+                addResult('Content Container', 'fail', 'Content container NOT found', 
+                    'Neither #content nor #mainContent element exists');
+            }
+
+            // Test 3: Check menu rendering
+            console.log('=== Test 3: Menu System ===');
+            
+            const menuLink = document.querySelector('[data-page="pembayaran-hutang-piutang"]');
+            if (menuLink) {
+                addResult('Menu Link', 'pass', 'Menu link found in DOM', 
+                    `Link text: "${menuLink.textContent.trim()}"`);
+            } else {
+                addResult('Menu Link', 'fail', 'Menu link NOT found in DOM', 
+                    'Menu mungkin tidak di-render atau ada masalah dengan renderMenu()');
+            }
+
+            // Test 4: Check user authentication
+            console.log('=== Test 4: User Authentication ===');
+            
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                try {
+                    const user = JSON.parse(currentUser);
+                    addResult('User Authentication', 'pass', 'User is logged in', 
+                        `User: ${user.name || user.username}, Role: ${user.role}`);
+                    
+                    // Check access permission
+                    if (typeof checkPembayaranAccess === 'function') {
+                        const hasAccess = checkPembayaranAccess();
+                        if (hasAccess) {
+                            addResult('Access Permission', 'pass', 'User has access to Pembayaran Hutang/Piutang');
+                        } else {
+                            addResult('Access Permission', 'fail', 'User does NOT have access', 
+                                `Current role: ${user.role}. Required roles: super_admin, administrator, admin, kasir`);
+                        }
+                    } else {
+                        addResult('Access Check Function', 'warning', 'checkPembayaranAccess function not found');
+                    }
+                } catch (e) {
+                    addResult('User Data', 'fail', 'Invalid user data in localStorage', e.message);
+                }
+            } else {
+                addResult('User Authentication', 'fail', 'No user logged in');
+            }
+
+            // Test 5: Check JavaScript errors
+            console.log('=== Test 5: JavaScript Errors ===');
+            
+            let jsErrors = [];
+            const originalError = window.onerror;
+            window.onerror = function(msg, url, line, col, error) {
+                jsErrors.push({msg, url, line, col, error});
+                if (originalError) originalError.apply(this, arguments);
+            };
+
+            // Test 6: Try direct function call
+            console.log('=== Test 6: Direct Function Call ===');
+            
+            try {
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    // Create a temporary content div for testing
+                    const tempContent = document.createElement('div');
+                    tempContent.id = 'tempContent';
+                    document.body.appendChild(tempContent);
+                    
+                    // Temporarily replace content element
+                    const originalContent = document.getElementById('content') || document.getElementById('mainContent');
+                    if (originalContent) {
+                        originalContent.id = 'originalContent';
+                    }
+                    tempContent.id = 'content';
+                    
+                    renderPembayaranHutangPiutang();
+                    
+                    if (tempContent.innerHTML.trim()) {
+                        addResult('Direct Function Call', 'pass', 'Function executed successfully', 
+                            `Generated ${tempContent.innerHTML.length} characters of HTML`);
+                    } else {
+                        addResult('Direct Function Call', 'warning', 'Function executed but no content generated');
+                    }
+                    
+                    // Restore original content element
+                    tempContent.remove();
+                    if (originalContent) {
+                        originalContent.id = 'content';
+                    }
+                } else {
+                    addResult('Direct Function Call', 'fail', 'Cannot test - function not found');
+                }
+            } catch (error) {
+                addResult('Direct Function Call', 'fail', 'Function call failed', error.message);
+            }
+
+            // Test 7: Check file loading
+            console.log('=== Test 7: File Loading ===');
+            
+            const scripts = Array.from(document.querySelectorAll('script[src]'));
+            const pembayaranScript = scripts.find(s => s.src.includes('pembayaranHutangPiutang.js'));
+            
+            if (pembayaranScript) {
+                addResult('Script Loading', 'pass', 'pembayaranHutangPiutang.js script tag found');
+                
+                // Check if script loaded successfully
+                if (pembayaranScript.readyState === 'complete' || pembayaranScript.readyState === 'loaded') {
+                    addResult('Script Status', 'pass', 'Script loaded successfully');
+                } else {
+                    addResult('Script Status', 'warning', 'Script loading status unclear', 
+                        `ReadyState: ${pembayaranScript.readyState || 'undefined'}`);
+                }
+            } else {
+                addResult('Script Loading', 'fail', 'pembayaranHutangPiutang.js script tag NOT found');
+            }
+
+            // Test 8: Check console errors
+            setTimeout(() => {
+                if (jsErrors.length > 0) {
+                    addResult('JavaScript Errors', 'fail', `${jsErrors.length} JavaScript errors detected`, 
+                        jsErrors.map(e => `${e.msg} at ${e.url}:${e.line}:${e.col}`).join('\n'));
+                } else {
+                    addResult('JavaScript Errors', 'pass', 'No JavaScript errors detected during diagnosis');
+                }
+                
+                displayResults();
+            }, 1000);
+
+            // Display initial results
+            displayResults();
+        }
+
+        function testMenuClick() {
+            console.log('=== Testing Menu Click ===');
+            
+            const menuLink = document.querySelector('[data-page="pembayaran-hutang-piutang"]');
+            if (menuLink) {
+                console.log('Menu link found, attempting click...');
+                try {
+                    menuLink.click();
+                    addResult('Menu Click Test', 'pass', 'Menu click executed successfully');
+                } catch (error) {
+                    addResult('Menu Click Test', 'fail', 'Menu click failed', error.message);
+                }
+            } else {
+                addResult('Menu Click Test', 'fail', 'Menu link not found');
+            }
+            displayResults();
+        }
+
+        function testDirectNavigation() {
+            console.log('=== Testing Direct Navigation ===');
+            
+            try {
+                if (typeof navigateTo === 'function') {
+                    navigateTo('pembayaran-hutang-piutang');
+                    addResult('Direct Navigation', 'pass', 'navigateTo() called successfully');
+                } else {
+                    addResult('Direct Navigation', 'fail', 'navigateTo function not available');
+                }
+            } catch (error) {
+                addResult('Direct Navigation', 'fail', 'Navigation failed', error.message);
+            }
+            displayResults();
+        }
+
+        // Initialize diagnosis on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Diagnosis page loaded');
+            
+            // Set up a test user if none exists
+            if (!localStorage.getItem('currentUser')) {
+                const testUser = {
+                    id: 1,
+                    username: 'admin',
+                    name: 'Test Admin',
+                    role: 'administrator'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                console.log('Test user created for diagnosis');
+            }
+            
+            // Auto-run diagnosis after a short delay
+            setTimeout(runDiagnosis, 500);
+        });
+    </script>
+</body>
+</html>

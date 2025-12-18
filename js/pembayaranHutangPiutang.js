@@ -126,7 +126,7 @@ function renderPembayaranHutangPiutang() {
     // Enhanced session and access validation
     const sessionValidation = validateUserSession();
     if (!sessionValidation.valid) {
-        const content = document.getElementById('content');
+        const content = document.getElementById('mainContent');
         if (content) {
             content.innerHTML = `
                 <div class="container-fluid py-4">
@@ -145,7 +145,7 @@ function renderPembayaranHutangPiutang() {
     
     // Check basic access permission
     if (!checkPembayaranAccess()) {
-        const content = document.getElementById('content');
+        const content = document.getElementById('mainContent');
         if (content) {
             content.innerHTML = `
                 <div class="container-fluid py-4">
@@ -163,7 +163,7 @@ function renderPembayaranHutangPiutang() {
     
     // Check view permission
     if (!checkOperationPermission('view')) {
-        const content = document.getElementById('content');
+        const content = document.getElementById('mainContent');
         if (content) {
             content.innerHTML = `
                 <div class="container-fluid py-4">
@@ -178,7 +178,7 @@ function renderPembayaranHutangPiutang() {
         return;
     }
     
-    const content = document.getElementById('content');
+    const content = document.getElementById('mainContent');
     if (!content) {
         console.error('Content element not found');
         return;
