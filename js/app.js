@@ -219,15 +219,43 @@ function generateId() {
 }
 
 function showAlert(message, type = 'success') {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'danger': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-success';
+    
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert.fixed-top');
+    existingAlerts.forEach(alert => alert.remove());
+    
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.className = `alert ${alertClass} alert-dismissible fade show fixed-top`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.margin = '10px';
     alertDiv.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    document.getElementById('mainContent').insertBefore(alertDiv, document.getElementById('mainContent').firstChild);
     
-    setTimeout(() => alertDiv.remove(), 3000);
+    // Try to find the best container
+    const container = document.getElementById('mainContent') || 
+                     document.getElementById('content') || 
+                     document.body;
+    
+    if (container === document.body) {
+        document.body.appendChild(alertDiv);
+    } else {
+        container.insertBefore(alertDiv, container.firstChild);
+    }
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
 }
 
 

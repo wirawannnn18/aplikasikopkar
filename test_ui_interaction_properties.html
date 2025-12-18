@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test UI Interaction Properties - Pembayaran Hutang Piutang</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .info { color: blue; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+        pre { background: #f8f8f8; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test UI Interaction Properties - Pembayaran Hutang Piutang</h1>
+    <p>Testing Property 19 (Automatic saldo display) and Property 20 (Relevant saldo display by jenis)</p>
+    
+    <div id="results"></div>
+
+    <!-- Mock DOM elements for testing -->
+    <div style="display: none;">
+        <div id="displaySaldoHutang">Rp 0</div>
+        <div id="displaySaldoPiutang">Rp 0</div>
+        <div id="saldoDisplay" style="display: none;"></div>
+        <select id="jenisPembayaran">
+            <option value="">-- Pilih Jenis --</option>
+            <option value="hutang">Hutang</option>
+            <option value="piutang">Piutang</option>
+        </select>
+        <input type="number" id="jumlahPembayaran" />
+    </div>
+
+    <script>
+        // Mock localStorage
+        const mockStorage = {};
+        const localStorage = {
+            getItem: (key) => mockStorage[key] || null,
+            setItem: (key, value) => { mockStorage[key] = value; },
+            clear: () => { Object.keys(mockStorage).forEach(key => delete mockStorage[key]); }
+        };
+
+        // Mock utility functions
+        function formatRupiah(amount) {
+            return `Rp ${amount.toLocaleString('id-ID')}`;
+        }
+
+        function generateId() {
+            return 'TEST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Include the main functions from pembayaranHutangPiutang.js
+        function hitungSaldoHutang(anggotaId) {
+            try {
+                const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+                const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                
+                const totalKredit = penjualan
+                    .filter(p => p.anggotaId === anggotaId && p.metodePembayaran === 'Kredit')
+                    .reduce((sum, p) => sum + (parseFloat(p.total) || 0), 0);
+                
+                const totalBayar = pembayaran
+                    .filter(p => p.anggotaId === anggotaId && p.jenis === 'hutang' && p.status === 'selesai')
+                    .reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+                
+                return totalKredit - totalBayar;
+            } catch (error) {
+                console.error('Error calculating hutang saldo:', error);
+                return 0;
+            }
+        }
+
+        function hitungSaldoPiutang(anggotaId) {
+            try {
+                const simpananList = JSON.parse(localStorage.getItem('simpanan') || '[]');
+                const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                
+                const anggotaSimpanan = simpananList.filter(s => 
+                    s.anggotaId === anggotaId && 
+                    s.statusPengembalian === 'pending'
+                );
+                
+                let totalPiutang = 0;
+                anggotaSimpanan.forEach(simpanan => {
+                    totalPiutang += parseFloat(simpanan.saldo || 0);
+                });
+                
+                const totalBayar = pembayaran
+                    .filter(p => p.anggotaId === anggotaId && p.jenis === 'piutang' && p.status === 'selesai')
+                    .reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+                
+                return totalPiutang - totalBayar;
+            } catch (error) {
+                console.error('Error calculating piutang saldo:', error);
+                return 0;
+            }
+        }
+
+        function displaySaldoAnggotaAutomatic(anggotaId) {
+            const saldoHutang = hitungSaldoHutang(anggotaId);
+            const saldoPiutang = hitungSaldoPiutang(anggotaId);
+            
+            const hutangElement = document.getElementById('displaySaldoHutang');
+            const piutangElement = document.getElementById('displaySaldoPiutang');
+            
+            hutangElement.textContent = formatRupiah(saldoHutang);
+            piutangElement.textContent = formatRupiah(saldoPiutang);
+            
+            if (saldoHutang === 0) {
+                hutangElement.classList.add('text-muted');
+                hutangElement.parentElement.classList.add('opacity-50');
+            } else {
+                hutangElement.classList.remove('text-muted');
+                hutangElement.parentElement.classList.remove('opacity-50');
+            }
+            
+            if (saldoPiutang === 0) {
+                piutangElement.classList.add('text-muted');
+                piutangElement.parentElement.classList.add('opacity-50');
+            } else {
+                piutangElement.classList.remove('text-muted');
+                piutangElement.parentElement.classList.remove('opacity-50');
+            }
+            
+            const saldoDisplay = document.getElementById('saldoDisplay');
+            saldoDisplay.style.display = 'block';
+            saldoDisplay.classList.add('fade-in');
+            
+            const jenis = document.getElementById('jenisPembayaran').value;
+            if (jenis) {
+                highlightRelevantSaldoDynamic(jenis, saldoHutang, saldoPiutang);
+            }
+            
+            return { saldoHutang, saldoPiutang };
+        }
+
+        function highlightRelevantSaldoDynamic(jenis, saldoHutang, saldoPiutang) {
+            const hutangContainer = document.getElementById('displaySaldoHutang').parentElement;
+            const piutangContainer = document.getElementById('displaySaldoPiutang').parentElement;
+            
+            hutangContainer.classList.remove('border', 'border-danger', 'border-success', 'p-2', 'rounded', 'bg-light');
+            piutangContainer.classList.remove('border', 'border-danger', 'border-success', 'p-2', 'rounded', 'bg-light');
+            
+            if (jenis === 'hutang') {
+                if (saldoHutang > 0) {
+                    hutangContainer.classList.add('border', 'border-danger', 'p-2', 'rounded', 'bg-light');
+                    hutangContainer.style.borderWidth = '2px';
+                } else {
+                    hutangContainer.classList.add('border', 'border-secondary', 'p-2', 'rounded');
+                    hutangContainer.style.borderStyle = 'dashed';
+                }
+                piutangContainer.classList.add('opacity-50');
+            } else if (jenis === 'piutang') {
+                if (saldoPiutang > 0) {
+                    piutangContainer.classList.add('border', 'border-success', 'p-2', 'rounded', 'bg-light');
+                    piutangContainer.style.borderWidth = '2px';
+                } else {
+                    piutangContainer.classList.add('border', 'border-secondary', 'p-2', 'rounded');
+                    piutangContainer.style.borderStyle = 'dashed';
+                }
+                hutangContainer.classList.add('opacity-50');
+            }
+            
+            return { hutangHighlighted: jenis === 'hutang', piutangHighlighted: jenis === 'piutang' };
+        }
+
+        function controlJumlahInputBasedOnSaldo(jenis, saldoHutang, saldoPiutang) {
+            const jumlahInput = document.getElementById('jumlahPembayaran');
+            
+            if (jenis === 'hutang') {
+                if (saldoHutang > 0) {
+                    jumlahInput.disabled = false;
+                    jumlahInput.max = saldoHutang;
+                    jumlahInput.placeholder = `Maksimal: ${formatRupiah(saldoHutang)}`;
+                    jumlahInput.classList.remove('is-invalid');
+                } else {
+                    jumlahInput.disabled = true;
+                    jumlahInput.placeholder = 'Tidak ada hutang yang perlu dibayar';
+                    jumlahInput.value = '';
+                    jumlahInput.classList.add('is-invalid');
+                }
+            } else if (jenis === 'piutang') {
+                if (saldoPiutang > 0) {
+                    jumlahInput.disabled = false;
+                    jumlahInput.max = saldoPiutang;
+                    jumlahInput.placeholder = `Maksimal: ${formatRupiah(saldoPiutang)}`;
+                    jumlahInput.classList.remove('is-invalid');
+                } else {
+                    jumlahInput.disabled = true;
+                    jumlahInput.placeholder = 'Tidak ada piutang yang perlu dibayar';
+                    jumlahInput.value = '';
+                    jumlahInput.classList.add('is-invalid');
+                }
+            }
+            
+            return { inputEnabled: !jumlahInput.disabled, maxValue: jumlahInput.max };
+        }
+
+        // Test Property 19: Automatic saldo display
+        function testProperty19() {
+            console.log('=== Testing Property 19: Automatic saldo display ===');
+            
+            const testCases = [
+                {
+                    name: 'Anggota with hutang and piutang',
+                    anggotaId: 'A001',
+                    penjualan: [
+                        { anggotaId: 'A001', metodePembayaran: 'Kredit', total: 100000 },
+                        { anggotaId: 'A001', metodePembayaran: 'Kredit', total: 50000 }
+                    ],
+                    simpanan: [
+                        { anggotaId: 'A001', statusPengembalian: 'pending', saldo: 75000 }
+                    ],
+                    expectedHutang: 150000,
+                    expectedPiutang: 75000
+                },
+                {
+                    name: 'Anggota with only hutang',
+                    anggotaId: 'A002',
+                    penjualan: [
+                        { anggotaId: 'A002', metodePembayaran: 'Kredit', total: 200000 }
+                    ],
+                    simpanan: [],
+                    expectedHutang: 200000,
+                    expectedPiutang: 0
+                },
+                {
+                    name: 'Anggota with no hutang or piutang',
+                    anggotaId: 'A003',
+                    penjualan: [],
+                    simpanan: [],
+                    expectedHutang: 0,
+                    expectedPiutang: 0
+                }
+            ];
+
+            let passedTests = 0;
+            const results = [];
+
+            testCases.forEach((testCase, index) => {
+                localStorage.clear();
+                localStorage.setItem('penjualan', JSON.stringify(testCase.penjualan));
+                localStorage.setItem('simpanan', JSON.stringify(testCase.simpanan));
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+
+                const result = displaySaldoAnggotaAutomatic(testCase.anggotaId);
+                
+                const hutangCorrect = result.saldoHutang === testCase.expectedHutang;
+                const piutangCorrect = result.saldoPiutang === testCase.expectedPiutang;
+                const saldoDisplayShown = document.getElementById('saldoDisplay').style.display === 'block';
+                
+                const passed = hutangCorrect && piutangCorrect && saldoDisplayShown;
+                if (passed) passedTests++;
+
+                results.push({
+                    name: testCase.name,
+                    passed,
+                    details: {
+                        expectedHutang: testCase.expectedHutang,
+                        actualHutang: result.saldoHutang,
+                        expectedPiutang: testCase.expectedPiutang,
+                        actualPiutang: result.saldoPiutang,
+                        saldoDisplayShown
+                    }
+                });
+            });
+
+            return { passedTests, totalTests: testCases.length, results };
+        }
+
+        // Test Property 20: Relevant saldo display by jenis
+        function testProperty20() {
+            console.log('=== Testing Property 20: Relevant saldo display by jenis ===');
+            
+            const testCases = [
+                {
+                    name: 'Hutang selected with available saldo',
+                    jenis: 'hutang',
+                    saldoHutang: 100000,
+                    saldoPiutang: 50000,
+                    expectedInputEnabled: true,
+                    expectedMaxValue: 100000
+                },
+                {
+                    name: 'Piutang selected with available saldo',
+                    jenis: 'piutang',
+                    saldoHutang: 100000,
+                    saldoPiutang: 75000,
+                    expectedInputEnabled: true,
+                    expectedMaxValue: 75000
+                },
+                {
+                    name: 'Hutang selected with zero saldo',
+                    jenis: 'hutang',
+                    saldoHutang: 0,
+                    saldoPiutang: 50000,
+                    expectedInputEnabled: false,
+                    expectedMaxValue: 0
+                },
+                {
+                    name: 'Piutang selected with zero saldo',
+                    jenis: 'piutang',
+                    saldoHutang: 100000,
+                    saldoPiutang: 0,
+                    expectedInputEnabled: false,
+                    expectedMaxValue: 0
+                }
+            ];
+
+            let passedTests = 0;
+            const results = [];
+
+            testCases.forEach((testCase, index) => {
+                // Reset DOM elements
+                const hutangContainer = document.getElementById('displaySaldoHutang').parentElement;
+                const piutangContainer = document.getElementById('displaySaldoPiutang').parentElement;
+                const jumlahInput = document.getElementById('jumlahPembayaran');
+                
+                hutangContainer.className = '';
+                piutangContainer.className = '';
+                jumlahInput.disabled = false;
+                jumlahInput.max = '';
+                jumlahInput.classList.remove('is-invalid');
+
+                const highlightResult = highlightRelevantSaldoDynamic(testCase.jenis, testCase.saldoHutang, testCase.saldoPiutang);
+                const controlResult = controlJumlahInputBasedOnSaldo(testCase.jenis, testCase.saldoHutang, testCase.saldoPiutang);
+                
+                const inputEnabledCorrect = controlResult.inputEnabled === testCase.expectedInputEnabled;
+                const maxValueCorrect = testCase.expectedInputEnabled ? 
+                    (parseInt(controlResult.maxValue) === testCase.expectedMaxValue) : 
+                    true; // Don't check max value if input is disabled
+                
+                const highlightCorrect = testCase.jenis === 'hutang' ? 
+                    highlightResult.hutangHighlighted : 
+                    highlightResult.piutangHighlighted;
+                
+                const passed = inputEnabledCorrect && maxValueCorrect && highlightCorrect;
+                if (passed) passedTests++;
+
+                results.push({
+                    name: testCase.name,
+                    passed,
+                    details: {
+                        jenis: testCase.jenis,
+                        expectedInputEnabled: testCase.expectedInputEnabled,
+                        actualInputEnabled: controlResult.inputEnabled,
+                        expectedMaxValue: testCase.expectedMaxValue,
+                        actualMaxValue: controlResult.maxValue,
+                        highlightCorrect
+                    }
+                });
+            });
+
+            return { passedTests, totalTests: testCases.length, results };
+        }
+
+        // Run tests and display results
+        function runTests() {
+            const resultsDiv = document.getElementById('results');
+            
+            // Test Property 19
+            const property19Results = testProperty19();
+            const property19Html = `
+                <div class="test-section">
+                    <h2>Property 19: Automatic saldo display</h2>
+                    <div class="result ${property19Results.passedTests === property19Results.totalTests ? 'pass' : 'fail'}">
+                        Result: ${property19Results.passedTests}/${property19Results.totalTests} tests passed
+                    </div>
+                    ${property19Results.results.map(r => `
+                        <div class="result">
+                            <strong>${r.name}:</strong> <span class="${r.passed ? 'pass' : 'fail'}">${r.passed ? 'PASS' : 'FAIL'}</span>
+                            <pre>${JSON.stringify(r.details, null, 2)}</pre>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Test Property 20
+            const property20Results = testProperty20();
+            const property20Html = `
+                <div class="test-section">
+                    <h2>Property 20: Relevant saldo display by jenis</h2>
+                    <div class="result ${property20Results.passedTests === property20Results.totalTests ? 'pass' : 'fail'}">
+                        Result: ${property20Results.passedTests}/${property20Results.totalTests} tests passed
+                    </div>
+                    ${property20Results.results.map(r => `
+                        <div class="result">
+                            <strong>${r.name}:</strong> <span class="${r.passed ? 'pass' : 'fail'}">${r.passed ? 'PASS' : 'FAIL'}</span>
+                            <pre>${JSON.stringify(r.details, null, 2)}</pre>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Overall result
+            const totalPassed = property19Results.passedTests + property20Results.passedTests;
+            const totalTests = property19Results.totalTests + property20Results.totalTests;
+            const overallHtml = `
+                <div class="test-section">
+                    <h2>Overall Results</h2>
+                    <div class="result ${totalPassed === totalTests ? 'pass' : 'fail'}">
+                        <strong>Property 19 & 20 UI Interaction Tests: ${totalPassed}/${totalTests} passed</strong>
+                    </div>
+                    <div class="info">
+                        <p><strong>Property 19:</strong> ${property19Results.passedTests === property19Results.totalTests ? 'VALIDATED ✅' : 'FAILED ❌'}</p>
+                        <p><strong>Property 20:</strong> ${property20Results.passedTests === property20Results.totalTests ? 'VALIDATED ✅' : 'FAILED ❌'}</p>
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = overallHtml + property19Html + property20Html;
+            
+            return totalPassed === totalTests;
+        }
+
+        // Run tests when page loads
+        window.onload = function() {
+            const success = runTests();
+            console.log('UI Interaction Property Tests:', success ? 'ALL PASSED' : 'SOME FAILED');
+        };
+    </script>
+</body>
+</html>

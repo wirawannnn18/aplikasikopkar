@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - Pembayaran Hutang Piutang Complete Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .console-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h1><i class="bi bi-check2-square"></i> Integration Test - Complete Payment Flow</h1>
+        <p class="text-muted">Testing end-to-end payment flows for hutang and piutang with journal verification</p>
+
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Test Controls -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-play-circle"></i> Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-primary w-100 mb-2" onclick="runHutangFlowTest()">
+                                    <i class="bi bi-arrow-down-circle"></i> Test Hutang Payment Flow
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-success w-100 mb-2" onclick="runPiutangFlowTest()">
+                                    <i class="bi bi-arrow-up-circle"></i> Test Piutang Payment Flow
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-info w-100 mb-2" onclick="runJournalVerificationTest()">
+                                    <i class="bi bi-journal-check"></i> Test Journal Verification
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-warning w-100 mb-2" onclick="runSaldoUpdateTest()">
+                                    <i class="bi bi-calculator"></i> Test Saldo Updates
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button class="btn btn-dark w-100" onclick="runAllIntegrationTests()">
+                                    <i class="bi bi-lightning"></i> Run All Integration Tests
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clipboard-data"></i> Test Results</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearResults()">Clear Results</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <p class="text-muted">Click a test button to start testing...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Test Data Setup -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6><i class="bi bi-database"></i> Test Data Setup</h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="setupTestData()">
+                            Setup Test Data
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm w-100" onclick="clearTestData()">
+                            Clear Test Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Console Output -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="bi bi-terminal"></i> Console Output</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearConsole()">Clear</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="consoleOutput" class="console-output">
+                            Console output will appear here...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        // Test framework
+        let testResults = [];
+        let consoleLog = [];
+
+        // Override console.log to capture output
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        console.log = function(...args) {
+            consoleLog.push(`[LOG] ${args.join(' ')}`);
+            updateConsoleOutput();
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            consoleLog.push(`[ERROR] ${args.join(' ')}`);
+            updateConsoleOutput();
+            originalConsoleError.apply(console, args);
+        };
+
+        function updateConsoleOutput() {
+            document.getElementById('consoleOutput').textContent = consoleLog.join('\n');
+            const consoleElement = document.getElementById('consoleOutput');
+            consoleElement.scrollTop = consoleElement.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleLog = [];
+            updateConsoleOutput();
+        }
+
+        function addTestResult(testName, passed, message, details = '') {
+            const result = {
+                name: testName,
+                passed: passed,
+                message: message,
+                details: details,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            testResults.push(result);
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const container = document.getElementById('testResults');
+            if (testResults.length === 0) {
+                container.innerHTML = '<p class="text-muted">No test results yet...</p>';
+                return;
+            }
+
+            const html = testResults.map(result => `
+                <div class="test-result ${result.passed ? 'test-pass' : 'test-fail'}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${result.passed ? '✓' : '✗'} ${result.name}</strong>
+                            <div class="mt-1">${result.message}</div>
+                            ${result.details ? `<small class="text-muted">${result.details}</small>` : ''}
+                        </div>
+                        <small class="text-muted">${result.timestamp}</small>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        function clearResults() {
+            testResults = [];
+            updateTestResults();
+        }
+
+        // Test data setup
+        function setupTestData() {
+            console.log('Setting up test data...');
+            
+            // Clear existing data
+            localStorage.clear();
+            
+            // Setup system settings
+            const systemSettings = {
+                namaKoperasi: 'Koperasi Test',
+                alamat: 'Jl. Test No. 123',
+                telepon: '021-12345678'
+            };
+            localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+            
+            // Setup current user
+            const currentUser = {
+                id: 'U001',
+                nama: 'Test Kasir',
+                role: 'kasir',
+                active: true
+            };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Setup users
+            const users = [currentUser];
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Setup anggota
+            const anggota = [
+                {
+                    id: 'A001',
+                    nama: 'Ahmad Test',
+                    nik: '1234567890',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                },
+                {
+                    id: 'A002',
+                    nama: 'Budi Test',
+                    nik: '0987654321',
+                    status: 'Aktif',
+                    statusKeanggotaan: 'Aktif'
+                }
+            ];
+            localStorage.setItem('anggota', JSON.stringify(anggota));
+            
+            // Setup penjualan (for hutang)
+            const penjualan = [
+                {
+                    id: 'P001',
+                    anggotaId: 'A001',
+                    metodePembayaran: 'Kredit',
+                    total: 500000,
+                    tanggal: '2024-12-01',
+                    status: 'selesai'
+                },
+                {
+                    id: 'P002',
+                    anggotaId: 'A002',
+                    metodePembayaran: 'Kredit',
+                    total: 300000,
+                    tanggal: '2024-12-02',
+                    status: 'selesai'
+                }
+            ];
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            
+            // Setup simpanan (for piutang)
+            const simpanan = [
+                {
+                    id: 'S001',
+                    anggotaId: 'A001',
+                    jenis: 'Pokok',
+                    saldo: 200000,
+                    statusPengembalian: 'pending'
+                },
+                {
+                    id: 'S002',
+                    anggotaId: 'A002',
+                    jenis: 'Wajib',
+                    saldo: 150000,
+                    statusPengembalian: 'pending'
+                }
+            ];
+            localStorage.setItem('simpanan', JSON.stringify(simpanan));
+            
+            // Setup COA
+            const coa = [
+                { kode: '1-1000', nama: 'Kas', jenis: 'Aset', saldo: 1000000 },
+                { kode: '1-1200', nama: 'Piutang Anggota', jenis: 'Aset', saldo: 0 },
+                { kode: '2-1000', nama: 'Hutang Anggota', jenis: 'Kewajiban', saldo: 0 }
+            ];
+            localStorage.setItem('coa', JSON.stringify(coa));
+            
+            // Initialize empty arrays
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+            localStorage.setItem('jurnal', JSON.stringify([]));
+            localStorage.setItem('auditLog', JSON.stringify([]));
+            
+            console.log('Test data setup complete');
+            addTestResult('Test Data Setup', true, 'Test data initialized successfully');
+        }
+
+        function clearTestData() {
+            localStorage.clear();
+            console.log('Test data cleared');
+            addTestResult('Test Data Clear', true, 'All test data cleared');
+        }
+
+        // Integration Tests
+        async function runHutangFlowTest() {
+            console.log('Starting Hutang Payment Flow Test...');
+            
+            try {
+                // Setup test data
+                setupTestData();
+                
+                // Step 1: Verify initial hutang saldo
+                const initialHutang = hitungSaldoHutang('A001');
+                console.log(`Initial hutang saldo: ${formatRupiah(initialHutang)}`);
+                
+                if (initialHutang <= 0) {
+                    throw new Error('No hutang balance found for testing');
+                }
+                
+                // Step 2: Prepare payment data
+                const paymentAmount = 100000;
+                const paymentData = {
+                    anggotaId: 'A001',
+                    anggotaNama: 'Ahmad Test',
+                    anggotaNIK: '1234567890',
+                    jenis: 'hutang',
+                    jumlah: paymentAmount,
+                    saldoSebelum: initialHutang,
+                    saldoSesudah: initialHutang - paymentAmount,
+                    keterangan: 'Test payment hutang'
+                };
+                
+                // Step 3: Validate payment
+                const validation = validatePembayaran(paymentData);
+                if (!validation.valid) {
+                    throw new Error(`Payment validation failed: ${validation.message}`);
+                }
+                console.log('Payment validation passed');
+                
+                // Step 4: Save payment transaction
+                const transaksi = savePembayaran(paymentData);
+                console.log(`Transaction saved with ID: ${transaksi.id}`);
+                
+                // Step 5: Create journal entry
+                createJurnalPembayaranHutang(transaksi);
+                console.log('Journal entry created');
+                
+                // Step 6: Verify saldo update
+                const finalHutang = hitungSaldoHutang('A001');
+                const expectedFinalHutang = initialHutang - paymentAmount;
+                
+                if (finalHutang !== expectedFinalHutang) {
+                    throw new Error(`Saldo mismatch. Expected: ${expectedFinalHutang}, Got: ${finalHutang}`);
+                }
+                console.log(`Final hutang saldo: ${formatRupiah(finalHutang)}`);
+                
+                // Step 7: Verify journal entries
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const lastJurnal = jurnal[jurnal.length - 1];
+                
+                if (!lastJurnal || !lastJurnal.entries) {
+                    throw new Error('Journal entry not found');
+                }
+                
+                const kasEntry = lastJurnal.entries.find(e => e.akun === '1-1000');
+                const hutangEntry = lastJurnal.entries.find(e => e.akun === '2-1000');
+                
+                if (!kasEntry || kasEntry.debit !== paymentAmount || kasEntry.kredit !== 0) {
+                    throw new Error('Kas journal entry incorrect');
+                }
+                
+                if (!hutangEntry || hutangEntry.debit !== 0 || hutangEntry.kredit !== paymentAmount) {
+                    throw new Error('Hutang journal entry incorrect');
+                }
+                
+                console.log('Journal entries verified');
+                
+                // Step 8: Verify audit log
+                const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const paymentLog = auditLog.find(log => 
+                    log.action === 'PEMBAYARAN_HUTANG' && 
+                    log.details.anggotaId === 'A001'
+                );
+                
+                if (!paymentLog) {
+                    throw new Error('Audit log entry not found');
+                }
+                console.log('Audit log verified');
+                
+                addTestResult(
+                    'Hutang Payment Flow', 
+                    true, 
+                    `Successfully processed hutang payment of ${formatRupiah(paymentAmount)}`,
+                    `Initial: ${formatRupiah(initialHutang)} → Final: ${formatRupiah(finalHutang)}`
+                );
+                
+            } catch (error) {
+                console.error('Hutang flow test failed:', error.message);
+                addTestResult('Hutang Payment Flow', false, error.message);
+            }
+        }
+
+        async function runPiutangFlowTest() {
+            console.log('Starting Piutang Payment Flow Test...');
+            
+            try {
+                // Setup test data
+                setupTestData();
+                
+                // Step 1: Verify initial piutang saldo
+                const initialPiutang = hitungSaldoPiutang('A001');
+                console.log(`Initial piutang saldo: ${formatRupiah(initialPiutang)}`);
+                
+                if (initialPiutang <= 0) {
+                    throw new Error('No piutang balance found for testing');
+                }
+                
+                // Step 2: Prepare payment data
+                const paymentAmount = 50000;
+                const paymentData = {
+                    anggotaId: 'A001',
+                    anggotaNama: 'Ahmad Test',
+                    anggotaNIK: '1234567890',
+                    jenis: 'piutang',
+                    jumlah: paymentAmount,
+                    saldoSebelum: initialPiutang,
+                    saldoSesudah: initialPiutang - paymentAmount,
+                    keterangan: 'Test payment piutang'
+                };
+                
+                // Step 3: Validate payment
+                const validation = validatePembayaran(paymentData);
+                if (!validation.valid) {
+                    throw new Error(`Payment validation failed: ${validation.message}`);
+                }
+                console.log('Payment validation passed');
+                
+                // Step 4: Save payment transaction
+                const transaksi = savePembayaran(paymentData);
+                console.log(`Transaction saved with ID: ${transaksi.id}`);
+                
+                // Step 5: Create journal entry
+                createJurnalPembayaranPiutang(transaksi);
+                console.log('Journal entry created');
+                
+                // Step 6: Verify saldo update
+                const finalPiutang = hitungSaldoPiutang('A001');
+                const expectedFinalPiutang = initialPiutang - paymentAmount;
+                
+                if (finalPiutang !== expectedFinalPiutang) {
+                    throw new Error(`Saldo mismatch. Expected: ${expectedFinalPiutang}, Got: ${finalPiutang}`);
+                }
+                console.log(`Final piutang saldo: ${formatRupiah(finalPiutang)}`);
+                
+                // Step 7: Verify journal entries
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                const lastJurnal = jurnal[jurnal.length - 1];
+                
+                if (!lastJurnal || !lastJurnal.entries) {
+                    throw new Error('Journal entry not found');
+                }
+                
+                const piutangEntry = lastJurnal.entries.find(e => e.akun === '1-1200');
+                const kasEntry = lastJurnal.entries.find(e => e.akun === '1-1000');
+                
+                if (!piutangEntry || piutangEntry.debit !== paymentAmount || piutangEntry.kredit !== 0) {
+                    throw new Error('Piutang journal entry incorrect');
+                }
+                
+                if (!kasEntry || kasEntry.debit !== 0 || kasEntry.kredit !== paymentAmount) {
+                    throw new Error('Kas journal entry incorrect');
+                }
+                
+                console.log('Journal entries verified');
+                
+                // Step 8: Verify audit log
+                const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const paymentLog = auditLog.find(log => 
+                    log.action === 'PEMBAYARAN_PIUTANG' && 
+                    log.details.anggotaId === 'A001'
+                );
+                
+                if (!paymentLog) {
+                    throw new Error('Audit log entry not found');
+                }
+                console.log('Audit log verified');
+                
+                addTestResult(
+                    'Piutang Payment Flow', 
+                    true, 
+                    `Successfully processed piutang payment of ${formatRupiah(paymentAmount)}`,
+                    `Initial: ${formatRupiah(initialPiutang)} → Final: ${formatRupiah(finalPiutang)}`
+                );
+                
+            } catch (error) {
+                console.error('Piutang flow test failed:', error.message);
+                addTestResult('Piutang Payment Flow', false, error.message);
+            }
+        }
+
+        async function runJournalVerificationTest() {
+            console.log('Starting Journal Verification Test...');
+            
+            try {
+                setupTestData();
+                
+                // Test multiple transactions and verify journal integrity
+                const transactions = [
+                    { anggotaId: 'A001', jenis: 'hutang', jumlah: 100000 },
+                    { anggotaId: 'A002', jenis: 'piutang', jumlah: 75000 },
+                    { anggotaId: 'A001', jenis: 'hutang', jumlah: 200000 }
+                ];
+                
+                let journalCount = 0;
+                
+                for (const txn of transactions) {
+                    const saldoSebelum = txn.jenis === 'hutang' 
+                        ? hitungSaldoHutang(txn.anggotaId)
+                        : hitungSaldoPiutang(txn.anggotaId);
+                    
+                    const paymentData = {
+                        anggotaId: txn.anggotaId,
+                        anggotaNama: txn.anggotaId === 'A001' ? 'Ahmad Test' : 'Budi Test',
+                        anggotaNIK: txn.anggotaId === 'A001' ? '1234567890' : '0987654321',
+                        jenis: txn.jenis,
+                        jumlah: txn.jumlah,
+                        saldoSebelum: saldoSebelum,
+                        saldoSesudah: saldoSebelum - txn.jumlah,
+                        keterangan: `Test ${txn.jenis} payment`
+                    };
+                    
+                    const transaksi = savePembayaran(paymentData);
+                    
+                    if (txn.jenis === 'hutang') {
+                        createJurnalPembayaranHutang(transaksi);
+                    } else {
+                        createJurnalPembayaranPiutang(transaksi);
+                    }
+                    
+                    journalCount++;
+                }
+                
+                // Verify all journal entries
+                const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+                
+                if (jurnal.length < journalCount) {
+                    throw new Error(`Expected ${journalCount} journal entries, found ${jurnal.length}`);
+                }
+                
+                // Verify each journal entry has balanced debit/kredit
+                for (let i = jurnal.length - journalCount; i < jurnal.length; i++) {
+                    const entry = jurnal[i];
+                    const totalDebit = entry.entries.reduce((sum, e) => sum + e.debit, 0);
+                    const totalKredit = entry.entries.reduce((sum, e) => sum + e.kredit, 0);
+                    
+                    if (totalDebit !== totalKredit) {
+                        throw new Error(`Journal entry ${i} not balanced: Debit ${totalDebit}, Kredit ${totalKredit}`);
+                    }
+                }
+                
+                console.log(`Verified ${journalCount} journal entries - all balanced`);
+                
+                addTestResult(
+                    'Journal Verification', 
+                    true, 
+                    `All ${journalCount} journal entries are properly balanced`,
+                    'Debit = Kredit for all entries'
+                );
+                
+            } catch (error) {
+                console.error('Journal verification test failed:', error.message);
+                addTestResult('Journal Verification', false, error.message);
+            }
+        }
+
+        async function runSaldoUpdateTest() {
+            console.log('Starting Saldo Update Test...');
+            
+            try {
+                setupTestData();
+                
+                // Record initial saldos
+                const initialHutangA001 = hitungSaldoHutang('A001');
+                const initialPiutangA001 = hitungSaldoPiutang('A001');
+                const initialHutangA002 = hitungSaldoHutang('A002');
+                const initialPiutangA002 = hitungSaldoPiutang('A002');
+                
+                console.log('Initial saldos recorded');
+                
+                // Process multiple payments
+                const payments = [
+                    { anggotaId: 'A001', jenis: 'hutang', jumlah: 150000 },
+                    { anggotaId: 'A001', jenis: 'piutang', jumlah: 100000 },
+                    { anggotaId: 'A002', jenis: 'hutang', jumlah: 200000 },
+                    { anggotaId: 'A002', jenis: 'piutang', jumlah: 50000 }
+                ];
+                
+                let expectedSaldos = {
+                    A001: { hutang: initialHutangA001, piutang: initialPiutangA001 },
+                    A002: { hutang: initialHutangA002, piutang: initialPiutangA002 }
+                };
+                
+                for (const payment of payments) {
+                    const saldoSebelum = payment.jenis === 'hutang' 
+                        ? hitungSaldoHutang(payment.anggotaId)
+                        : hitungSaldoPiutang(payment.anggotaId);
+                    
+                    const paymentData = {
+                        anggotaId: payment.anggotaId,
+                        anggotaNama: payment.anggotaId === 'A001' ? 'Ahmad Test' : 'Budi Test',
+                        anggotaNIK: payment.anggotaId === 'A001' ? '1234567890' : '0987654321',
+                        jenis: payment.jenis,
+                        jumlah: payment.jumlah,
+                        saldoSebelum: saldoSebelum,
+                        saldoSesudah: saldoSebelum - payment.jumlah,
+                        keterangan: `Test payment ${payment.jenis}`
+                    };
+                    
+                    savePembayaran(paymentData);
+                    
+                    // Update expected saldos
+                    expectedSaldos[payment.anggotaId][payment.jenis] -= payment.jumlah;
+                    
+                    console.log(`Processed ${payment.jenis} payment: ${formatRupiah(payment.jumlah)} for ${payment.anggotaId}`);
+                }
+                
+                // Verify final saldos
+                const finalHutangA001 = hitungSaldoHutang('A001');
+                const finalPiutangA001 = hitungSaldoPiutang('A001');
+                const finalHutangA002 = hitungSaldoHutang('A002');
+                const finalPiutangA002 = hitungSaldoPiutang('A002');
+                
+                const saldoChecks = [
+                    { actual: finalHutangA001, expected: expectedSaldos.A001.hutang, name: 'A001 Hutang' },
+                    { actual: finalPiutangA001, expected: expectedSaldos.A001.piutang, name: 'A001 Piutang' },
+                    { actual: finalHutangA002, expected: expectedSaldos.A002.hutang, name: 'A002 Hutang' },
+                    { actual: finalPiutangA002, expected: expectedSaldos.A002.piutang, name: 'A002 Piutang' }
+                ];
+                
+                for (const check of saldoChecks) {
+                    if (check.actual !== check.expected) {
+                        throw new Error(`${check.name} saldo mismatch: Expected ${check.expected}, Got ${check.actual}`);
+                    }
+                }
+                
+                console.log('All saldo updates verified correctly');
+                
+                addTestResult(
+                    'Saldo Update Test', 
+                    true, 
+                    'All saldo calculations are accurate after multiple payments',
+                    `Verified ${payments.length} payments across 2 anggota`
+                );
+                
+            } catch (error) {
+                console.error('Saldo update test failed:', error.message);
+                addTestResult('Saldo Update Test', false, error.message);
+            }
+        }
+
+        async function runAllIntegrationTests() {
+            console.log('Running all integration tests...');
+            clearResults();
+            
+            await runHutangFlowTest();
+            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+            
+            await runPiutangFlowTest();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await runJournalVerificationTest();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await runSaldoUpdateTest();
+            
+            console.log('All integration tests completed');
+            
+            // Summary
+            const passedTests = testResults.filter(r => r.passed).length;
+            const totalTests = testResults.length;
+            
+            addTestResult(
+                'Integration Test Summary', 
+                passedTests === totalTests, 
+                `${passedTests}/${totalTests} tests passed`,
+                passedTests === totalTests ? 'All integration tests successful!' : 'Some tests failed - check results above'
+            );
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Integration Test Suite Loaded');
+            console.log('Ready to test complete payment flows');
+        });
+    </script>
+</body>
+</html>

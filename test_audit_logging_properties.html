@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Audit Logging Properties - Pembayaran Hutang Piutang</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .summary {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Audit Logging Property Tests - Pembayaran Hutang Piutang</h1>
+    <div class="info">
+        <strong>Testing Properties:</strong>
+        <ul>
+            <li>Property 14: Audit log creation</li>
+            <li>Property 15: Audit log completeness</li>
+            <li>Property 16: Error logging</li>
+            <li>Property 17: Audit log persistence</li>
+        </ul>
+    </div>
+
+    <div id="results"></div>
+    <div id="summary"></div>
+
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    <script>
+        // Mock dependencies
+        function formatRupiah(amount) {
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+
+        function showAlert(message, type) {
+            console.log(`[${type}] ${message}`);
+        }
+
+        function generateId() {
+            return 'TEST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function addJurnal(keterangan, entries, tanggal) {
+            console.log('Journal added:', keterangan);
+        }
+
+        function filterTransactableAnggota() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            return anggota.filter(a => a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar');
+        }
+
+        function validateAnggotaForHutangPiutang(anggotaId) {
+            return { valid: true };
+        }
+
+        // Test utilities
+        const results = [];
+        let testCount = 0;
+        let passCount = 0;
+        let failCount = 0;
+
+        function logResult(testName, passed, message = '') {
+            testCount++;
+            if (passed) {
+                passCount++;
+            } else {
+                failCount++;
+            }
+            results.push({ testName, passed, message });
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = results.map(r => `
+                <div class="test-section">
+                    <div class="test-header">${r.testName}</div>
+                    <div class="test-result ${r.passed ? 'pass' : 'fail'}">
+                        ${r.passed ? '✅ PASS' : '❌ FAIL'}
+                        ${r.message ? `<br><small>${r.message}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            const summaryDiv = document.getElementById('summary');
+            summaryDiv.innerHTML = `
+                <div class="summary">
+                    📊 Test Summary: ${passCount}/${testCount} tests passed (${failCount} failed)
+                </div>
+            `;
+        }
+
+        // Random data generators
+        function randomString(minLen, maxLen) {
+            const len = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
+            return Math.random().toString(36).substring(2, 2 + len);
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomChoice(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // ========================================
+        // PROPERTY 14: Audit log creation
+        // ========================================
+        function testProperty14() {
+            console.log('Testing Property 14: Audit log creation');
+            let allPassed = true;
+
+            for (let i = 0; i < 20; i++) {
+                // Setup
+                localStorage.clear();
+                localStorage.setItem('currentUser', JSON.stringify({ 
+                    id: 'U001', 
+                    nama: 'Test Kasir' 
+                }));
+                localStorage.setItem('auditLog', JSON.stringify([]));
+
+                const paymentData = {
+                    anggotaId: generateUUID(),
+                    anggotaNama: randomString(5, 30),
+                    anggotaNIK: randomString(5, 15),
+                    jenis: randomChoice(['hutang', 'piutang']),
+                    jumlah: randomInt(10000, 1000000),
+                    keterangan: randomString(0, 50)
+                };
+
+                // Get initial count
+                const auditLogsBefore = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const countBefore = auditLogsBefore.length;
+
+                // Action: Save audit log
+                const action = 'PEMBAYARAN_' + paymentData.jenis.toUpperCase();
+                
+                // Use the actual function from the module
+                if (typeof window.PembayaranHutangPiutangModule !== 'undefined') {
+                    window.PembayaranHutangPiutangModule.saveAuditLog(action, paymentData);
+                } else {
+                    saveAuditLog(action, paymentData);
+                }
+
+                // Get audit logs after
+                const auditLogsAfter = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const countAfter = auditLogsAfter.length;
+
+                // Find the created log
+                const createdLog = auditLogsAfter.find(log => 
+                    log.action === action && 
+                    log.details.anggotaId === paymentData.anggotaId
+                );
+
+                const passed = countAfter === countBefore + 1 && 
+                               createdLog !== undefined &&
+                               createdLog.userId === 'U001' &&
+                               createdLog.userName === 'Test Kasir' &&
+                               createdLog.module === 'pembayaran-hutang-piutang';
+
+                if (!passed) {
+                    allPassed = false;
+                    console.error('Property 14 failed on iteration', i, {
+                        countBefore,
+                        countAfter,
+                        createdLog,
+                        paymentData
+                    });
+                    break;
+                }
+            }
+
+            logResult(
+                'Property 14: Audit log creation',
+                allPassed,
+                allPassed ? 'Audit log entry created for all payment transactions (20 iterations)' : 'Failed to create audit log entry'
+            );
+        }
+
+        // ========================================
+        // PROPERTY 15: Audit log completeness
+        // ========================================
+        function testProperty15() {
+            console.log('Testing Property 15: Audit log completeness');
+            let allPassed = true;
+
+            for (let i = 0; i < 20; i++) {
+                // Setup
+                localStorage.clear();
+                localStorage.setItem('currentUser', JSON.stringify({ 
+                    id: 'U001', 
+                    nama: 'Test Kasir' 
+                }));
+                localStorage.setItem('auditLog', JSON.stringify([]));
+
+                const transactionData = {
+                    anggotaId: generateUUID(),
+                    anggotaNama: randomString(5, 30),
+                    anggotaNIK: randomString(5, 15),
+                    jenis: randomChoice(['hutang', 'piutang']),
+                    jumlah: randomInt(10000, 1000000),
+                    saldoSebelum: randomInt(50000, 2000000),
+                    saldoSesudah: randomInt(0, 1500000)
+                };
+
+                // Action: Save audit log
+                const action = 'PEMBAYARAN_' + transactionData.jenis.toUpperCase();
+                
+                if (typeof window.PembayaranHutangPiutangModule !== 'undefined') {
+                    window.PembayaranHutangPiutangModule.saveAuditLog(action, transactionData);
+                } else {
+                    saveAuditLog(action, transactionData);
+                }
+
+                // Get audit logs
+                const auditLogs = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const createdLog = auditLogs.find(log => 
+                    log.action === action && 
+                    log.details.anggotaId === transactionData.anggotaId
+                );
+
+                const passed = createdLog &&
+                               createdLog.details.anggotaId === transactionData.anggotaId &&
+                               createdLog.details.anggotaNama === transactionData.anggotaNama &&
+                               createdLog.details.anggotaNIK === transactionData.anggotaNIK &&
+                               createdLog.details.jenis === transactionData.jenis &&
+                               createdLog.details.jumlah === transactionData.jumlah &&
+                               createdLog.details.saldoSebelum === transactionData.saldoSebelum &&
+                               createdLog.details.saldoSesudah === transactionData.saldoSesudah;
+
+                if (!passed) {
+                    allPassed = false;
+                    console.error('Property 15 failed on iteration', i, {
+                        createdLog,
+                        transactionData
+                    });
+                    break;
+                }
+            }
+
+            logResult(
+                'Property 15: Audit log completeness',
+                allPassed,
+                allPassed ? 'All required fields present in audit logs (20 iterations)' : 'Missing required fields in audit log'
+            );
+        }
+
+        // ========================================
+        // PROPERTY 16: Error logging
+        // ========================================
+        function testProperty16() {
+            console.log('Testing Property 16: Error logging');
+            let allPassed = true;
+
+            for (let i = 0; i < 20; i++) {
+                // Setup
+                localStorage.clear();
+                localStorage.setItem('currentUser', JSON.stringify({ 
+                    id: 'U001', 
+                    nama: 'Test Kasir' 
+                }));
+                localStorage.setItem('auditLog', JSON.stringify([]));
+
+                const errorData = {
+                    errorType: randomChoice(['VALIDATION_ERROR', 'JOURNAL_ERROR', 'SYSTEM_ERROR']),
+                    errorMessage: randomString(10, 50),
+                    transactionData: {
+                        anggotaId: generateUUID(),
+                        jenis: randomChoice(['hutang', 'piutang']),
+                        jumlah: randomInt(1, 1000000)
+                    }
+                };
+
+                // Get initial count
+                const auditLogsBefore = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const countBefore = auditLogsBefore.length;
+
+                // Action: Save error log
+                const errorDetails = {
+                    error: errorData.errorMessage,
+                    errorType: errorData.errorType,
+                    transactionData: errorData.transactionData
+                };
+                
+                if (typeof window.PembayaranHutangPiutangModule !== 'undefined') {
+                    window.PembayaranHutangPiutangModule.saveAuditLog('ERROR_PEMBAYARAN', errorDetails);
+                } else {
+                    saveAuditLog('ERROR_PEMBAYARAN', errorDetails);
+                }
+
+                // Get audit logs after
+                const auditLogsAfter = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                const countAfter = auditLogsAfter.length;
+
+                // Find the error log
+                const errorLog = auditLogsAfter.find(log => 
+                    log.action === 'ERROR_PEMBAYARAN' && 
+                    log.details.errorType === errorData.errorType
+                );
+
+                const passed = countAfter === countBefore + 1 && 
+                               errorLog !== undefined &&
+                               errorLog.details.error === errorData.errorMessage &&
+                               errorLog.details.transactionData.anggotaId === errorData.transactionData.anggotaId;
+
+                if (!passed) {
+                    allPassed = false;
+                    console.error('Property 16 failed on iteration', i, {
+                        countBefore,
+                        countAfter,
+                        errorLog,
+                        errorData
+                    });
+                    break;
+                }
+            }
+
+            logResult(
+                'Property 16: Error logging',
+                allPassed,
+                allPassed ? 'Error logs created for all processing errors (20 iterations)' : 'Failed to create error log'
+            );
+        }
+
+        // ========================================
+        // PROPERTY 17: Audit log persistence
+        // ========================================
+        function testProperty17() {
+            console.log('Testing Property 17: Audit log persistence');
+            let allPassed = true;
+
+            for (let i = 0; i < 20; i++) {
+                // Setup
+                localStorage.clear();
+                localStorage.setItem('currentUser', JSON.stringify({ 
+                    id: 'U001', 
+                    nama: 'Test Kasir' 
+                }));
+                localStorage.setItem('auditLog', JSON.stringify([]));
+
+                const logData = {
+                    action: randomChoice(['PEMBAYARAN_HUTANG', 'PEMBAYARAN_PIUTANG', 'CETAK_BUKTI_PEMBAYARAN']),
+                    details: {
+                        anggotaId: generateUUID(),
+                        anggotaNama: randomString(5, 30),
+                        jumlah: randomInt(10000, 1000000)
+                    }
+                };
+
+                // Action: Save audit log
+                if (typeof window.PembayaranHutangPiutangModule !== 'undefined') {
+                    window.PembayaranHutangPiutangModule.saveAuditLog(logData.action, logData.details);
+                } else {
+                    saveAuditLog(logData.action, logData.details);
+                }
+
+                // Simulate page reload by re-reading from localStorage
+                const persistedLogs = JSON.parse(localStorage.getItem('auditLog') || '[]');
+
+                // Find the saved log
+                const savedLog = persistedLogs.find(log => 
+                    log.action === logData.action && 
+                    log.details.anggotaId === logData.details.anggotaId
+                );
+
+                const passed = savedLog !== undefined &&
+                               savedLog.details.anggotaNama === logData.details.anggotaNama &&
+                               savedLog.details.jumlah === logData.details.jumlah &&
+                               savedLog.id !== undefined &&
+                               savedLog.timestamp !== undefined;
+
+                if (!passed) {
+                    allPassed = false;
+                    console.error('Property 17 failed on iteration', i, {
+                        savedLog,
+                        logData,
+                        persistedLogs
+                    });
+                    break;
+                }
+            }
+
+            logResult(
+                'Property 17: Audit log persistence',
+                allPassed,
+                allPassed ? 'Audit logs persist in localStorage after reload simulation (20 iterations)' : 'Audit logs not persisted correctly'
+            );
+        }
+
+        // Run all tests
+        console.log('Starting audit logging property tests...');
+        testProperty14();
+        testProperty15();
+        testProperty16();
+        testProperty17();
+        displayResults();
+        console.log('All tests completed!');
+    </script>
+</body>
+</html>

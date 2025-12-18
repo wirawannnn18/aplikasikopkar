@@ -10,7 +10,7 @@
 function checkPembayaranAccess() {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const allowedRoles = ['admin', 'kasir'];
+        const allowedRoles = ['super_admin', 'administrator', 'admin', 'kasir'];
         
         if (!currentUser.role) {
             return false;
@@ -24,11 +24,126 @@ function checkPembayaranAccess() {
 }
 
 /**
+ * Check if current user has permission for specific operations
+ * Requirements: 13.1 - Enhanced role-based access validation
+ * @param {string} operation - Operation type ('view', 'process', 'print', 'history')
+ * @returns {boolean} True if user has permission
+ */
+function checkOperationPermission(operation) {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        if (!currentUser.role) {
+            return false;
+        }
+        
+        const role = currentUser.role.toLowerCase();
+        
+        // Define permissions for each role
+        const permissions = {
+            'super_admin': ['view', 'process', 'print', 'history', 'audit'],
+            'administrator': ['view', 'process', 'print', 'history', 'audit'],
+            'admin': ['view', 'process', 'print', 'history'],
+            'kasir': ['view', 'process', 'print'],
+            'keuangan': ['view', 'history'],
+            'anggota': []
+        };
+        
+        const userPermissions = permissions[role] || [];
+        return userPermissions.includes(operation);
+    } catch (error) {
+        console.error('Error checking operation permission:', error);
+        return false;
+    }
+}
+
+/**
+ * Validate user session and role consistency
+ * Requirements: 13.1 - Enhanced role-based access validation
+ * @returns {Object} Validation result
+ */
+function validateUserSession() {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        
+        // Check if user exists
+        if (!currentUser.id) {
+            return {
+                valid: false,
+                error: 'Sesi tidak valid. Silakan login kembali.',
+                code: 'INVALID_SESSION'
+            };
+        }
+        
+        // Check if user still exists in system
+        const userExists = users.find(u => u.id === currentUser.id);
+        if (!userExists) {
+            return {
+                valid: false,
+                error: 'Akun tidak ditemukan. Silakan login kembali.',
+                code: 'USER_NOT_FOUND'
+            };
+        }
+        
+        // Check if user is still active
+        if (userExists.active === false) {
+            return {
+                valid: false,
+                error: 'Akun telah dinonaktifkan. Hubungi administrator.',
+                code: 'USER_INACTIVE'
+            };
+        }
+        
+        // Check role consistency
+        if (currentUser.role !== userExists.role) {
+            return {
+                valid: false,
+                error: 'Role telah berubah. Silakan login kembali.',
+                code: 'ROLE_CHANGED'
+            };
+        }
+        
+        return {
+            valid: true,
+            user: userExists
+        };
+    } catch (error) {
+        console.error('Error validating user session:', error);
+        return {
+            valid: false,
+            error: 'Terjadi kesalahan validasi sesi. Silakan login kembali.',
+            code: 'VALIDATION_ERROR'
+        };
+    }
+}
+
+/**
  * Initialize and render the main pembayaran hutang piutang page
- * Requirements: 6.1
+ * Requirements: 6.1, 13.1 - Enhanced role-based access validation
  */
 function renderPembayaranHutangPiutang() {
-    // Check access permission
+    // Enhanced session and access validation
+    const sessionValidation = validateUserSession();
+    if (!sessionValidation.valid) {
+        const content = document.getElementById('content');
+        if (content) {
+            content.innerHTML = `
+                <div class="container-fluid py-4">
+                    <div class="alert alert-danger">
+                        <h4><i class="bi bi-exclamation-triangle"></i> Sesi Tidak Valid</h4>
+                        <p>${escapeHtml(sessionValidation.error)}</p>
+                        <button class="btn btn-primary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    // Check basic access permission
     if (!checkPembayaranAccess()) {
         const content = document.getElementById('content');
         if (content) {
@@ -37,7 +152,25 @@ function renderPembayaranHutangPiutang() {
                     <div class="alert alert-danger">
                         <h4><i class="bi bi-exclamation-triangle"></i> Akses Ditolak</h4>
                         <p>Anda tidak memiliki izin untuk mengakses fitur Pembayaran Hutang/Piutang.</p>
-                        <p>Fitur ini hanya dapat diakses oleh Admin dan Kasir.</p>
+                        <p>Fitur ini hanya dapat diakses oleh Super Admin, Administrator, Admin, dan Kasir.</p>
+                        <p>Role Anda saat ini: <strong>${escapeHtml(sessionValidation.user.role || 'Tidak diketahui')}</strong></p>
+                    </div>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    // Check view permission
+    if (!checkOperationPermission('view')) {
+        const content = document.getElementById('content');
+        if (content) {
+            content.innerHTML = `
+                <div class="container-fluid py-4">
+                    <div class="alert alert-warning">
+                        <h4><i class="bi bi-eye-slash"></i> Akses Terbatas</h4>
+                        <p>Anda tidak memiliki izin untuk melihat halaman ini.</p>
+                        <p>Hubungi administrator untuk mendapatkan akses yang diperlukan.</p>
                     </div>
                 </div>
             `;
@@ -52,6 +185,18 @@ function renderPembayaranHutangPiutang() {
     }
 
     content.innerHTML = `
+        <style>
+            .fade-in {
+                animation: fadeIn 0.3s ease-in;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .saldo-highlight {
+                transition: all 0.3s ease;
+            }
+        </style>
         <div class="container-fluid py-4">
             <div class="row mb-4">
                 <div class="col-12">
@@ -217,8 +362,10 @@ function renderFormPembayaran() {
                 <label for="jumlahPembayaran" class="form-label">Jumlah Pembayaran <span class="text-danger">*</span></label>
                 <input type="number" class="form-control" id="jumlahPembayaran" 
                        placeholder="Masukkan jumlah pembayaran" 
-                       min="1" step="1" required>
-                <div class="form-text">Masukkan jumlah dalam Rupiah (tanpa titik atau koma)</div>
+                       min="1" step="1" required
+                       oninput="validateFormRealTime()">
+                <div class="form-text" id="jumlahHelpText">Masukkan jumlah dalam Rupiah (tanpa titik atau koma)</div>
+                <div class="invalid-feedback" id="jumlahErrorText"></div>
             </div>
 
             <!-- Keterangan -->
@@ -228,12 +375,19 @@ function renderFormPembayaran() {
                           placeholder="Keterangan tambahan (opsional)"></textarea>
             </div>
 
+            <!-- Validation Messages -->
+            <div id="formValidationMessages" class="mb-3" style="display: none;">
+                <div class="alert alert-warning" id="validationAlert">
+                    <ul class="mb-0" id="validationList"></ul>
+                </div>
+            </div>
+
             <!-- Buttons -->
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <button type="button" class="btn btn-secondary" onclick="resetFormPembayaran()">
                     <i class="bi bi-x-circle"></i> Reset
                 </button>
-                <button type="submit" class="btn btn-primary" id="btnProsesPembayaran">
+                <button type="submit" class="btn btn-primary" id="btnProsesPembayaran" disabled>
                     <i class="bi bi-check-circle"></i> Proses Pembayaran
                 </button>
             </div>
@@ -248,11 +402,24 @@ function renderFormPembayaran() {
 function onJenisChange() {
     const jenis = document.getElementById('jenisPembayaran').value;
     const saldoDisplay = document.getElementById('saldoDisplay');
+    const anggotaId = document.getElementById('selectedAnggotaId').value;
     
-    if (jenis && document.getElementById('selectedAnggotaId').value) {
+    if (jenis && anggotaId) {
         saldoDisplay.style.display = 'block';
-        highlightRelevantSaldo(jenis);
+        
+        // Get current saldo values
+        const saldoHutang = hitungSaldoHutang(anggotaId);
+        const saldoPiutang = hitungSaldoPiutang(anggotaId);
+        
+        // Dynamic highlighting and input control
+        highlightRelevantSaldoDynamic(jenis, saldoHutang, saldoPiutang);
+        
+        // Enable/disable jumlah input based on saldo availability
+        controlJumlahInputBasedOnSaldo(jenis, saldoHutang, saldoPiutang);
     }
+    
+    // Validate form in real-time
+    validateFormRealTime();
 }
 
 /**
@@ -273,6 +440,92 @@ function highlightRelevantSaldo(jenis) {
 }
 
 /**
+ * Dynamic highlighting with saldo availability check
+ * Requirements: 6.4 - Task 11.2
+ * @param {string} jenis - Payment type (hutang/piutang)
+ * @param {number} saldoHutang - Current hutang balance
+ * @param {number} saldoPiutang - Current piutang balance
+ */
+function highlightRelevantSaldoDynamic(jenis, saldoHutang, saldoPiutang) {
+    const hutangContainer = document.getElementById('displaySaldoHutang').parentElement;
+    const piutangContainer = document.getElementById('displaySaldoPiutang').parentElement;
+    
+    // Reset all highlighting
+    hutangContainer.classList.remove('border', 'border-danger', 'border-success', 'p-2', 'rounded', 'bg-light');
+    piutangContainer.classList.remove('border', 'border-danger', 'border-success', 'p-2', 'rounded', 'bg-light');
+    
+    if (jenis === 'hutang') {
+        if (saldoHutang > 0) {
+            // Highlight available hutang
+            hutangContainer.classList.add('border', 'border-danger', 'p-2', 'rounded', 'bg-light');
+            hutangContainer.style.borderWidth = '2px';
+        } else {
+            // Show unavailable hutang
+            hutangContainer.classList.add('border', 'border-secondary', 'p-2', 'rounded');
+            hutangContainer.style.borderStyle = 'dashed';
+        }
+        // Dim piutang
+        piutangContainer.classList.add('opacity-50');
+    } else if (jenis === 'piutang') {
+        if (saldoPiutang > 0) {
+            // Highlight available piutang
+            piutangContainer.classList.add('border', 'border-success', 'p-2', 'rounded', 'bg-light');
+            piutangContainer.style.borderWidth = '2px';
+        } else {
+            // Show unavailable piutang
+            piutangContainer.classList.add('border', 'border-secondary', 'p-2', 'rounded');
+            piutangContainer.style.borderStyle = 'dashed';
+        }
+        // Dim hutang
+        hutangContainer.classList.add('opacity-50');
+    }
+}
+
+/**
+ * Control jumlah input based on saldo availability
+ * Requirements: 6.4 - Task 11.2
+ * @param {string} jenis - Payment type (hutang/piutang)
+ * @param {number} saldoHutang - Current hutang balance
+ * @param {number} saldoPiutang - Current piutang balance
+ */
+function controlJumlahInputBasedOnSaldo(jenis, saldoHutang, saldoPiutang) {
+    const jumlahInput = document.getElementById('jumlahPembayaran');
+    const submitButton = document.getElementById('btnProsesPembayaran');
+    
+    if (jenis === 'hutang') {
+        if (saldoHutang > 0) {
+            jumlahInput.disabled = false;
+            jumlahInput.max = saldoHutang;
+            jumlahInput.placeholder = `Maksimal: ${formatRupiah(saldoHutang)}`;
+            jumlahInput.classList.remove('is-invalid');
+        } else {
+            jumlahInput.disabled = true;
+            jumlahInput.placeholder = 'Tidak ada hutang yang perlu dibayar';
+            jumlahInput.value = '';
+            jumlahInput.classList.add('is-invalid');
+        }
+    } else if (jenis === 'piutang') {
+        if (saldoPiutang > 0) {
+            jumlahInput.disabled = false;
+            jumlahInput.max = saldoPiutang;
+            jumlahInput.placeholder = `Maksimal: ${formatRupiah(saldoPiutang)}`;
+            jumlahInput.classList.remove('is-invalid');
+        } else {
+            jumlahInput.disabled = true;
+            jumlahInput.placeholder = 'Tidak ada piutang yang perlu dibayar';
+            jumlahInput.value = '';
+            jumlahInput.classList.add('is-invalid');
+        }
+    } else {
+        // No jenis selected
+        jumlahInput.disabled = false;
+        jumlahInput.removeAttribute('max');
+        jumlahInput.placeholder = 'Masukkan jumlah pembayaran';
+        jumlahInput.classList.remove('is-invalid');
+    }
+}
+
+/**
  * Reset form pembayaran
  */
 function resetFormPembayaran() {
@@ -282,6 +535,37 @@ function resetFormPembayaran() {
     document.getElementById('selectedAnggotaNIK').value = '';
     document.getElementById('saldoDisplay').style.display = 'none';
     document.getElementById('anggotaSuggestions').style.display = 'none';
+    
+    // Reset validation states
+    const jumlahInput = document.getElementById('jumlahPembayaran');
+    jumlahInput.classList.remove('is-valid', 'is-invalid');
+    jumlahInput.disabled = false;
+    jumlahInput.removeAttribute('max');
+    jumlahInput.placeholder = 'Masukkan jumlah pembayaran';
+    
+    const validationMessages = document.getElementById('formValidationMessages');
+    if (validationMessages) {
+        validationMessages.style.display = 'none';
+    }
+    
+    const submitButton = document.getElementById('btnProsesPembayaran');
+    submitButton.disabled = true;
+    submitButton.classList.remove('btn-primary');
+    submitButton.classList.add('btn-secondary');
+    
+    // Reset saldo highlighting
+    const hutangContainer = document.getElementById('displaySaldoHutang')?.parentElement;
+    const piutangContainer = document.getElementById('displaySaldoPiutang')?.parentElement;
+    if (hutangContainer) {
+        hutangContainer.classList.remove('border', 'border-danger', 'border-success', 'border-secondary', 'p-2', 'rounded', 'bg-light', 'opacity-50');
+        hutangContainer.style.borderWidth = '';
+        hutangContainer.style.borderStyle = '';
+    }
+    if (piutangContainer) {
+        piutangContainer.classList.remove('border', 'border-danger', 'border-success', 'border-secondary', 'p-2', 'rounded', 'bg-light', 'opacity-50');
+        piutangContainer.style.borderWidth = '';
+        piutangContainer.style.borderStyle = '';
+    }
 }
 
 /**
@@ -450,9 +734,25 @@ function populateAnggotaFilter() {
 
 /**
  * Load and display riwayat pembayaran
- * Requirements: 4.1, 4.2
+ * Requirements: 4.1, 4.2, 13.1 - Enhanced access validation
  */
 function loadRiwayatPembayaran() {
+    // Check history permission
+    if (!checkOperationPermission('history')) {
+        const tbody = document.getElementById('riwayatTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Anda tidak memiliki izin untuk melihat riwayat pembayaran
+                    </td>
+                </tr>
+            `;
+        }
+        return;
+    }
+    
     try {
         let pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
         
@@ -616,45 +916,602 @@ function validatePembayaran(data) {
 }
 
 /**
- * Process pembayaran
- * Requirements: 1.3, 1.5, 2.3, 2.5, 7.4, 7.5
+ * Show success notification with payment details
+ * Requirements: 1.5, 2.5 - Task 12.2
+ * @param {Object} transaksi - Transaction data
+ * @param {string} jenisText - Payment type text
  */
-function prosesPembayaran() {
-    // Check access permission
-    if (!checkPembayaranAccess()) {
+function showSuccessNotification(transaksi, jenisText) {
+    // Create success modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="successModalLabel">
+                            <i class="bi bi-check-circle-fill"></i> Pembayaran Berhasil!
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill"></i> 
+                            <strong>Pembayaran ${jenisText.toLowerCase()} telah berhasil diproses!</strong>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="bi bi-receipt"></i> Detail Transaksi</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-sm-5"><strong>No. Transaksi:</strong></div>
+                                    <div class="col-sm-7">
+                                        <code>${transaksi.id}</code>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-5"><strong>Anggota:</strong></div>
+                                    <div class="col-sm-7">${escapeHtml(transaksi.anggotaNama)}</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-5"><strong>Jenis:</strong></div>
+                                    <div class="col-sm-7">
+                                        <span class="badge bg-${transaksi.jenis === 'hutang' ? 'danger' : 'success'}">
+                                            Pembayaran ${jenisText}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-5"><strong>Jumlah Dibayar:</strong></div>
+                                    <div class="col-sm-7">
+                                        <span class="text-primary fw-bold fs-5">
+                                            ${formatRupiah(transaksi.jumlah)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-5"><strong>Saldo Terbaru:</strong></div>
+                                    <div class="col-sm-7">
+                                        <span class="text-${transaksi.jenis === 'hutang' ? 'danger' : 'success'} fw-bold">
+                                            ${formatRupiah(transaksi.saldoSesudah)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-5"><strong>Waktu:</strong></div>
+                                    <div class="col-sm-7">${new Date(transaksi.createdAt).toLocaleString('id-ID')}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="cetakBuktiPembayaran('${transaksi.id}')">
+                                    <i class="bi bi-printer"></i> Cetak Bukti Pembayaran
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle"></i> Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('successModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    
+    // Auto-close modal when print button is clicked
+    document.getElementById('successModal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('successModal').remove();
+    });
+    
+    modal.show();
+    
+    // Also show a toast notification
+    showToastNotification(`Pembayaran ${jenisText.toLowerCase()} berhasil diproses!`, 'success');
+}
+
+/**
+ * Show error notification with user-friendly messages and guidance
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5 - Task 12.3
+ * @param {Error} error - Error object
+ * @param {string} title - Error title
+ */
+function showErrorNotification(error, title = 'Terjadi Kesalahan') {
+    let userMessage = '';
+    let guidance = '';
+    let errorType = 'danger';
+    
+    // Determine user-friendly message and guidance based on error
+    if (error.message.includes('Gagal mencatat jurnal')) {
+        userMessage = 'Sistem tidak dapat mencatat jurnal akuntansi. Transaksi telah dibatalkan untuk menjaga konsistensi data.';
+        guidance = 'Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.';
+    } else if (error.message.includes('anggota tidak ditemukan')) {
+        userMessage = 'Data anggota tidak ditemukan dalam sistem.';
+        guidance = 'Pastikan anggota sudah terdaftar dan aktif. Hubungi admin jika diperlukan.';
+    } else if (error.message.includes('saldo tidak mencukupi')) {
+        userMessage = 'Saldo tidak mencukupi untuk melakukan pembayaran.';
+        guidance = 'Periksa kembali saldo anggota dan jumlah pembayaran yang diinput.';
+        errorType = 'warning';
+    } else if (error.message.includes('akses ditolak') || error.message.includes('permission')) {
+        userMessage = 'Anda tidak memiliki izin untuk melakukan operasi ini.';
+        guidance = 'Hubungi administrator untuk mendapatkan akses yang diperlukan.';
+    } else if (error.message.includes('localStorage')) {
+        userMessage = 'Terjadi masalah dengan penyimpanan data lokal.';
+        guidance = 'Coba refresh halaman. Jika masalah berlanjut, hubungi administrator.';
+    } else if (error.message.includes('network') || error.message.includes('connection')) {
+        userMessage = 'Terjadi masalah koneksi jaringan.';
+        guidance = 'Periksa koneksi internet Anda dan coba lagi.';
+    } else {
+        userMessage = error.message || 'Terjadi kesalahan yang tidak diketahui.';
+        guidance = 'Silakan coba lagi. Jika masalah berlanjut, catat pesan error dan hubungi administrator.';
+    }
+    
+    // Create error modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-${errorType} text-white">
+                        <h5 class="modal-title" id="errorModalLabel">
+                            <i class="bi bi-${errorType === 'warning' ? 'exclamation-triangle-fill' : 'x-circle-fill'}"></i> 
+                            ${title}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-${errorType}">
+                            <i class="bi bi-${errorType === 'warning' ? 'exclamation-triangle-fill' : 'x-circle-fill'}"></i> 
+                            <strong>${userMessage}</strong>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Panduan Penyelesaian</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${guidance}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <details>
+                                <summary class="text-muted" style="cursor: pointer;">
+                                    <small>Detail Error (untuk Administrator)</small>
+                                </summary>
+                                <div class="mt-2">
+                                    <code class="text-danger small">${escapeHtml(error.message)}</code>
+                                    <br>
+                                    <small class="text-muted">
+                                        Waktu: ${new Date().toLocaleString('id-ID')}
+                                    </small>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Tutup
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('errorModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+    
+    // Clean up modal when hidden
+    document.getElementById('errorModal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('errorModal').remove();
+    });
+    
+    modal.show();
+    
+    // Also show toast notification
+    showToastNotification(userMessage, 'error');
+}
+
+/**
+ * Enhanced validation with user-friendly messages
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5 - Task 12.3
+ * @param {Object} data - Payment data
+ * @returns {Object} Enhanced validation result
+ */
+function validatePembayaranEnhanced(data) {
+    const errors = [];
+    const warnings = [];
+    
+    // Check anggota selected
+    if (!data.anggotaId) {
+        errors.push({
+            field: 'anggota',
+            message: 'Silakan pilih anggota terlebih dahulu',
+            guidance: 'Gunakan kolom pencarian untuk mencari anggota berdasarkan NIK atau nama'
+        });
+    }
+    
+    // Check jenis selected
+    if (!data.jenis) {
+        errors.push({
+            field: 'jenis',
+            message: 'Silakan pilih jenis pembayaran',
+            guidance: 'Pilih "Hutang" jika anggota membayar ke koperasi, atau "Piutang" jika koperasi membayar ke anggota'
+        });
+    }
+    
+    // Check jumlah
+    if (!data.jumlah || data.jumlah <= 0) {
+        errors.push({
+            field: 'jumlah',
+            message: 'Jumlah pembayaran harus lebih dari 0',
+            guidance: 'Masukkan jumlah dalam Rupiah (angka saja, tanpa titik atau koma)'
+        });
+    }
+    
+    if (data.jumlah < 0) {
+        errors.push({
+            field: 'jumlah',
+            message: 'Jumlah pembayaran tidak boleh negatif',
+            guidance: 'Pastikan jumlah yang dimasukkan adalah angka positif'
+        });
+    }
+    
+    // Check against saldo if anggota and jenis are selected
+    if (data.anggotaId && data.jenis) {
+        const saldo = data.jenis === 'hutang' 
+            ? hitungSaldoHutang(data.anggotaId)
+            : hitungSaldoPiutang(data.anggotaId);
+        
+        const jenisText = data.jenis === 'hutang' ? 'hutang' : 'piutang';
+        
+        if (saldo === 0) {
+            errors.push({
+                field: 'saldo',
+                message: `Anggota tidak memiliki ${jenisText} yang perlu dibayar`,
+                guidance: jenisText === 'hutang' 
+                    ? 'Periksa riwayat transaksi POS anggota atau pastikan ada transaksi kredit yang belum dibayar'
+                    : 'Pastikan anggota memiliki simpanan yang perlu dikembalikan atau piutang lainnya'
+            });
+        } else if (data.jumlah > saldo) {
+            errors.push({
+                field: 'jumlah',
+                message: `Jumlah pembayaran melebihi saldo ${jenisText} (${formatRupiah(saldo)})`,
+                guidance: `Maksimal pembayaran adalah ${formatRupiah(saldo)}. Sesuaikan jumlah pembayaran.`
+            });
+        } else if (data.jumlah === saldo) {
+            warnings.push({
+                field: 'jumlah',
+                message: `Pembayaran ini akan melunasi seluruh ${jenisText}`,
+                guidance: 'Pastikan ini sesuai dengan yang diinginkan'
+            });
+        }
+    }
+    
+    return {
+        valid: errors.length === 0,
+        errors: errors,
+        warnings: warnings,
+        message: errors.length > 0 ? errors[0].message : ''
+    };
+}
+
+/**
+ * Show validation errors in a user-friendly way
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5 - Task 12.3
+ * @param {Object} validation - Validation result
+ */
+function showValidationErrors(validation) {
+    if (validation.valid) return;
+    
+    const errorHTML = `
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <h6><i class="bi bi-exclamation-triangle-fill"></i> Periksa Input Anda</h6>
+            <ul class="mb-2">
+                ${validation.errors.map(error => `
+                    <li>
+                        <strong>${error.message}</strong>
+                        <br><small class="text-muted">${error.guidance}</small>
+                    </li>
+                `).join('')}
+            </ul>
+            ${validation.warnings.length > 0 ? `
+                <hr>
+                <h6><i class="bi bi-info-circle-fill"></i> Perhatian</h6>
+                <ul class="mb-0">
+                    ${validation.warnings.map(warning => `
+                        <li>
+                            <strong>${warning.message}</strong>
+                            <br><small class="text-muted">${warning.guidance}</small>
+                        </li>
+                    `).join('')}
+                </ul>
+            ` : ''}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    // Show in validation messages container
+    const validationContainer = document.getElementById('formValidationMessages');
+    if (validationContainer) {
+        validationContainer.innerHTML = errorHTML;
+        validationContainer.style.display = 'block';
+        
+        // Scroll to validation messages
+        validationContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+/**
+ * Show toast notification
+ * @param {string} message - Notification message
+ * @param {string} type - Notification type (success, error, warning, info)
+ */
+function showToastNotification(message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast_' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : 
+                   type === 'error' ? 'bg-danger' : 
+                   type === 'warning' ? 'bg-warning' : 'bg-info';
+    
+    const toastHTML = `
+        <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header ${bgClass} text-white border-0">
+                <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 
+                                 type === 'error' ? 'exclamation-triangle-fill' : 
+                                 type === 'warning' ? 'exclamation-triangle-fill' : 'info-circle-fill'} me-2"></i>
+                <strong class="me-auto">Notifikasi</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${escapeHtml(message)}
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 5000
+    });
+    
+    // Remove toast element after it's hidden
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+    
+    toast.show();
+}
+
+/**
+ * Show confirmation dialog before processing payment
+ * Requirements: 1.5, 2.5 - Task 12.1
+ * @param {Object} data - Payment data
+ * @param {number} saldoSebelum - Balance before payment
+ * @returns {boolean} True if user confirms
+ */
+function showConfirmationDialog(data, saldoSebelum) {
+    const jenisText = data.jenis === 'hutang' ? 'Hutang' : 'Piutang';
+    const saldoSesudah = saldoSebelum - data.jumlah;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="confirmationModalLabel">
+                            <i class="bi bi-check-circle"></i> Konfirmasi Pembayaran ${jenisText}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            Pastikan data pembayaran berikut sudah benar sebelum diproses.
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Anggota:</strong></div>
+                            <div class="col-sm-8">${escapeHtml(data.anggotaNama)}</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>NIK:</strong></div>
+                            <div class="col-sm-8">${escapeHtml(data.anggotaNIK)}</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Jenis Pembayaran:</strong></div>
+                            <div class="col-sm-8">
+                                <span class="badge bg-${data.jenis === 'hutang' ? 'danger' : 'success'} fs-6">
+                                    Pembayaran ${jenisText}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row mb-2">
+                            <div class="col-sm-6"><strong>Saldo Sebelum:</strong></div>
+                            <div class="col-sm-6 text-end">
+                                <span class="text-${data.jenis === 'hutang' ? 'danger' : 'success'} fw-bold">
+                                    ${formatRupiah(saldoSebelum)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-6"><strong>Jumlah Pembayaran:</strong></div>
+                            <div class="col-sm-6 text-end">
+                                <span class="text-primary fw-bold fs-5">
+                                    ${formatRupiah(data.jumlah)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-6"><strong>Saldo Sesudah:</strong></div>
+                            <div class="col-sm-6 text-end">
+                                <span class="text-${data.jenis === 'hutang' ? 'danger' : 'success'} fw-bold">
+                                    ${formatRupiah(saldoSesudah)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        ${data.keterangan ? `
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Keterangan:</strong></div>
+                            <div class="col-sm-8">
+                                <em>${escapeHtml(data.keterangan)}</em>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Diproses oleh:</strong></div>
+                            <div class="col-sm-8">${escapeHtml(currentUser.nama || 'Unknown')}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Tanggal & Waktu:</strong></div>
+                            <div class="col-sm-8">${new Date().toLocaleString('id-ID')}</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Batal
+                        </button>
+                        <button type="button" class="btn btn-primary" id="confirmProcessBtn">
+                            <i class="bi bi-check-circle"></i> Ya, Proses Pembayaran
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('confirmationModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal and return promise
+    return new Promise((resolve) => {
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        const confirmBtn = document.getElementById('confirmProcessBtn');
+        
+        // Handle confirm button
+        confirmBtn.addEventListener('click', () => {
+            modal.hide();
+            resolve(true);
+        });
+        
+        // Handle modal close (cancel)
+        document.getElementById('confirmationModal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('confirmationModal').remove();
+            resolve(false);
+        });
+        
+        modal.show();
+    });
+}
+
+/**
+ * Process pembayaran
+ * Requirements: 1.3, 1.5, 2.3, 2.5, 7.4, 7.5, 13.1, 13.2 - Enhanced security
+ */
+async function prosesPembayaran() {
+    // Enhanced session validation
+    const sessionValidation = validateUserSession();
+    if (!sessionValidation.valid) {
+        showErrorNotification(new Error(sessionValidation.error), 'Sesi Tidak Valid');
+        return;
+    }
+    
+    // Check process permission
+    if (!checkOperationPermission('process')) {
         showAlert('Anda tidak memiliki izin untuk memproses pembayaran', 'danger');
         return;
     }
     
     try {
-        // Get form data
-        const anggotaId = document.getElementById('selectedAnggotaId').value;
-        const anggotaNama = document.getElementById('selectedAnggotaNama').value;
-        const anggotaNIK = document.getElementById('selectedAnggotaNIK').value;
-        const jenis = document.getElementById('jenisPembayaran').value;
-        const jumlah = parseFloat(document.getElementById('jumlahPembayaran').value);
-        const keterangan = document.getElementById('keteranganPembayaran').value;
+        // Get raw form data
+        const rawFormData = {
+            anggotaId: document.getElementById('selectedAnggotaId')?.value || '',
+            anggotaNama: document.getElementById('selectedAnggotaNama')?.value || '',
+            anggotaNIK: document.getElementById('selectedAnggotaNIK')?.value || '',
+            jenis: document.getElementById('jenisPembayaran')?.value || '',
+            jumlah: document.getElementById('jumlahPembayaran')?.value || '',
+            keterangan: document.getElementById('keteranganPembayaran')?.value || ''
+        };
         
-        // Validate anggota status first
-        const anggotaValidation = validateAnggotaForHutangPiutang(anggotaId);
-        if (!anggotaValidation.valid) {
-            showAlert(anggotaValidation.error, 'error');
+        // Sanitize and validate form data
+        const sanitizationResult = sanitizePaymentFormData(rawFormData);
+        if (!sanitizationResult.valid) {
+            showValidationErrors({
+                valid: false,
+                errors: sanitizationResult.errors.map(error => ({
+                    message: error,
+                    guidance: 'Pastikan semua input valid dan tidak mengandung karakter berbahaya'
+                })),
+                warnings: []
+            });
             return;
         }
         
-        const data = {
-            anggotaId,
-            anggotaNama,
-            anggotaNIK,
-            jenis,
-            jumlah,
-            keterangan
-        };
+        const data = sanitizationResult.sanitized;
         
-        // Validate business logic
-        const validation = validatePembayaran(data);
+        // Validate anggota status first
+        const anggotaValidation = validateAnggotaForHutangPiutang(data.anggotaId);
+        if (!anggotaValidation.valid) {
+            showErrorNotification(new Error(anggotaValidation.error), 'Validasi Anggota Gagal');
+            return;
+        }
+        
+        // Validate business logic with enhanced messages
+        const validation = validatePembayaranEnhanced(data);
         if (!validation.valid) {
-            showAlert(validation.message, 'warning');
+            showValidationErrors(validation);
             return;
         }
         
@@ -663,20 +1520,9 @@ function prosesPembayaran() {
             ? hitungSaldoHutang(anggotaId)
             : hitungSaldoPiutang(anggotaId);
         
-        // Show confirmation
-        const jenisText = jenis === 'hutang' ? 'Hutang' : 'Piutang';
-        const confirmMessage = `
-            Konfirmasi Pembayaran ${jenisText}
-            
-            Anggota: ${anggotaNama} (${anggotaNIK})
-            Saldo Sebelum: ${formatRupiah(saldoSebelum)}
-            Jumlah Bayar: ${formatRupiah(jumlah)}
-            Saldo Sesudah: ${formatRupiah(saldoSebelum - jumlah)}
-            
-            Proses pembayaran ini?
-        `;
-        
-        if (!confirm(confirmMessage)) {
+        // Show enhanced confirmation dialog
+        const confirmed = await showConfirmationDialog(data, saldoSebelum);
+        if (!confirmed) {
             return;
         }
         
@@ -703,13 +1549,8 @@ function prosesPembayaran() {
         // Save audit log
         saveAuditLog('PEMBAYARAN_' + jenis.toUpperCase(), transaksi);
         
-        // Success
-        showAlert(`Pembayaran ${jenisText.toLowerCase()} berhasil diproses!`, 'success');
-        
-        // Ask to print receipt
-        if (confirm('Cetak bukti pembayaran?')) {
-            cetakBuktiPembayaran(transaksi.id);
-        }
+        // Show success notification with details
+        showSuccessNotification(transaksi, jenisText);
         
         // Reset form and refresh
         resetFormPembayaran();
@@ -718,7 +1559,7 @@ function prosesPembayaran() {
         
     } catch (error) {
         console.error('Error proses pembayaran:', error);
-        showAlert('Terjadi kesalahan: ' + error.message, 'danger');
+        showErrorNotification(error, 'Gagal memproses pembayaran');
     }
 }
 
@@ -833,20 +1674,35 @@ function saveAuditLog(action, details) {
 }
 
 /**
- * Search anggota with debounce
- * Requirements: 6.2
+ * Search anggota with debounce and input sanitization
+ * Requirements: 6.2, 13.2 - Enhanced input sanitization
  */
 let searchDebounceTimer;
 function onSearchAnggota(query) {
     clearTimeout(searchDebounceTimer);
     
     searchDebounceTimer = setTimeout(() => {
-        if (!query || query.length < 2) {
+        // Sanitize search query
+        const sanitizedQuery = sanitizeTextInput(query || '');
+        
+        if (!sanitizedQuery || sanitizedQuery.length < 2) {
             document.getElementById('anggotaSuggestions').style.display = 'none';
             return;
         }
         
-        const results = searchAnggota(query);
+        // Additional validation for search query length
+        if (sanitizedQuery.length > 100) {
+            document.getElementById('anggotaSuggestions').innerHTML = `
+                <div class="list-group-item text-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Pencarian terlalu panjang. Maksimal 100 karakter.
+                </div>
+            `;
+            document.getElementById('anggotaSuggestions').style.display = 'block';
+            return;
+        }
+        
+        const results = searchAnggota(sanitizedQuery);
         renderAnggotaSuggestions(results);
     }, 300);
 }
@@ -930,8 +1786,11 @@ function selectAnggota(id, nama, nik) {
     // Hide suggestions
     document.getElementById('anggotaSuggestions').style.display = 'none';
     
-    // Display saldo
-    displaySaldoAnggota(id);
+    // Automatically display saldo for both hutang and piutang
+    displaySaldoAnggotaAutomatic(id);
+    
+    // Enable form validation feedback
+    validateFormRealTime();
 }
 
 /**
@@ -956,31 +1815,481 @@ function displaySaldoAnggota(anggotaId) {
 }
 
 /**
+ * Automatically display saldo when anggota is selected
+ * Requirements: 6.3 - Task 11.1
+ * @param {string} anggotaId - Anggota ID
+ */
+function displaySaldoAnggotaAutomatic(anggotaId) {
+    const saldoHutang = hitungSaldoHutang(anggotaId);
+    const saldoPiutang = hitungSaldoPiutang(anggotaId);
+    
+    // Update saldo display with enhanced formatting
+    const hutangElement = document.getElementById('displaySaldoHutang');
+    const piutangElement = document.getElementById('displaySaldoPiutang');
+    
+    hutangElement.textContent = formatRupiah(saldoHutang);
+    piutangElement.textContent = formatRupiah(saldoPiutang);
+    
+    // Add visual indicators for zero balances
+    if (saldoHutang === 0) {
+        hutangElement.classList.add('text-muted');
+        hutangElement.parentElement.classList.add('opacity-50');
+    } else {
+        hutangElement.classList.remove('text-muted');
+        hutangElement.parentElement.classList.remove('opacity-50');
+    }
+    
+    if (saldoPiutang === 0) {
+        piutangElement.classList.add('text-muted');
+        piutangElement.parentElement.classList.add('opacity-50');
+    } else {
+        piutangElement.classList.remove('text-muted');
+        piutangElement.parentElement.classList.remove('opacity-50');
+    }
+    
+    // Show saldo display with animation
+    const saldoDisplay = document.getElementById('saldoDisplay');
+    saldoDisplay.style.display = 'block';
+    saldoDisplay.classList.add('fade-in');
+    
+    // Highlight relevant saldo if jenis is already selected
+    const jenis = document.getElementById('jenisPembayaran').value;
+    if (jenis) {
+        highlightRelevantSaldoDynamic(jenis, saldoHutang, saldoPiutang);
+    }
+    
+    // Update form validation state
+    validateFormRealTime();
+}
+
+/**
+ * Real-time form validation with feedback and input sanitization
+ * Requirements: 6.5, 13.2 - Enhanced validation with sanitization
+ */
+function validateFormRealTime() {
+    // Get and sanitize form values
+    const anggotaId = sanitizeTextInput(document.getElementById('selectedAnggotaId')?.value || '');
+    const jenis = sanitizeTextInput(document.getElementById('jenisPembayaran')?.value || '');
+    const jumlahRaw = document.getElementById('jumlahPembayaran')?.value || '';
+    const submitButton = document.getElementById('btnProsesPembayaran');
+    const validationMessages = document.getElementById('formValidationMessages');
+    const validationList = document.getElementById('validationList');
+    const jumlahInput = document.getElementById('jumlahPembayaran');
+    const jumlahErrorText = document.getElementById('jumlahErrorText');
+    
+    const errors = [];
+    let isValid = true;
+    
+    // Validate numeric input
+    const jumlahValidation = validateNumericInput(jumlahRaw, {
+        min: 1,
+        allowNegative: false,
+        allowDecimal: true,
+        fieldName: 'Jumlah pembayaran'
+    });
+    
+    const jumlah = jumlahValidation.valid ? jumlahValidation.sanitized : 0;
+    
+    // Reset validation states
+    jumlahInput.classList.remove('is-valid', 'is-invalid');
+    
+    // Validate anggota selection
+    if (!anggotaId) {
+        errors.push('Pilih anggota terlebih dahulu');
+        isValid = false;
+    }
+    
+    // Validate jenis selection
+    if (!jenis) {
+        errors.push('Pilih jenis pembayaran');
+        isValid = false;
+    }
+    
+    // Validate jumlah input
+    if (!jumlahValidation.valid && jumlahRaw !== '') {
+        errors.push(jumlahValidation.error);
+        jumlahInput.classList.add('is-invalid');
+        jumlahErrorText.textContent = jumlahValidation.error;
+        isValid = false;
+    } else if (jumlahValidation.valid) {
+        jumlahInput.classList.remove('is-invalid');
+        jumlahErrorText.textContent = '';
+    }
+    
+    // Validate jumlah against saldo if anggota and jenis are selected
+    if (anggotaId && jenis && ['hutang', 'piutang'].includes(jenis)) {
+        const saldo = jenis === 'hutang' 
+            ? hitungSaldoHutang(anggotaId)
+            : hitungSaldoPiutang(anggotaId);
+        
+        if (saldo === 0) {
+            const jenisText = jenis === 'hutang' ? 'hutang' : 'piutang';
+            errors.push(`Anggota tidak memiliki ${jenisText} yang perlu dibayar`);
+            isValid = false;
+        } else if (jumlah > 0) {
+            if (jumlah > saldo) {
+                const jenisText = jenis === 'hutang' ? 'hutang' : 'piutang';
+                errors.push(`Jumlah melebihi saldo ${jenisText} (${formatRupiah(saldo)})`);
+                jumlahInput.classList.add('is-invalid');
+                jumlahErrorText.textContent = `Maksimal: ${formatRupiah(saldo)}`;
+                isValid = false;
+            } else {
+                jumlahInput.classList.add('is-valid');
+                if (!jumlahErrorText.textContent) {
+                    jumlahErrorText.textContent = '';
+                }
+            }
+        }
+    }
+    
+    // Validate jenis pembayaran
+    if (jenis && !['hutang', 'piutang'].includes(jenis)) {
+        errors.push('Jenis pembayaran tidak valid');
+        isValid = false;
+    }
+    
+    // Update validation messages
+    if (errors.length > 0) {
+        validationList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+        validationMessages.style.display = 'block';
+    } else {
+        validationMessages.style.display = 'none';
+    }
+    
+    // Enable/disable submit button
+    submitButton.disabled = !isValid || !anggotaId || !jenis || jumlah <= 0;
+    
+    // Update button appearance
+    if (submitButton.disabled) {
+        submitButton.classList.remove('btn-primary');
+        submitButton.classList.add('btn-secondary');
+    } else {
+        submitButton.classList.remove('btn-secondary');
+        submitButton.classList.add('btn-primary');
+    }
+    
+    return isValid;
+}
+
+/**
  * Escape HTML to prevent XSS
  * @param {string} text - Text to escape
  * @returns {string} Escaped text
  */
 function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        return '';
+    }
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
 /**
+ * Sanitize text input to prevent XSS attacks
+ * Requirements: 13.2 - Input sanitization
+ * @param {string} input - Input text to sanitize
+ * @returns {string} Sanitized text
+ */
+function sanitizeTextInput(input) {
+    if (typeof input !== 'string') {
+        return '';
+    }
+    
+    // Remove script tags and their content
+    let sanitized = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    
+    // Remove javascript: protocol
+    sanitized = sanitized.replace(/javascript:/gi, '');
+    
+    // Remove event handlers (onclick, onload, etc.)
+    sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+    
+    // Remove data: protocol for images (potential XSS vector)
+    sanitized = sanitized.replace(/data:\s*[^;]*;[^,]*,/gi, '');
+    
+    // Remove vbscript: protocol
+    sanitized = sanitized.replace(/vbscript:/gi, '');
+    
+    // Remove expression() CSS (IE specific XSS)
+    sanitized = sanitized.replace(/expression\s*\(/gi, '');
+    
+    // Escape HTML entities
+    return escapeHtml(sanitized);
+}
+
+/**
+ * Validate and sanitize numeric input
+ * Requirements: 13.2 - Input sanitization
+ * @param {any} input - Input to validate
+ * @param {Object} options - Validation options
+ * @returns {Object} Validation result
+ */
+function validateNumericInput(input, options = {}) {
+    const {
+        min = null,
+        max = null,
+        allowNegative = false,
+        allowDecimal = true,
+        fieldName = 'Input'
+    } = options;
+    
+    // Convert to string for processing
+    const inputStr = String(input).trim();
+    
+    if (!inputStr) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak boleh kosong`
+        };
+    }
+    
+    // Remove non-numeric characters except decimal point and minus
+    const cleanInput = inputStr.replace(/[^\d.-]/g, '');
+    
+    // Parse as number
+    const num = parseFloat(cleanInput);
+    
+    if (isNaN(num)) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} harus berupa angka`
+        };
+    }
+    
+    // Check negative values
+    if (!allowNegative && num < 0) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak boleh negatif`
+        };
+    }
+    
+    // Check decimal values
+    if (!allowDecimal && num % 1 !== 0) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} harus berupa bilangan bulat`
+        };
+    }
+    
+    // Check minimum value
+    if (min !== null && num < min) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} minimal ${formatRupiah(min)}`
+        };
+    }
+    
+    // Check maximum value
+    if (max !== null && num > max) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} maksimal ${formatRupiah(max)}`
+        };
+    }
+    
+    return {
+        valid: true,
+        sanitized: num,
+        error: null
+    };
+}
+
+/**
+ * Validate and sanitize date input
+ * Requirements: 13.2 - Input sanitization
+ * @param {string} dateString - Date string to validate
+ * @param {Object} options - Validation options
+ * @returns {Object} Validation result
+ */
+function validateDateInput(dateString, options = {}) {
+    const {
+        allowFuture = false,
+        allowPast = true,
+        fieldName = 'Tanggal'
+    } = options;
+    
+    if (!dateString || typeof dateString !== 'string') {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak boleh kosong`
+        };
+    }
+    
+    // Sanitize input - remove potential XSS
+    const sanitizedInput = sanitizeTextInput(dateString.trim());
+    
+    // Check date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(sanitizedInput)) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} harus dalam format YYYY-MM-DD`
+        };
+    }
+    
+    // Parse date
+    const date = new Date(sanitizedInput);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak valid`
+        };
+    }
+    
+    // Check if parsed date matches input (handles invalid dates like 2024-02-30)
+    const isoString = date.toISOString().split('T')[0];
+    if (isoString !== sanitizedInput) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak valid`
+        };
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Check future dates
+    if (!allowFuture && date > today) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak boleh di masa depan`
+        };
+    }
+    
+    // Check past dates
+    if (!allowPast && date < today) {
+        return {
+            valid: false,
+            sanitized: null,
+            error: `${fieldName} tidak boleh di masa lalu`
+        };
+    }
+    
+    return {
+        valid: true,
+        sanitized: sanitizedInput,
+        error: null
+    };
+}
+
+/**
+ * Sanitize and validate payment form data
+ * Requirements: 13.2 - Input sanitization
+ * @param {Object} formData - Form data to sanitize
+ * @returns {Object} Sanitization result
+ */
+function sanitizePaymentFormData(formData) {
+    const errors = [];
+    const sanitized = {};
+    
+    // Sanitize anggota data
+    if (formData.anggotaId) {
+        sanitized.anggotaId = sanitizeTextInput(formData.anggotaId);
+    } else {
+        errors.push('ID Anggota tidak boleh kosong');
+    }
+    
+    if (formData.anggotaNama) {
+        sanitized.anggotaNama = sanitizeTextInput(formData.anggotaNama);
+    } else {
+        errors.push('Nama Anggota tidak boleh kosong');
+    }
+    
+    if (formData.anggotaNIK) {
+        sanitized.anggotaNIK = sanitizeTextInput(formData.anggotaNIK);
+    } else {
+        errors.push('NIK Anggota tidak boleh kosong');
+    }
+    
+    // Validate jenis pembayaran
+    if (formData.jenis) {
+        const jenisValid = ['hutang', 'piutang'].includes(formData.jenis);
+        if (jenisValid) {
+            sanitized.jenis = formData.jenis;
+        } else {
+            errors.push('Jenis pembayaran tidak valid');
+        }
+    } else {
+        errors.push('Jenis pembayaran tidak boleh kosong');
+    }
+    
+    // Validate jumlah
+    if (formData.jumlah !== undefined) {
+        const numValidation = validateNumericInput(formData.jumlah, {
+            min: 1,
+            allowNegative: false,
+            allowDecimal: true,
+            fieldName: 'Jumlah pembayaran'
+        });
+        
+        if (numValidation.valid) {
+            sanitized.jumlah = numValidation.sanitized;
+        } else {
+            errors.push(numValidation.error);
+        }
+    } else {
+        errors.push('Jumlah pembayaran tidak boleh kosong');
+    }
+    
+    // Sanitize keterangan (optional)
+    if (formData.keterangan) {
+        sanitized.keterangan = sanitizeTextInput(formData.keterangan);
+        
+        // Limit keterangan length
+        if (sanitized.keterangan.length > 500) {
+            sanitized.keterangan = sanitized.keterangan.substring(0, 500);
+        }
+    } else {
+        sanitized.keterangan = '';
+    }
+    
+    return {
+        valid: errors.length === 0,
+        sanitized: sanitized,
+        errors: errors
+    };
+}
+
+/**
  * Cetak bukti pembayaran
- * Requirements: 8.1, 8.2, 8.3, 8.5
+ * Requirements: 8.1, 8.2, 8.3, 8.5, 13.1 - Enhanced access validation
  * @param {string} transaksiId - Transaction ID
  */
 function cetakBuktiPembayaran(transaksiId) {
-    // Check access permission
-    if (!checkPembayaranAccess()) {
+    // Enhanced session validation
+    const sessionValidation = validateUserSession();
+    if (!sessionValidation.valid) {
+        showAlert(sessionValidation.error, 'danger');
+        return;
+    }
+    
+    // Check print permission
+    if (!checkOperationPermission('print')) {
         showAlert('Anda tidak memiliki izin untuk mencetak bukti pembayaran', 'danger');
         return;
     }
     
+    // Sanitize transaction ID
+    const sanitizedId = sanitizeTextInput(transaksiId);
+    
     try {
         const pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
-        const transaksi = pembayaranList.find(p => p.id === transaksiId);
+        const transaksi = pembayaranList.find(p => p.id === sanitizedId);
         
         if (!transaksi) {
             showAlert('Transaksi tidak ditemukan', 'danger');
@@ -1148,44 +2457,45 @@ function cetakBuktiPembayaran(transaksiId) {
 }
 
 // Export functions for testing
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        renderPembayaranHutangPiutang,
-        hitungSaldoHutang,
-        hitungSaldoPiutang,
-        updateSummaryCards,
-        renderFormPembayaran,
-        searchAnggota,
-        validatePembayaran,
-        savePembayaran,
-        rollbackPembayaran,
-        createJurnalPembayaranHutang,
-        createJurnalPembayaranPiutang,
-        saveAuditLog,
-        cetakBuktiPembayaran,
-        checkPembayaranAccess
-    };
-}
+export {
+    renderPembayaranHutangPiutang,
+    hitungSaldoHutang,
+    hitungSaldoPiutang,
+    updateSummaryCards,
+    renderFormPembayaran,
+    searchAnggota,
+    validatePembayaran,
+    validatePembayaranEnhanced,
+    savePembayaran,
+    rollbackPembayaran,
+    createJurnalPembayaranHutang,
+    createJurnalPembayaranPiutang,
+    saveAuditLog,
+    cetakBuktiPembayaran,
+    checkPembayaranAccess,
+    checkOperationPermission,
+    validateUserSession,
+    sanitizeTextInput,
+    validateNumericInput,
+    validateDateInput,
+    sanitizePaymentFormData,
+    applyRiwayatFilters,
+    loadRiwayatPembayaran,
+    renderRiwayatPembayaran,
+    displaySaldoAnggotaAutomatic,
+    highlightRelevantSaldoDynamic,
+    controlJumlahInputBasedOnSaldo,
+    validateFormRealTime,
+    showConfirmationDialog,
+    showSuccessNotification,
+    showErrorNotification,
+    showValidationErrors,
+    showToastNotification
+};
 
 // ES module exports for testing (conditional to avoid syntax errors in browser)
 if (typeof module !== 'undefined' && module.exports) {
-    // Node.js environment
-    module.exports = {
-        renderPembayaranHutangPiutang,
-        hitungSaldoHutang,
-        hitungSaldoPiutang,
-        updateSummaryCards,
-        renderFormPembayaran,
-        searchAnggota,
-        validatePembayaran,
-        savePembayaran,
-        rollbackPembayaran,
-        createJurnalPembayaranHutang,
-        createJurnalPembayaranPiutang,
-        saveAuditLog,
-        cetakBuktiPembayaran,
-        checkPembayaranAccess
-    };
+    // Node.js environment - already exported above
 } else if (typeof window !== 'undefined') {
     // Browser environment - attach to window for testing
     window.PembayaranHutangPiutangModule = {
@@ -1196,12 +2506,31 @@ if (typeof module !== 'undefined' && module.exports) {
         renderFormPembayaran,
         searchAnggota,
         validatePembayaran,
+        validatePembayaranEnhanced,
         savePembayaran,
         rollbackPembayaran,
         createJurnalPembayaranHutang,
         createJurnalPembayaranPiutang,
         saveAuditLog,
         cetakBuktiPembayaran,
-        checkPembayaranAccess
+        checkPembayaranAccess,
+        checkOperationPermission,
+        validateUserSession,
+        sanitizeTextInput,
+        validateNumericInput,
+        validateDateInput,
+        sanitizePaymentFormData,
+        applyRiwayatFilters,
+        loadRiwayatPembayaran,
+        renderRiwayatPembayaran,
+        displaySaldoAnggotaAutomatic,
+        highlightRelevantSaldoDynamic,
+        controlJumlahInputBasedOnSaldo,
+        validateFormRealTime,
+        showConfirmationDialog,
+        showSuccessNotification,
+        showErrorNotification,
+        showValidationErrors,
+        showToastNotification
     };
 }

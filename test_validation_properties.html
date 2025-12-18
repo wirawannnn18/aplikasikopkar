@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Validation Properties</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .summary {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .summary.all-pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .summary.some-fail {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Validation Property Tests</h1>
+        <div class="info">
+            <strong>Testing:</strong> Property 2 (Hutang payment validation) and Property 6 (Piutang payment validation)
+        </div>
+        
+        <button onclick="runAllTests()">▶️ Run All Tests</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Mock formatRupiah
+        function formatRupiah(amount) {
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+
+        // Validation function (from pembayaranHutangPiutang.js)
+        function validatePembayaran(data) {
+            // Check anggota selected
+            if (!data.anggotaId) {
+                return { valid: false, message: 'Silakan pilih anggota terlebih dahulu' };
+            }
+            
+            // Check jenis selected
+            if (!data.jenis) {
+                return { valid: false, message: 'Silakan pilih jenis pembayaran' };
+            }
+            
+            // Check jumlah
+            if (!data.jumlah || data.jumlah <= 0) {
+                return { valid: false, message: 'Jumlah pembayaran harus lebih dari 0' };
+            }
+            
+            if (data.jumlah < 0) {
+                return { valid: false, message: 'Jumlah pembayaran tidak boleh negatif' };
+            }
+            
+            // Check against saldo
+            const saldo = data.jenis === 'hutang' 
+                ? hitungSaldoHutang(data.anggotaId)
+                : hitungSaldoPiutang(data.anggotaId);
+            
+            if (saldo === 0) {
+                const jenisText = data.jenis === 'hutang' ? 'hutang' : 'piutang';
+                return { valid: false, message: `Anggota tidak memiliki ${jenisText} yang perlu dibayar` };
+            }
+            
+            if (data.jumlah > saldo) {
+                const jenisText = data.jenis === 'hutang' ? 'hutang' : 'piutang';
+                return { valid: false, message: `Jumlah pembayaran melebihi saldo ${jenisText} (${formatRupiah(saldo)})` };
+            }
+            
+            return { valid: true, message: '' };
+        }
+
+        function hitungSaldoHutang(anggotaId) {
+            try {
+                const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+                const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                
+                const totalKredit = penjualan
+                    .filter(p => p.anggotaId === anggotaId && p.metodePembayaran === 'Kredit')
+                    .reduce((sum, p) => sum + (parseFloat(p.total) || 0), 0);
+                
+                const totalBayar = pembayaran
+                    .filter(p => p.anggotaId === anggotaId && p.jenis === 'hutang' && p.status === 'selesai')
+                    .reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+                
+                return totalKredit - totalBayar;
+            } catch (error) {
+                console.error('Error calculating hutang saldo:', error);
+                return 0;
+            }
+        }
+
+        function hitungSaldoPiutang(anggotaId) {
+            try {
+                const simpananList = JSON.parse(localStorage.getItem('simpanan') || '[]');
+                const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                
+                const anggotaSimpanan = simpananList.filter(s => 
+                    s.anggotaId === anggotaId && 
+                    s.statusPengembalian === 'pending'
+                );
+                
+                let totalPiutang = 0;
+                anggotaSimpanan.forEach(simpanan => {
+                    totalPiutang += parseFloat(simpanan.saldo || 0);
+                });
+                
+                const totalBayar = pembayaran
+                    .filter(p => p.anggotaId === anggotaId && p.jenis === 'piutang' && p.status === 'selesai')
+                    .reduce((sum, p) => sum + (parseFloat(p.jumlah) || 0), 0);
+                
+                return totalPiutang - totalBayar;
+            } catch (error) {
+                console.error('Error calculating piutang saldo:', error);
+                return 0;
+            }
+        }
+
+        // Test functions
+        function testProperty2() {
+            const results = [];
+            results.push('<h2>Property 2: Hutang Payment Validation</h2>');
+            results.push('<p><strong>Validates Requirements:</strong> 1.2, 2.2, 3.1, 3.2, 3.3, 3.4</p>');
+            
+            let passCount = 0;
+            let totalTests = 0;
+            
+            const testCases = [
+                { saldo: 100000, jumlah: 50000, shouldPass: true, desc: 'Valid payment within saldo' },
+                { saldo: 100000, jumlah: 100000, shouldPass: true, desc: 'Payment equal to saldo' },
+                { saldo: 100000, jumlah: 150000, shouldPass: false, desc: 'Payment exceeding saldo' },
+                { saldo: 100000, jumlah: 0, shouldPass: false, desc: 'Zero payment' },
+                { saldo: 100000, jumlah: -10000, shouldPass: false, desc: 'Negative payment' },
+                { saldo: 0, jumlah: 10000, shouldPass: false, desc: 'No saldo available' },
+                { saldo: 50000, jumlah: 25000, shouldPass: true, desc: 'Partial payment' },
+                { saldo: 1000000, jumlah: 999999, shouldPass: true, desc: 'Large payment within saldo' }
+            ];
+            
+            testCases.forEach(testCase => {
+                totalTests++;
+                
+                // Setup
+                localStorage.clear();
+                const penjualan = [{ anggotaId: 'A001', metodePembayaran: 'Kredit', total: testCase.saldo }];
+                localStorage.setItem('penjualan', JSON.stringify(penjualan));
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                
+                const data = {
+                    anggotaId: 'A001',
+                    jenis: 'hutang',
+                    jumlah: testCase.jumlah
+                };
+                
+                const validation = validatePembayaran(data);
+                const passed = testCase.shouldPass ? validation.valid : !validation.valid;
+                
+                if (passed) {
+                    passCount++;
+                    results.push(`<div class="test-result pass">✓ ${testCase.desc}</div>`);
+                } else {
+                    results.push(`<div class="test-result fail">✗ ${testCase.desc}<br>
+                        Expected: ${testCase.shouldPass ? 'valid' : 'invalid'}, Got: ${validation.valid ? 'valid' : 'invalid'}<br>
+                        Message: ${validation.message}</div>`);
+                }
+            });
+            
+            results.push(`<p><strong>Results:</strong> ${passCount}/${totalTests} tests passed</p>`);
+            return { html: results.join(''), passed: passCount === totalTests, passCount, totalTests };
+        }
+
+        function testProperty6() {
+            const results = [];
+            results.push('<h2>Property 6: Piutang Payment Validation</h2>');
+            results.push('<p><strong>Validates Requirements:</strong> 1.2, 2.2, 3.1, 3.2, 3.3, 3.4</p>');
+            
+            let passCount = 0;
+            let totalTests = 0;
+            
+            const testCases = [
+                { saldo: 100000, jumlah: 50000, shouldPass: true, desc: 'Valid payment within saldo' },
+                { saldo: 100000, jumlah: 100000, shouldPass: true, desc: 'Payment equal to saldo' },
+                { saldo: 100000, jumlah: 150000, shouldPass: false, desc: 'Payment exceeding saldo' },
+                { saldo: 100000, jumlah: 0, shouldPass: false, desc: 'Zero payment' },
+                { saldo: 100000, jumlah: -10000, shouldPass: false, desc: 'Negative payment' },
+                { saldo: 0, jumlah: 10000, shouldPass: false, desc: 'No saldo available' },
+                { saldo: 75000, jumlah: 30000, shouldPass: true, desc: 'Partial payment' },
+                { saldo: 500000, jumlah: 499999, shouldPass: true, desc: 'Large payment within saldo' }
+            ];
+            
+            testCases.forEach(testCase => {
+                totalTests++;
+                
+                // Setup
+                localStorage.clear();
+                const simpanan = [{ anggotaId: 'A001', statusPengembalian: 'pending', saldo: testCase.saldo }];
+                localStorage.setItem('simpanan', JSON.stringify(simpanan));
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                
+                const data = {
+                    anggotaId: 'A001',
+                    jenis: 'piutang',
+                    jumlah: testCase.jumlah
+                };
+                
+                const validation = validatePembayaran(data);
+                const passed = testCase.shouldPass ? validation.valid : !validation.valid;
+                
+                if (passed) {
+                    passCount++;
+                    results.push(`<div class="test-result pass">✓ ${testCase.desc}</div>`);
+                } else {
+                    results.push(`<div class="test-result fail">✗ ${testCase.desc}<br>
+                        Expected: ${testCase.shouldPass ? 'valid' : 'invalid'}, Got: ${validation.valid ? 'valid' : 'invalid'}<br>
+                        Message: ${validation.message}</div>`);
+                }
+            });
+            
+            results.push(`<p><strong>Results:</strong> ${passCount}/${totalTests} tests passed</p>`);
+            return { html: results.join(''), passed: passCount === totalTests, passCount, totalTests };
+        }
+
+        function testEdgeCases() {
+            const results = [];
+            results.push('<h2>Additional Validation Tests</h2>');
+            
+            let passCount = 0;
+            let totalTests = 0;
+            
+            // Test missing anggota
+            totalTests++;
+            const data1 = { anggotaId: '', jenis: 'hutang', jumlah: 50000 };
+            const val1 = validatePembayaran(data1);
+            if (!val1.valid && val1.message.includes('pilih anggota')) {
+                passCount++;
+                results.push('<div class="test-result pass">✓ Missing anggota validation</div>');
+            } else {
+                results.push('<div class="test-result fail">✗ Missing anggota validation failed</div>');
+            }
+            
+            // Test missing jenis
+            totalTests++;
+            const data2 = { anggotaId: 'A001', jenis: '', jumlah: 50000 };
+            const val2 = validatePembayaran(data2);
+            if (!val2.valid && val2.message.includes('pilih jenis')) {
+                passCount++;
+                results.push('<div class="test-result pass">✓ Missing jenis validation</div>');
+            } else {
+                results.push('<div class="test-result fail">✗ Missing jenis validation failed</div>');
+            }
+            
+            // Test undefined jumlah
+            totalTests++;
+            localStorage.clear();
+            const penjualan = [{ anggotaId: 'A001', metodePembayaran: 'Kredit', total: 100000 }];
+            localStorage.setItem('penjualan', JSON.stringify(penjualan));
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+            
+            const data3 = { anggotaId: 'A001', jenis: 'hutang', jumlah: undefined };
+            const val3 = validatePembayaran(data3);
+            if (!val3.valid) {
+                passCount++;
+                results.push('<div class="test-result pass">✓ Undefined jumlah validation</div>');
+            } else {
+                results.push('<div class="test-result fail">✗ Undefined jumlah validation failed</div>');
+            }
+            
+            results.push(`<p><strong>Results:</strong> ${passCount}/${totalTests} tests passed</p>`);
+            return { html: results.join(''), passed: passCount === totalTests, passCount, totalTests };
+        }
+
+        function runAllTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+            
+            setTimeout(() => {
+                const allResults = [];
+                let totalPass = 0;
+                let totalTests = 0;
+                
+                // Run Property 2
+                const prop2 = testProperty2();
+                allResults.push(prop2.html);
+                totalPass += prop2.passCount;
+                totalTests += prop2.totalTests;
+                
+                // Run Property 6
+                const prop6 = testProperty6();
+                allResults.push(prop6.html);
+                totalPass += prop6.passCount;
+                totalTests += prop6.totalTests;
+                
+                // Run edge cases
+                const edge = testEdgeCases();
+                allResults.push(edge.html);
+                totalPass += edge.passCount;
+                totalTests += edge.totalTests;
+                
+                // Summary
+                const allPassed = totalPass === totalTests;
+                const summaryClass = allPassed ? 'all-pass' : 'some-fail';
+                allResults.push(`
+                    <div class="summary ${summaryClass}">
+                        <h2>📊 Overall Summary</h2>
+                        <p>Total Tests: ${totalTests}</p>
+                        <p>Passed: ${totalPass}</p>
+                        <p>Failed: ${totalTests - totalPass}</p>
+                        <p>Status: ${allPassed ? '✅ ALL TESTS PASSED' : '⚠️ SOME TESTS FAILED'}</p>
+                    </div>
+                `);
+                
+                resultsDiv.innerHTML = allResults.join('');
+            }, 100);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            localStorage.clear();
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            console.log('Validation Property Tests loaded. Click "Run All Tests" to start.');
+        });
+    </script>
+</body>
+</html>

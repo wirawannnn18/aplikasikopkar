@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Payment Processing Properties</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Payment Processing Property Tests</h1>
+    <div id="results"></div>
+
+    <script>
+        // Mock localStorage
+        const localStorageMock = (() => {
+            let store = {};
+            return {
+                getItem: (key) => store[key] || null,
+                setItem: (key, value) => { store[key] = value.toString(); },
+                clear: () => { store = {}; },
+                removeItem: (key) => { delete store[key]; }
+            };
+        })();
+        
+        // Replace localStorage
+        Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+        // Mock functions
+        window.formatRupiah = (amount) => `Rp ${amount.toLocaleString('id-ID')}`;
+        window.showAlert = (message, type) => console.log(`Alert [${type}]: ${message}`);
+        window.generateId = () => 'TEST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        window.addJurnal = (keterangan, entries, tanggal) => {
+            console.log('Journal added:', { keterangan, entries, tanggal });
+            return true;
+        };
+        window.filterTransactableAnggota = (anggotaList) => {
+            if (!anggotaList) {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                return anggota.filter(a => a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar');
+            }
+            return anggotaList.filter(a => a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar');
+        };
+        window.validateAnggotaForHutangPiutang = () => ({ valid: true });
+
+        // Simple property testing framework
+        function fc_assert(property, options = {}) {
+            const numRuns = options.numRuns || 10;
+            let passed = 0;
+            let failed = 0;
+            let errors = [];
+
+            for (let i = 0; i < numRuns; i++) {
+                try {
+                    localStorage.clear();
+                    const result = property();
+                    if (result) {
+                        passed++;
+                    } else {
+                        failed++;
+                        errors.push(`Run ${i + 1}: Property returned false`);
+                    }
+                } catch (error) {
+                    failed++;
+                    errors.push(`Run ${i + 1}: ${error.message}`);
+                }
+            }
+
+            return { passed, failed, errors, total: numRuns };
+        }
+
+        function fc_integer(options = {}) {
+            const min = options.min || 0;
+            const max = options.max || 100;
+            return () => Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function fc_property(...args) {
+            const generators = args.slice(0, -1);
+            const testFunction = args[args.length - 1];
+            
+            return () => {
+                const values = generators.map(gen => gen());
+                return testFunction(...values);
+            };
+        }
+
+        // Results container
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(testName, result) {
+            const div = document.createElement('div');
+            div.className = `test-result ${result.failed === 0 ? 'pass' : 'fail'}`;
+            
+            let html = `<h3>${testName}</h3>`;
+            html += `<p>Passed: ${result.passed}/${result.total}</p>`;
+            
+            if (result.failed > 0) {
+                html += `<p>Failed: ${result.failed}</p>`;
+                html += `<details><summary>Errors</summary><pre>${result.errors.join('\n')}</pre></details>`;
+            }
+            
+            div.innerHTML = html;
+            resultsDiv.appendChild(div);
+        }
+
+        // Load the module
+        const script = document.createElement('script');
+        script.src = 'js/pembayaranHutangPiutang.js';
+        script.onload = () => {
+            runTests();
+        };
+        document.head.appendChild(script);
+
+        function runTests() {
+            addResult('Module Loading', { passed: 1, failed: 0, errors: [], total: 1 });
+
+            // Test Property 3: Hutang saldo reduction
+            try {
+                const property3 = fc_property(
+                    fc_integer({ min: 100000, max: 1000000 }),
+                    fc_integer({ min: 10000, max: 50000 }),
+                    (saldoAwal, jumlahBayar) => {
+                        // Setup
+                        const penjualan = [{ anggotaId: 'A001', metodePembayaran: 'Kredit', total: saldoAwal }];
+                        localStorage.setItem('penjualan', JSON.stringify(penjualan));
+                        localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                        localStorage.setItem('currentUser', JSON.stringify({ id: 'U001', nama: 'Kasir' }));
+                        
+                        const saldoSebelum = hitungSaldoHutang('A001');
+                        
+                        // Save payment
+                        const transaksi = savePembayaran({
+                            anggotaId: 'A001',
+                            anggotaNama: 'Test',
+                            anggotaNIK: '123',
+                            jenis: 'hutang',
+                            jumlah: jumlahBayar,
+                            saldoSebelum: saldoSebelum,
+                            saldoSesudah: saldoSebelum - jumlahBayar
+                        });
+                        
+                        const saldoSesudah = hitungSaldoHutang('A001');
+                        
+                        return saldoSesudah === (saldoSebelum - jumlahBayar);
+                    }
+                );
+
+                const result3 = fc_assert(property3, { numRuns: 20 });
+                addResult('Property 3: Hutang saldo reduction', result3);
+            } catch (error) {
+                addResult('Property 3: Hutang saldo reduction', { 
+                    passed: 0, failed: 1, errors: [error.message], total: 1 
+                });
+            }
+
+            // Test Property 7: Piutang saldo reduction
+            try {
+                const property7 = fc_property(
+                    fc_integer({ min: 100000, max: 1000000 }),
+                    fc_integer({ min: 10000, max: 50000 }),
+                    (saldoAwal, jumlahBayar) => {
+                        // Setup
+                        const simpanan = [{ anggotaId: 'A001', statusPengembalian: 'pending', saldo: saldoAwal }];
+                        localStorage.setItem('simpanan', JSON.stringify(simpanan));
+                        localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                        localStorage.setItem('currentUser', JSON.stringify({ id: 'U001', nama: 'Kasir' }));
+                        
+                        const saldoSebelum = hitungSaldoPiutang('A001');
+                        
+                        // Save payment
+                        const transaksi = savePembayaran({
+                            anggotaId: 'A001',
+                            anggotaNama: 'Test',
+                            anggotaNIK: '123',
+                            jenis: 'piutang',
+                            jumlah: jumlahBayar,
+                            saldoSebelum: saldoSebelum,
+                            saldoSesudah: saldoSebelum - jumlahBayar
+                        });
+                        
+                        const saldoSesudah = hitungSaldoPiutang('A001');
+                        
+                        return saldoSesudah === (saldoSebelum - jumlahBayar);
+                    }
+                );
+
+                const result7 = fc_assert(property7, { numRuns: 20 });
+                addResult('Property 7: Piutang saldo reduction', result7);
+            } catch (error) {
+                addResult('Property 7: Piutang saldo reduction', { 
+                    passed: 0, failed: 1, errors: [error.message], total: 1 
+                });
+            }
+
+            // Test Property 24: Transaction rollback on error
+            try {
+                const property24 = fc_property(
+                    fc_integer({ min: 10000, max: 1000000 }),
+                    (jumlah) => {
+                        localStorage.setItem('currentUser', JSON.stringify({ id: 'U001', nama: 'Kasir' }));
+                        
+                        // Save transaction
+                        const transaksi = savePembayaran({
+                            anggotaId: 'A001',
+                            anggotaNama: 'Test',
+                            anggotaNIK: '123',
+                            jenis: 'hutang',
+                            jumlah: jumlah,
+                            saldoSebelum: jumlah,
+                            saldoSesudah: 0
+                        });
+                        
+                        // Verify saved
+                        let list = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                        const savedExists = list.some(p => p.id === transaksi.id);
+                        
+                        // Rollback
+                        rollbackPembayaran(transaksi.id);
+                        
+                        // Verify removed
+                        list = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                        const removedExists = list.some(p => p.id === transaksi.id);
+                        
+                        return savedExists && !removedExists;
+                    }
+                );
+
+                const result24 = fc_assert(property24, { numRuns: 20 });
+                addResult('Property 24: Transaction rollback on error', result24);
+            } catch (error) {
+                addResult('Property 24: Transaction rollback on error', { 
+                    passed: 0, failed: 1, errors: [error.message], total: 1 
+                });
+            }
+
+            // Test Property 25: Atomic transaction completion
+            try {
+                const property25 = fc_property(
+                    fc_integer({ min: 10000, max: 1000000 }),
+                    (jumlah) => {
+                        localStorage.setItem('currentUser', JSON.stringify({ id: 'U001', nama: 'Kasir' }));
+                        
+                        // Setup initial state
+                        const initialPembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                        
+                        // Save transaction
+                        const transaksi = savePembayaran({
+                            anggotaId: 'A001',
+                            anggotaNama: 'Test',
+                            anggotaNIK: '123',
+                            jenis: 'hutang',
+                            jumlah: jumlah,
+                            saldoSebelum: jumlah,
+                            saldoSesudah: 0
+                        });
+                        
+                        // Verify transaction was saved
+                        const afterSave = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                        const transactionSaved = afterSave.some(p => p.id === transaksi.id);
+                        
+                        // If transaction is saved, it should have all required fields
+                        if (transactionSaved) {
+                            const savedTransaction = afterSave.find(p => p.id === transaksi.id);
+                            return savedTransaction.id && 
+                                   savedTransaction.anggotaId && 
+                                   savedTransaction.jumlah === jumlah &&
+                                   savedTransaction.status === 'selesai';
+                        }
+                        
+                        // If not saved, should be in initial state
+                        return afterSave.length === initialPembayaran.length;
+                    }
+                );
+
+                const result25 = fc_assert(property25, { numRuns: 20 });
+                addResult('Property 25: Atomic transaction completion', result25);
+            } catch (error) {
+                addResult('Property 25: Atomic transaction completion', { 
+                    passed: 0, failed: 1, errors: [error.message], total: 1 
+                });
+            }
+
+            // Summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'test-result info';
+            summaryDiv.innerHTML = '<h3>Test Summary</h3><p>All property tests for task 6.4 have been executed. Check individual results above.</p>';
+            resultsDiv.appendChild(summaryDiv);
+        }
+    </script>
+</body>
+</html>

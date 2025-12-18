@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test UI Rendering - Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .test-pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .test-fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .test-info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .log-container { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test UI Rendering - Pembayaran Hutang Piutang</h2>
+        <p class="text-muted">Testing Task 3.3: Unit tests for UI rendering</p>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div id="testResults" class="log-container"></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">Test Summary</div>
+                    <div class="card-body">
+                        <div>Total Tests: <span id="totalTests">0</span></div>
+                        <div>Passed: <span id="passedTests" class="text-success">0</span></div>
+                        <div>Failed: <span id="failedTests" class="text-danger">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="runTests()">Run Tests</button>
+            <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <!-- Test Content Area -->
+        <div id="testContent" style="display: none;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    
+    <script>
+        let testResults = [];
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        function addTestResult(testName, passed, message = '') {
+            totalTests++;
+            if (passed) {
+                passedTests++;
+            } else {
+                failedTests++;
+            }
+            
+            testResults.push({
+                name: testName,
+                passed: passed,
+                message: message
+            });
+            
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const resultsDiv = document.getElementById('testResults');
+            const resultHtml = testResults.map(result => {
+                const cssClass = result.passed ? 'test-pass' : 'test-fail';
+                const icon = result.passed ? '✓' : '✗';
+                return `
+                    <div class="${cssClass} test-result">
+                        <strong>${icon} ${result.name}</strong>
+                        ${result.message ? `<br><small>${result.message}</small>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            resultsDiv.innerHTML = resultHtml;
+            
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = passedTests;
+            document.getElementById('failedTests').textContent = failedTests;
+        }
+
+        function clearResults() {
+            testResults = [];
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            updateDisplay();
+        }
+
+        function runTests() {
+            clearResults();
+            
+            // Setup test environment
+            localStorage.clear();
+            localStorage.setItem('currentUser', JSON.stringify({ role: 'kasir', id: 'U001', nama: 'Test Kasir' }));
+            
+            // Test 1: renderPembayaranHutangPiutang main structure
+            try {
+                // Create mock content element
+                const mockContent = document.createElement('div');
+                mockContent.id = 'content';
+                document.body.appendChild(mockContent);
+                
+                renderPembayaranHutangPiutang();
+                
+                const content = mockContent.innerHTML;
+                const hasTitle = content.includes('Pembayaran Hutang / Piutang Anggota');
+                const hasHutangCard = content.includes('Total Hutang Anggota');
+                const hasPiutangCard = content.includes('Total Piutang Anggota');
+                const hasFormTab = content.includes('Form Pembayaran');
+                const hasRiwayatTab = content.includes('Riwayat Pembayaran');
+                
+                const allPresent = hasTitle && hasHutangCard && hasPiutangCard && hasFormTab && hasRiwayatTab;
+                
+                addTestResult(
+                    'renderPembayaranHutangPiutang - Main Structure',
+                    allPresent,
+                    allPresent ? 'All required elements present' : 'Missing required elements'
+                );
+                
+                document.body.removeChild(mockContent);
+            } catch (error) {
+                addTestResult('renderPembayaranHutangPiutang - Main Structure', false, `Error: ${error.message}`);
+            }
+
+            // Test 2: Access control for unauthorized users
+            try {
+                localStorage.setItem('currentUser', JSON.stringify({ role: 'member' }));
+                
+                const mockContent = document.createElement('div');
+                mockContent.id = 'content';
+                document.body.appendChild(mockContent);
+                
+                renderPembayaranHutangPiutang();
+                
+                const content = mockContent.innerHTML;
+                const hasAccessDenied = content.includes('Akses Ditolak');
+                const hasPermissionMessage = content.includes('tidak memiliki izin');
+                
+                addTestResult(
+                    'renderPembayaranHutangPiutang - Access Control',
+                    hasAccessDenied && hasPermissionMessage,
+                    hasAccessDenied && hasPermissionMessage ? 'Access denied correctly shown' : 'Access control not working'
+                );
+                
+                document.body.removeChild(mockContent);
+                localStorage.setItem('currentUser', JSON.stringify({ role: 'kasir' }));
+            } catch (error) {
+                addTestResult('renderPembayaranHutangPiutang - Access Control', false, `Error: ${error.message}`);
+            }
+
+            // Test 3: renderFormPembayaran structure
+            try {
+                const mockContainer = document.createElement('div');
+                mockContainer.id = 'formPembayaranContainer';
+                document.body.appendChild(mockContainer);
+                
+                renderFormPembayaran();
+                
+                const content = mockContainer.innerHTML;
+                const hasForm = content.includes('formPembayaran');
+                const hasJenisSelect = content.includes('jenisPembayaran');
+                const hasSearchInput = content.includes('searchAnggota');
+                const hasJumlahInput = content.includes('jumlahPembayaran');
+                const hasKeteranganTextarea = content.includes('keteranganPembayaran');
+                const hasSubmitButton = content.includes('btnProsesPembayaran');
+                
+                const allFieldsPresent = hasForm && hasJenisSelect && hasSearchInput && hasJumlahInput && hasKeteranganTextarea && hasSubmitButton;
+                
+                addTestResult(
+                    'renderFormPembayaran - Form Structure',
+                    allFieldsPresent,
+                    allFieldsPresent ? 'All form fields present' : 'Missing form fields'
+                );
+                
+                document.body.removeChild(mockContainer);
+            } catch (error) {
+                addTestResult('renderFormPembayaran - Form Structure', false, `Error: ${error.message}`);
+            }
+
+            // Test 4: Form jenis pembayaran options
+            try {
+                const mockContainer = document.createElement('div');
+                mockContainer.id = 'formPembayaranContainer';
+                document.body.appendChild(mockContainer);
+                
+                renderFormPembayaran();
+                
+                const content = mockContainer.innerHTML;
+                const hasHutangOption = content.includes('value="hutang"');
+                const hasPiutangOption = content.includes('value="piutang"');
+                const hasHutangText = content.includes('Pembayaran Hutang');
+                const hasPiutangText = content.includes('Pembayaran Piutang');
+                
+                const allOptionsPresent = hasHutangOption && hasPiutangOption && hasHutangText && hasPiutangText;
+                
+                addTestResult(
+                    'renderFormPembayaran - Jenis Options',
+                    allOptionsPresent,
+                    allOptionsPresent ? 'All jenis pembayaran options present' : 'Missing jenis options'
+                );
+                
+                document.body.removeChild(mockContainer);
+            } catch (error) {
+                addTestResult('renderFormPembayaran - Jenis Options', false, `Error: ${error.message}`);
+            }
+
+            // Test 5: Required field indicators
+            try {
+                const mockContainer = document.createElement('div');
+                mockContainer.id = 'formPembayaranContainer';
+                document.body.appendChild(mockContainer);
+                
+                renderFormPembayaran();
+                
+                const content = mockContainer.innerHTML;
+                const hasRequiredAsterisks = content.includes('text-danger">*');
+                const hasRequiredAttribute = content.includes('required');
+                
+                addTestResult(
+                    'renderFormPembayaran - Required Fields',
+                    hasRequiredAsterisks && hasRequiredAttribute,
+                    hasRequiredAsterisks && hasRequiredAttribute ? 'Required field indicators present' : 'Missing required indicators'
+                );
+                
+                document.body.removeChild(mockContainer);
+            } catch (error) {
+                addTestResult('renderFormPembayaran - Required Fields', false, `Error: ${error.message}`);
+            }
+
+            // Test 6: Autocomplete functionality
+            try {
+                const mockContainer = document.createElement('div');
+                mockContainer.id = 'formPembayaranContainer';
+                document.body.appendChild(mockContainer);
+                
+                renderFormPembayaran();
+                
+                const content = mockContainer.innerHTML;
+                const hasSuggestionsDiv = content.includes('anggotaSuggestions');
+                const hasAutocompleteOff = content.includes('autocomplete="off"');
+                const hasSearchHandler = content.includes('onSearchAnggota');
+                
+                const allAutocompletePresent = hasSuggestionsDiv && hasAutocompleteOff && hasSearchHandler;
+                
+                addTestResult(
+                    'renderFormPembayaran - Autocomplete',
+                    allAutocompletePresent,
+                    allAutocompletePresent ? 'Autocomplete functionality present' : 'Missing autocomplete features'
+                );
+                
+                document.body.removeChild(mockContainer);
+            } catch (error) {
+                addTestResult('renderFormPembayaran - Autocomplete', false, `Error: ${error.message}`);
+            }
+
+            // Test 7: Saldo display area
+            try {
+                const mockContainer = document.createElement('div');
+                mockContainer.id = 'formPembayaranContainer';
+                document.body.appendChild(mockContainer);
+                
+                renderFormPembayaran();
+                
+                const content = mockContainer.innerHTML;
+                const hasSaldoDisplay = content.includes('saldoDisplay');
+                const hasHutangDisplay = content.includes('displaySaldoHutang');
+                const hasPiutangDisplay = content.includes('displaySaldoPiutang');
+                
+                const allSaldoPresent = hasSaldoDisplay && hasHutangDisplay && hasPiutangDisplay;
+                
+                addTestResult(
+                    'renderFormPembayaran - Saldo Display',
+                    allSaldoPresent,
+                    allSaldoPresent ? 'Saldo display areas present' : 'Missing saldo display elements'
+                );
+                
+                document.body.removeChild(mockContainer);
+            } catch (error) {
+                addTestResult('renderFormPembayaran - Saldo Display', false, `Error: ${error.message}`);
+            }
+
+            // Test 8: updateSummaryCards functionality
+            try {
+                // Create mock display elements
+                const mockHutangDisplay = document.createElement('div');
+                mockHutangDisplay.id = 'totalHutangDisplay';
+                const mockPiutangDisplay = document.createElement('div');
+                mockPiutangDisplay.id = 'totalPiutangDisplay';
+                
+                document.body.appendChild(mockHutangDisplay);
+                document.body.appendChild(mockPiutangDisplay);
+                
+                // Setup test data
+                localStorage.setItem('anggota', JSON.stringify([
+                    { id: 'A001' },
+                    { id: 'A002' }
+                ]));
+                localStorage.setItem('penjualan', JSON.stringify([
+                    { anggotaId: 'A001', metodePembayaran: 'Kredit', total: 100000 }
+                ]));
+                localStorage.setItem('simpanan', JSON.stringify([
+                    { anggotaId: 'A001', statusPengembalian: 'pending', saldo: 50000 }
+                ]));
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                
+                updateSummaryCards();
+                
+                const hutangUpdated = mockHutangDisplay.textContent.length > 0;
+                const piutangUpdated = mockPiutangDisplay.textContent.length > 0;
+                
+                addTestResult(
+                    'updateSummaryCards - Functionality',
+                    hutangUpdated && piutangUpdated,
+                    hutangUpdated && piutangUpdated ? 'Summary cards updated correctly' : 'Summary cards not updated'
+                );
+                
+                document.body.removeChild(mockHutangDisplay);
+                document.body.removeChild(mockPiutangDisplay);
+            } catch (error) {
+                addTestResult('updateSummaryCards - Functionality', false, `Error: ${error.message}`);
+            }
+
+            // Test 9: Error handling for missing elements
+            try {
+                // Test renderPembayaranHutangPiutang with no content element
+                let errorThrown = false;
+                try {
+                    // Temporarily remove content element
+                    const existingContent = document.getElementById('content');
+                    if (existingContent) {
+                        existingContent.remove();
+                    }
+                    
+                    renderPembayaranHutangPiutang();
+                } catch (error) {
+                    errorThrown = true;
+                }
+                
+                addTestResult(
+                    'Error Handling - Missing Content Element',
+                    !errorThrown,
+                    !errorThrown ? 'Gracefully handles missing content element' : 'Throws error on missing element'
+                );
+            } catch (error) {
+                addTestResult('Error Handling - Missing Content Element', false, `Error: ${error.message}`);
+            }
+
+            // Test 10: Empty data handling
+            try {
+                const mockHutangDisplay = document.createElement('div');
+                mockHutangDisplay.id = 'totalHutangDisplay';
+                const mockPiutangDisplay = document.createElement('div');
+                mockPiutangDisplay.id = 'totalPiutangDisplay';
+                
+                document.body.appendChild(mockHutangDisplay);
+                document.body.appendChild(mockPiutangDisplay);
+                
+                // Clear all data
+                localStorage.setItem('anggota', JSON.stringify([]));
+                localStorage.setItem('penjualan', JSON.stringify([]));
+                localStorage.setItem('simpanan', JSON.stringify([]));
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                
+                updateSummaryCards();
+                
+                const showsZero = mockHutangDisplay.textContent.includes('0') && mockPiutangDisplay.textContent.includes('0');
+                
+                addTestResult(
+                    'Empty Data Handling',
+                    showsZero,
+                    showsZero ? 'Correctly shows zero for empty data' : 'Does not handle empty data correctly'
+                );
+                
+                document.body.removeChild(mockHutangDisplay);
+                document.body.removeChild(mockPiutangDisplay);
+            } catch (error) {
+                addTestResult('Empty Data Handling', false, `Error: ${error.message}`);
+            }
+
+            // Summary
+            const successRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            const summaryMessage = `Tests completed: ${passedTests}/${totalTests} passed (${successRate}%)`;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = successRate === 100 ? 'test-pass test-result' : 'test-info test-result';
+            summaryDiv.innerHTML = `<strong>📊 Test Summary</strong><br>${summaryMessage}`;
+            document.getElementById('testResults').appendChild(summaryDiv);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('UI Rendering Test Page Loaded');
+        });
+    </script>
+</body>
+</html>

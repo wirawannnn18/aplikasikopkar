@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <h1><i class="bi bi-cash-coin text-success"></i> Test Pembayaran Hutang Piutang</h1>
+        <p class="lead">Testing menu pembayaran hutang piutang setelah perbaikan</p>
+
+        <!-- Test Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-play-circle"></i> Test Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button class="btn btn-primary" onclick="setupTestData()">
+                                <i class="bi bi-database"></i> Setup Test Data
+                            </button>
+                            <button class="btn btn-success" onclick="testMenu()">
+                                <i class="bi bi-check-circle"></i> Test Menu
+                            </button>
+                            <button class="btn btn-info" onclick="openInMainApp()">
+                                <i class="bi bi-box-arrow-up-right"></i> Buka di Aplikasi Utama
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clipboard-check"></i> Hasil Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <div class="text-muted">Klik "Setup Test Data" terlebih dahulu, lalu "Test Menu"</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Area -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> Area Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="content">
+                            <!-- Test content will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load required scripts in correct order -->
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        let testLog = [];
+
+        function addToLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testLog.push({
+                timestamp,
+                message,
+                type
+            });
+            console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const container = document.getElementById('testResults');
+            
+            let html = '<div class="test-log">';
+            
+            testLog.forEach(log => {
+                const badgeClass = {
+                    'success': 'bg-success',
+                    'error': 'bg-danger',
+                    'warning': 'bg-warning',
+                    'info': 'bg-info'
+                }[log.type] || 'bg-secondary';
+                
+                html += `
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge ${badgeClass} me-2">${log.timestamp}</span>
+                        <span>${log.message}</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function setupTestData() {
+            testLog = [];
+            addToLog('=== SETUP TEST DATA ===', 'info');
+            
+            try {
+                // Setup test user with admin role
+                const testUser = {
+                    id: 'admin_test',
+                    nama: 'Admin Test',
+                    username: 'admin',
+                    role: 'admin'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(testUser));
+                addToLog('✓ Test user (admin) setup', 'success');
+                
+                // Setup test anggota data
+                const testAnggota = [
+                    {
+                        id: 'anggota_001',
+                        nama: 'John Doe',
+                        nik: '1234567890123456',
+                        status: 'Aktif',
+                        statusKeanggotaan: 'Aktif'
+                    },
+                    {
+                        id: 'anggota_002',
+                        nama: 'Jane Smith',
+                        nik: '9876543210987654',
+                        status: 'Aktif',
+                        statusKeanggotaan: 'Aktif'
+                    }
+                ];
+                localStorage.setItem('anggota', JSON.stringify(testAnggota));
+                addToLog('✓ Test data anggota setup', 'success');
+                
+                // Setup test penjualan data (for hutang calculation)
+                const testPenjualan = [
+                    {
+                        id: 'penjualan_001',
+                        anggotaId: 'anggota_001',
+                        total: 100000,
+                        metodePembayaran: 'Kredit',
+                        tanggal: new Date().toISOString().split('T')[0]
+                    }
+                ];
+                localStorage.setItem('penjualan', JSON.stringify(testPenjualan));
+                addToLog('✓ Test data penjualan setup', 'success');
+                
+                // Initialize empty arrays
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+                localStorage.setItem('jurnal', JSON.stringify([]));
+                localStorage.setItem('auditLog', JSON.stringify([]));
+                addToLog('✓ Empty arrays initialized', 'success');
+                
+                addToLog('=== SETUP SELESAI ===', 'success');
+                
+            } catch (error) {
+                addToLog(`✗ Error setup: ${error.message}`, 'error');
+            }
+        }
+
+        function testMenu() {
+            addToLog('=== TESTING MENU PEMBAYARAN HUTANG PIUTANG ===', 'info');
+            
+            try {
+                // Test 1: Check if main function exists
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    addToLog('✓ renderPembayaranHutangPiutang function tersedia', 'success');
+                } else {
+                    addToLog('✗ renderPembayaranHutangPiutang function tidak ditemukan', 'error');
+                    return;
+                }
+                
+                // Test 2: Check access permission
+                if (typeof checkPembayaranAccess === 'function') {
+                    const hasAccess = checkPembayaranAccess();
+                    if (hasAccess) {
+                        addToLog('✓ User memiliki akses ke pembayaran hutang piutang', 'success');
+                    } else {
+                        addToLog('✗ User tidak memiliki akses', 'error');
+                        return;
+                    }
+                } else {
+                    addToLog('✗ checkPembayaranAccess function tidak ditemukan', 'error');
+                }
+                
+                // Test 3: Clear content and try to render
+                const contentElement = document.getElementById('content');
+                if (contentElement) {
+                    contentElement.innerHTML = '';
+                    addToLog('✓ Content element ditemukan dan dibersihkan', 'success');
+                    
+                    // Try to render
+                    renderPembayaranHutangPiutang();
+                    addToLog('✓ renderPembayaranHutangPiutang() dipanggil', 'success');
+                    
+                    // Check result after a short delay
+                    setTimeout(() => {
+                        if (contentElement.innerHTML.includes('Pembayaran Hutang / Piutang')) {
+                            addToLog('🎉 SUKSES! Menu pembayaran hutang piutang berhasil di-render!', 'success');
+                            addToLog('Menu sekarang dapat dibuka dan digunakan dengan normal.', 'success');
+                            
+                            // Show success alert
+                            if (typeof showAlert === 'function') {
+                                showAlert('Menu pembayaran hutang piutang berhasil diperbaiki dan dapat digunakan!', 'success');
+                            }
+                        } else {
+                            addToLog('❌ Menu tidak di-render dengan benar', 'error');
+                            addToLog('Content yang di-render: ' + contentElement.innerHTML.substring(0, 100) + '...', 'warning');
+                        }
+                    }, 1000);
+                } else {
+                    addToLog('✗ Content element tidak ditemukan', 'error');
+                }
+                
+            } catch (error) {
+                addToLog(`✗ Error saat testing: ${error.message}`, 'error');
+            }
+        }
+
+        function openInMainApp() {
+            addToLog('Membuka aplikasi utama...', 'info');
+            
+            // Open main application
+            window.open('index.html', '_blank');
+            
+            addToLog('✓ Aplikasi utama dibuka di tab baru', 'success');
+            addToLog('Silakan login dan coba buka menu "Pembayaran Hutang/Piutang"', 'info');
+        }
+
+        // Auto-setup on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addToLog('Test tool loaded. Siap untuk testing pembayaran hutang piutang.', 'info');
+        });
+    </script>
+</body>
+</html>

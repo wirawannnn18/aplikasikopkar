@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Receipt Properties</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Receipt Properties - Pembayaran Hutang Piutang</h1>
+    
+    <div class="test-section">
+        <h2>Property 26: Receipt Completeness Test</h2>
+        <div id="property26Results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Property 27: Print Action Logging Test</h2>
+        <div id="property27Results"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    <script>
+        // Mock functions for testing
+        function formatRupiah(amount) {
+            return `Rp ${amount.toLocaleString('id-ID')}`;
+        }
+
+        function showAlert(message, type) {
+            console.log(`Alert [${type}]: ${message}`);
+        }
+
+        function generateId() {
+            return 'TEST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function addJurnal(keterangan, entries, tanggal) {
+            console.log('Journal added:', { keterangan, entries, tanggal });
+        }
+
+        // Test Property 26: Receipt Completeness
+        function testProperty26() {
+            console.log('\n=== Testing Property 26: Receipt Completeness ===');
+            
+            let passCount = 0;
+            const totalTests = 10;
+            
+            for (let i = 0; i < totalTests; i++) {
+                try {
+                    // Generate test transaction
+                    const transaction = {
+                        id: generateId(),
+                        tanggal: '2024-12-18',
+                        anggotaId: 'A001',
+                        anggotaNama: `Test Anggota ${i + 1}`,
+                        anggotaNIK: `12345${i}`,
+                        jenis: i % 2 === 0 ? 'hutang' : 'piutang',
+                        jumlah: 100000 + (i * 10000),
+                        saldoSebelum: 200000 + (i * 15000),
+                        saldoSesudah: 100000 + (i * 5000),
+                        kasirNama: 'Test Kasir',
+                        keterangan: `Test keterangan ${i + 1}`,
+                        status: 'selesai',
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Setup localStorage
+                    localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([transaction]));
+                    localStorage.setItem('systemSettings', JSON.stringify({
+                        namaKoperasi: 'Test Koperasi',
+                        alamat: 'Jl. Test No. 123',
+                        telepon: '021-12345678'
+                    }));
+                    localStorage.setItem('currentUser', JSON.stringify({ 
+                        id: 'U001', 
+                        nama: 'Test Kasir',
+                        role: 'kasir'
+                    }));
+                    
+                    // Mock window.open to capture receipt HTML
+                    let capturedHTML = '';
+                    const originalOpen = window.open;
+                    window.open = function() {
+                        return {
+                            document: {
+                                write: function(html) { capturedHTML = html; },
+                                close: function() {}
+                            }
+                        };
+                    };
+                    
+                    // Call function
+                    cetakBuktiPembayaran(transaction.id);
+                    
+                    // Restore window.open
+                    window.open = originalOpen;
+                    
+                    // Verify all required fields are present in receipt
+                    const jenisText = transaction.jenis === 'hutang' ? 'HUTANG' : 'PIUTANG';
+                    
+                    const hasTransactionId = capturedHTML.includes(transaction.id);
+                    const hasAnggotaNama = capturedHTML.includes(transaction.anggotaNama);
+                    const hasAnggotaNIK = capturedHTML.includes(transaction.anggotaNIK);
+                    const hasJenis = capturedHTML.includes(jenisText);
+                    const hasJumlah = capturedHTML.includes('Rp') || capturedHTML.includes(transaction.jumlah.toString());
+                    const hasKasirNama = capturedHTML.includes(transaction.kasirNama);
+                    const hasKoperasiHeader = capturedHTML.includes('Test Koperasi');
+                    const hasReceiptStructure = capturedHTML.includes('No. Transaksi');
+                    const hasSaldoLabels = capturedHTML.includes('Saldo Sebelum') && capturedHTML.includes('Saldo Sesudah');
+                    
+                    const allFieldsPresent = hasTransactionId && hasAnggotaNama && hasAnggotaNIK && 
+                                           hasJenis && hasJumlah && hasKasirNama && hasKoperasiHeader && 
+                                           hasReceiptStructure && hasSaldoLabels;
+                    
+                    if (allFieldsPresent) {
+                        passCount++;
+                        console.log(`✅ Test ${i + 1}: PASS - All required fields present`);
+                    } else {
+                        console.log(`❌ Test ${i + 1}: FAIL - Missing fields:`);
+                        if (!hasTransactionId) console.log('  - Transaction ID missing');
+                        if (!hasAnggotaNama) console.log('  - Anggota nama missing');
+                        if (!hasAnggotaNIK) console.log('  - Anggota NIK missing');
+                        if (!hasJenis) console.log('  - Jenis missing');
+                        if (!hasJumlah) console.log('  - Jumlah missing');
+                        if (!hasKasirNama) console.log('  - Kasir nama missing');
+                        if (!hasKoperasiHeader) console.log('  - Koperasi header missing');
+                        if (!hasReceiptStructure) console.log('  - Receipt structure missing');
+                        if (!hasSaldoLabels) console.log('  - Saldo labels missing');
+                    }
+                    
+                } catch (error) {
+                    console.log(`❌ Test ${i + 1}: ERROR - ${error.message}`);
+                }
+            }
+            
+            const passed = passCount === totalTests;
+            console.log(`\nProperty 26 Result: ${passCount}/${totalTests} tests passed - ${passed ? 'PASSED' : 'FAILED'}`);
+            
+            return passed;
+        }
+
+        // Test Property 27: Print Action Logging
+        function testProperty27() {
+            console.log('\n=== Testing Property 27: Print Action Logging ===');
+            
+            let passCount = 0;
+            const totalTests = 10;
+            
+            for (let i = 0; i < totalTests; i++) {
+                try {
+                    // Generate test transaction
+                    const transaction = {
+                        id: generateId(),
+                        tanggal: '2024-12-18',
+                        anggotaId: 'A001',
+                        anggotaNama: `Test Anggota ${i + 1}`,
+                        anggotaNIK: `12345${i}`,
+                        jenis: i % 2 === 0 ? 'hutang' : 'piutang',
+                        jumlah: 100000 + (i * 10000),
+                        saldoSebelum: 200000 + (i * 15000),
+                        saldoSesudah: 100000 + (i * 5000),
+                        kasirNama: 'Test Kasir',
+                        keterangan: `Test keterangan ${i + 1}`,
+                        status: 'selesai',
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Setup localStorage
+                    localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([transaction]));
+                    localStorage.setItem('systemSettings', JSON.stringify({
+                        namaKoperasi: 'Test Koperasi',
+                        alamat: 'Jl. Test No. 123',
+                        telepon: '021-12345678'
+                    }));
+                    localStorage.setItem('currentUser', JSON.stringify({ 
+                        id: 'U001', 
+                        nama: 'Test Kasir',
+                        role: 'kasir'
+                    }));
+                    localStorage.setItem('auditLog', JSON.stringify([]));
+                    
+                    // Mock window.open
+                    const originalOpen = window.open;
+                    window.open = function() {
+                        return {
+                            document: {
+                                write: function() {},
+                                close: function() {}
+                            }
+                        };
+                    };
+                    
+                    // Get initial audit log count
+                    const auditLogsBefore = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                    const countBefore = auditLogsBefore.length;
+                    
+                    // Call function
+                    cetakBuktiPembayaran(transaction.id);
+                    
+                    // Restore window.open
+                    window.open = originalOpen;
+                    
+                    // Get audit logs after
+                    const auditLogsAfter = JSON.parse(localStorage.getItem('auditLog') || '[]');
+                    const countAfter = auditLogsAfter.length;
+                    
+                    // Find the print log
+                    const printLog = auditLogsAfter.find(log => 
+                        log.action === 'CETAK_BUKTI_PEMBAYARAN' && 
+                        log.details.transaksiId === transaction.id
+                    );
+                    
+                    const logCreated = countAfter === countBefore + 1;
+                    const logComplete = printLog !== undefined &&
+                                      printLog.details.jenis === transaction.jenis &&
+                                      printLog.details.anggotaNama === transaction.anggotaNama &&
+                                      printLog.details.jumlah === transaction.jumlah &&
+                                      printLog.userId === 'U001' &&
+                                      printLog.module === 'pembayaran-hutang-piutang';
+                    
+                    if (logCreated && logComplete) {
+                        passCount++;
+                        console.log(`✅ Test ${i + 1}: PASS - Print action logged correctly`);
+                    } else {
+                        console.log(`❌ Test ${i + 1}: FAIL:`);
+                        if (!logCreated) console.log('  - Audit log not created');
+                        if (!logComplete) console.log('  - Audit log incomplete or incorrect');
+                        if (printLog) {
+                            console.log('  - Found log:', printLog);
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.log(`❌ Test ${i + 1}: ERROR - ${error.message}`);
+                }
+            }
+            
+            const passed = passCount === totalTests;
+            console.log(`\nProperty 27 Result: ${passCount}/${totalTests} tests passed - ${passed ? 'PASSED' : 'FAILED'}`);
+            
+            return passed;
+        }
+
+        // Run tests
+        console.log('Starting Receipt Property Tests...');
+        
+        const property26Passed = testProperty26();
+        const property27Passed = testProperty27();
+        
+        // Update UI
+        document.getElementById('property26Results').innerHTML = `
+            <div class="${property26Passed ? 'pass' : 'fail'}">
+                Property 26: ${property26Passed ? 'PASSED' : 'FAILED'}
+            </div>
+            <div class="info">
+                Tests that receipt contains all required fields: nomor transaksi, tanggal, anggota, jenis, jumlah, saldo before/after, kasir
+            </div>
+        `;
+        
+        document.getElementById('property27Results').innerHTML = `
+            <div class="${property27Passed ? 'pass' : 'fail'}">
+                Property 27: ${property27Passed ? 'PASSED' : 'FAILED'}
+            </div>
+            <div class="info">
+                Tests that print action is logged to audit for any receipt print
+            </div>
+        `;
+        
+        console.log('\n=== FINAL RESULTS ===');
+        console.log(`Property 26 (Receipt Completeness): ${property26Passed ? 'PASSED' : 'FAILED'}`);
+        console.log(`Property 27 (Print Action Logging): ${property27Passed ? 'PASSED' : 'FAILED'}`);
+        console.log(`Overall: ${property26Passed && property27Passed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}`);
+    </script>
+</body>
+</html>

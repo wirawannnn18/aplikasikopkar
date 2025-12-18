@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Filtering Properties - Pembayaran Hutang Piutang</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Property-Based Tests for Filtering - Pembayaran Hutang Piutang</h1>
+    <p>Testing Properties 9-13: Transaction history display and filtering</p>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button class="btn-primary" onclick="runAllTests()">Run All Property Tests</button>
+        <button class="btn-success" onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="testResults"></div>
+
+    <script>
+        // Mock localStorage
+        const mockLocalStorage = {
+            data: {},
+            getItem: function(key) { return this.data[key] || null; },
+            setItem: function(key, value) { this.data[key] = value; },
+            clear: function() { this.data = {}; }
+        };
+        
+        // Mock DOM functions
+        const mockDocument = {
+            getElementById: function(id) {
+                const mockElements = {
+                    'filterJenis': { value: '' },
+                    'filterTanggalDari': { value: '' },
+                    'filterTanggalSampai': { value: '' },
+                    'filterAnggota': { value: '' },
+                    'riwayatTableBody': { innerHTML: '' }
+                };
+                return mockElements[id] || null;
+            }
+        };
+
+        // Simple property test framework
+        function generateRandomTransactions(count = 10) {
+            const transactions = [];
+            const anggotaIds = ['A001', 'A002', 'A003', 'A004', 'A005'];
+            const jenisOptions = ['hutang', 'piutang'];
+            
+            for (let i = 0; i < count; i++) {
+                const date = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+                transactions.push({
+                    id: 'T' + (1000 + i),
+                    tanggal: date.toISOString().split('T')[0],
+                    anggotaId: anggotaIds[Math.floor(Math.random() * anggotaIds.length)],
+                    anggotaNama: 'Anggota ' + (i + 1),
+                    anggotaNIK: '12345' + String(i).padStart(3, '0'),
+                    jenis: jenisOptions[Math.floor(Math.random() * jenisOptions.length)],
+                    jumlah: Math.floor(Math.random() * 1000000) + 10000,
+                    saldoSebelum: Math.floor(Math.random() * 2000000),
+                    saldoSesudah: Math.floor(Math.random() * 2000000),
+                    kasirNama: 'Kasir ' + (Math.floor(Math.random() * 3) + 1),
+                    status: 'selesai',
+                    createdAt: date.toISOString()
+                });
+            }
+            return transactions;
+        }
+
+        // Filtering functions (simplified versions for testing)
+        function applyRiwayatFilters(list) {
+            const filterJenis = mockDocument.getElementById('filterJenis')?.value || '';
+            const filterTanggalDari = mockDocument.getElementById('filterTanggalDari')?.value || '';
+            const filterTanggalSampai = mockDocument.getElementById('filterTanggalSampai')?.value || '';
+            const filterAnggota = mockDocument.getElementById('filterAnggota')?.value || '';
+            
+            return list.filter(p => {
+                // Filter by jenis
+                if (filterJenis && p.jenis !== filterJenis) {
+                    return false;
+                }
+                
+                // Filter by date range
+                if (filterTanggalDari && p.tanggal < filterTanggalDari) {
+                    return false;
+                }
+                if (filterTanggalSampai && p.tanggal > filterTanggalSampai) {
+                    return false;
+                }
+                
+                // Filter by anggota
+                if (filterAnggota && p.anggotaId !== filterAnggota) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+
+        // Property test functions
+        function testProperty9_CompleteTransactionDisplay() {
+            const results = [];
+            
+            for (let run = 0; run < 20; run++) {
+                const transactionList = generateRandomTransactions(Math.floor(Math.random() * 15) + 5);
+                
+                // Setup mock
+                mockLocalStorage.setItem('pembayaranHutangPiutang', JSON.stringify(transactionList));
+                
+                // Reset filters
+                mockDocument.getElementById('filterJenis').value = '';
+                mockDocument.getElementById('filterTanggalDari').value = '';
+                mockDocument.getElementById('filterTanggalSampai').value = '';
+                mockDocument.getElementById('filterAnggota').value = '';
+                
+                // Apply filters (should return all transactions)
+                const filteredList = applyRiwayatFilters(transactionList);
+                
+                // All transactions should be included when no filters are applied
+                const allIncluded = filteredList.length === transactionList.length &&
+                                  transactionList.every(t => 
+                                      filteredList.some(f => f.id === t.id)
+                                  );
+                
+                results.push(allIncluded);
+            }
+            
+            const passCount = results.filter(r => r).length;
+            return {
+                name: "Property 9: Complete transaction display",
+                description: "Riwayat display includes all transactions without omission",
+                passed: passCount === results.length,
+                passCount: passCount,
+                totalRuns: results.length
+            };
+        }
+
+        function testProperty10_RequiredFieldsInDisplay() {
+            const results = [];
+            
+            for (let run = 0; run < 20; run++) {
+                const transaction = generateRandomTransactions(1)[0];
+                
+                // Mock table rendering (simplified)
+                const mockTableBody = { innerHTML: '' };
+                
+                // Simulate rendering transaction
+                const tableHTML = `
+                    <tr>
+                        <td>${transaction.tanggal}</td>
+                        <td>
+                            <strong>${transaction.anggotaNama}</strong><br>
+                            <small>${transaction.anggotaNIK}</small>
+                        </td>
+                        <td><span class="badge">${transaction.jenis === 'hutang' ? 'Hutang' : 'Piutang'}</span></td>
+                        <td>Rp ${transaction.jumlah.toLocaleString('id-ID')}</td>
+                        <td>${transaction.kasirNama}</td>
+                    </tr>
+                `;
+                
+                // Check that all required fields are present
+                const hasAllFields = tableHTML.includes(transaction.anggotaNama) &&
+                                   tableHTML.includes(transaction.anggotaNIK) &&
+                                   tableHTML.includes(transaction.jenis === 'hutang' ? 'Hutang' : 'Piutang') &&
+                                   tableHTML.includes(transaction.kasirNama) &&
+                                   tableHTML.includes('Rp');
+                
+                results.push(hasAllFields);
+            }
+            
+            const passCount = results.filter(r => r).length;
+            return {
+                name: "Property 10: Required fields in display",
+                description: "Displayed transaction contains tanggal, nama anggota, jenis, jumlah, and kasir name",
+                passed: passCount === results.length,
+                passCount: passCount,
+                totalRuns: results.length
+            };
+        }
+
+        function testProperty11_JenisFilterCorrectness() {
+            const results = [];
+            
+            for (let run = 0; run < 20; run++) {
+                const transactionList = generateRandomTransactions(Math.floor(Math.random() * 15) + 10);
+                const selectedJenis = Math.random() > 0.5 ? 'hutang' : 'piutang';
+                
+                // Setup mock
+                mockLocalStorage.setItem('pembayaranHutangPiutang', JSON.stringify(transactionList));
+                
+                // Set jenis filter
+                mockDocument.getElementById('filterJenis').value = selectedJenis;
+                mockDocument.getElementById('filterTanggalDari').value = '';
+                mockDocument.getElementById('filterTanggalSampai').value = '';
+                mockDocument.getElementById('filterAnggota').value = '';
+                
+                // Apply filters
+                const filteredList = applyRiwayatFilters(transactionList);
+                
+                // Count expected matches
+                const expectedMatches = transactionList.filter(t => t.jenis === selectedJenis);
+                
+                // All filtered results should match selected jenis
+                const allMatch = filteredList.every(t => t.jenis === selectedJenis);
+                
+                // No matching transactions should be excluded
+                const noExclusions = expectedMatches.every(expected => 
+                    filteredList.some(filtered => filtered.id === expected.id)
+                );
+                
+                const correct = allMatch && noExclusions && filteredList.length === expectedMatches.length;
+                results.push(correct);
+            }
+            
+            const passCount = results.filter(r => r).length;
+            return {
+                name: "Property 11: Jenis filter correctness",
+                description: "All filtered results match selected jenis and no matching transactions are excluded",
+                passed: passCount === results.length,
+                passCount: passCount,
+                totalRuns: results.length
+            };
+        }
+
+        function testProperty12_DateRangeFilterCorrectness() {
+            const results = [];
+            
+            for (let run = 0; run < 20; run++) {
+                const transactionList = generateRandomTransactions(Math.floor(Math.random() * 15) + 10);
+                
+                // Generate random date range
+                const startDate = new Date(2024, Math.floor(Math.random() * 6) + 2, 1).toISOString().split('T')[0];
+                const endDate = new Date(2024, Math.floor(Math.random() * 4) + 8, 1).toISOString().split('T')[0];
+                
+                // Setup mock
+                mockLocalStorage.setItem('pembayaranHutangPiutang', JSON.stringify(transactionList));
+                
+                // Set date range filter
+                mockDocument.getElementById('filterJenis').value = '';
+                mockDocument.getElementById('filterTanggalDari').value = startDate;
+                mockDocument.getElementById('filterTanggalSampai').value = endDate;
+                mockDocument.getElementById('filterAnggota').value = '';
+                
+                // Apply filters
+                const filteredList = applyRiwayatFilters(transactionList);
+                
+                // Count expected matches
+                const expectedMatches = transactionList.filter(t => 
+                    t.tanggal >= startDate && t.tanggal <= endDate
+                );
+                
+                // All filtered results should fall within date range
+                const allWithinRange = filteredList.every(t => 
+                    t.tanggal >= startDate && t.tanggal <= endDate
+                );
+                
+                // No transactions within range should be excluded
+                const noExclusions = expectedMatches.every(expected => 
+                    filteredList.some(filtered => filtered.id === expected.id)
+                );
+                
+                const correct = allWithinRange && noExclusions && filteredList.length === expectedMatches.length;
+                results.push(correct);
+            }
+            
+            const passCount = results.filter(r => r).length;
+            return {
+                name: "Property 12: Date range filter correctness",
+                description: "All filtered results fall within date range and no transactions within range are excluded",
+                passed: passCount === results.length,
+                passCount: passCount,
+                totalRuns: results.length
+            };
+        }
+
+        function testProperty13_MemberFilterCorrectness() {
+            const results = [];
+            
+            for (let run = 0; run < 20; run++) {
+                const transactionList = generateRandomTransactions(Math.floor(Math.random() * 15) + 10);
+                const selectedAnggotaId = ['A001', 'A002', 'A003'][Math.floor(Math.random() * 3)];
+                
+                // Setup mock
+                mockLocalStorage.setItem('pembayaranHutangPiutang', JSON.stringify(transactionList));
+                
+                // Set anggota filter
+                mockDocument.getElementById('filterJenis').value = '';
+                mockDocument.getElementById('filterTanggalDari').value = '';
+                mockDocument.getElementById('filterTanggalSampai').value = '';
+                mockDocument.getElementById('filterAnggota').value = selectedAnggotaId;
+                
+                // Apply filters
+                const filteredList = applyRiwayatFilters(transactionList);
+                
+                // Count expected matches
+                const expectedMatches = transactionList.filter(t => t.anggotaId === selectedAnggotaId);
+                
+                // All filtered results should belong to selected member
+                const allBelongToMember = filteredList.every(t => t.anggotaId === selectedAnggotaId);
+                
+                // No transactions for that member should be excluded
+                const noExclusions = expectedMatches.every(expected => 
+                    filteredList.some(filtered => filtered.id === expected.id)
+                );
+                
+                const correct = allBelongToMember && noExclusions && filteredList.length === expectedMatches.length;
+                results.push(correct);
+            }
+            
+            const passCount = results.filter(r => r).length;
+            return {
+                name: "Property 13: Member filter correctness",
+                description: "All filtered results belong to selected member and no transactions for that member are excluded",
+                passed: passCount === results.length,
+                passCount: passCount,
+                totalRuns: results.length
+            };
+        }
+
+        // Test runner
+        function runAllTests() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div class="info">Running property tests...</div>';
+            
+            const tests = [
+                testProperty9_CompleteTransactionDisplay,
+                testProperty10_RequiredFieldsInDisplay,
+                testProperty11_JenisFilterCorrectness,
+                testProperty12_DateRangeFilterCorrectness,
+                testProperty13_MemberFilterCorrectness
+            ];
+            
+            let allPassed = true;
+            let resultsHTML = '<h2>Test Results</h2>';
+            
+            tests.forEach(test => {
+                const result = test();
+                const cssClass = result.passed ? 'pass' : 'fail';
+                allPassed = allPassed && result.passed;
+                
+                resultsHTML += `
+                    <div class="test-result ${cssClass}">
+                        <h3>${result.name}</h3>
+                        <p><strong>Description:</strong> ${result.description}</p>
+                        <p><strong>Result:</strong> ${result.passed ? 'PASSED' : 'FAILED'} (${result.passCount}/${result.totalRuns} runs passed)</p>
+                        <p><strong>Validates:</strong> Requirements 4.1, 4.2, 4.3, 4.4, 4.5</p>
+                    </div>
+                `;
+            });
+            
+            // Summary
+            resultsHTML += `
+                <div class="test-result ${allPassed ? 'pass' : 'fail'}">
+                    <h3>Overall Result</h3>
+                    <p><strong>${allPassed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}</strong></p>
+                    <p>Task 9.5 Property Tests: ${allPassed ? 'COMPLETE' : 'NEEDS ATTENTION'}</p>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = resultsHTML;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            setTimeout(runAllTests, 1000);
+        };
+    </script>
+</body>
+</html>

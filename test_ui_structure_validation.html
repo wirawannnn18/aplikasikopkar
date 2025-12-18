@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Structure Validation - Pembayaran Hutang Piutang</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h2>UI Structure Validation - Pembayaran Hutang Piutang</h2>
+        
+        <div id="content"></div>
+        
+        <div class="mt-4">
+            <h4>Validation Results:</h4>
+            <div id="validationResults"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mock functions and data
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function generateId() {
+            return 'TEST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showAlert(message, type) {
+            console.log(`Alert [${type}]: ${message}`);
+        }
+
+        function addJurnal(keterangan, entries, tanggal) {
+            console.log('Journal added:', { keterangan, entries, tanggal });
+        }
+
+        function filterTransactableAnggota() {
+            const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+            return anggota.filter(a => a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar');
+        }
+
+        function validateAnggotaForHutangPiutang(anggotaId) {
+            return { valid: true };
+        }
+
+        // Setup test data
+        localStorage.setItem('currentUser', JSON.stringify({
+            id: 'U001',
+            nama: 'Test Kasir',
+            role: 'kasir'
+        }));
+
+        localStorage.setItem('anggota', JSON.stringify([
+            { id: 'A001', nama: 'Ahmad Budi', nik: '001', status: 'Aktif' },
+            { id: 'A002', nama: 'Citra Dewi', nik: '002', status: 'Aktif' }
+        ]));
+
+        localStorage.setItem('penjualan', JSON.stringify([
+            { anggotaId: 'A001', metodePembayaran: 'Kredit', total: 100000 },
+            { anggotaId: 'A002', metodePembayaran: 'Kredit', total: 200000 }
+        ]));
+
+        localStorage.setItem('simpanan', JSON.stringify([
+            { anggotaId: 'A001', statusPengembalian: 'pending', saldo: 50000 },
+            { anggotaId: 'A002', statusPengembalian: 'pending', saldo: 75000 }
+        ]));
+
+        localStorage.setItem('pembayaranHutangPiutang', JSON.stringify([]));
+    </script>
+    
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    
+    <script>
+        // Validation function
+        function validateUIStructure() {
+            const results = [];
+            
+            try {
+                // Test 1: Render main UI
+                renderPembayaranHutangPiutang();
+                results.push({ test: 'Main UI Rendering', status: 'PASS', message: 'Successfully rendered main UI' });
+                
+                // Test 2: Check main elements exist
+                const content = document.getElementById('content');
+                if (content && content.innerHTML.includes('Pembayaran Hutang / Piutang Anggota')) {
+                    results.push({ test: 'Main Title', status: 'PASS', message: 'Main title found' });
+                } else {
+                    results.push({ test: 'Main Title', status: 'FAIL', message: 'Main title not found' });
+                }
+                
+                // Test 3: Check summary cards
+                if (content.innerHTML.includes('Total Hutang Anggota') && content.innerHTML.includes('Total Piutang Anggota')) {
+                    results.push({ test: 'Summary Cards', status: 'PASS', message: 'Summary cards found' });
+                } else {
+                    results.push({ test: 'Summary Cards', status: 'FAIL', message: 'Summary cards not found' });
+                }
+                
+                // Test 4: Check tabs
+                if (content.innerHTML.includes('Form Pembayaran') && content.innerHTML.includes('Riwayat Pembayaran')) {
+                    results.push({ test: 'Navigation Tabs', status: 'PASS', message: 'Navigation tabs found' });
+                } else {
+                    results.push({ test: 'Navigation Tabs', status: 'FAIL', message: 'Navigation tabs not found' });
+                }
+                
+                // Test 5: Check form elements
+                const formElements = [
+                    'jenisPembayaran',
+                    'searchAnggota', 
+                    'jumlahPembayaran',
+                    'keteranganPembayaran',
+                    'btnProsesPembayaran'
+                ];
+                
+                let formElementsFound = 0;
+                formElements.forEach(elementId => {
+                    if (content.innerHTML.includes(elementId)) {
+                        formElementsFound++;
+                    }
+                });
+                
+                if (formElementsFound === formElements.length) {
+                    results.push({ test: 'Form Elements', status: 'PASS', message: `All ${formElements.length} form elements found` });
+                } else {
+                    results.push({ test: 'Form Elements', status: 'FAIL', message: `Only ${formElementsFound}/${formElements.length} form elements found` });
+                }
+                
+                // Test 6: Check saldo display
+                if (content.innerHTML.includes('displaySaldoHutang') && content.innerHTML.includes('displaySaldoPiutang')) {
+                    results.push({ test: 'Saldo Display', status: 'PASS', message: 'Saldo display elements found' });
+                } else {
+                    results.push({ test: 'Saldo Display', status: 'FAIL', message: 'Saldo display elements not found' });
+                }
+                
+                // Test 7: Check autocomplete
+                if (content.innerHTML.includes('anggotaSuggestions') && content.innerHTML.includes('onSearchAnggota')) {
+                    results.push({ test: 'Autocomplete', status: 'PASS', message: 'Autocomplete functionality found' });
+                } else {
+                    results.push({ test: 'Autocomplete', status: 'FAIL', message: 'Autocomplete functionality not found' });
+                }
+                
+                // Test 8: Check required field indicators
+                if (content.innerHTML.includes('text-danger">*') && content.innerHTML.includes('required')) {
+                    results.push({ test: 'Required Fields', status: 'PASS', message: 'Required field indicators found' });
+                } else {
+                    results.push({ test: 'Required Fields', status: 'FAIL', message: 'Required field indicators not found' });
+                }
+                
+                // Test 9: Check jenis pembayaran options
+                if (content.innerHTML.includes('value="hutang"') && content.innerHTML.includes('value="piutang"')) {
+                    results.push({ test: 'Jenis Options', status: 'PASS', message: 'Hutang and Piutang options found' });
+                } else {
+                    results.push({ test: 'Jenis Options', status: 'FAIL', message: 'Hutang and Piutang options not found' });
+                }
+                
+                // Test 10: Check riwayat table structure
+                if (content.innerHTML.includes('riwayatTableBody') && content.innerHTML.includes('filterJenis')) {
+                    results.push({ test: 'Riwayat Structure', status: 'PASS', message: 'Riwayat table and filters found' });
+                } else {
+                    results.push({ test: 'Riwayat Structure', status: 'FAIL', message: 'Riwayat table and filters not found' });
+                }
+                
+            } catch (error) {
+                results.push({ test: 'Overall', status: 'ERROR', message: 'Error during validation: ' + error.message });
+            }
+            
+            return results;
+        }
+
+        // Run validation when page loads
+        window.onload = function() {
+            const results = validateUIStructure();
+            const resultsDiv = document.getElementById('validationResults');
+            
+            let html = '<div class="row">';
+            results.forEach(result => {
+                const badgeClass = result.status === 'PASS' ? 'bg-success' : 
+                                 result.status === 'FAIL' ? 'bg-danger' : 'bg-warning';
+                
+                html += `
+                    <div class="col-md-6 mb-2">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    ${result.test} 
+                                    <span class="badge ${badgeClass}">${result.status}</span>
+                                </h6>
+                                <p class="card-text small">${result.message}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            resultsDiv.innerHTML = html;
+            
+            // Summary
+            const passed = results.filter(r => r.status === 'PASS').length;
+            const total = results.length;
+            
+            const summaryClass = passed === total ? 'alert-success' : 'alert-warning';
+            const summaryHtml = `
+                <div class="alert ${summaryClass} mt-3">
+                    <h5>Validation Summary</h5>
+                    <p><strong>${passed}/${total}</strong> tests passed</p>
+                    ${passed === total ? 
+                        '<p><i class="bi bi-check-circle"></i> All UI structure requirements are met!</p>' : 
+                        '<p><i class="bi bi-exclamation-triangle"></i> Some requirements need attention.</p>'
+                    }
+                </div>
+            `;
+            
+            resultsDiv.innerHTML += summaryHtml;
+        };
+    </script>
+</body>
+</html>

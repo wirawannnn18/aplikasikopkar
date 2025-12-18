@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Journal Entries - Pembayaran Hutang Piutang</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .pass { background-color: #d4edda; border-color: #c3e6cb; }
+        .fail { background-color: #f8d7da; border-color: #f5c6cb; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+        .property-test { margin: 15px 0; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Journal Entry Tests - Pembayaran Hutang Piutang</h1>
+    <p>Testing Properties 4, 8, 21, 22, and 23 for journal entry recording</p>
+    
+    <div id="testResults"></div>
+
+    <script>
+        // Mock functions
+        let jurnalCalls = [];
+        function addJurnal(keterangan, entries, tanggal) {
+            jurnalCalls.push({ keterangan, entries, tanggal });
+            console.log('Journal added:', { keterangan, entries, tanggal });
+        }
+
+        function formatRupiah(amount) {
+            return `Rp ${amount.toLocaleString('id-ID')}`;
+        }
+
+        function generateId() {
+            return 'TEST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Mock localStorage
+        const mockLocalStorage = {
+            data: {},
+            getItem: function(key) { return this.data[key] || null; },
+            setItem: function(key, value) { this.data[key] = value; },
+            clear: function() { this.data = {}; }
+        };
+        window.localStorage = mockLocalStorage;
+
+        // Load the pembayaran hutang piutang module
+        const script = document.createElement('script');
+        script.src = 'js/pembayaranHutangPiutang.js';
+        script.onload = function() {
+            runTests();
+        };
+        document.head.appendChild(script);
+
+        function runTests() {
+            const results = [];
+            
+            // Property 4: Hutang journal structure
+            results.push(testProperty4());
+            
+            // Property 8: Piutang journal structure  
+            results.push(testProperty8());
+            
+            // Property 21: Hutang journal balance
+            results.push(testProperty21());
+            
+            // Property 22: Piutang journal balance
+            results.push(testProperty22());
+            
+            // Property 23: Account balance consistency
+            results.push(testProperty23());
+            
+            displayResults(results);
+        }
+
+        function testProperty4() {
+            const testName = "Property 4: Hutang journal structure";
+            try {
+                jurnalCalls = [];
+                
+                const transaksi = {
+                    id: 'T001',
+                    anggotaNama: 'Test Anggota',
+                    jumlah: 100000,
+                    tanggal: '2024-12-18'
+                };
+                
+                // Test the function exists and can be called
+                if (typeof createJurnalPembayaranHutang !== 'function') {
+                    throw new Error('createJurnalPembayaranHutang function not found');
+                }
+                
+                createJurnalPembayaranHutang(transaksi);
+                
+                if (jurnalCalls.length === 0) {
+                    throw new Error('No journal entry was created');
+                }
+                
+                const lastCall = jurnalCalls[jurnalCalls.length - 1];
+                const entries = lastCall.entries;
+                
+                // Check structure
+                const kasEntry = entries.find(e => e.akun === '1-1000');
+                const hutangEntry = entries.find(e => e.akun === '2-1000');
+                
+                if (!kasEntry) {
+                    throw new Error('Kas entry (1-1000) not found');
+                }
+                
+                if (!hutangEntry) {
+                    throw new Error('Hutang entry (2-1000) not found');
+                }
+                
+                if (kasEntry.debit !== transaksi.jumlah || kasEntry.kredit !== 0) {
+                    throw new Error(`Kas entry incorrect: expected debit=${transaksi.jumlah}, kredit=0, got debit=${kasEntry.debit}, kredit=${kasEntry.kredit}`);
+                }
+                
+                if (hutangEntry.debit !== 0 || hutangEntry.kredit !== transaksi.jumlah) {
+                    throw new Error(`Hutang entry incorrect: expected debit=0, kredit=${transaksi.jumlah}, got debit=${hutangEntry.debit}, kredit=${hutangEntry.kredit}`);
+                }
+                
+                return {
+                    name: testName,
+                    passed: true,
+                    details: `✓ Journal entry created with correct structure\n✓ Kas (1-1000): Debit ${formatRupiah(kasEntry.debit)}\n✓ Hutang (2-1000): Kredit ${formatRupiah(hutangEntry.kredit)}`
+                };
+                
+            } catch (error) {
+                return {
+                    name: testName,
+                    passed: false,
+                    details: `✗ Error: ${error.message}`
+                };
+            }
+        }
+
+        function testProperty8() {
+            const testName = "Property 8: Piutang journal structure";
+            try {
+                jurnalCalls = [];
+                
+                const transaksi = {
+                    id: 'T002',
+                    anggotaNama: 'Test Anggota',
+                    jumlah: 150000,
+                    tanggal: '2024-12-18'
+                };
+                
+                // Test the function exists and can be called
+                if (typeof createJurnalPembayaranPiutang !== 'function') {
+                    throw new Error('createJurnalPembayaranPiutang function not found');
+                }
+                
+                createJurnalPembayaranPiutang(transaksi);
+                
+                if (jurnalCalls.length === 0) {
+                    throw new Error('No journal entry was created');
+                }
+                
+                const lastCall = jurnalCalls[jurnalCalls.length - 1];
+                const entries = lastCall.entries;
+                
+                // Check structure
+                const piutangEntry = entries.find(e => e.akun === '1-1200');
+                const kasEntry = entries.find(e => e.akun === '1-1000');
+                
+                if (!piutangEntry) {
+                    throw new Error('Piutang entry (1-1200) not found');
+                }
+                
+                if (!kasEntry) {
+                    throw new Error('Kas entry (1-1000) not found');
+                }
+                
+                if (piutangEntry.debit !== transaksi.jumlah || piutangEntry.kredit !== 0) {
+                    throw new Error(`Piutang entry incorrect: expected debit=${transaksi.jumlah}, kredit=0, got debit=${piutangEntry.debit}, kredit=${piutangEntry.kredit}`);
+                }
+                
+                if (kasEntry.debit !== 0 || kasEntry.kredit !== transaksi.jumlah) {
+                    throw new Error(`Kas entry incorrect: expected debit=0, kredit=${transaksi.jumlah}, got debit=${kasEntry.debit}, kredit=${kasEntry.kredit}`);
+                }
+                
+                return {
+                    name: testName,
+                    passed: true,
+                    details: `✓ Journal entry created with correct structure\n✓ Piutang (1-1200): Debit ${formatRupiah(piutangEntry.debit)}\n✓ Kas (1-1000): Kredit ${formatRupiah(kasEntry.kredit)}`
+                };
+                
+            } catch (error) {
+                return {
+                    name: testName,
+                    passed: false,
+                    details: `✗ Error: ${error.message}`
+                };
+            }
+        }
+
+        function testProperty21() {
+            const testName = "Property 21: Hutang journal balance";
+            try {
+                jurnalCalls = [];
+                
+                const transaksi = {
+                    id: 'T003',
+                    anggotaNama: 'Test Anggota',
+                    jumlah: 250000,
+                    tanggal: '2024-12-18'
+                };
+                
+                createJurnalPembayaranHutang(transaksi);
+                
+                const lastCall = jurnalCalls[jurnalCalls.length - 1];
+                const entries = lastCall.entries;
+                
+                const totalDebit = entries.reduce((sum, e) => sum + e.debit, 0);
+                const totalKredit = entries.reduce((sum, e) => sum + e.kredit, 0);
+                
+                if (totalDebit !== totalKredit) {
+                    throw new Error(`Journal not balanced: debit=${totalDebit}, kredit=${totalKredit}`);
+                }
+                
+                if (totalDebit !== transaksi.jumlah) {
+                    throw new Error(`Total amount incorrect: expected=${transaksi.jumlah}, got=${totalDebit}`);
+                }
+                
+                return {
+                    name: testName,
+                    passed: true,
+                    details: `✓ Journal is balanced\n✓ Total Debit: ${formatRupiah(totalDebit)}\n✓ Total Kredit: ${formatRupiah(totalKredit)}`
+                };
+                
+            } catch (error) {
+                return {
+                    name: testName,
+                    passed: false,
+                    details: `✗ Error: ${error.message}`
+                };
+            }
+        }
+
+        function testProperty22() {
+            const testName = "Property 22: Piutang journal balance";
+            try {
+                jurnalCalls = [];
+                
+                const transaksi = {
+                    id: 'T004',
+                    anggotaNama: 'Test Anggota',
+                    jumlah: 300000,
+                    tanggal: '2024-12-18'
+                };
+                
+                createJurnalPembayaranPiutang(transaksi);
+                
+                const lastCall = jurnalCalls[jurnalCalls.length - 1];
+                const entries = lastCall.entries;
+                
+                const totalDebit = entries.reduce((sum, e) => sum + e.debit, 0);
+                const totalKredit = entries.reduce((sum, e) => sum + e.kredit, 0);
+                
+                if (totalDebit !== totalKredit) {
+                    throw new Error(`Journal not balanced: debit=${totalDebit}, kredit=${totalKredit}`);
+                }
+                
+                if (totalDebit !== transaksi.jumlah) {
+                    throw new Error(`Total amount incorrect: expected=${transaksi.jumlah}, got=${totalDebit}`);
+                }
+                
+                return {
+                    name: testName,
+                    passed: true,
+                    details: `✓ Journal is balanced\n✓ Total Debit: ${formatRupiah(totalDebit)}\n✓ Total Kredit: ${formatRupiah(totalKredit)}`
+                };
+                
+            } catch (error) {
+                return {
+                    name: testName,
+                    passed: false,
+                    details: `✗ Error: ${error.message}`
+                };
+            }
+        }
+
+        function testProperty23() {
+            const testName = "Property 23: Account balance consistency";
+            try {
+                jurnalCalls = [];
+                
+                // Test both hutang and piutang
+                const hutangTransaksi = {
+                    id: 'T005',
+                    anggotaNama: 'Test Anggota Hutang',
+                    jumlah: 200000,
+                    tanggal: '2024-12-18'
+                };
+                
+                const piutangTransaksi = {
+                    id: 'T006',
+                    anggotaNama: 'Test Anggota Piutang',
+                    jumlah: 175000,
+                    tanggal: '2024-12-18'
+                };
+                
+                // Test hutang
+                createJurnalPembayaranHutang(hutangTransaksi);
+                let hutangCall = jurnalCalls[jurnalCalls.length - 1];
+                
+                if (!hutangCall.keterangan.includes('Pembayaran Hutang')) {
+                    throw new Error('Hutang journal description incorrect');
+                }
+                
+                if (hutangCall.tanggal !== hutangTransaksi.tanggal) {
+                    throw new Error('Hutang journal date incorrect');
+                }
+                
+                // Test piutang
+                createJurnalPembayaranPiutang(piutangTransaksi);
+                let piutangCall = jurnalCalls[jurnalCalls.length - 1];
+                
+                if (!piutangCall.keterangan.includes('Pembayaran Piutang')) {
+                    throw new Error('Piutang journal description incorrect');
+                }
+                
+                if (piutangCall.tanggal !== piutangTransaksi.tanggal) {
+                    throw new Error('Piutang journal date incorrect');
+                }
+                
+                // Verify account consistency
+                const hutangEntries = hutangCall.entries;
+                const piutangEntries = piutangCall.entries;
+                
+                // Hutang: Kas debit, Hutang kredit
+                const hutangKas = hutangEntries.find(e => e.akun === '1-1000');
+                const hutangAccount = hutangEntries.find(e => e.akun === '2-1000');
+                
+                if (!hutangKas || hutangKas.debit !== hutangTransaksi.jumlah) {
+                    throw new Error('Hutang Kas account update incorrect');
+                }
+                
+                if (!hutangAccount || hutangAccount.kredit !== hutangTransaksi.jumlah) {
+                    throw new Error('Hutang account update incorrect');
+                }
+                
+                // Piutang: Piutang debit, Kas kredit
+                const piutangAccount = piutangEntries.find(e => e.akun === '1-1200');
+                const piutangKas = piutangEntries.find(e => e.akun === '1-1000');
+                
+                if (!piutangAccount || piutangAccount.debit !== piutangTransaksi.jumlah) {
+                    throw new Error('Piutang account update incorrect');
+                }
+                
+                if (!piutangKas || piutangKas.kredit !== piutangTransaksi.jumlah) {
+                    throw new Error('Piutang Kas account update incorrect');
+                }
+                
+                return {
+                    name: testName,
+                    passed: true,
+                    details: `✓ Hutang journal: Kas debit ${formatRupiah(hutangKas.debit)}, Hutang kredit ${formatRupiah(hutangAccount.kredit)}\n✓ Piutang journal: Piutang debit ${formatRupiah(piutangAccount.debit)}, Kas kredit ${formatRupiah(piutangKas.kredit)}\n✓ All account updates are consistent with debit/kredit amounts`
+                };
+                
+            } catch (error) {
+                return {
+                    name: testName,
+                    passed: false,
+                    details: `✗ Error: ${error.message}`
+                };
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('testResults');
+            let html = '';
+            
+            let passCount = 0;
+            let totalCount = results.length;
+            
+            results.forEach(result => {
+                if (result.passed) passCount++;
+                
+                html += `
+                    <div class="test-section ${result.passed ? 'pass' : 'fail'}">
+                        <h3>${result.name}</h3>
+                        <div class="test-result">
+                            <strong>Status:</strong> ${result.passed ? '✅ PASSED' : '❌ FAILED'}
+                        </div>
+                        <pre>${result.details}</pre>
+                    </div>
+                `;
+            });
+            
+            // Add summary
+            html = `
+                <div class="test-section ${passCount === totalCount ? 'pass' : 'fail'}">
+                    <h2>Test Summary</h2>
+                    <p><strong>Passed:</strong> ${passCount}/${totalCount}</p>
+                    <p><strong>Status:</strong> ${passCount === totalCount ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}</p>
+                </div>
+            ` + html;
+            
+            container.innerHTML = html;
+            
+            // Log results to console
+            console.log('Journal Entry Test Results:');
+            console.log(`Passed: ${passCount}/${totalCount}`);
+            results.forEach(result => {
+                console.log(`${result.name}: ${result.passed ? 'PASSED' : 'FAILED'}`);
+                if (!result.passed) {
+                    console.log(`  Error: ${result.details}`);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Autocomplete Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .test-data { background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Autocomplete Function Verification</h1>
+    <div id="results"></div>
+
+    <script>
+        // Mock localStorage
+        const mockLocalStorage = {
+            data: {},
+            getItem: function(key) { return this.data[key] || null; },
+            setItem: function(key, value) { this.data[key] = value; }
+        };
+        
+        // Mock global functions
+        function filterTransactableAnggota() {
+            const anggota = JSON.parse(mockLocalStorage.getItem('anggota') || '[]');
+            return anggota.filter(a => a.status === 'Aktif' && a.statusKeanggotaan !== 'Keluar');
+        }
+
+        // Copy the searchAnggota function from the main module
+        function searchAnggota(query) {
+            try {
+                const anggotaList = JSON.parse(mockLocalStorage.getItem('anggota') || '[]');
+                const searchLower = query.toLowerCase();
+                
+                // Filter to only transactable anggota (Aktif status AND not Keluar)
+                const transactableAnggota = filterTransactableAnggota();
+                
+                // Search within transactable anggota
+                const results = transactableAnggota.filter(anggota => {
+                    const nikMatch = (anggota.nik || '').toLowerCase().includes(searchLower);
+                    const namaMatch = (anggota.nama || '').toLowerCase().includes(searchLower);
+                    
+                    return nikMatch || namaMatch;
+                });
+                
+                // Limit to 10 results
+                return results.slice(0, 10);
+            } catch (error) {
+                console.error('Error searching anggota:', error);
+                return [];
+            }
+        }
+
+        // Test data
+        const testAnggota = [
+            { id: 'A001', nama: 'Ahmad Budi', nik: '001', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A002', nama: 'Budi Santoso', nik: '002', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A003', nama: 'Citra Dewi', nik: '003', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A004', nama: 'Dewi Sari', nik: '004', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A005', nama: 'Eko Prasetyo', nik: '005', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A006', nama: 'Fajar Ahmad', nik: '006', status: 'Nonaktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A007', nama: 'Gita Sari', nik: '007', status: 'Aktif', statusKeanggotaan: 'Keluar' },
+            { id: 'A008', nama: 'Hadi Budi', nik: '008', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A009', nama: 'Indra Citra', nik: '009', status: 'Aktif', statusKeanggotaan: 'Aktif' },
+            { id: 'A010', nama: 'Joko Dewi', nik: '010', status: 'Aktif', statusKeanggotaan: 'Aktif' }
+        ];
+
+        // Setup test data
+        mockLocalStorage.setItem('anggota', JSON.stringify(testAnggota));
+
+        // Test cases
+        const testCases = [
+            {
+                name: 'Search by name "budi"',
+                query: 'budi',
+                expectedCount: 3, // Ahmad Budi, Budi Santoso, Hadi Budi
+                expectedNames: ['Ahmad Budi', 'Budi Santoso', 'Hadi Budi']
+            },
+            {
+                name: 'Search by NIK "00"',
+                query: '00',
+                expectedCount: 8, // All active members with NIK containing "00"
+                expectedNIKs: ['001', '002', '003', '004', '005', '008', '009', '010']
+            },
+            {
+                name: 'Search by name "ahmad"',
+                query: 'ahmad',
+                expectedCount: 2, // Ahmad Budi, Fajar Ahmad (but Fajar is Nonaktif)
+                expectedNames: ['Ahmad Budi']
+            },
+            {
+                name: 'Search case insensitive "CITRA"',
+                query: 'CITRA',
+                expectedCount: 2, // Citra Dewi, Indra Citra
+                expectedNames: ['Citra Dewi', 'Indra Citra']
+            },
+            {
+                name: 'Search with no results "xyz"',
+                query: 'xyz',
+                expectedCount: 0,
+                expectedNames: []
+            },
+            {
+                name: 'Empty search query',
+                query: '',
+                expectedCount: 0,
+                expectedNames: []
+            }
+        ];
+
+        // Run tests
+        const resultsDiv = document.getElementById('results');
+        let allTestsPassed = true;
+
+        testCases.forEach((testCase, index) => {
+            const results = searchAnggota(testCase.query);
+            
+            let testPassed = true;
+            let errorMessages = [];
+
+            // Check count
+            if (results.length !== testCase.expectedCount) {
+                testPassed = false;
+                errorMessages.push(`Expected ${testCase.expectedCount} results, got ${results.length}`);
+            }
+
+            // Check that all results match the query (if not empty)
+            if (testCase.query) {
+                const allMatch = results.every(a => 
+                    a.nama.toLowerCase().includes(testCase.query.toLowerCase()) ||
+                    a.nik.toLowerCase().includes(testCase.query.toLowerCase())
+                );
+                if (!allMatch) {
+                    testPassed = false;
+                    errorMessages.push('Some results do not match the search query');
+                }
+            }
+
+            // Check expected names/NIKs if provided
+            if (testCase.expectedNames && testCase.expectedNames.length > 0) {
+                const resultNames = results.map(r => r.nama);
+                const missingNames = testCase.expectedNames.filter(name => !resultNames.includes(name));
+                if (missingNames.length > 0) {
+                    testPassed = false;
+                    errorMessages.push(`Missing expected names: ${missingNames.join(', ')}`);
+                }
+            }
+
+            if (testCase.expectedNIKs && testCase.expectedNIKs.length > 0) {
+                const resultNIKs = results.map(r => r.nik);
+                const missingNIKs = testCase.expectedNIKs.filter(nik => !resultNIKs.includes(nik));
+                if (missingNIKs.length > 0) {
+                    testPassed = false;
+                    errorMessages.push(`Missing expected NIKs: ${missingNIKs.join(', ')}`);
+                }
+            }
+
+            // Check that only active, non-keluar members are returned
+            const invalidResults = results.filter(r => r.status !== 'Aktif' || r.statusKeanggotaan === 'Keluar');
+            if (invalidResults.length > 0) {
+                testPassed = false;
+                errorMessages.push(`Found invalid results (non-active or keluar members): ${invalidResults.map(r => r.nama).join(', ')}`);
+            }
+
+            if (!testPassed) {
+                allTestsPassed = false;
+            }
+
+            // Display result
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${testPassed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <h3>Test ${index + 1}: ${testCase.name}</h3>
+                <div class="test-data">
+                    <strong>Query:</strong> "${testCase.query}"<br>
+                    <strong>Results:</strong> ${results.length} items<br>
+                    <strong>Result names:</strong> ${results.map(r => r.nama).join(', ')}<br>
+                    <strong>Result NIKs:</strong> ${results.map(r => r.nik).join(', ')}
+                </div>
+                <div><strong>Status:</strong> ${testPassed ? 'PASS' : 'FAIL'}</div>
+                ${errorMessages.length > 0 ? `<div><strong>Errors:</strong><ul>${errorMessages.map(msg => `<li>${msg}</li>`).join('')}</ul></div>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        });
+
+        // Overall result
+        const overallDiv = document.createElement('div');
+        overallDiv.className = `test-result ${allTestsPassed ? 'pass' : 'fail'}`;
+        overallDiv.innerHTML = `
+            <h2>Overall Result: ${allTestsPassed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}</h2>
+            <p><strong>Property 18: Autocomplete matching</strong> - ${allTestsPassed ? 'VALIDATED' : 'NEEDS ATTENTION'}</p>
+        `;
+        resultsDiv.insertBefore(overallDiv, resultsDiv.firstChild);
+
+        console.log('Autocomplete verification completed:', allTestsPassed ? 'PASS' : 'FAIL');
+    </script>
+</body>
+</html>

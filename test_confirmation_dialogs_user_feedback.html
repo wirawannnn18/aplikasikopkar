@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Confirmation Dialogs and User Feedback</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <h2>Test Confirmation Dialogs and User Feedback</h2>
+        <p class="text-muted">Testing Task 12: Enhanced confirmation dialogs, success notifications, and error handling</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Task 12.1: Confirmation Dialog</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Test enhanced confirmation dialog with payment summary</p>
+                        <button class="btn btn-primary" onclick="testConfirmationDialog()">
+                            Test Confirmation Dialog
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Task 12.2: Success Notification</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Test success notification with payment details and print option</p>
+                        <button class="btn btn-success" onclick="testSuccessNotification()">
+                            Test Success Notification
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Task 12.3: Error Handling</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Test enhanced error notifications with user-friendly messages</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-danger" onclick="testJournalError()">
+                                Test Journal Error
+                            </button>
+                            <button class="btn btn-warning" onclick="testValidationError()">
+                                Test Validation Error
+                            </button>
+                            <button class="btn btn-info" onclick="testAccessError()">
+                                Test Access Error
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Enhanced Validation</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Test enhanced validation with guidance messages</p>
+                        <button class="btn btn-secondary" onclick="testEnhancedValidation()">
+                            Test Enhanced Validation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <p class="text-muted">Click buttons above to test functionality...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Mock dependencies -->
+    <script>
+        // Mock localStorage
+        const mockData = {
+            currentUser: { id: 'user1', nama: 'Test Kasir', role: 'kasir' },
+            anggota: [
+                { id: 'ang1', nama: 'John Doe', nik: '1234567890' },
+                { id: 'ang2', nama: 'Jane Smith', nik: '0987654321' }
+            ],
+            systemSettings: {
+                namaKoperasi: 'Koperasi Test',
+                alamat: 'Jl. Test No. 123',
+                telepon: '021-12345678'
+            }
+        };
+        
+        Object.keys(mockData).forEach(key => {
+            localStorage.setItem(key, JSON.stringify(mockData[key]));
+        });
+        
+        // Mock functions
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR'
+            }).format(amount);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function generateId() {
+            return 'TXN' + Date.now();
+        }
+        
+        function cetakBuktiPembayaran(id) {
+            logResult('Print receipt called for transaction: ' + id);
+        }
+        
+        function logResult(message) {
+            const results = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `<div class="alert alert-info">[${timestamp}] ${message}</div>`;
+        }
+    </script>
+    
+    <!-- Load main module -->
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    
+    <script>
+        // Test functions
+        async function testConfirmationDialog() {
+            logResult('Testing confirmation dialog...');
+            
+            const testData = {
+                anggotaId: 'ang1',
+                anggotaNama: 'John Doe',
+                anggotaNIK: '1234567890',
+                jenis: 'hutang',
+                jumlah: 500000,
+                keterangan: 'Test pembayaran hutang'
+            };
+            
+            try {
+                const confirmed = await showConfirmationDialog(testData, 1000000);
+                logResult(`Confirmation result: ${confirmed ? 'Confirmed' : 'Cancelled'}`);
+            } catch (error) {
+                logResult('Error testing confirmation dialog: ' + error.message);
+            }
+        }
+        
+        function testSuccessNotification() {
+            logResult('Testing success notification...');
+            
+            const testTransaction = {
+                id: 'TXN123456789',
+                anggotaNama: 'John Doe',
+                anggotaNIK: '1234567890',
+                jenis: 'hutang',
+                jumlah: 500000,
+                saldoSebelum: 1000000,
+                saldoSesudah: 500000,
+                createdAt: new Date().toISOString()
+            };
+            
+            try {
+                showSuccessNotification(testTransaction, 'Hutang');
+                logResult('Success notification displayed');
+            } catch (error) {
+                logResult('Error testing success notification: ' + error.message);
+            }
+        }
+        
+        function testJournalError() {
+            logResult('Testing journal error handling...');
+            
+            const journalError = new Error('Gagal mencatat jurnal. Transaksi dibatalkan.');
+            
+            try {
+                showErrorNotification(journalError, 'Gagal Memproses Pembayaran');
+                logResult('Journal error notification displayed');
+            } catch (error) {
+                logResult('Error testing journal error: ' + error.message);
+            }
+        }
+        
+        function testValidationError() {
+            logResult('Testing validation error handling...');
+            
+            const validationError = new Error('saldo tidak mencukupi untuk melakukan pembayaran');
+            
+            try {
+                showErrorNotification(validationError, 'Validasi Gagal');
+                logResult('Validation error notification displayed');
+            } catch (error) {
+                logResult('Error testing validation error: ' + error.message);
+            }
+        }
+        
+        function testAccessError() {
+            logResult('Testing access error handling...');
+            
+            const accessError = new Error('akses ditolak - insufficient permissions');
+            
+            try {
+                showErrorNotification(accessError, 'Akses Ditolak');
+                logResult('Access error notification displayed');
+            } catch (error) {
+                logResult('Error testing access error: ' + error.message);
+            }
+        }
+        
+        function testEnhancedValidation() {
+            logResult('Testing enhanced validation...');
+            
+            const testData = {
+                anggotaId: '',
+                jenis: '',
+                jumlah: -100
+            };
+            
+            try {
+                const validation = validatePembayaranEnhanced(testData);
+                logResult(`Validation result: ${validation.valid ? 'Valid' : 'Invalid'}`);
+                logResult(`Errors: ${validation.errors.length}, Warnings: ${validation.warnings.length}`);
+                
+                if (!validation.valid) {
+                    showValidationErrors(validation);
+                    logResult('Enhanced validation errors displayed');
+                }
+            } catch (error) {
+                logResult('Error testing enhanced validation: ' + error.message);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('Test page loaded successfully');
+            logResult('All Task 12 functions are available for testing');
+        });
+    </script>
+</body>
+</html>
+</body>
+</html>
