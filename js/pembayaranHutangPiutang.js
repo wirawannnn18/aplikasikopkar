@@ -2456,49 +2456,71 @@ function cetakBuktiPembayaran(transaksiId) {
     }
 }
 
-// Export functions for testing
-export {
-    renderPembayaranHutangPiutang,
-    hitungSaldoHutang,
-    hitungSaldoPiutang,
-    updateSummaryCards,
-    renderFormPembayaran,
-    searchAnggota,
-    validatePembayaran,
-    validatePembayaranEnhanced,
-    savePembayaran,
-    rollbackPembayaran,
-    createJurnalPembayaranHutang,
-    createJurnalPembayaranPiutang,
-    saveAuditLog,
-    cetakBuktiPembayaran,
-    checkPembayaranAccess,
-    checkOperationPermission,
-    validateUserSession,
-    sanitizeTextInput,
-    validateNumericInput,
-    validateDateInput,
-    sanitizePaymentFormData,
-    applyRiwayatFilters,
-    loadRiwayatPembayaran,
-    renderRiwayatPembayaran,
-    displaySaldoAnggotaAutomatic,
-    highlightRelevantSaldoDynamic,
-    controlJumlahInputBasedOnSaldo,
-    validateFormRealTime,
-    showConfirmationDialog,
-    showSuccessNotification,
-    showErrorNotification,
-    showValidationErrors,
-    showToastNotification
-};
+// Functions are available globally in browser environment
+// Export removed to fix "Unexpected token 'export'" error
 
-// ES module exports for testing (conditional to avoid syntax errors in browser)
-if (typeof module !== 'undefined' && module.exports) {
-    // Node.js environment - already exported above
-} else if (typeof window !== 'undefined') {
-    // Browser environment - attach to window for testing
+// Make functions available globally in browser environment
+if (typeof window !== 'undefined') {
+    // Attach main functions to window for global access
+    window.renderPembayaranHutangPiutang = renderPembayaranHutangPiutang;
+    window.hitungSaldoHutang = hitungSaldoHutang;
+    window.hitungSaldoPiutang = hitungSaldoPiutang;
+    window.updateSummaryCards = updateSummaryCards;
+    window.renderFormPembayaran = renderFormPembayaran;
+    window.searchAnggota = searchAnggota;
+    window.validatePembayaran = validatePembayaran;
+    window.validatePembayaranEnhanced = validatePembayaranEnhanced;
+    window.savePembayaran = savePembayaran;
+    window.rollbackPembayaran = rollbackPembayaran;
+    window.createJurnalPembayaranHutang = createJurnalPembayaranHutang;
+    window.createJurnalPembayaranPiutang = createJurnalPembayaranPiutang;
+    window.saveAuditLog = saveAuditLog;
+    window.cetakBuktiPembayaran = cetakBuktiPembayaran;
+    window.checkPembayaranAccess = checkPembayaranAccess;
+    window.checkOperationPermission = checkOperationPermission;
+    window.validateUserSession = validateUserSession;
+    
+    // Also create module object for testing
     window.PembayaranHutangPiutangModule = {
+        renderPembayaranHutangPiutang,
+        hitungSaldoHutang,
+        hitungSaldoPiutang,
+        updateSummaryCards,
+        renderFormPembayaran,
+        searchAnggota,
+        validatePembayaran,
+        validatePembayaranEnhanced,
+        savePembayaran,
+        rollbackPembayaran,
+        createJurnalPembayaranHutang,
+        createJurnalPembayaranPiutang,
+        saveAuditLog,
+        cetakBuktiPembayaran,
+        checkPembayaranAccess,
+        checkOperationPermission,
+        validateUserSession,
+        sanitizeTextInput,
+        validateNumericInput,
+        validateDateInput,
+        sanitizePaymentFormData,
+        applyRiwayatFilters,
+        loadRiwayatPembayaran,
+        renderRiwayatPembayaran,
+        displaySaldoAnggotaAutomatic,
+        highlightRelevantSaldoDynamic,
+        controlJumlahInputBasedOnSaldo,
+        validateFormRealTime,
+        showConfirmationDialog,
+        showSuccessNotification,
+        showErrorNotification,
+        showValidationErrors,
+        showToastNotification
+    };
+}
+
+// Node.js environment support (for testing)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
         renderPembayaranHutangPiutang,
         hitungSaldoHutang,
         hitungSaldoPiutang,

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Perbaikan Export Error</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-result {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 0.375rem;
+            font-family: 'Courier New', monospace;
+        }
+        .test-pass { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .test-fail { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .test-info { background-color: #d1ecf1; color: #055160; border: 1px solid #b8daff; }
+        .test-warn { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-check-circle"></i> 
+                            Verifikasi Perbaikan Export Error
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h5><i class="bi bi-info-circle"></i> Perbaikan yang Dilakukan:</h5>
+                            <ol>
+                                <li>Menghapus ES6 <code>export</code> statement yang menyebabkan syntax error</li>
+                                <li>Menambahkan fungsi ke <code>window</code> object untuk akses global</li>
+                                <li>Mempertahankan kompatibilitas dengan Node.js untuk testing</li>
+                            </ol>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <button class="btn btn-primary w-100" onclick="runVerification()">
+                                    <i class="bi bi-play-circle"></i> Jalankan Verifikasi
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-success w-100" onclick="testPembayaranPage()" id="testPageBtn" disabled>
+                                    <i class="bi bi-cash-coin"></i> Test Halaman Pembayaran
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="testResults">
+                            <div class="test-info">Klik "Jalankan Verifikasi" untuk memulai test...</div>
+                        </div>
+
+                        <!-- Test Area for Rendering -->
+                        <div id="testArea" style="display: none;">
+                            <hr>
+                            <h5>Test Area - Rendering Pembayaran Hutang Piutang:</h5>
+                            <div id="mainContent" class="border p-3 bg-light">
+                                <!-- Content will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load required dependencies -->
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        function addTestResult(message, type = 'info') {
+            const container = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${type}`;
+            
+            const icon = {
+                'pass': '✓',
+                'fail': '✗',
+                'info': 'ℹ',
+                'warn': '⚠'
+            }[type] || 'ℹ';
+            
+            resultDiv.innerHTML = `${icon} ${message}`;
+            container.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function runVerification() {
+            clearResults();
+            addTestResult('=== MEMULAI VERIFIKASI PERBAIKAN ===', 'info');
+            
+            let allTestsPassed = true;
+            
+            try {
+                // Test 1: Check if main function exists
+                addTestResult('Test 1: Memeriksa ketersediaan fungsi utama...', 'info');
+                
+                if (typeof renderPembayaranHutangPiutang === 'function') {
+                    addTestResult('✓ renderPembayaranHutangPiutang function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ renderPembayaranHutangPiutang function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Test 2: Check access control functions
+                addTestResult('Test 2: Memeriksa fungsi kontrol akses...', 'info');
+                
+                if (typeof checkPembayaranAccess === 'function') {
+                    addTestResult('✓ checkPembayaranAccess function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ checkPembayaranAccess function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                if (typeof validateUserSession === 'function') {
+                    addTestResult('✓ validateUserSession function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ validateUserSession function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Test 3: Check calculation functions
+                addTestResult('Test 3: Memeriksa fungsi kalkulasi...', 'info');
+                
+                if (typeof hitungSaldoHutang === 'function') {
+                    addTestResult('✓ hitungSaldoHutang function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ hitungSaldoHutang function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                if (typeof hitungSaldoPiutang === 'function') {
+                    addTestResult('✓ hitungSaldoPiutang function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ hitungSaldoPiutang function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Test 4: Check UI functions
+                addTestResult('Test 4: Memeriksa fungsi UI...', 'info');
+                
+                if (typeof renderFormPembayaran === 'function') {
+                    addTestResult('✓ renderFormPembayaran function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ renderFormPembayaran function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                if (typeof updateSummaryCards === 'function') {
+                    addTestResult('✓ updateSummaryCards function tersedia', 'pass');
+                } else {
+                    addTestResult('✗ updateSummaryCards function TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Test 5: Check module object
+                addTestResult('Test 5: Memeriksa module object...', 'info');
+                
+                if (typeof window.PembayaranHutangPiutangModule === 'object') {
+                    addTestResult('✓ PembayaranHutangPiutangModule object tersedia', 'pass');
+                    
+                    // Check some key functions in module
+                    const module = window.PembayaranHutangPiutangModule;
+                    if (typeof module.renderPembayaranHutangPiutang === 'function') {
+                        addTestResult('✓ Module.renderPembayaranHutangPiutang tersedia', 'pass');
+                    } else {
+                        addTestResult('✗ Module.renderPembayaranHutangPiutang TIDAK tersedia', 'fail');
+                        allTestsPassed = false;
+                    }
+                } else {
+                    addTestResult('✗ PembayaranHutangPiutangModule object TIDAK ditemukan', 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Test 6: Test access control with dummy user
+                addTestResult('Test 6: Testing kontrol akses dengan user dummy...', 'info');
+                
+                // Set up test user
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 1,
+                    username: 'admin',
+                    name: 'Test Admin',
+                    role: 'administrator',
+                    active: true
+                }));
+                
+                localStorage.setItem('users', JSON.stringify([{
+                    id: 1,
+                    username: 'admin',
+                    name: 'Test Admin',
+                    role: 'administrator',
+                    active: true
+                }]));
+                
+                try {
+                    const hasAccess = checkPembayaranAccess();
+                    if (hasAccess) {
+                        addTestResult('✓ Kontrol akses berfungsi dengan benar (admin memiliki akses)', 'pass');
+                    } else {
+                        addTestResult('⚠ Kontrol akses menolak admin (mungkin perlu review)', 'warn');
+                    }
+                    
+                    const sessionValidation = validateUserSession();
+                    if (sessionValidation.valid) {
+                        addTestResult('✓ Validasi sesi berfungsi dengan benar', 'pass');
+                    } else {
+                        addTestResult(`⚠ Validasi sesi gagal: ${sessionValidation.error}`, 'warn');
+                    }
+                } catch (accessError) {
+                    addTestResult(`✗ Error saat testing akses: ${accessError.message}`, 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Test 7: Test calculation functions with dummy data
+                addTestResult('Test 7: Testing fungsi kalkulasi dengan data dummy...', 'info');
+                
+                try {
+                    const testHutang = hitungSaldoHutang('test-anggota-1');
+                    addTestResult(`✓ hitungSaldoHutang berhasil: ${testHutang}`, 'pass');
+                    
+                    const testPiutang = hitungSaldoPiutang('test-anggota-1');
+                    addTestResult(`✓ hitungSaldoPiutang berhasil: ${testPiutang}`, 'pass');
+                } catch (calcError) {
+                    addTestResult(`✗ Error saat testing kalkulasi: ${calcError.message}`, 'fail');
+                    allTestsPassed = false;
+                }
+                
+                // Final result
+                addTestResult('=== HASIL VERIFIKASI ===', 'info');
+                
+                if (allTestsPassed) {
+                    addTestResult('🎉 SEMUA TEST BERHASIL! Export error telah diperbaiki.', 'pass');
+                    addTestResult('Fungsi renderPembayaranHutangPiutang sekarang dapat dipanggil tanpa error.', 'pass');
+                    addTestResult('Halaman Pembayaran Hutang/Piutang siap digunakan.', 'pass');
+                    
+                    document.getElementById('testPageBtn').disabled = false;
+                } else {
+                    addTestResult('❌ BEBERAPA TEST GAGAL. Masih ada masalah yang perlu diperbaiki.', 'fail');
+                }
+                
+            } catch (error) {
+                addTestResult(`FATAL ERROR: ${error.message}`, 'fail');
+                addTestResult('Verifikasi tidak dapat diselesaikan.', 'fail');
+            }
+        }
+
+        function testPembayaranPage() {
+            addTestResult('=== TESTING HALAMAN PEMBAYARAN ===', 'info');
+            
+            try {
+                // Show test area
+                document.getElementById('testArea').style.display = 'block';
+                
+                // Clear any existing content
+                const mainContent = document.getElementById('mainContent');
+                mainContent.innerHTML = '';
+                
+                // Set up test environment
+                addTestResult('Setting up test environment...', 'info');
+                
+                // Ensure user is set
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 1,
+                    username: 'admin',
+                    name: 'Test Admin',
+                    role: 'administrator',
+                    active: true
+                }));
+                
+                // Call the main render function
+                addTestResult('Calling renderPembayaranHutangPiutang()...', 'info');
+                renderPembayaranHutangPiutang();
+                
+                // Check if content was rendered
+                if (mainContent.innerHTML.trim() !== '') {
+                    addTestResult('✓ Halaman berhasil di-render!', 'pass');
+                    
+                    // Check for key elements
+                    if (mainContent.innerHTML.includes('Pembayaran Hutang')) {
+                        addTestResult('✓ Judul halaman ditemukan', 'pass');
+                    }
+                    
+                    if (mainContent.innerHTML.includes('Total Hutang')) {
+                        addTestResult('✓ Summary cards ditemukan', 'pass');
+                    }
+                    
+                    if (mainContent.innerHTML.includes('Form Pembayaran')) {
+                        addTestResult('✓ Form pembayaran ditemukan', 'pass');
+                    }
+                    
+                    if (mainContent.innerHTML.includes('Riwayat Pembayaran')) {
+                        addTestResult('✓ Tab riwayat ditemukan', 'pass');
+                    }
+                    
+                    addTestResult('🎉 HALAMAN PEMBAYARAN HUTANG/PIUTANG BERHASIL DIMUAT!', 'pass');
+                    addTestResult('Error "renderPembayaranHutangPiutang is not defined" telah teratasi.', 'pass');
+                    
+                } else {
+                    addTestResult('⚠ Halaman kosong - mungkin ada masalah dengan rendering', 'warn');
+                }
+                
+            } catch (error) {
+                addTestResult(`✗ Error saat testing halaman: ${error.message}`, 'fail');
+                addTestResult('Stack trace: ' + error.stack, 'fail');
+            }
+        }
+
+        // Auto-run verification on page load
+        window.addEventListener('load', function() {
+            setTimeout(runVerification, 1000);
+        });
+    </script>
+</body>
+</html>
