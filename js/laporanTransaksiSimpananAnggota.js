@@ -1121,7 +1121,7 @@ function renderLaporanContent() {
                                     <h3 class="mb-0" style="font-weight: 700;" id="statTotalSimpanan">${formatRupiah(stats.totalSimpanan)}</h3>
                                 </div>
                                 <div>
-                                    <i class="bi bi-piggy-bank-fill" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <i class="bi bi-wallet2-fill" style="font-size: 3rem; opacity: 0.3;"></i>
                                 </div>
                             </div>
                         </div>
@@ -1335,7 +1335,7 @@ function renderTableRows(data) {
                     <i class="bi bi-receipt"></i>
                 </button>
                 <button class="btn btn-sm btn-success" onclick="showDetailSimpanan('${item.anggotaId}')" title="Detail Simpanan">
-                    <i class="bi bi-piggy-bank"></i>
+                    <i class="bi bi-wallet2"></i>
                 </button>
             </td>
         </tr>
@@ -1389,7 +1389,7 @@ function renderCardView(data) {
                 </div>
                 <div class="anggota-card-row">
                     <span class="anggota-card-label">
-                        <i class="bi bi-piggy-bank me-1"></i>Total Simpanan
+                        <i class="bi bi-wallet2 me-1"></i>Total Simpanan
                     </span>
                     <span class="anggota-card-value">${formatRupiah(item.simpanan.total)}</span>
                 </div>
@@ -1407,7 +1407,7 @@ function renderCardView(data) {
                     <i class="bi bi-receipt me-1"></i>Transaksi
                 </button>
                 <button class="btn btn-sm btn-success" onclick="showDetailSimpanan('${item.anggotaId}')">
-                    <i class="bi bi-piggy-bank me-1"></i>Simpanan
+                    <i class="bi bi-wallet2 me-1"></i>Simpanan
                 </button>
             </div>
         </div>
@@ -1801,7 +1801,7 @@ function loadDetailSimpananContent(anggotaId) {
                     <div class="modal-content">
                         <div class="modal-header" style="background: linear-gradient(135deg, #f4a261 0%, #e9c46a 100%);">
                             <h5 class="modal-title text-white">
-                                <i class="bi bi-piggy-bank me-2"></i>Detail Simpanan - ${anggota.nama}
+                                <i class="bi bi-wallet2 me-2"></i>Detail Simpanan - ${anggota.nama}
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>

@@ -583,7 +583,7 @@ function renderStep6Simpanan() {
     
     return `
         <h5 class="mb-3" style="color: #2d6a4f;">
-            <i class="bi bi-piggy-bank me-2"></i>Simpanan Anggota
+            <i class="bi bi-wallet2 me-2"></i>Simpanan Anggota
         </h5>
         <p class="text-muted mb-4">Input saldo simpanan (pokok, wajib, sukarela) anggota pada awal periode.</p>
         
