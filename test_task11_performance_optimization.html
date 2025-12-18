@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 11 - Performance Optimization</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+        .performance-metric {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin: 0.5rem 0;
+        }
+        .metric-good { border-left: 4px solid #28a745; }
+        .metric-warning { border-left: 4px solid #ffc107; }
+        .metric-danger { border-left: 4px solid #dc3545; }
+        .test-result {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 0.25rem;
+        }
+        .test-pass { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .test-fail { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .loading-test {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-speedometer2 me-2"></i>Test Task 11 - Performance Optimization</h2>
+                    <div>
+                        <button class="btn btn-primary" onclick="runAllTests()">
+                            <i class="bi bi-play-fill me-1"></i>Run All Tests
+                        </button>
+                        <button class="btn btn-success" onclick="showPerformanceMetrics()">
+                            <i class="bi bi-graph-up me-1"></i>Show Metrics
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics Display -->
+                <div class="test-section">
+                    <h4><i class="bi bi-bar-chart me-2"></i>Performance Metrics</h4>
+                    <div id="performanceMetrics">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Click "Show Metrics" to display current performance data
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Rendering Performance Test -->
+                <div class="test-section">
+                    <h4><i class="bi bi-window me-2"></i>Modal Rendering Performance</h4>
+                    <p>Test modal opening speed and rendering optimization</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary" onclick="testModalRenderingSpeed()">
+                                <i class="bi bi-stopwatch me-1"></i>Test Modal Speed
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="testModalWithLargeData()">
+                                <i class="bi bi-database me-1"></i>Test with Large Data
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="modalPerformanceResults"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculation Performance Test -->
+                <div class="test-section">
+                    <h4><i class="bi bi-calculator me-2"></i>Calculation Performance</h4>
+                    <p>Test calculation speed for large datasets</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary" onclick="testCalculationSpeed()">
+                                <i class="bi bi-lightning me-1"></i>Test Calculation Speed
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="testLargeDatasetCalculation()">
+                                <i class="bi bi-collection me-1"></i>Test Large Dataset
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="calculationPerformanceResults"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Caching Performance Test -->
+                <div class="test-section">
+                    <h4><i class="bi bi-hdd me-2"></i>Caching Performance</h4>
+                    <p>Test caching effectiveness and hit rates</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary" onclick="testCachingPerformance()">
+                                <i class="bi bi-memory me-1"></i>Test Cache Performance
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="testCacheInvalidation()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Test Cache Invalidation
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="cachingPerformanceResults"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Usage Test -->
+                <div class="test-section">
+                    <h4><i class="bi bi-memory me-2"></i>Memory Usage</h4>
+                    <p>Test memory consumption during extended operations</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary" onclick="testMemoryUsage()">
+                                <i class="bi bi-cpu me-1"></i>Test Memory Usage
+                            </button>
+                            <button class="btn btn-outline-warning ms-2" onclick="testMemoryLeaks()">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Test Memory Leaks
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="memoryUsageResults"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Experience Test -->
+                <div class="test-section">
+                    <h4><i class="bi bi-person-check me-2"></i>User Experience</h4>
+                    <p>Test loading indicators and progress feedback</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary" onclick="testLoadingIndicators()">
+                                <i class="bi bi-hourglass-split me-1"></i>Test Loading Indicators
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="testProgressFeedback()">
+                                <i class="bi bi-progress-bar me-1"></i>Test Progress Feedback
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="uxResults"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debouncing Test -->
+                <div class="test-section">
+                    <h4><i class="bi bi-clock me-2"></i>Debouncing Performance</h4>
+                    <p>Test debounced functions effectiveness</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control mb-2" id="debounceTestInput" 
+                                   placeholder="Type rapidly to test debouncing...">
+                            <button class="btn btn-outline-primary" onclick="testDebouncingEffectiveness()">
+                                <i class="bi bi-funnel me-1"></i>Test Debouncing
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="debounceResults"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overall Performance Summary -->
+                <div class="test-section">
+                    <h4><i class="bi bi-clipboard-data me-2"></i>Performance Summary</h4>
+                    <div id="performanceSummary">
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Run tests to see performance summary
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Modal for Performance Testing -->
+    <div class="modal fade" id="testModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Performance Test Modal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="testModalBody">
+                    <!-- Content will be loaded here for testing -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/performance-optimizer-tutup-kasir.js"></script>
+    
+    <script>
+        // Test data and utilities
+        let testResults = {
+            modalRendering: [],
+            calculations: [],
+            caching: [],
+            memory: [],
+            ux: [],
+            debouncing: []
+        };
+
+        // Initialize test environment
+        function initializeTestEnvironment() {
+            // Create test data
+            const testPenjualan = generateTestPenjualan(1000);
+            const testAnggota = generateTestAnggota(500);
+            const testBarang = generateTestBarang(200);
+            
+            localStorage.setItem('penjualan', JSON.stringify(testPenjualan));
+            localStorage.setItem('anggota', JSON.stringify(testAnggota));
+            localStorage.setItem('barang', JSON.stringify(testBarang));
+            
+            // Create test session
+            const testBukaKas = {
+                id: 'test-shift-001',
+                kasir: 'Test Kasir',
+                kasirId: 'kasir-test',
+                modalAwal: 500000,
+                waktuBuka: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
+                status: 'buka'
+            };
+            sessionStorage.setItem('bukaKas', JSON.stringify(testBukaKas));
+            
+            console.log('Test environment initialized');
+        }
+
+        // Generate test data
+        function generateTestPenjualan(count) {
+            const penjualan = [];
+            const startTime = Date.now() - 8 * 60 * 60 * 1000; // 8 hours ago
+            
+            for (let i = 0; i < count; i++) {
+                penjualan.push({
+                    id: `penjualan-${i}`,
+                    tanggal: new Date(startTime + Math.random() * 8 * 60 * 60 * 1000).toISOString(),
+                    total: Math.floor(Math.random() * 500000) + 10000,
+                    status: Math.random() > 0.3 ? 'cash' : 'kredit',
+                    kasir: 'Test Kasir',
+                    items: [
+                        {
+                            nama: `Produk ${i}`,
+                            qty: Math.floor(Math.random() * 5) + 1,
+                            harga: Math.floor(Math.random() * 50000) + 5000
+                        }
+                    ]
+                });
+            }
+            return penjualan;
+        }
+
+        function generateTestAnggota(count) {
+            const anggota = [];
+            for (let i = 0; i < count; i++) {
+                anggota.push({
+                    id: `anggota-${i}`,
+                    nik: `NIK${String(i).padStart(6, '0')}`,
+                    nama: `Anggota Test ${i}`,
+                    statusKeanggotaan: 'Aktif',
+                    departemen: `Dept ${i % 10}`
+                });
+            }
+            return anggota;
+        }
+
+        function generateTestBarang(count) {
+            const barang = [];
+            for (let i = 0; i < count; i++) {
+                barang.push({
+                    id: `barang-${i}`,
+                    nama: `Produk Test ${i}`,
+                    hargaJual: Math.floor(Math.random() * 100000) + 5000,
+                    stok: Math.floor(Math.random() * 100) + 1,
+                    barcode: `BC${String(i).padStart(8, '0')}`
+                });
+            }
+            return barang;
+        }
+
+        // Performance test functions
+        function testModalRenderingSpeed() {
+            const results = document.getElementById('modalPerformanceResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing modal rendering speed...';
+            
+            const iterations = 10;
+            const times = [];
+            
+            let currentIteration = 0;
+            
+            function runIteration() {
+                if (currentIteration >= iterations) {
+                    displayModalResults(times);
+                    return;
+                }
+                
+                const startTime = performance.now();
+                
+                // Test modal rendering
+                if (typeof showTutupKasirModal === 'function') {
+                    try {
+                        showTutupKasirModal();
+                        
+                        setTimeout(() => {
+                            const endTime = performance.now();
+                            times.push(endTime - startTime);
+                            
+                            // Close modal
+                            const modal = document.getElementById('tutupKasirModal');
+                            if (modal) {
+                                bootstrap.Modal.getInstance(modal)?.hide();
+                                modal.remove();
+                            }
+                            
+                            currentIteration++;
+                            setTimeout(runIteration, 100);
+                        }, 100);
+                    } catch (error) {
+                        times.push(999999); // Mark as failed
+                        currentIteration++;
+                        setTimeout(runIteration, 100);
+                    }
+                } else {
+                    results.innerHTML = '<div class="test-fail">showTutupKasirModal function not found</div>';
+                    return;
+                }
+            }
+            
+            runIteration();
+        }
+
+        function displayModalResults(times) {
+            const results = document.getElementById('modalPerformanceResults');
+            const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+            
+            let resultClass = 'metric-good';
+            if (avgTime > 500) resultClass = 'metric-warning';
+            if (avgTime > 1000) resultClass = 'metric-danger';
+            
+            results.innerHTML = `
+                <div class="performance-metric ${resultClass}">
+                    <strong>Modal Rendering Performance:</strong><br>
+                    Average: ${avgTime.toFixed(2)}ms<br>
+                    Min: ${minTime.toFixed(2)}ms<br>
+                    Max: ${maxTime.toFixed(2)}ms<br>
+                    Iterations: ${times.length}
+                </div>
+            `;
+            
+            testResults.modalRendering = { avgTime, minTime, maxTime, iterations: times.length };
+        }
+
+        function testModalWithLargeData() {
+            const results = document.getElementById('modalPerformanceResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing with large dataset...';
+            
+            // Generate large dataset
+            const largePenjualan = generateTestPenjualan(5000);
+            localStorage.setItem('penjualan', JSON.stringify(largePenjualan));
+            
+            const startTime = performance.now();
+            
+            if (typeof showTutupKasirModal === 'function') {
+                try {
+                    showTutupKasirModal();
+                    
+                    setTimeout(() => {
+                        const endTime = performance.now();
+                        const renderTime = endTime - startTime;
+                        
+                        let resultClass = 'metric-good';
+                        if (renderTime > 1000) resultClass = 'metric-warning';
+                        if (renderTime > 2000) resultClass = 'metric-danger';
+                        
+                        results.innerHTML += `
+                            <div class="performance-metric ${resultClass}">
+                                <strong>Large Data Performance:</strong><br>
+                                Render Time: ${renderTime.toFixed(2)}ms<br>
+                                Dataset Size: 5000 records
+                            </div>
+                        `;
+                        
+                        // Close modal
+                        const modal = document.getElementById('tutupKasirModal');
+                        if (modal) {
+                            bootstrap.Modal.getInstance(modal)?.hide();
+                            modal.remove();
+                        }
+                    }, 100);
+                } catch (error) {
+                    results.innerHTML += '<div class="test-fail">Large data test failed: ' + error.message + '</div>';
+                }
+            }
+        }
+
+        function testCalculationSpeed() {
+            const results = document.getElementById('calculationPerformanceResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing calculation speed...';
+            
+            const iterations = 100;
+            const times = [];
+            
+            for (let i = 0; i < iterations; i++) {
+                const startTime = performance.now();
+                
+                // Test calculation performance
+                const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
+                const bukaKas = JSON.parse(sessionStorage.getItem('bukaKas'));
+                
+                if (window.tutupKasirPerformanceOptimizer) {
+                    window.tutupKasirPerformanceOptimizer.calculateShiftData(bukaKas, penjualan);
+                }
+                
+                const endTime = performance.now();
+                times.push(endTime - startTime);
+            }
+            
+            const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+            
+            let resultClass = 'metric-good';
+            if (avgTime > 10) resultClass = 'metric-warning';
+            if (avgTime > 50) resultClass = 'metric-danger';
+            
+            results.innerHTML = `
+                <div class="performance-metric ${resultClass}">
+                    <strong>Calculation Performance:</strong><br>
+                    Average: ${avgTime.toFixed(2)}ms<br>
+                    Min: ${minTime.toFixed(2)}ms<br>
+                    Max: ${maxTime.toFixed(2)}ms<br>
+                    Iterations: ${iterations}
+                </div>
+            `;
+            
+            testResults.calculations = { avgTime, minTime, maxTime, iterations };
+        }
+
+        function testLargeDatasetCalculation() {
+            const results = document.getElementById('calculationPerformanceResults');
+            results.innerHTML += '<div class="spinner-border spinner-border-sm me-2"></div>Testing large dataset calculation...';
+            
+            // Generate very large dataset
+            const largePenjualan = generateTestPenjualan(10000);
+            const startTime = performance.now();
+            
+            const bukaKas = JSON.parse(sessionStorage.getItem('bukaKas'));
+            
+            if (window.tutupKasirPerformanceOptimizer) {
+                const result = window.tutupKasirPerformanceOptimizer.calculateShiftData(bukaKas, largePenjualan);
+                
+                const endTime = performance.now();
+                const calcTime = endTime - startTime;
+                
+                let resultClass = 'metric-good';
+                if (calcTime > 100) resultClass = 'metric-warning';
+                if (calcTime > 500) resultClass = 'metric-danger';
+                
+                results.innerHTML += `
+                    <div class="performance-metric ${resultClass}">
+                        <strong>Large Dataset Calculation:</strong><br>
+                        Time: ${calcTime.toFixed(2)}ms<br>
+                        Dataset Size: 10,000 records<br>
+                        Processed: ${result.jumlahTransaksi} transactions
+                    </div>
+                `;
+            }
+        }
+
+        function testCachingPerformance() {
+            const results = document.getElementById('cachingPerformanceResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing caching performance...';
+            
+            if (!window.tutupKasirPerformanceOptimizer) {
+                results.innerHTML = '<div class="test-fail">Performance optimizer not initialized</div>';
+                return;
+            }
+            
+            const optimizer = window.tutupKasirPerformanceOptimizer;
+            
+            // Clear cache first
+            optimizer.clearCache();
+            
+            // Test cache miss
+            const startMiss = performance.now();
+            const data1 = optimizer.getCachedData('test_key', () => {
+                // Simulate expensive operation
+                let sum = 0;
+                for (let i = 0; i < 100000; i++) {
+                    sum += i;
+                }
+                return sum;
+            });
+            const endMiss = performance.now();
+            const missTime = endMiss - startMiss;
+            
+            // Test cache hit
+            const startHit = performance.now();
+            const data2 = optimizer.getCachedData('test_key', () => {
+                // This should not be called due to cache hit
+                return 0;
+            });
+            const endHit = performance.now();
+            const hitTime = endHit - startHit;
+            
+            const speedup = missTime / hitTime;
+            
+            let resultClass = 'metric-good';
+            if (speedup < 10) resultClass = 'metric-warning';
+            if (speedup < 2) resultClass = 'metric-danger';
+            
+            results.innerHTML = `
+                <div class="performance-metric ${resultClass}">
+                    <strong>Caching Performance:</strong><br>
+                    Cache Miss: ${missTime.toFixed(2)}ms<br>
+                    Cache Hit: ${hitTime.toFixed(2)}ms<br>
+                    Speedup: ${speedup.toFixed(1)}x<br>
+                    Data Match: ${data1 === data2 ? 'Yes' : 'No'}
+                </div>
+            `;
+            
+            testResults.caching = { missTime, hitTime, speedup };
+        }
+
+        function testCacheInvalidation() {
+            const results = document.getElementById('cachingPerformanceResults');
+            
+            if (!window.tutupKasirPerformanceOptimizer) {
+                results.innerHTML += '<div class="test-fail">Performance optimizer not initialized</div>';
+                return;
+            }
+            
+            const optimizer = window.tutupKasirPerformanceOptimizer;
+            
+            // Set cache
+            optimizer.setCache('invalidation_test', 'test_value');
+            
+            // Verify cache exists
+            const cached1 = optimizer.getFromCache('invalidation_test');
+            
+            // Invalidate cache
+            optimizer.invalidateCache('invalidation_test');
+            
+            // Verify cache is gone
+            const cached2 = optimizer.getFromCache('invalidation_test');
+            
+            const invalidationWorks = cached1 === 'test_value' && cached2 === null;
+            
+            results.innerHTML += `
+                <div class="performance-metric ${invalidationWorks ? 'metric-good' : 'metric-danger'}">
+                    <strong>Cache Invalidation:</strong><br>
+                    Before: ${cached1 ? 'Found' : 'Not Found'}<br>
+                    After: ${cached2 ? 'Found' : 'Not Found'}<br>
+                    Status: ${invalidationWorks ? 'Working' : 'Failed'}
+                </div>
+            `;
+        }
+
+        function testMemoryUsage() {
+            const results = document.getElementById('memoryUsageResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing memory usage...';
+            
+            // Test memory usage with performance.memory if available
+            if (performance.memory) {
+                const initialMemory = performance.memory.usedJSHeapSize;
+                
+                // Create large dataset and process it
+                const largeData = [];
+                for (let i = 0; i < 10000; i++) {
+                    largeData.push({
+                        id: i,
+                        data: 'x'.repeat(1000),
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                // Process data
+                const processed = largeData.map(item => ({
+                    ...item,
+                    processed: true
+                }));
+                
+                const peakMemory = performance.memory.usedJSHeapSize;
+                
+                // Clean up
+                largeData.length = 0;
+                processed.length = 0;
+                
+                // Force garbage collection if possible
+                if (window.gc) {
+                    window.gc();
+                }
+                
+                setTimeout(() => {
+                    const finalMemory = performance.memory.usedJSHeapSize;
+                    const memoryUsed = (peakMemory - initialMemory) / 1024 / 1024; // MB
+                    const memoryRecovered = (peakMemory - finalMemory) / 1024 / 1024; // MB
+                    
+                    let resultClass = 'metric-good';
+                    if (memoryUsed > 50) resultClass = 'metric-warning';
+                    if (memoryUsed > 100) resultClass = 'metric-danger';
+                    
+                    results.innerHTML = `
+                        <div class="performance-metric ${resultClass}">
+                            <strong>Memory Usage:</strong><br>
+                            Peak Usage: ${memoryUsed.toFixed(2)} MB<br>
+                            Recovered: ${memoryRecovered.toFixed(2)} MB<br>
+                            Recovery Rate: ${((memoryRecovered / memoryUsed) * 100).toFixed(1)}%
+                        </div>
+                    `;
+                    
+                    testResults.memory = { memoryUsed, memoryRecovered };
+                }, 1000);
+            } else {
+                results.innerHTML = '<div class="test-fail">Memory API not available in this browser</div>';
+            }
+        }
+
+        function testMemoryLeaks() {
+            const results = document.getElementById('memoryUsageResults');
+            
+            if (!performance.memory) {
+                results.innerHTML += '<div class="test-fail">Memory API not available for leak testing</div>';
+                return;
+            }
+            
+            const initialMemory = performance.memory.usedJSHeapSize;
+            
+            // Simulate potential memory leak scenarios
+            const iterations = 100;
+            const objects = [];
+            
+            for (let i = 0; i < iterations; i++) {
+                // Create objects that might not be properly cleaned up
+                const obj = {
+                    id: i,
+                    data: new Array(1000).fill('test'),
+                    callback: function() { return this.data; }
+                };
+                
+                objects.push(obj);
+                
+                // Simulate DOM manipulation that might cause leaks
+                const div = document.createElement('div');
+                div.innerHTML = 'Test ' + i;
+                document.body.appendChild(div);
+                document.body.removeChild(div);
+            }
+            
+            const peakMemory = performance.memory.usedJSHeapSize;
+            
+            // Clean up
+            objects.length = 0;
+            
+            setTimeout(() => {
+                const finalMemory = performance.memory.usedJSHeapSize;
+                const memoryLeak = (finalMemory - initialMemory) / 1024 / 1024; // MB
+                
+                let resultClass = 'metric-good';
+                if (memoryLeak > 5) resultClass = 'metric-warning';
+                if (memoryLeak > 20) resultClass = 'metric-danger';
+                
+                results.innerHTML += `
+                    <div class="performance-metric ${resultClass}">
+                        <strong>Memory Leak Test:</strong><br>
+                        Initial: ${(initialMemory / 1024 / 1024).toFixed(2)} MB<br>
+                        Final: ${(finalMemory / 1024 / 1024).toFixed(2)} MB<br>
+                        Potential Leak: ${memoryLeak.toFixed(2)} MB
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        function testLoadingIndicators() {
+            const results = document.getElementById('uxResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing loading indicators...';
+            
+            if (!window.tutupKasirPerformanceOptimizer) {
+                results.innerHTML = '<div class="test-fail">Performance optimizer not initialized</div>';
+                return;
+            }
+            
+            const optimizer = window.tutupKasirPerformanceOptimizer;
+            
+            // Test loading indicator
+            const startTime = performance.now();
+            optimizer.showLoadingIndicator('Testing loading indicator...');
+            
+            setTimeout(() => {
+                const indicator = document.getElementById('loadingIndicator');
+                const indicatorExists = indicator !== null;
+                
+                optimizer.hideLoadingIndicator();
+                
+                setTimeout(() => {
+                    const indicatorRemoved = document.getElementById('loadingIndicator') === null;
+                    const endTime = performance.now();
+                    const totalTime = endTime - startTime;
+                    
+                    const testPassed = indicatorExists && indicatorRemoved;
+                    
+                    results.innerHTML = `
+                        <div class="performance-metric ${testPassed ? 'metric-good' : 'metric-danger'}">
+                            <strong>Loading Indicator Test:</strong><br>
+                            Show/Hide Time: ${totalTime.toFixed(2)}ms<br>
+                            Indicator Shown: ${indicatorExists ? 'Yes' : 'No'}<br>
+                            Indicator Removed: ${indicatorRemoved ? 'Yes' : 'No'}<br>
+                            Status: ${testPassed ? 'Pass' : 'Fail'}
+                        </div>
+                    `;
+                    
+                    testResults.ux.push({ type: 'loading', passed: testPassed, time: totalTime });
+                }, 100);
+            }, 1000);
+        }
+
+        function testProgressFeedback() {
+            const results = document.getElementById('uxResults');
+            
+            if (!window.tutupKasirPerformanceOptimizer) {
+                results.innerHTML += '<div class="test-fail">Performance optimizer not initialized</div>';
+                return;
+            }
+            
+            const optimizer = window.tutupKasirPerformanceOptimizer;
+            
+            // Test processing indicator
+            optimizer.showProcessingIndicator('Testing progress feedback...');
+            
+            setTimeout(() => {
+                const indicator = document.getElementById('loadingIndicator');
+                const feedbackExists = indicator !== null;
+                
+                optimizer.hideProcessingIndicator();
+                
+                setTimeout(() => {
+                    const feedbackRemoved = document.getElementById('loadingIndicator') === null;
+                    const testPassed = feedbackExists && feedbackRemoved;
+                    
+                    results.innerHTML += `
+                        <div class="performance-metric ${testPassed ? 'metric-good' : 'metric-danger'}">
+                            <strong>Progress Feedback Test:</strong><br>
+                            Feedback Shown: ${feedbackExists ? 'Yes' : 'No'}<br>
+                            Feedback Removed: ${feedbackRemoved ? 'Yes' : 'No'}<br>
+                            Status: ${testPassed ? 'Pass' : 'Fail'}
+                        </div>
+                    `;
+                    
+                    testResults.ux.push({ type: 'progress', passed: testPassed });
+                }, 100);
+            }, 1500);
+        }
+
+        function testDebouncingEffectiveness() {
+            const results = document.getElementById('debounceResults');
+            results.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Testing debouncing...';
+            
+            let callCount = 0;
+            let debouncedCallCount = 0;
+            
+            // Create test debounced function
+            function testFunction() {
+                callCount++;
+            }
+            
+            function debouncedTestFunction() {
+                debouncedCallCount++;
+            }
+            
+            const debounced = window.tutupKasirPerformanceOptimizer ? 
+                window.tutupKasirPerformanceOptimizer.debounce(debouncedTestFunction, 100) :
+                debouncedTestFunction;
+            
+            // Simulate rapid calls
+            const rapidCalls = 50;
+            for (let i = 0; i < rapidCalls; i++) {
+                testFunction();
+                debounced();
+            }
+            
+            setTimeout(() => {
+                const effectiveness = ((callCount - debouncedCallCount) / callCount) * 100;
+                
+                let resultClass = 'metric-good';
+                if (effectiveness < 80) resultClass = 'metric-warning';
+                if (effectiveness < 50) resultClass = 'metric-danger';
+                
+                results.innerHTML = `
+                    <div class="performance-metric ${resultClass}">
+                        <strong>Debouncing Effectiveness:</strong><br>
+                        Normal Calls: ${callCount}<br>
+                        Debounced Calls: ${debouncedCallCount}<br>
+                        Reduction: ${effectiveness.toFixed(1)}%<br>
+                        Status: ${effectiveness > 70 ? 'Effective' : 'Needs Improvement'}
+                    </div>
+                `;
+                
+                testResults.debouncing = { callCount, debouncedCallCount, effectiveness };
+            }, 500);
+        }
+
+        function showPerformanceMetrics() {
+            const metricsDiv = document.getElementById('performanceMetrics');
+            
+            if (!window.tutupKasirPerformanceOptimizer) {
+                metricsDiv.innerHTML = '<div class="alert alert-warning">Performance optimizer not initialized</div>';
+                return;
+            }
+            
+            const metrics = window.tutupKasirPerformanceOptimizer.getPerformanceMetrics();
+            
+            metricsDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="performance-metric metric-good">
+                            <strong>Modal Render Time</strong><br>
+                            ${metrics.modalRenderTime.toFixed(2)}ms
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="performance-metric metric-good">
+                            <strong>Calculation Time</strong><br>
+                            ${metrics.calculationTime.toFixed(2)}ms
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="performance-metric metric-good">
+                            <strong>Cache Hit Rate</strong><br>
+                            ${metrics.cacheHitRate.toFixed(1)}%
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="performance-metric metric-good">
+                            <strong>Cache Size</strong><br>
+                            ${metrics.cacheSize} items
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Detailed Metrics:</h6>
+                    <pre class="bg-light p-3 rounded">${JSON.stringify(metrics, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        function runAllTests() {
+            // Initialize test environment
+            initializeTestEnvironment();
+            
+            // Run all tests with delays
+            setTimeout(testModalRenderingSpeed, 100);
+            setTimeout(testCalculationSpeed, 2000);
+            setTimeout(testCachingPerformance, 4000);
+            setTimeout(testMemoryUsage, 6000);
+            setTimeout(testLoadingIndicators, 8000);
+            setTimeout(testDebouncingEffectiveness, 12000);
+            
+            // Show summary after all tests
+            setTimeout(showPerformanceSummary, 15000);
+        }
+
+        function showPerformanceSummary() {
+            const summaryDiv = document.getElementById('performanceSummary');
+            
+            const totalTests = Object.values(testResults).flat().length;
+            const passedTests = Object.values(testResults).flat().filter(result => 
+                result.passed !== false && result.avgTime < 1000
+            ).length;
+            
+            const overallScore = (passedTests / totalTests) * 100;
+            
+            let scoreClass = 'success';
+            if (overallScore < 80) scoreClass = 'warning';
+            if (overallScore < 60) scoreClass = 'danger';
+            
+            summaryDiv.innerHTML = `
+                <div class="alert alert-${scoreClass}">
+                    <h5><i class="bi bi-trophy me-2"></i>Performance Summary</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Overall Score:</strong> ${overallScore.toFixed(1)}%
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Tests Passed:</strong> ${passedTests}/${totalTests}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Status:</strong> ${overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : 'Needs Improvement'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Test Results Summary:</h6>
+                    <div class="row">
+                        ${Object.entries(testResults).map(([category, results]) => `
+                            <div class="col-md-6 mb-2">
+                                <strong>${category}:</strong> ${results.length} tests
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Performance test page loaded');
+            initializeTestEnvironment();
+        });
+    </script>
+</body>
+</html>

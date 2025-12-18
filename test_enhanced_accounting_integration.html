@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Enhanced Accounting Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test Enhanced Accounting Integration</h1>
+        <p class="text-muted">Testing accounting integration functionality for tutup kasir process</p>
+
+        <div class="test-section">
+            <h3>Test 1: Journal Creation for Positive Selisih</h3>
+            <button class="btn btn-primary" onclick="testPositiveSelisihJournal()">Run Test</button>
+            <div id="test1-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Journal Creation for Negative Selisih</h3>
+            <button class="btn btn-primary" onclick="testNegativeSelisihJournal()">Run Test</button>
+            <div id="test2-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Zero Selisih (No Journal)</h3>
+            <button class="btn btn-primary" onclick="testZeroSelisihJournal()">Run Test</button>
+            <div id="test3-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Kas Balance Update</h3>
+            <button class="btn btn-primary" onclick="testKasBalanceUpdate()">Run Test</button>
+            <div id="test4-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 5: Journal Validation</h3>
+            <button class="btn btn-primary" onclick="testJournalValidation()">Run Test</button>
+            <div id="test5-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 6: Complete Accounting Integration</h3>
+            <button class="btn btn-primary" onclick="testCompleteIntegration()">Run Test</button>
+            <div id="test6-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 7: COA Mapping Validation</h3>
+            <button class="btn btn-primary" onclick="testCOAMapping()">Run Test</button>
+            <div id="test7-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Current Accounting Status</h3>
+            <button class="btn btn-info" onclick="showAccountingStatus()">Show Status</button>
+            <div id="status-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Clear Test Data</h3>
+            <button class="btn btn-warning" onclick="clearTestData()">Clear All Test Data</button>
+            <div id="clear-result"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import EnhancedAccountingIntegration from './js/enhanced-accounting-integration.js';
+        
+        // Create global instance for testing
+        window.accountingIntegration = new EnhancedAccountingIntegration();
+
+        // Test data generators
+        window.createTestTutupKasirData = function(selisih = 0) {
+            return {
+                id: 'test_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                shiftId: 'shift_test_' + Date.now(),
+                kasir: 'Test Kasir',
+                kasirId: 'kasir_test_001',
+                waktuBuka: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+                waktuTutup: new Date().toISOString(),
+                modalAwal: 100000,
+                totalPenjualan: 500000,
+                totalCash: 400000,
+                totalKredit: 100000,
+                kasSeharusnya: 500000, // modalAwal + totalCash
+                kasAktual: 500000 + selisih,
+                selisih: selisih,
+                keteranganSelisih: selisih !== 0 ? `Test keterangan untuk selisih ${selisih}` : '',
+                jumlahTransaksi: 25,
+                tanggalTutup: new Date().toISOString().split('T')[0]
+            };
+        };
+
+        window.displayResult = function(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const resultClass = success ? 'test-success' : 'test-error';
+            let html = `<div class="test-result ${resultClass}">
+                <strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}
+            </div>`;
+            
+            if (data) {
+                html += `<div class="test-result test-info">
+                    <strong>Data:</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>`;
+            }
+            
+            element.innerHTML = html;
+        };
+
+        // Test functions
+        window.testPositiveSelisihJournal = async function() {
+            try {
+                const testData = window.createTestTutupKasirData(50000); // Kas lebih 50,000
+                const result = await window.accountingIntegration.createSelisihJournal(testData);
+                
+                if (result.success) {
+                    // Verify journal was created
+                    const journalEntries = JSON.parse(localStorage.getItem('journalEntries') || '[]');
+                    const createdJournal = journalEntries.find(entry => entry.id === result.journalId);
+                    
+                    if (createdJournal) {
+                        // Verify journal structure for positive selisih
+                        const kasEntry = createdJournal.entries.find(entry => entry.akun === 'Kas');
+                        const pendapatanEntry = createdJournal.entries.find(entry => entry.akun === 'Pendapatan Lain-lain');
+                        
+                        const isCorrect = kasEntry && kasEntry.debit === 50000 && kasEntry.kredit === 0 &&
+                                        pendapatanEntry && pendapatanEntry.kredit === 50000 && pendapatanEntry.debit === 0;
+                        
+                        window.displayResult('test1-result', isCorrect, 
+                            isCorrect ? 'Positive selisih journal created correctly' : 'Journal structure incorrect',
+                            createdJournal);
+                    } else {
+                        window.displayResult('test1-result', false, 'Journal not found in storage');
+                    }
+                } else {
+                    window.displayResult('test1-result', false, result.error);
+                }
+            } catch (error) {
+                window.displayResult('test1-result', false, error.message);
+            }
+        };
+
+        window.testNegativeSelisihJournal = async function() {
+            try {
+                const testData = window.createTestTutupKasirData(-30000); // Kas kurang 30,000
+                const result = await window.accountingIntegration.createSelisihJournal(testData);
+                
+                if (result.success) {
+                    const journalEntries = JSON.parse(localStorage.getItem('journalEntries') || '[]');
+                    const createdJournal = journalEntries.find(entry => entry.id === result.journalId);
+                    
+                    if (createdJournal) {
+                        // Verify journal structure for negative selisih
+                        const bebanEntry = createdJournal.entries.find(entry => entry.akun === 'Beban Lain-lain');
+                        const kasEntry = createdJournal.entries.find(entry => entry.akun === 'Kas');
+                        
+                        const isCorrect = bebanEntry && bebanEntry.debit === 30000 && bebanEntry.kredit === 0 &&
+                                        kasEntry && kasEntry.kredit === 30000 && kasEntry.debit === 0;
+                        
+                        window.displayResult('test2-result', isCorrect, 
+                            isCorrect ? 'Negative selisih journal created correctly' : 'Journal structure incorrect',
+                            createdJournal);
+                    } else {
+                        window.displayResult('test2-result', false, 'Journal not found in storage');
+                    }
+                } else {
+                    window.displayResult('test2-result', false, result.error);
+                }
+            } catch (error) {
+                window.displayResult('test2-result', false, error.message);
+            }
+        };
+
+        window.testZeroSelisihJournal = async function() {
+            try {
+                const testData = window.createTestTutupKasirData(0); // No selisih
+                const result = await window.accountingIntegration.createSelisihJournal(testData);
+                
+                const isCorrect = result.success && result.journalId === null && 
+                                result.message.includes('No journal entry needed');
+                
+                window.displayResult('test3-result', isCorrect, 
+                    isCorrect ? 'Zero selisih correctly skipped journal creation' : 'Unexpected behavior for zero selisih',
+                    result);
+            } catch (error) {
+                window.displayResult('test3-result', false, error.message);
+            }
+        };
+
+        window.testKasBalanceUpdate = async function() {
+            try {
+                // Set initial balance
+                localStorage.setItem('kasBalance', '1000000');
+                const initialBalance = 1000000;
+                
+                const testData = window.createTestTutupKasirData(25000); // Selisih +25,000
+                const result = await window.accountingIntegration.updateKasBalance(testData);
+                
+                if (result.success) {
+                    const newBalance = parseFloat(localStorage.getItem('kasBalance'));
+                    const expectedBalance = initialBalance + 25000;
+                    
+                    const isCorrect = newBalance === expectedBalance && 
+                                    result.previousBalance === initialBalance &&
+                                    result.newBalance === expectedBalance;
+                    
+                    window.displayResult('test4-result', isCorrect, 
+                        isCorrect ? 'Kas balance updated correctly' : 'Balance calculation incorrect',
+                        { 
+                            initial: initialBalance, 
+                            change: 25000, 
+                            expected: expectedBalance, 
+                            actual: newBalance,
+                            result: result
+                        });
+                } else {
+                    window.displayResult('test4-result', false, result.error);
+                }
+            } catch (error) {
+                window.displayResult('test4-result', false, error.message);
+            }
+        };
+
+        window.testJournalValidation = async function() {
+            try {
+                // Test valid journal
+                const validJournal = {
+                    id: 'test_journal_valid',
+                    tanggal: '2024-12-18',
+                    keterangan: 'Test journal entry',
+                    entries: [
+                        { akun: 'Kas', debit: 100000, kredit: 0 },
+                        { akun: 'Pendapatan Lain-lain', debit: 0, kredit: 100000 }
+                    ]
+                };
+                
+                const validResult = window.accountingIntegration.validateJournalEntry(validJournal);
+                
+                // Test invalid journal (unbalanced)
+                const invalidJournal = {
+                    id: 'test_journal_invalid',
+                    tanggal: '2024-12-18',
+                    keterangan: 'Test invalid journal',
+                    entries: [
+                        { akun: 'Kas', debit: 100000, kredit: 0 },
+                        { akun: 'Pendapatan Lain-lain', debit: 0, kredit: 50000 } // Unbalanced
+                    ]
+                };
+                
+                const invalidResult = window.accountingIntegration.validateJournalEntry(invalidJournal);
+                
+                const isCorrect = validResult.isValid && !invalidResult.isValid;
+                
+                window.displayResult('test5-result', isCorrect, 
+                    isCorrect ? 'Journal validation working correctly' : 'Journal validation failed',
+                    { 
+                        validJournal: validResult, 
+                        invalidJournal: invalidResult 
+                    });
+            } catch (error) {
+                window.displayResult('test5-result', false, error.message);
+            }
+        };
+
+        window.testCompleteIntegration = async function() {
+            try {
+                const testData = window.createTestTutupKasirData(75000); // Selisih +75,000
+                const result = await window.accountingIntegration.processTutupKasirAccounting(testData);
+                
+                const isCorrect = result.success && 
+                                result.journalResult && result.journalResult.success &&
+                                result.balanceResult && result.balanceResult.success &&
+                                result.errors.length === 0;
+                
+                window.displayResult('test6-result', isCorrect, 
+                    isCorrect ? 'Complete accounting integration successful' : 'Integration failed',
+                    result);
+            } catch (error) {
+                window.displayResult('test6-result', false, error.message);
+            }
+        };
+
+        window.testCOAMapping = function() {
+            try {
+                const testAccounts = ['Kas', 'Pendapatan Lain-lain', 'Beban Lain-lain'];
+                const invalidAccounts = ['Invalid Account', 'Another Invalid'];
+                
+                const validResult = window.accountingIntegration.validateCOAMapping(testAccounts);
+                const invalidResult = window.accountingIntegration.validateCOAMapping(invalidAccounts);
+                
+                const isCorrect = validResult.isValid && !invalidResult.isValid;
+                
+                window.displayResult('test7-result', isCorrect, 
+                    isCorrect ? 'COA mapping validation working correctly' : 'COA validation failed',
+                    { 
+                        validAccounts: validResult, 
+                        invalidAccounts: invalidResult 
+                    });
+            } catch (error) {
+                window.displayResult('test7-result', false, error.message);
+            }
+        };
+
+        window.showAccountingStatus = function() {
+            try {
+                const status = window.accountingIntegration.getAccountingStatus();
+                window.displayResult('status-result', true, 'Accounting status retrieved', status);
+            } catch (error) {
+                window.displayResult('status-result', false, error.message);
+            }
+        };
+
+        window.clearTestData = function() {
+            try {
+                localStorage.removeItem('journalEntries');
+                localStorage.removeItem('kasBalance');
+                localStorage.removeItem('kasBalanceHistory');
+                window.displayResult('clear-result', true, 'All test data cleared successfully');
+            } catch (error) {
+                window.displayResult('clear-result', false, error.message);
+            }
+        };
+    </script>
+</body>
+</html>

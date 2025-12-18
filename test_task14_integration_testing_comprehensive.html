@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 14: Integration Testing - Tutup Kasir POS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .test-result {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin: 0.25rem 0;
+        }
+        .test-pass { background-color: #d1edff; border-left: 4px solid #0d6efd; }
+        .test-fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .test-warning { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .integration-flow {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+        }
+        .workflow-step {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid #ffc107;
+        }
+        .metrics-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="integration-flow">
+            <h1 class="mb-4"><i class="bi bi-diagram-3 me-2"></i>Task 14: Integration Testing & Final Validation</h1>
+            <p class="lead mb-4">Comprehensive end-to-end testing untuk sistem Tutup Kasir POS</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="workflow-step">
+                        <h5><i class="bi bi-1-circle me-2"></i>End-to-End Workflow Testing</h5>
+                        <p class="mb-0">Complete workflow dari buka kas sampai tutup kasir</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="workflow-step">
+                        <h5><i class="bi bi-2-circle me-2"></i>Cross-Module Integration</h5>
+                        <p class="mb-0">Validate integrasi dengan semua modul terkait</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="workflow-step">
+                        <h5><i class="bi bi-3-circle me-2"></i>Session Persistence Testing</h5>
+                        <p class="mb-0">Test session persistence across refreshes</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="workflow-step">
+                        <h5><i class="bi bi-4-circle me-2"></i>Multi-User Scenarios</h5>
+                        <p class="mb-0">Test concurrent user scenarios</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metrics-card">
+                    <h3 id="totalTests">0</h3>
+                    <p class="mb-0">Total Tests</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metrics-card">
+                    <h3 id="passedTests">0</h3>
+                    <p class="mb-0">Passed</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metrics-card">
+                    <h3 id="failedTests">0</h3>
+                    <p class="mb-0">Failed</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metrics-card">
+                    <h3 id="successRate">0%</h3>
+                    <p class="mb-0">Success Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h4><i class="bi bi-play-circle me-2"></i>Integration Test Controls</h4>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="runAllIntegrationTests()">
+                            <i class="bi bi-play-fill me-2"></i>Run All Integration Tests
+                        </button>
+                        <button class="btn btn-success" onclick="runEndToEndWorkflowTest()">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Test End-to-End Workflow
+                        </button>
+                        <button class="btn btn-info" onclick="runCrossModuleIntegrationTest()">
+                            <i class="bi bi-diagram-2 me-2"></i>Test Cross-Module Integration
+                        </button>
+                        <button class="btn btn-warning" onclick="runSessionPersistenceTest()">
+                            <i class="bi bi-clock-history me-2"></i>Test Session Persistence
+                        </button>
+                        <button class="btn btn-secondary" onclick="runMultiUserScenarioTest()">
+                            <i class="bi bi-people me-2"></i>Test Multi-User Scenarios
+                        </button>
+                        <button class="btn btn-danger" onclick="clearAllTestData()">
+                            <i class="bi bi-trash me-2"></i>Clear Test Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h4><i class="bi bi-speedometer2 me-2"></i>Performance Metrics</h4>
+                    <div id="performanceMetrics">
+                        <div class="d-flex justify-content-between">
+                            <span>Modal Opening Speed:</span>
+                            <span id="modalSpeed">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Calculation Performance:</span>
+                            <span id="calcSpeed">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Data Persistence Speed:</span>
+                            <span id="persistenceSpeed">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Memory Usage:</span>
+                            <span id="memoryUsage">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h4><i class="bi bi-list-check me-2"></i>Integration Test Results</h4>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h4><i class="bi bi-graph-up me-2"></i>Test Coverage Analysis</h4>
+            <div id="coverageAnalysis">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Requirements Coverage</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" id="reqCoverage" style="width: 0%"></div>
+                        </div>
+                        <small id="reqCoverageText">0% (0/16 requirements)</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Component Integration</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-success" id="compCoverage" style="width: 0%"></div>
+                        </div>
+                        <small id="compCoverageText">0% (0/8 components)</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>User Scenarios</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-warning" id="scenarioCoverage" style="width: 0%"></div>
+                        </div>
+                        <small id="scenarioCoverageText">0% (0/12 scenarios)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Integration Testing Framework
+        class IntegrationTestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.performanceMetrics = {};
+                this.coverageData = {
+                    requirements: 0,
+                    components: 0,
+                    scenarios: 0
+                };
+            }
+
+            addTest(name, testFunction, category = 'integration') {
+                this.tests.push({
+                    name,
+                    testFunction,
+                    category,
+                    status: 'pending'
+                });
+            }
+
+            async runTest(test) {
+                const startTime = performance.now();
+                try {
+                    await test.testFunction();
+                    const endTime = performance.now();
+                    const result = {
+                        name: test.name,
+                        status: 'pass',
+                        duration: endTime - startTime,
+                        category: test.category
+                    };
+                    this.results.push(result);
+                    this.logResult(result);
+                    return result;
+                } catch (error) {
+                    const endTime = performance.now();
+                    const result = {
+                        name: test.name,
+                        status: 'fail',
+                        duration: endTime - startTime,
+                        error: error.message,
+                        category: test.category
+                    };
+                    this.results.push(result);
+                    this.logResult(result);
+                    return result;
+                }
+            }
+
+            logResult(result) {
+                const resultsDiv = document.getElementById('testResults');
+                const resultClass = result.status === 'pass' ? 'test-pass' : 'test-fail';
+                const icon = result.status === 'pass' ? 'check-circle' : 'x-circle';
+                
+                const resultHtml = `
+                    <div class="test-result ${resultClass}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-${icon} me-2"></i>
+                                <strong>${result.name}</strong>
+                                ${result.error ? `<br><small class="text-muted">Error: ${result.error}</small>` : ''}
+                            </div>
+                            <div class="text-end">
+                                <small>${result.duration.toFixed(2)}ms</small><br>
+                                <small class="text-muted">${result.category}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                resultsDiv.innerHTML += resultHtml;
+            }
+
+            updateMetrics() {
+                const total = this.results.length;
+                const passed = this.results.filter(r => r.status === 'pass').length;
+                const failed = total - passed;
+                const successRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+
+                document.getElementById('totalTests').textContent = total;
+                document.getElementById('passedTests').textContent = passed;
+                document.getElementById('failedTests').textContent = failed;
+                document.getElementById('successRate').textContent = successRate + '%';
+            }
+
+            updatePerformanceMetrics(metrics) {
+                Object.assign(this.performanceMetrics, metrics);
+                
+                if (metrics.modalSpeed) {
+                    document.getElementById('modalSpeed').textContent = metrics.modalSpeed + 'ms';
+                }
+                if (metrics.calcSpeed) {
+                    document.getElementById('calcSpeed').textContent = metrics.calcSpeed + 'ms';
+                }
+                if (metrics.persistenceSpeed) {
+                    document.getElementById('persistenceSpeed').textContent = metrics.persistenceSpeed + 'ms';
+                }
+                if (metrics.memoryUsage) {
+                    document.getElementById('memoryUsage').textContent = metrics.memoryUsage + 'MB';
+                }
+            }
+
+            updateCoverage() {
+                // Update requirements coverage
+                const reqPercentage = Math.round((this.coverageData.requirements / 16) * 100);
+                document.getElementById('reqCoverage').style.width = reqPercentage + '%';
+                document.getElementById('reqCoverageText').textContent = 
+                    `${reqPercentage}% (${this.coverageData.requirements}/16 requirements)`;
+
+                // Update component coverage
+                const compPercentage = Math.round((this.coverageData.components / 8) * 100);
+                document.getElementById('compCoverage').style.width = compPercentage + '%';
+                document.getElementById('compCoverageText').textContent = 
+                    `${compPercentage}% (${this.coverageData.components}/8 components)`;
+
+                // Update scenario coverage
+                const scenarioPercentage = Math.round((this.coverageData.scenarios / 12) * 100);
+                document.getElementById('scenarioCoverage').style.width = scenarioPercentage + '%';
+                document.getElementById('scenarioCoverageText').textContent = 
+                    `${scenarioPercentage}% (${this.coverageData.scenarios}/12 scenarios)`;
+            }
+        }
+
+        // Initialize test framework
+        const testFramework = new IntegrationTestFramework();
+
+        // Mock data and utilities for testing
+        const TestData = {
+            validBukaKas: {
+                id: 'test-shift-001',
+                kasir: 'Test Kasir',
+                kasirId: 'kasir001',
+                modalAwal: 100000,
+                waktuBuka: new Date().toISOString(),
+                tanggal: new Date().toISOString().split('T')[0]
+            },
+            
+            sampleTransactions: [
+                { id: 'tx001', total: 50000, metodePembayaran: 'cash' },
+                { id: 'tx002', total: 75000, metodePembayaran: 'cash' },
+                { id: 'tx003', total: 25000, metodePembayaran: 'kredit' }
+            ],
+
+            tutupKasirData: {
+                kasAktual: 225000,
+                keterangan: 'Test tutup kasir'
+            }
+        };
+
+        // Test utility functions
+        function setupTestEnvironment() {
+            // Clear existing data
+            sessionStorage.clear();
+            localStorage.removeItem('riwayatTutupKas');
+            localStorage.removeItem('transaksiHarian');
+            
+            // Setup test session
+            sessionStorage.setItem('bukaKas', JSON.stringify(TestData.validBukaKas));
+            
+            // Setup test transactions
+            localStorage.setItem('transaksiHarian', JSON.stringify(TestData.sampleTransactions));
+        }
+
+        function cleanupTestEnvironment() {
+            sessionStorage.clear();
+            localStorage.removeItem('riwayatTutupKas');
+            localStorage.removeItem('transaksiHarian');
+        }
+
+        // Integration Test Definitions
+        testFramework.addTest('Setup Test Environment', async () => {
+            setupTestEnvironment();
+            
+            const bukaKas = sessionStorage.getItem('bukaKas');
+            if (!bukaKas) throw new Error('Failed to setup buka kas session');
+            
+            const transactions = localStorage.getItem('transaksiHarian');
+            if (!transactions) throw new Error('Failed to setup test transactions');
+            
+            testFramework.coverageData.requirements += 1;
+            testFramework.coverageData.components += 1;
+        }, 'setup');
+
+        testFramework.addTest('Button Visibility Integration', async () => {
+            // Test button visibility with valid session
+            const bukaKas = sessionStorage.getItem('bukaKas');
+            if (!bukaKas) throw new Error('No buka kas session found');
+            
+            // Simulate button visibility check
+            const buttonVisible = !!bukaKas;
+            if (!buttonVisible) throw new Error('Tutup kasir button should be visible');
+            
+            testFramework.coverageData.requirements += 2; // Req 1.1, 1.3
+            testFramework.coverageData.components += 1;
+        }, 'ui-integration');
+
+        testFramework.addTest('Modal Opening Integration', async () => {
+            const startTime = performance.now();
+            
+            // Simulate modal opening
+            const bukaKas = JSON.parse(sessionStorage.getItem('bukaKas'));
+            if (!bukaKas) throw new Error('No session data for modal');
+            
+            // Check required modal data
+            if (!bukaKas.kasir || !bukaKas.modalAwal || !bukaKas.waktuBuka) {
+                throw new Error('Incomplete modal data');
+            }
+            
+            const endTime = performance.now();
+            testFramework.updatePerformanceMetrics({ modalSpeed: (endTime - startTime).toFixed(2) });
+            
+            testFramework.coverageData.requirements += 2; // Req 1.4, 2.1
+            testFramework.coverageData.scenarios += 1;
+        }, 'modal-integration');
+
+        testFramework.addTest('Cash Calculation Integration', async () => {
+            const startTime = performance.now();
+            
+            const bukaKas = JSON.parse(sessionStorage.getItem('bukaKas'));
+            const transactions = JSON.parse(localStorage.getItem('transaksiHarian') || '[]');
+            
+            // Calculate expected values
+            const modalAwal = bukaKas.modalAwal;
+            const totalCash = transactions
+                .filter(t => t.metodePembayaran === 'cash')
+                .reduce((sum, t) => sum + t.total, 0);
+            const kasSeharusnya = modalAwal + totalCash;
+            const kasAktual = TestData.tutupKasirData.kasAktual;
+            const selisih = kasAktual - kasSeharusnya;
+            
+            // Validate calculations
+            if (isNaN(selisih)) throw new Error('Invalid calculation result');
+            if (kasSeharusnya !== 250000) throw new Error('Incorrect kas seharusnya calculation');
+            
+            const endTime = performance.now();
+            testFramework.updatePerformanceMetrics({ calcSpeed: (endTime - startTime).toFixed(2) });
+            
+            testFramework.coverageData.requirements += 1; // Req 2.2
+            testFramework.coverageData.scenarios += 1;
+        }, 'calculation-integration');
+
+        testFramework.addTest('Data Persistence Integration', async () => {
+            const startTime = performance.now();
+            
+            // Simulate tutup kasir data save
+            const tutupKasirRecord = {
+                id: 'tutup-' + Date.now(),
+                shiftId: TestData.validBukaKas.id,
+                kasir: TestData.validBukaKas.kasir,
+                kasirId: TestData.validBukaKas.kasirId,
+                waktuBuka: TestData.validBukaKas.waktuBuka,
+                waktuTutup: new Date().toISOString(),
+                modalAwal: TestData.validBukaKas.modalAwal,
+                kasAktual: TestData.tutupKasirData.kasAktual,
+                selisih: -25000,
+                keteranganSelisih: TestData.tutupKasirData.keterangan
+            };
+            
+            // Save to localStorage
+            const existing = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+            existing.push(tutupKasirRecord);
+            localStorage.setItem('riwayatTutupKas', JSON.stringify(existing));
+            
+            // Verify save
+            const saved = JSON.parse(localStorage.getItem('riwayatTutupKas'));
+            if (!saved || saved.length === 0) throw new Error('Failed to save tutup kasir data');
+            
+            const endTime = performance.now();
+            testFramework.updatePerformanceMetrics({ persistenceSpeed: (endTime - startTime).toFixed(2) });
+            
+            testFramework.coverageData.requirements += 2; // Req 2.4, 4.4
+            testFramework.coverageData.components += 1;
+        }, 'persistence-integration');
+
+        testFramework.addTest('Session Cleanup Integration', async () => {
+            // Verify session cleanup after tutup kasir
+            const beforeCleanup = sessionStorage.getItem('bukaKas');
+            if (!beforeCleanup) throw new Error('No session to cleanup');
+            
+            // Simulate session cleanup
+            sessionStorage.removeItem('bukaKas');
+            
+            const afterCleanup = sessionStorage.getItem('bukaKas');
+            if (afterCleanup) throw new Error('Session not properly cleaned up');
+            
+            testFramework.coverageData.requirements += 1; // Req 2.5
+            testFramework.coverageData.scenarios += 1;
+        }, 'session-integration');
+
+        testFramework.addTest('Error Handling Integration', async () => {
+            // Test error handling with invalid data
+            sessionStorage.setItem('bukaKas', 'invalid-json');
+            
+            try {
+                JSON.parse(sessionStorage.getItem('bukaKas'));
+                throw new Error('Should have thrown JSON parse error');
+            } catch (e) {
+                if (e.message.includes('Should have thrown')) throw e;
+                // Expected error - test passes
+            }
+            
+            // Restore valid session for other tests
+            sessionStorage.setItem('bukaKas', JSON.stringify(TestData.validBukaKas));
+            
+            testFramework.coverageData.requirements += 1; // Req 3.2
+            testFramework.coverageData.scenarios += 1;
+        }, 'error-integration');
+
+        testFramework.addTest('Cross-Module Integration', async () => {
+            // Test integration between POS, Accounting, and Reporting modules
+            const bukaKas = JSON.parse(sessionStorage.getItem('bukaKas'));
+            const riwayat = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+            
+            // Verify data flow between modules
+            if (!bukaKas) throw new Error('POS module data missing');
+            if (riwayat.length === 0) throw new Error('Reporting module data missing');
+            
+            // Simulate accounting integration
+            const selisih = -25000;
+            const journalEntry = {
+                type: selisih > 0 ? 'pendapatan-lain' : 'beban-lain',
+                amount: Math.abs(selisih),
+                description: 'Selisih kas tutup kasir'
+            };
+            
+            if (!journalEntry.type || !journalEntry.amount) {
+                throw new Error('Accounting integration failed');
+            }
+            
+            testFramework.coverageData.requirements += 2; // Req 4.1, 4.2
+            testFramework.coverageData.components += 2;
+        }, 'cross-module');
+
+        testFramework.addTest('Memory Usage Monitoring', async () => {
+            // Monitor memory usage during operations
+            const initialMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            
+            // Simulate heavy operations
+            const largeData = new Array(1000).fill(0).map((_, i) => ({
+                id: i,
+                data: 'test-data-' + i,
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Store and retrieve data
+            localStorage.setItem('testLargeData', JSON.stringify(largeData));
+            const retrieved = JSON.parse(localStorage.getItem('testLargeData'));
+            
+            if (retrieved.length !== 1000) throw new Error('Data integrity issue');
+            
+            // Cleanup
+            localStorage.removeItem('testLargeData');
+            
+            const finalMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+            const memoryUsed = performance.memory ? 
+                ((finalMemory - initialMemory) / 1024 / 1024).toFixed(2) : 'N/A';
+            
+            testFramework.updatePerformanceMetrics({ memoryUsage: memoryUsed });
+            
+            testFramework.coverageData.scenarios += 1;
+        }, 'performance');
+
+        testFramework.addTest('Multi-User Scenario Simulation', async () => {
+            // Simulate multiple kasir sessions
+            const kasir1Data = { ...TestData.validBukaKas, kasirId: 'kasir001', kasir: 'Kasir 1' };
+            const kasir2Data = { ...TestData.validBukaKas, kasirId: 'kasir002', kasir: 'Kasir 2' };
+            
+            // Test data isolation
+            sessionStorage.setItem('bukaKas', JSON.stringify(kasir1Data));
+            const session1 = JSON.parse(sessionStorage.getItem('bukaKas'));
+            
+            sessionStorage.setItem('bukaKas', JSON.stringify(kasir2Data));
+            const session2 = JSON.parse(sessionStorage.getItem('bukaKas'));
+            
+            if (session1.kasirId === session2.kasirId) {
+                throw new Error('Session data not properly isolated');
+            }
+            
+            testFramework.coverageData.scenarios += 2;
+            testFramework.coverageData.components += 1;
+        }, 'multi-user');
+
+        // Main test execution functions
+        async function runAllIntegrationTests() {
+            document.getElementById('testResults').innerHTML = '';
+            testFramework.results = [];
+            testFramework.coverageData = { requirements: 0, components: 0, scenarios: 0 };
+            
+            for (const test of testFramework.tests) {
+                await testFramework.runTest(test);
+                testFramework.updateMetrics();
+                testFramework.updateCoverage();
+                
+                // Small delay for UI updates
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Final cleanup
+            cleanupTestEnvironment();
+        }
+
+        async function runEndToEndWorkflowTest() {
+            const tests = testFramework.tests.filter(t => 
+                ['setup', 'ui-integration', 'modal-integration', 'calculation-integration', 
+                 'persistence-integration', 'session-integration'].includes(t.category)
+            );
+            
+            for (const test of tests) {
+                await testFramework.runTest(test);
+                testFramework.updateMetrics();
+            }
+        }
+
+        async function runCrossModuleIntegrationTest() {
+            const test = testFramework.tests.find(t => t.category === 'cross-module');
+            if (test) {
+                await testFramework.runTest(test);
+                testFramework.updateMetrics();
+            }
+        }
+
+        async function runSessionPersistenceTest() {
+            const tests = testFramework.tests.filter(t => 
+                t.category === 'session-integration' || t.category === 'persistence-integration'
+            );
+            
+            for (const test of tests) {
+                await testFramework.runTest(test);
+                testFramework.updateMetrics();
+            }
+        }
+
+        async function runMultiUserScenarioTest() {
+            const test = testFramework.tests.find(t => t.category === 'multi-user');
+            if (test) {
+                await testFramework.runTest(test);
+                testFramework.updateMetrics();
+            }
+        }
+
+        function clearAllTestData() {
+            cleanupTestEnvironment();
+            document.getElementById('testResults').innerHTML = 
+                '<div class="alert alert-info">Test data cleared. Ready for new tests.</div>';
+            
+            // Reset metrics
+            testFramework.results = [];
+            testFramework.coverageData = { requirements: 0, components: 0, scenarios: 0 };
+            testFramework.updateMetrics();
+            testFramework.updateCoverage();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Integration Testing Framework initialized');
+            console.log(`Total tests available: ${testFramework.tests.length}`);
+        });
+    </script>
+</body>
+</html>

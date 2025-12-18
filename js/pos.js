@@ -85,6 +85,28 @@ function renderPOS() {
                 margin-bottom: 0;
                 box-shadow: 0 2px 10px rgba(45, 106, 79, 0.3);
                 flex-shrink: 0;
+                position: relative;
+                z-index: 1000;
+            }
+
+            /* Enhanced Tutup Kasir Button Styling */
+            .tutup-kasir-btn-enhanced:hover {
+                background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4) !important;
+                border-color: #fff !important;
+                color: #000 !important;
+            }
+
+            .tutup-kasir-btn-enhanced:focus {
+                outline: 3px solid rgba(255, 193, 7, 0.5) !important;
+                outline-offset: 2px !important;
+                box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+            }
+
+            .tutup-kasir-btn-enhanced:active {
+                transform: translateY(0) !important;
+                box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3) !important;
             }
 
             .pos-search-section {
@@ -513,6 +535,41 @@ function renderPOS() {
                 .total-amount {
                     font-size: 1.5rem;
                 }
+                
+                /* Mobile responsive for header buttons */
+                .pos-header .d-flex {
+                    flex-direction: column;
+                    align-items: flex-start !important;
+                }
+                
+                .pos-header .text-end {
+                    text-align: left !important;
+                    width: 100%;
+                    margin-top: 10px;
+                }
+                
+                .tutup-kasir-btn-enhanced {
+                    width: 100%;
+                    margin-bottom: 8px !important;
+                    margin-right: 0 !important;
+                }
+                
+                .pos-header .d-flex.gap-2 {
+                    flex-direction: column;
+                    gap: 8px !important;
+                    width: 100%;
+                }
+            }
+            
+            @media (max-width: 576px) {
+                .pos-header {
+                    padding: 10px 15px;
+                }
+                
+                .tutup-kasir-btn-enhanced {
+                    font-size: 0.9rem;
+                    padding: 8px 12px;
+                }
             }
 
             /* Enhanced product grid for fullscreen */
@@ -580,9 +637,18 @@ function renderPOS() {
                         <p class="mb-0 opacity-75">Sistem Kasir Koperasi Karyawan</p>
                     </div>
                     <div class="text-end">
-                        <div class="d-flex gap-2 align-items-center">
-                            <small class="opacity-75">F1: Search | ESC: Exit | F12: Clear</small>
-                            <button class="btn btn-warning btn-sm me-2" onclick="showTutupKasirModal()">
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <small class="opacity-75 d-none d-md-block">F1: Search | ESC: Exit | F10: Tutup Kasir</small>
+                            <button class="btn btn-warning btn-sm me-2 tutup-kasir-btn-enhanced" 
+                                    onclick="showTutupKasirModal()" 
+                                    title="Tutup Kasir (F10)"
+                                    style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%) !important; 
+                                           border: 2px solid #fff !important; 
+                                           color: #000 !important; 
+                                           font-weight: 600 !important; 
+                                           box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3) !important; 
+                                           position: relative !important; 
+                                           z-index: 1001 !important;">
                                 <i class="bi bi-calculator me-1"></i>Tutup Kasir
                             </button>
                             <button class="btn btn-outline-light btn-sm" onclick="exitPOSFullscreen()">
@@ -760,6 +826,18 @@ function initializePOSFullscreen() {
             event.preventDefault();
             clearCartPOS();
         }
+        
+        // F10 to open tutup kasir modal
+        if (event.key === 'F10') {
+            event.preventDefault();
+            showTutupKasirModal();
+        }
+        
+        // Ctrl + Shift + T for tutup kasir (alternative)
+        if (event.ctrlKey && event.shiftKey && event.key === 'T') {
+            event.preventDefault();
+            showTutupKasirModal();
+        }
     });
     
     // Hide dropdown when clicking outside
@@ -771,6 +849,25 @@ function initializePOSFullscreen() {
             dropdown.style.display = 'none';
         }
     });
+    
+    // Initialize tutup kasir enhancements
+    setTimeout(initTutupKasirEnhancements, 500);
+    
+    // Initialize keyboard accessibility manager
+    setTimeout(() => {
+        if (!window.tutupKasirAccessibilityManager) {
+            // Load the accessibility module if not already loaded
+            const script = document.createElement('script');
+            script.src = 'js/keyboard-accessibility-tutup-kasir.js';
+            script.onload = () => {
+                window.tutupKasirAccessibilityManager = new TutupKasirAccessibilityManager();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Dispatch custom event to notify accessibility manager
+        document.dispatchEvent(new CustomEvent('posRendered'));
+    }, 1000);
 }
 
 // Load products for POS
@@ -1307,13 +1404,30 @@ function showBukaKasModal() {
 
 // Show tutup kasir modal
 function showTutupKasirModal() {
+    // Enhanced session validation
     const bukaKas = sessionStorage.getItem('bukaKas');
     if (!bukaKas) {
-        showAlert('Belum ada kas yang dibuka', 'error');
+        showAlert('Belum ada kas yang dibuka. Silakan buka kas terlebih dahulu untuk memulai shift.', 'error');
         return;
     }
     
-    const shiftData = JSON.parse(bukaKas);
+    let shiftData;
+    try {
+        shiftData = JSON.parse(bukaKas);
+        
+        // Validate required fields
+        if (!shiftData.kasir || !shiftData.modalAwal || !shiftData.waktuBuka) {
+            sessionStorage.removeItem('bukaKas');
+            sessionStorage.removeItem('shiftId');
+            showAlert('Data buka kas tidak lengkap. Session telah dibersihkan, silakan buka kas ulang.', 'error');
+            return;
+        }
+    } catch (e) {
+        sessionStorage.removeItem('bukaKas');
+        sessionStorage.removeItem('shiftId');
+        showAlert('Data buka kas corrupt. Session telah dibersihkan, silakan buka kas ulang.', 'error');
+        return;
+    }
     const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
     
     // Filter penjualan untuk shift ini (berdasarkan waktu)
@@ -1751,5 +1865,129 @@ function formatDateTime(dateString) {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
+    });
+}
+
+// Enhanced session validation function
+function validateBukaKasSession() {
+    const bukaKas = sessionStorage.getItem('bukaKas');
+    if (!bukaKas) {
+        return { 
+            valid: false, 
+            message: 'Belum ada kas yang dibuka. Silakan buka kas terlebih dahulu untuk memulai shift.',
+            action: 'buka_kas'
+        };
+    }
+    
+    try {
+        const data = JSON.parse(bukaKas);
+        if (!data.kasir || !data.modalAwal || !data.waktuBuka) {
+            return { 
+                valid: false, 
+                message: 'Data buka kas tidak lengkap. Silakan buka kas ulang.',
+                action: 'buka_kas_ulang'
+            };
+        }
+        return { valid: true, data: data };
+    } catch (e) {
+        sessionStorage.removeItem('bukaKas');
+        sessionStorage.removeItem('shiftId');
+        return { 
+            valid: false, 
+            message: 'Data buka kas corrupt. Session telah dibersihkan, silakan buka kas ulang.',
+            action: 'session_corrupt'
+        };
+    }
+}
+
+// Update tutup kasir button status and visibility
+function updateTutupKasirButtonStatus() {
+    const button = document.querySelector('.tutup-kasir-btn-enhanced');
+    if (!button) return;
+    
+    const sessionValidation = validateBukaKasSession();
+    
+    if (sessionValidation.valid) {
+        button.disabled = false;
+        button.style.opacity = '1';
+        button.title = `Tutup Kasir (F10) - Kasir: ${sessionValidation.data.kasir}`;
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-warning');
+    } else {
+        button.disabled = true;
+        button.style.opacity = '0.6';
+        button.title = sessionValidation.message;
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-secondary');
+    }
+}
+
+// Initialize tutup kasir enhancements
+function initTutupKasirEnhancements() {
+    // Update button status immediately
+    updateTutupKasirButtonStatus();
+    
+    // Monitor session changes
+    const originalSetItem = sessionStorage.setItem;
+    const originalRemoveItem = sessionStorage.removeItem;
+    
+    sessionStorage.setItem = function(key, value) {
+        originalSetItem.apply(this, arguments);
+        if (key === 'bukaKas') {
+            setTimeout(updateTutupKasirButtonStatus, 100);
+        }
+    };
+    
+    sessionStorage.removeItem = function(key) {
+        originalRemoveItem.apply(this, arguments);
+        if (key === 'bukaKas') {
+            setTimeout(updateTutupKasirButtonStatus, 100);
+        }
+    };
+    
+    // Periodic status check (every 30 seconds)
+    setInterval(updateTutupKasirButtonStatus, 30000);
+}
+
+// Enhanced showAlert function with better UX
+function showEnhancedAlert(message, type = 'info', actions = []) {
+    // Create enhanced alert modal
+    const alertModal = document.createElement('div');
+    alertModal.className = 'modal fade';
+    alertModal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'warning'}">
+                    <h5 class="modal-title text-white">
+                        <i class="bi bi-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                        ${type === 'error' ? 'Error' : type === 'success' ? 'Berhasil' : 'Informasi'}
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>${message}</p>
+                    ${actions.length > 0 ? `
+                        <div class="d-flex gap-2 mt-3">
+                            ${actions.map(action => `
+                                <button class="btn btn-${action.type || 'primary'}" onclick="${action.onclick}">
+                                    ${action.text}
+                                </button>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(alertModal);
+    const modal = new bootstrap.Modal(alertModal);
+    modal.show();
+    
+    // Auto remove after modal is hidden
+    alertModal.addEventListener('hidden.bs.modal', () => {
+        document.body.removeChild(alertModal);
     });
 }

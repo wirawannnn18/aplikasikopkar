@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Enhanced Tutup Kasir Data Persistence</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .log-entry {
+            font-family: monospace;
+            font-size: 12px;
+            margin: 2px 0;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1><i class="bi bi-shield-check"></i> Test Enhanced Tutup Kasir Data Persistence</h1>
+        <p class="text-muted">Testing data persistence, atomic operations, and retry mechanisms</p>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-primary me-2" onclick="runAllTests()">
+                        <i class="bi bi-play-fill"></i> Run All Tests
+                    </button>
+                    <button class="btn btn-secondary me-2" onclick="clearResults()">
+                        <i class="bi bi-trash"></i> Clear Results
+                    </button>
+                    <button class="btn btn-warning me-2" onclick="clearStorage()">
+                        <i class="bi bi-database-x"></i> Clear Storage
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-info me-2" onclick="showHealthStatus()">
+                        <i class="bi bi-heart-pulse"></i> Health Status
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="showStorageUsage()">
+                        <i class="bi bi-pie-chart"></i> Storage Usage
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div id="testResults"></div>
+
+        <!-- System Status -->
+        <div class="test-section">
+            <h3>System Status</h3>
+            <div id="systemStatus"></div>
+        </div>
+
+        <!-- Error Log -->
+        <div class="test-section">
+            <h3>Error Log</h3>
+            <div id="errorLog"></div>
+        </div>
+    </div>
+
+    <script src="js/enhanced-tutup-kasir-data-persistence.js"></script>
+    <script>
+        let testResults = [];
+        let persistence = window.enhancedTutupKasirDataPersistence;
+
+        function logResult(testName, success, message, details = null) {
+            const result = {
+                testName: testName,
+                success: success,
+                message: message,
+                details: details,
+                timestamp: new Date().toISOString()
+            };
+            testResults.push(result);
+            displayResult(result);
+        }
+
+        function displayResult(result) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${result.success ? 'test-success' : 'test-error'}`;
+            
+            let html = `
+                <strong>${result.testName}</strong>: ${result.message}
+                <small class="d-block text-muted">${result.timestamp}</small>
+            `;
+            
+            if (result.details) {
+                html += `<pre class="mt-2 mb-0">${JSON.stringify(result.details, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('errorLog').innerHTML = '';
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            logResult('Storage Cleanup', true, 'All storage cleared');
+        }
+
+        // Test 1: Data Validation
+        async function testDataValidation() {
+            try {
+                // Valid data
+                const validData = {
+                    id: 'test_001',
+                    shiftId: 'shift_001',
+                    kasir: 'Test Kasir',
+                    kasirId: 'kasir_001',
+                    waktuBuka: '2024-01-01T08:00:00.000Z',
+                    waktuTutup: '2024-01-01T16:00:00.000Z',
+                    modalAwal: 100000,
+                    totalPenjualan: 500000,
+                    totalCash: 300000,
+                    totalKredit: 200000,
+                    kasSeharusnya: 400000,
+                    kasAktual: 395000,
+                    selisih: -5000,
+                    keteranganSelisih: 'Uang kembalian kurang',
+                    jumlahTransaksi: 25,
+                    tanggalTutup: '2024-01-01'
+                };
+
+                const validation = persistence.validateDataIntegrity(validData);
+                if (validation.isValid) {
+                    logResult('Data Validation - Valid Data', true, 'Valid data passed validation');
+                } else {
+                    logResult('Data Validation - Valid Data', false, 'Valid data failed validation', validation.errors);
+                }
+
+                // Invalid data - missing required fields
+                const invalidData = {
+                    id: 'test_002',
+                    kasir: 'Test Kasir'
+                };
+
+                const invalidValidation = persistence.validateDataIntegrity(invalidData);
+                if (!invalidValidation.isValid && invalidValidation.errors.length > 0) {
+                    logResult('Data Validation - Invalid Data', true, 'Invalid data correctly rejected');
+                } else {
+                    logResult('Data Validation - Invalid Data', false, 'Invalid data incorrectly accepted');
+                }
+
+                // Test selisih calculation consistency
+                const inconsistentData = {
+                    ...validData,
+                    selisih: 1000 // Wrong calculation
+                };
+
+                const inconsistentValidation = persistence.validateDataIntegrity(inconsistentData);
+                if (!inconsistentValidation.isValid) {
+                    logResult('Data Validation - Calculation Consistency', true, 'Inconsistent calculation detected');
+                } else {
+                    logResult('Data Validation - Calculation Consistency', false, 'Inconsistent calculation not detected');
+                }
+
+            } catch (error) {
+                logResult('Data Validation', false, 'Test failed with error: ' + error.message);
+            }
+        }
+
+        // Test 2: Save with Retry
+        async function testSaveWithRetry() {
+            try {
+                const testData = {
+                    id: 'retry_test_001',
+                    shiftId: 'shift_retry_001',
+                    kasir: 'Retry Test Kasir',
+                    kasirId: 'kasir_retry_001',
+                    waktuBuka: '2024-01-01T08:00:00.000Z',
+                    waktuTutup: '2024-01-01T16:00:00.000Z',
+                    modalAwal: 50000,
+                    totalPenjualan: 200000,
+                    totalCash: 150000,
+                    totalKredit: 50000,
+                    kasSeharusnya: 200000,
+                    kasAktual: 200000,
+                    selisih: 0,
+                    keteranganSelisih: '',
+                    jumlahTransaksi: 10,
+                    tanggalTutup: '2024-01-01'
+                };
+
+                const result = await persistence.saveWithRetry('testRetryData', [testData]);
+                
+                if (result.success) {
+                    logResult('Save with Retry', true, 'Data saved successfully', result);
+                    
+                    // Verify data was saved
+                    const savedData = JSON.parse(localStorage.getItem('testRetryData'));
+                    if (savedData && savedData.length === 1 && savedData[0].id === testData.id) {
+                        logResult('Save Verification', true, 'Saved data verified successfully');
+                    } else {
+                        logResult('Save Verification', false, 'Saved data verification failed');
+                    }
+                } else {
+                    logResult('Save with Retry', false, 'Save failed: ' + result.error, result);
+                }
+
+            } catch (error) {
+                logResult('Save with Retry', false, 'Test failed with error: ' + error.message);
+            }
+        }
+
+        // Test 3: Atomic Operations
+        async function testAtomicOperations() {
+            try {
+                // Setup initial data
+                localStorage.setItem('atomicTestData', JSON.stringify({ value: 100 }));
+                
+                const operation = async (context) => {
+                    // Simulate operation that modifies data
+                    const currentData = JSON.parse(localStorage.getItem('atomicTestData'));
+                    currentData.value += context.increment;
+                    localStorage.setItem('atomicTestData', JSON.stringify(currentData));
+                    
+                    if (context.shouldFail) {
+                        throw new Error('Simulated operation failure');
+                    }
+                    
+                    return { success: true, newValue: currentData.value };
+                };
+
+                // Test successful operation
+                const successResult = await persistence.performAtomicOperation(operation, { increment: 50 });
+                
+                if (successResult.success) {
+                    const data = JSON.parse(localStorage.getItem('atomicTestData'));
+                    if (data.value === 150) {
+                        logResult('Atomic Operation - Success', true, 'Successful operation completed', successResult);
+                    } else {
+                        logResult('Atomic Operation - Success', false, 'Data not updated correctly');
+                    }
+                } else {
+                    logResult('Atomic Operation - Success', false, 'Operation failed unexpectedly', successResult);
+                }
+
+                // Test failed operation with rollback
+                const initialValue = JSON.parse(localStorage.getItem('atomicTestData')).value;
+                const failResult = await persistence.performAtomicOperation(operation, { increment: 25, shouldFail: true });
+                
+                if (!failResult.success) {
+                    const data = JSON.parse(localStorage.getItem('atomicTestData'));
+                    if (data.value === initialValue) {
+                        logResult('Atomic Operation - Rollback', true, 'Failed operation rolled back correctly', failResult);
+                    } else {
+                        logResult('Atomic Operation - Rollback', false, 'Rollback failed, data corrupted');
+                    }
+                } else {
+                    logResult('Atomic Operation - Rollback', false, 'Operation should have failed');
+                }
+
+            } catch (error) {
+                logResult('Atomic Operations', false, 'Test failed with error: ' + error.message);
+            }
+        }
+
+        // Test 4: Backup and Recovery
+        async function testBackupRecovery() {
+            try {
+                const testData = { test: 'backup_data', timestamp: Date.now() };
+                
+                // Create backup
+                persistence.createBackup('backupTest', testData);
+                
+                // Verify backup exists
+                let backupFound = false;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('backup_backupTest_')) {
+                        backupFound = true;
+                        break;
+                    }
+                }
+                
+                if (backupFound) {
+                    logResult('Backup Creation', true, 'Backup created successfully');
+                } else {
+                    logResult('Backup Creation', false, 'Backup not found');
+                    return;
+                }
+
+                // Corrupt original data
+                localStorage.setItem('backupTest', JSON.stringify({ corrupted: true }));
+                
+                // Recover from backup
+                const recoveryResult = persistence.recoverFromBackup('backupTest');
+                
+                if (recoveryResult.success) {
+                    const recoveredData = JSON.parse(localStorage.getItem('backupTest'));
+                    if (recoveredData.test === 'backup_data') {
+                        logResult('Backup Recovery', true, 'Data recovered successfully', recoveryResult);
+                    } else {
+                        logResult('Backup Recovery', false, 'Recovered data is incorrect');
+                    }
+                } else {
+                    logResult('Backup Recovery', false, 'Recovery failed: ' + recoveryResult.error);
+                }
+
+            } catch (error) {
+                logResult('Backup Recovery', false, 'Test failed with error: ' + error.message);
+            }
+        }
+
+        // Test 5: Complete Tutup Kasir Flow
+        async function testCompleteTutupKasirFlow() {
+            try {
+                // Setup session data
+                sessionStorage.setItem('bukaKas', JSON.stringify({
+                    id: 'buka_001',
+                    kasir: 'Test Kasir',
+                    kasirId: 'kasir_001',
+                    modalAwal: 100000,
+                    waktuBuka: '2024-01-01T08:00:00.000Z',
+                    tanggal: '2024-01-01'
+                }));
+
+                const tutupKasirData = {
+                    id: 'tutup_001',
+                    shiftId: 'buka_001',
+                    kasir: 'Test Kasir',
+                    kasirId: 'kasir_001',
+                    waktuBuka: '2024-01-01T08:00:00.000Z',
+                    waktuTutup: '2024-01-01T16:00:00.000Z',
+                    modalAwal: 100000,
+                    totalPenjualan: 750000,
+                    totalCash: 500000,
+                    totalKredit: 250000,
+                    kasSeharusnya: 600000,
+                    kasAktual: 595000,
+                    selisih: -5000,
+                    keteranganSelisih: 'Uang kembalian kurang Rp 5.000',
+                    jumlahTransaksi: 30,
+                    tanggalTutup: '2024-01-01'
+                };
+
+                const result = await persistence.saveTutupKasirData(tutupKasirData);
+                
+                if (result.success) {
+                    logResult('Complete Tutup Kasir Flow', true, 'Tutup kasir completed successfully', result);
+                    
+                    // Verify session was cleared
+                    const sessionData = sessionStorage.getItem('bukaKas');
+                    if (!sessionData) {
+                        logResult('Session Cleanup', true, 'Session data cleared successfully');
+                    } else {
+                        logResult('Session Cleanup', false, 'Session data not cleared');
+                    }
+                    
+                    // Verify riwayat was saved
+                    const riwayat = JSON.parse(localStorage.getItem('riwayatTutupKas') || '[]');
+                    const savedRecord = riwayat.find(r => r.id === tutupKasirData.id);
+                    if (savedRecord) {
+                        logResult('Riwayat Save', true, 'Tutup kasir record saved to riwayat');
+                    } else {
+                        logResult('Riwayat Save', false, 'Tutup kasir record not found in riwayat');
+                    }
+                    
+                    // Verify journal entry was created for selisih
+                    const journalEntries = JSON.parse(localStorage.getItem('journalEntries') || '[]');
+                    const selisihEntry = journalEntries.find(j => j.id === 'journal_selisih_' + tutupKasirData.id);
+                    if (selisihEntry) {
+                        logResult('Journal Entry Creation', true, 'Journal entry created for selisih');
+                    } else {
+                        logResult('Journal Entry Creation', false, 'Journal entry not created for selisih');
+                    }
+                    
+                } else {
+                    logResult('Complete Tutup Kasir Flow', false, 'Tutup kasir failed: ' + result.error, result);
+                }
+
+            } catch (error) {
+                logResult('Complete Tutup Kasir Flow', false, 'Test failed with error: ' + error.message);
+            }
+        }
+
+        // Test 6: Error Handling
+        async function testErrorHandling() {
+            try {
+                // Test with invalid data
+                const invalidData = {
+                    id: 'invalid_001',
+                    // Missing required fields
+                };
+
+                const result = await persistence.saveTutupKasirData(invalidData);
+                
+                if (!result.success && result.error.includes('validation failed')) {
+                    logResult('Error Handling - Invalid Data', true, 'Invalid data correctly rejected');
+                } else {
+                    logResult('Error Handling - Invalid Data', false, 'Invalid data not handled correctly');
+                }
+
+                // Check error log
+                const errorLog = persistence.getErrorLog();
+                if (errorLog.length > 0) {
+                    logResult('Error Logging', true, `${errorLog.length} errors logged`);
+                } else {
+                    logResult('Error Logging', false, 'No errors logged');
+                }
+
+            } catch (error) {
+                logResult('Error Handling', false, 'Test failed with error: ' + error.message);
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            logResult('Test Suite', true, 'Starting all tests...');
+            
+            await testDataValidation();
+            await testSaveWithRetry();
+            await testAtomicOperations();
+            await testBackupRecovery();
+            await testCompleteTutupKasirFlow();
+            await testErrorHandling();
+            
+            const successCount = testResults.filter(r => r.success).length;
+            const totalCount = testResults.length;
+            
+            logResult('Test Suite Complete', true, `${successCount}/${totalCount} tests passed`);
+            
+            showHealthStatus();
+            showErrorLog();
+        }
+
+        function showHealthStatus() {
+            const health = persistence.getHealthStatus();
+            const statusDiv = document.getElementById('systemStatus');
+            
+            const statusClass = health.status === 'healthy' ? 'test-success' : 'test-error';
+            statusDiv.innerHTML = `
+                <div class="${statusClass}">
+                    <strong>System Status:</strong> ${health.status.toUpperCase()}<br>
+                    <strong>Recent Errors:</strong> ${health.recentErrorCount}<br>
+                    <strong>Last Backup:</strong> ${health.lastBackupTime ? new Date(health.lastBackupTime).toLocaleString() : 'Never'}<br>
+                    <strong>Storage Usage:</strong> ${health.storageUsage.usagePercentage.toFixed(2)}% (${health.storageUsage.totalSize} bytes)<br>
+                    <strong>Timestamp:</strong> ${health.timestamp}
+                </div>
+            `;
+        }
+
+        function showStorageUsage() {
+            const usage = persistence.getStorageUsage();
+            alert(`Storage Usage:
+Total Size: ${usage.totalSize} bytes
+Items: ${usage.itemCount}
+Usage: ${usage.usagePercentage.toFixed(2)}%`);
+        }
+
+        function showErrorLog() {
+            const errorLog = persistence.getErrorLog();
+            const errorDiv = document.getElementById('errorLog');
+            
+            if (errorLog.length === 0) {
+                errorDiv.innerHTML = '<div class="test-info">No errors logged</div>';
+                return;
+            }
+            
+            let html = '';
+            errorLog.slice(-10).forEach(error => {
+                html += `
+                    <div class="log-entry">
+                        <strong>${error.type}</strong> - ${error.timestamp}<br>
+                        ${error.message}<br>
+                        ${error.context ? JSON.stringify(error.context) : ''}
+                    </div>
+                `;
+            });
+            
+            errorDiv.innerHTML = html;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showHealthStatus();
+            logResult('System', true, 'Enhanced Tutup Kasir Data Persistence loaded successfully');
+        });
+    </script>
+</body>
+</html>

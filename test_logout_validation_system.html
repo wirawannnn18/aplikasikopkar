@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Logout Validation System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .shift-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test Logout Validation System</h1>
+        <p class="text-muted">Testing logout validation and warnings for active shifts</p>
+
+        <div class="test-section">
+            <h3>Current Session Status</h3>
+            <div id="session-status" class="shift-info">
+                <p><strong>Status:</strong> <span id="shift-status">Checking...</span></p>
+                <div id="shift-details" style="display: none;">
+                    <p><strong>Kasir:</strong> <span id="kasir-name"></span></p>
+                    <p><strong>Waktu Buka:</strong> <span id="waktu-buka"></span></p>
+                    <p><strong>Modal Awal:</strong> <span id="modal-awal"></span></p>
+                    <p><strong>Durasi Shift:</strong> <span id="durasi-shift"></span></p>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="checkSessionStatus()">Refresh Status</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1: Create Active Shift</h3>
+            <p>Create a test active shift to simulate buka kas</p>
+            <button class="btn btn-success" onclick="createActiveShift()">Create Active Shift</button>
+            <div id="test1-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Test Logout with Active Shift</h3>
+            <p>Attempt logout when there's an active shift (should show warning)</p>
+            <button class="btn btn-warning logout-btn" onclick="testLogoutWithActiveShift()">Test Logout (Active Shift)</button>
+            <div id="test2-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Test Logout without Active Shift</h3>
+            <p>Attempt logout when there's no active shift (should proceed normally)</p>
+            <button class="btn btn-secondary" onclick="testLogoutWithoutActiveShift()">Test Logout (No Active Shift)</button>
+            <div id="test3-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Auto-Save Functionality</h3>
+            <p>Test the auto-save mechanism for important data</p>
+            <button class="btn btn-info" onclick="testAutoSave()">Test Auto-Save</button>
+            <div id="test4-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 5: Manual Logout Validation</h3>
+            <p>Manually trigger logout validation process</p>
+            <button class="btn btn-primary" onclick="manualLogoutValidation()">Manual Validation</button>
+            <div id="test5-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 6: Clear Session Data</h3>
+            <p>Clear all session data to reset tests</p>
+            <button class="btn btn-danger" onclick="clearSessionData()">Clear Session Data</button>
+            <div id="test6-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Auto-Saved Data Recovery</h3>
+            <div id="auto-saved-data">
+                <p>No auto-saved data found</p>
+            </div>
+            <button class="btn btn-outline-primary" onclick="showAutoSavedData()">Show Auto-Saved Data</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import LogoutValidationSystem from './js/logout-validation-system.js';
+        
+        // Create global instance for testing
+        window.logoutValidator = new LogoutValidationSystem();
+
+        // Test helper functions
+        window.displayResult = function(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const resultClass = success ? 'test-success' : 'test-error';
+            let html = `<div class="test-result ${resultClass}">
+                <strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}
+            </div>`;
+            
+            if (data) {
+                html += `<div class="test-result test-info">
+                    <strong>Data:</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>`;
+            }
+            
+            element.innerHTML = html;
+        };
+
+        window.createTestShiftData = function() {
+            return {
+                id: 'test_shift_' + Date.now(),
+                kasir: 'Test Kasir',
+                kasirId: 'kasir_test_001',
+                modalAwal: 500000,
+                waktuBuka: new Date().toISOString(),
+                tanggal: new Date().toISOString().split('T')[0]
+            };
+        };
+
+        window.formatDateTime = function(isoString) {
+            try {
+                const date = new Date(isoString);
+                return date.toLocaleString('id-ID');
+            } catch (error) {
+                return isoString;
+            }
+        };
+
+        window.calculateDuration = function(startTime) {
+            try {
+                const start = new Date(startTime);
+                const now = new Date();
+                const durationMs = now - start;
+                
+                const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                
+                return `${hours} jam ${minutes} menit`;
+            } catch (error) {
+                return 'Tidak dapat dihitung';
+            }
+        };
+
+        // Test functions
+        window.checkSessionStatus = function() {
+            try {
+                const hasActiveShift = window.logoutValidator.checkActiveShift();
+                const shiftStatusElement = document.getElementById('shift-status');
+                const shiftDetailsElement = document.getElementById('shift-details');
+                
+                if (hasActiveShift) {
+                    const shiftData = window.logoutValidator.getActiveShiftData();
+                    shiftStatusElement.textContent = 'Active Shift';
+                    shiftStatusElement.className = 'badge bg-success';
+                    
+                    document.getElementById('kasir-name').textContent = shiftData.kasir;
+                    document.getElementById('waktu-buka').textContent = window.formatDateTime(shiftData.waktuBuka);
+                    document.getElementById('modal-awal').textContent = 'Rp ' + shiftData.modalAwal.toLocaleString('id-ID');
+                    document.getElementById('durasi-shift').textContent = window.calculateDuration(shiftData.waktuBuka);
+                    
+                    shiftDetailsElement.style.display = 'block';
+                } else {
+                    shiftStatusElement.textContent = 'No Active Shift';
+                    shiftStatusElement.className = 'badge bg-secondary';
+                    shiftDetailsElement.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking session status:', error);
+                document.getElementById('shift-status').textContent = 'Error';
+            }
+        };
+
+        window.createActiveShift = function() {
+            try {
+                const testShiftData = window.createTestShiftData();
+                sessionStorage.setItem('bukaKas', JSON.stringify(testShiftData));
+                
+                window.displayResult('test1-result', true, 'Active shift created successfully', testShiftData);
+                window.checkSessionStatus();
+            } catch (error) {
+                window.displayResult('test1-result', false, error.message);
+            }
+        };
+
+        window.testLogoutWithActiveShift = async function() {
+            try {
+                // Ensure there's an active shift
+                if (!window.logoutValidator.checkActiveShift()) {
+                    window.createActiveShift();
+                }
+                
+                const validationResult = await window.logoutValidator.validateLogoutAttempt();
+                
+                const isCorrect = validationResult.hasActiveShift === true &&
+                                validationResult.warningShown === true &&
+                                validationResult.preventLogout === true;
+                
+                window.displayResult('test2-result', isCorrect, 
+                    isCorrect ? 'Logout correctly prevented with warning' : 'Unexpected behavior',
+                    validationResult);
+            } catch (error) {
+                window.displayResult('test2-result', false, error.message);
+            }
+        };
+
+        window.testLogoutWithoutActiveShift = async function() {
+            try {
+                // Clear any active shift
+                sessionStorage.removeItem('bukaKas');
+                
+                const validationResult = await window.logoutValidator.validateLogoutAttempt();
+                
+                const isCorrect = validationResult.hasActiveShift === false &&
+                                validationResult.warningShown === false &&
+                                validationResult.preventLogout === false;
+                
+                window.displayResult('test3-result', isCorrect, 
+                    isCorrect ? 'Logout correctly allowed without warning' : 'Unexpected behavior',
+                    validationResult);
+                    
+                window.checkSessionStatus();
+            } catch (error) {
+                window.displayResult('test3-result', false, error.message);
+            }
+        };
+
+        window.testAutoSave = async function() {
+            try {
+                // Create test data
+                const testShiftData = window.createTestShiftData();
+                sessionStorage.setItem('bukaKas', JSON.stringify(testShiftData));
+                sessionStorage.setItem('pendingTransactions', JSON.stringify([{id: 'test', amount: 1000}]));
+                
+                const autoSaveResult = await window.logoutValidator.autoSaveImportantData();
+                
+                window.displayResult('test4-result', autoSaveResult.success, 
+                    autoSaveResult.success ? 'Auto-save completed successfully' : 'Auto-save failed',
+                    autoSaveResult);
+                    
+                window.showAutoSavedData();
+            } catch (error) {
+                window.displayResult('test4-result', false, error.message);
+            }
+        };
+
+        window.manualLogoutValidation = async function() {
+            try {
+                const validationResult = await window.logoutValidator.validateLogoutAttempt();
+                
+                window.displayResult('test5-result', true, 'Manual validation completed', validationResult);
+            } catch (error) {
+                window.displayResult('test5-result', false, error.message);
+            }
+        };
+
+        window.clearSessionData = function() {
+            try {
+                sessionStorage.clear();
+                
+                // Also clear auto-saved data
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('autoSave_')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                window.displayResult('test6-result', true, 'All session and auto-saved data cleared');
+                window.checkSessionStatus();
+                window.showAutoSavedData();
+            } catch (error) {
+                window.displayResult('test6-result', false, error.message);
+            }
+        };
+
+        window.showAutoSavedData = function() {
+            try {
+                const autoSavedData = window.logoutValidator.getAutoSavedData();
+                const container = document.getElementById('auto-saved-data');
+                
+                if (autoSavedData.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No auto-saved data found</p>';
+                } else {
+                    let html = '<h6>Auto-Saved Data:</h6>';
+                    autoSavedData.forEach((item, index) => {
+                        html += `
+                            <div class="card mb-2">
+                                <div class="card-body">
+                                    <h6 class="card-title">${item.type} - ${item.date.toLocaleString('id-ID')}</h6>
+                                    <p class="card-text small">Key: ${item.key}</p>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="recoverAutoSavedData('${item.key}')">
+                                        Recover
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                document.getElementById('auto-saved-data').innerHTML = 
+                    `<p class="text-danger">Error loading auto-saved data: ${error.message}</p>`;
+            }
+        };
+
+        window.recoverAutoSavedData = function(key) {
+            try {
+                const result = window.logoutValidator.recoverAutoSavedData(key);
+                
+                if (result.success) {
+                    alert(`Successfully recovered ${result.type} data`);
+                    window.showAutoSavedData();
+                    window.checkSessionStatus();
+                } else {
+                    alert(`Recovery failed: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Recovery error: ${error.message}`);
+            }
+        };
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            window.checkSessionStatus();
+            window.showAutoSavedData();
+        });
+    </script>
+</body>
+</html>

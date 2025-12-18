@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Comprehensive Error Handling - Tutup Kasir POS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-success {
+            background-color: #d1edff;
+            border: 1px solid #0ea5e9;
+            color: #0369a1;
+        }
+        .test-error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #dc2626;
+        }
+        .test-warning {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #d97706;
+        }
+        .error-log {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Test Comprehensive Error Handling
+                </h1>
+                <p class="lead">Testing error handling capabilities for Tutup Kasir POS system</p>
+            </div>
+        </div>
+
+        <!-- Error Handler Status -->
+        <div class="test-section">
+            <h3>Error Handler Status</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-info" onclick="checkErrorHandlerStatus()">Check Status</button>
+                    <button class="btn btn-secondary" onclick="viewErrorStats()">View Error Stats</button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-warning" onclick="exportErrorLog()">Export Error Log</button>
+                    <button class="btn btn-danger" onclick="clearErrorLog()">Clear Error Log</button>
+                </div>
+            </div>
+            <div id="statusResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- LocalStorage Error Tests -->
+        <div class="test-section">
+            <h3>LocalStorage Error Handling Tests</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="testLocalStorageQuotaExceeded()">Test Quota Exceeded</button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="testCorruptedSessionData()">Test Corrupted Session</button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="testMissingSessionData()">Test Missing Session</button>
+                </div>
+            </div>
+            <div id="localStorageResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Print Error Tests -->
+        <div class="test-section">
+            <h3>Print Error Handling Tests</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="testPrintFailure()">Test Print Failure</button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="testPDFGeneration()">Test PDF Generation</button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" onclick="testEmailReport()">Test Email Report</button>
+                </div>
+            </div>
+            <div id="printResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Input Validation Tests -->
+        <div class="test-section">
+            <h3>Input Validation Tests</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <button class="btn btn-primary" onclick="testCurrencyValidation()">Test Currency</button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" onclick="testRequiredValidation()">Test Required</button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" onclick="testTextValidation()">Test Text Length</button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" onclick="testEdgeCases()">Test Edge Cases</button>
+                </div>
+            </div>
+            <div id="validationResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Network Error Tests -->
+        <div class="test-section">
+            <h3>Network Error Handling Tests</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-primary" onclick="testOfflineMode()">Test Offline Mode</button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-primary" onclick="testNetworkRecovery()">Test Network Recovery</button>
+                </div>
+            </div>
+            <div id="networkResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Tutup Kasir Integration Tests -->
+        <div class="test-section">
+            <h3>Tutup Kasir Integration Tests</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <button class="btn btn-success" onclick="setupValidSession()">Setup Valid Session</button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-warning" onclick="testTutupKasirModal()">Test Tutup Kasir Modal</button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-danger" onclick="testTutupKasirErrors()">Test Error Scenarios</button>
+                </div>
+            </div>
+            <div id="integrationResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Error Log Display -->
+        <div class="test-section">
+            <h3>Error Log</h3>
+            <div class="error-log" id="errorLogDisplay">
+                Error log will appear here...
+            </div>
+            <button class="btn btn-sm btn-secondary mt-2" onclick="refreshErrorLog()">Refresh Log</button>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Error Handler -->
+    <script src="js/comprehensive-error-handler.js"></script>
+    <script src="js/enhanced-tutup-kasir-error-handling.js"></script>
+
+    <script>
+        // Test Functions
+        function showResult(elementId, message, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result test-${type}`;
+            element.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${message}`;
+        }
+
+        function checkErrorHandlerStatus() {
+            try {
+                if (window.errorHandler) {
+                    const stats = window.errorHandler.getErrorStats();
+                    showResult('statusResult', 
+                        `Error Handler Active. Total Errors: ${stats.totalErrors}, Error Types: ${Object.keys(stats.errorTypes).length}`, 
+                        'success');
+                } else {
+                    showResult('statusResult', 'Error Handler not initialized', 'error');
+                }
+            } catch (error) {
+                showResult('statusResult', `Status check failed: ${error.message}`, 'error');
+            }
+        }
+
+        function viewErrorStats() {
+            try {
+                const stats = window.errorHandler.getErrorStats();
+                const statsHtml = `
+                    <strong>Error Statistics:</strong><br>
+                    Total Errors: ${stats.totalErrors}<br>
+                    Error Types: ${JSON.stringify(stats.errorTypes, null, 2)}<br>
+                    Recent Errors: ${stats.recentErrors.length}
+                `;
+                showResult('statusResult', statsHtml, 'info');
+            } catch (error) {
+                showResult('statusResult', `Failed to get stats: ${error.message}`, 'error');
+            }
+        }
+
+        function exportErrorLog() {
+            try {
+                window.errorHandler.exportErrorLog();
+                showResult('statusResult', 'Error log exported successfully', 'success');
+            } catch (error) {
+                showResult('statusResult', `Export failed: ${error.message}`, 'error');
+            }
+        }
+
+        function clearErrorLog() {
+            try {
+                window.errorHandler.errorLog = [];
+                window.errorHandler.safeLocalStorageRemove('errorLog');
+                showResult('statusResult', 'Error log cleared', 'success');
+                refreshErrorLog();
+            } catch (error) {
+                showResult('statusResult', `Clear failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testLocalStorageQuotaExceeded() {
+            try {
+                // Try to fill localStorage
+                let data = 'x'.repeat(1000000); // 1MB of data
+                let i = 0;
+                
+                while (i < 10) {
+                    try {
+                        localStorage.setItem(`test_data_${i}`, data);
+                        i++;
+                    } catch (error) {
+                        if (error.name === 'QuotaExceededError') {
+                            // Test our handler
+                            const result = window.errorHandler.handleStorageQuotaExceeded('test_key', 'test_value');
+                            showResult('localStorageResult', 
+                                `Quota exceeded handled: ${result ? 'Success' : 'Failed'}`, 
+                                result ? 'success' : 'error');
+                            return;
+                        }
+                        throw error;
+                    }
+                }
+                
+                showResult('localStorageResult', 'Could not trigger quota exceeded', 'warning');
+            } catch (error) {
+                showResult('localStorageResult', `Test failed: ${error.message}`, 'error');
+            } finally {
+                // Cleanup
+                for (let i = 0; i < 10; i++) {
+                    localStorage.removeItem(`test_data_${i}`);
+                }
+            }
+        }
+
+        function testCorruptedSessionData() {
+            try {
+                // Create corrupted session data
+                localStorage.setItem('bukaKas', 'invalid_json_data');
+                
+                const result = window.errorHandler.validateSessionWithRecovery('bukaKas');
+                
+                showResult('localStorageResult', 
+                    `Corrupted session handled: ${result.success ? 'Recovered' : 'Failed as expected'} - ${result.error || 'Success'}`, 
+                    result.success ? 'warning' : 'success');
+                    
+            } catch (error) {
+                showResult('localStorageResult', `Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testMissingSessionData() {
+            try {
+                // Remove session data
+                localStorage.removeItem('bukaKas');
+                
+                const result = window.errorHandler.validateSessionWithRecovery('bukaKas');
+                
+                showResult('localStorageResult', 
+                    `Missing session handled: ${result.error} - Action: ${result.action}`, 
+                    'success');
+                    
+            } catch (error) {
+                showResult('localStorageResult', `Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testPrintFailure() {
+            try {
+                const testData = '<html><body><h1>Test Report</h1></body></html>';
+                
+                // Simulate print failure by calling handler directly
+                window.errorHandler.handlePrintFailure(testData, 'Test Report')
+                    .then(result => {
+                        showResult('printResult', 
+                            `Print failure handled: ${result ? 'Success' : 'User cancelled'}`, 
+                            'success');
+                    })
+                    .catch(error => {
+                        showResult('printResult', `Print failure test failed: ${error.message}`, 'error');
+                    });
+                    
+            } catch (error) {
+                showResult('printResult', `Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testPDFGeneration() {
+            try {
+                const testData = '<html><body><h1>Test PDF Report</h1><p>This is a test report for PDF generation.</p></body></html>';
+                
+                const result = window.errorHandler.generatePDF(testData, 'Test_PDF');
+                
+                showResult('printResult', 
+                    `PDF generation: ${result ? 'Success' : 'Failed'}`, 
+                    result ? 'success' : 'error');
+                    
+            } catch (error) {
+                showResult('printResult', `PDF test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testEmailReport() {
+            try {
+                const testData = 'Test email report content';
+                
+                const result = window.errorHandler.emailReport(testData, 'Test_Email');
+                
+                showResult('printResult', 
+                    `Email report: ${result ? 'Success (check if email app opened)' : 'Failed'}`, 
+                    result ? 'success' : 'error');
+                    
+            } catch (error) {
+                showResult('printResult', `Email test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testCurrencyValidation() {
+            try {
+                const testCases = [
+                    { value: '1000', expected: true },
+                    { value: '-100', expected: false },
+                    { value: 'abc', expected: false },
+                    { value: '999999999999', expected: false },
+                    { value: '0', expected: true }
+                ];
+                
+                let results = [];
+                testCases.forEach(test => {
+                    const result = window.errorHandler.validateInput(test.value, 'currency', 'Test Field');
+                    results.push(`${test.value}: ${result.isValid === test.expected ? 'PASS' : 'FAIL'}`);
+                });
+                
+                showResult('validationResult', `Currency validation results:<br>${results.join('<br>')}`, 'success');
+                
+            } catch (error) {
+                showResult('validationResult', `Validation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testRequiredValidation() {
+            try {
+                const testCases = [
+                    { value: 'valid text', expected: true },
+                    { value: '', expected: false },
+                    { value: '   ', expected: false },
+                    { value: null, expected: false },
+                    { value: undefined, expected: false }
+                ];
+                
+                let results = [];
+                testCases.forEach(test => {
+                    const result = window.errorHandler.validateInput(test.value, 'required', 'Test Field');
+                    results.push(`"${test.value}": ${result.isValid === test.expected ? 'PASS' : 'FAIL'}`);
+                });
+                
+                showResult('validationResult', `Required validation results:<br>${results.join('<br>')}`, 'success');
+                
+            } catch (error) {
+                showResult('validationResult', `Validation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testTextValidation() {
+            try {
+                const shortText = 'Short text';
+                const longText = 'x'.repeat(600);
+                
+                const shortResult = window.errorHandler.validateInput(shortText, 'text', 'Test Field');
+                const longResult = window.errorHandler.validateInput(longText, 'text', 'Test Field');
+                
+                showResult('validationResult', 
+                    `Text validation:<br>Short text: ${shortResult.isValid ? 'PASS' : 'FAIL'}<br>Long text: ${!longResult.isValid ? 'PASS' : 'FAIL'}`, 
+                    'success');
+                
+            } catch (error) {
+                showResult('validationResult', `Validation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testEdgeCases() {
+            try {
+                const edgeCases = [
+                    { value: '0.01', type: 'currency', expected: true },
+                    { value: '999999999', type: 'currency', expected: true },
+                    { value: '1000000000', type: 'currency', expected: false },
+                    { value: 'x'.repeat(500), type: 'text', expected: true },
+                    { value: 'x'.repeat(501), type: 'text', expected: false }
+                ];
+                
+                let results = [];
+                edgeCases.forEach(test => {
+                    const result = window.errorHandler.validateInput(test.value, test.type, 'Test Field');
+                    results.push(`${test.type} "${test.value.substring(0, 20)}...": ${result.isValid === test.expected ? 'PASS' : 'FAIL'}`);
+                });
+                
+                showResult('validationResult', `Edge case validation:<br>${results.join('<br>')}`, 'success');
+                
+            } catch (error) {
+                showResult('validationResult', `Edge case test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testOfflineMode() {
+            try {
+                // Simulate offline mode
+                Object.defineProperty(navigator, 'onLine', {
+                    writable: true,
+                    value: false
+                });
+                
+                const result = window.errorHandler.handleNetworkError('test operation', () => {
+                    showResult('networkResult', 'Network recovered callback executed', 'success');
+                });
+                
+                showResult('networkResult', 
+                    `Offline mode handled: ${!result ? 'Correctly detected offline' : 'Failed to detect offline'}`, 
+                    !result ? 'success' : 'error');
+                
+                // Restore online status
+                Object.defineProperty(navigator, 'onLine', {
+                    writable: true,
+                    value: true
+                });
+                
+            } catch (error) {
+                showResult('networkResult', `Offline test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testNetworkRecovery() {
+            try {
+                // Simulate network recovery
+                window.dispatchEvent(new Event('online'));
+                
+                showResult('networkResult', 'Network recovery event dispatched', 'success');
+                
+            } catch (error) {
+                showResult('networkResult', `Network recovery test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function setupValidSession() {
+            try {
+                const validSession = {
+                    id: 'BK' + Date.now(),
+                    kasir: 'Test Kasir',
+                    kasirId: 'TK001',
+                    modalAwal: 100000,
+                    waktuBuka: new Date().toISOString(),
+                    tanggal: new Date().toLocaleDateString()
+                };
+                
+                localStorage.setItem('bukaKas', JSON.stringify(validSession));
+                
+                // Add some sample transactions
+                const sampleTransactions = [
+                    {
+                        id: 'T1',
+                        tanggal: new Date().toISOString(),
+                        total: 50000,
+                        metodePembayaran: 'cash'
+                    },
+                    {
+                        id: 'T2',
+                        tanggal: new Date().toISOString(),
+                        total: 75000,
+                        metodePembayaran: 'kredit'
+                    }
+                ];
+                
+                localStorage.setItem('transactions', JSON.stringify(sampleTransactions));
+                
+                showResult('integrationResult', 'Valid session and sample data created', 'success');
+                
+            } catch (error) {
+                showResult('integrationResult', `Setup failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testTutupKasirModal() {
+            try {
+                if (window.enhancedTutupKasir) {
+                    window.enhancedTutupKasir.showTutupKasirModal();
+                    showResult('integrationResult', 'Tutup Kasir modal opened (check if modal appeared)', 'success');
+                } else {
+                    showResult('integrationResult', 'Enhanced Tutup Kasir not initialized', 'error');
+                }
+            } catch (error) {
+                showResult('integrationResult', `Modal test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testTutupKasirErrors() {
+            try {
+                // Test with corrupted session
+                localStorage.setItem('bukaKas', 'corrupted_data');
+                
+                if (window.enhancedTutupKasir) {
+                    window.enhancedTutupKasir.showTutupKasirModal();
+                    showResult('integrationResult', 'Error scenario tested (check for error handling)', 'success');
+                } else {
+                    showResult('integrationResult', 'Enhanced Tutup Kasir not initialized', 'error');
+                }
+            } catch (error) {
+                showResult('integrationResult', `Error scenario test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshErrorLog() {
+            try {
+                if (window.errorHandler && window.errorHandler.errorLog) {
+                    const logDisplay = document.getElementById('errorLogDisplay');
+                    const logs = window.errorHandler.errorLog.slice(-10); // Show last 10 errors
+                    
+                    if (logs.length === 0) {
+                        logDisplay.textContent = 'No errors logged yet.';
+                    } else {
+                        logDisplay.innerHTML = logs.map(log => 
+                            `<div><strong>${log.timestamp}</strong> [${log.type}]: ${log.message}</div>`
+                        ).join('');
+                    }
+                } else {
+                    document.getElementById('errorLogDisplay').textContent = 'Error handler not available.';
+                }
+            } catch (error) {
+                document.getElementById('errorLogDisplay').textContent = `Failed to refresh log: ${error.message}`;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshErrorLog();
+            
+            // Auto-refresh error log every 5 seconds
+            setInterval(refreshErrorLog, 5000);
+        });
+
+        // Test global error handling
+        window.addEventListener('load', function() {
+            // Trigger a test error to verify global error handling
+            setTimeout(() => {
+                try {
+                    // This will cause an error
+                    nonExistentFunction();
+                } catch (error) {
+                    console.log('Test error caught:', error.message);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

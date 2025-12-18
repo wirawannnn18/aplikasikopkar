@@ -1,17 +1,6 @@
 module.exports = {
   testEnvironment: 'jsdom',
-  preset: 'jest-environment-jsdom',
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    },
-    TextEncoder: TextEncoder,
-    TextDecoder: TextDecoder
-  },
-  transform: {
-    '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
-  },
+  transform: {},
   transformIgnorePatterns: [
     'node_modules/(?!(fast-check)/)'
   ],
@@ -24,8 +13,5 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironmentOptions: {
     url: 'http://localhost'
-  },
-  moduleNameMapping: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
   }
 };
