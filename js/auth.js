@@ -678,6 +678,7 @@ function renderMenu() {
             { icon: 'bi-book', text: 'Jurnal', page: 'jurnal' },
             { icon: 'bi-calculator', text: 'SHU', page: 'shu' },
             { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
+            { icon: 'bi-upload', text: 'Import Tagihan Pembayaran', page: 'import-tagihan-pembayaran' },
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
             { icon: 'bi-clipboard-check', text: 'Kelola Pengajuan Modal', page: 'kelola-pengajuan-modal' },
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
@@ -709,6 +710,7 @@ function renderMenu() {
             { icon: 'bi-book', text: 'Jurnal', page: 'jurnal' },
             { icon: 'bi-calculator', text: 'SHU', page: 'shu' },
             { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
+            { icon: 'bi-upload', text: 'Import Tagihan Pembayaran', page: 'import-tagihan-pembayaran' },
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
             { icon: 'bi-clipboard-check', text: 'Kelola Pengajuan Modal', page: 'kelola-pengajuan-modal' },
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
@@ -741,6 +743,7 @@ function renderMenu() {
         kasir: [
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
             { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
+            { icon: 'bi-upload', text: 'Import Tagihan Pembayaran', page: 'import-tagihan-pembayaran' },
             { icon: 'bi-receipt', text: 'Riwayat Transaksi', page: 'riwayat' },
             { icon: 'bi-file-earmark-text', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-kasir' },
             { icon: 'bi-trash', text: 'Hapus Transaksi', page: 'hapus-transaksi' },
@@ -821,6 +824,9 @@ function renderPage(page) {
             break;
         case 'pembayaran-hutang-piutang':
             renderPembayaranHutangPiutang();
+            break;
+        case 'import-tagihan-pembayaran':
+            renderImportTagihanPembayaran();
             break;
         case 'pos':
             renderPOS();
@@ -3160,3 +3166,66 @@ isRateLimited = function(username) {
 
 console.log('✅ Task 2.1: Enhanced Password Security Features Loaded');
 console.log('📋 Features: Enhanced validation, account lockout, password expiry, secure generation');
+
+/**
+ * Render Import Tagihan Pembayaran page
+ * Requirements: All import-tagihan requirements
+ */
+function renderImportTagihanPembayaran() {
+    const content = document.getElementById('mainContent');
+    content.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #2d6a4f; font-weight: 700;">
+                <i class="bi bi-upload me-2"></i>Import Tagihan Pembayaran Hutang Piutang
+            </h2>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Informasi:</strong> Fitur ini memungkinkan Anda memproses pembayaran hutang dan piutang dari banyak anggota sekaligus melalui file CSV atau Excel.
+        </div>
+
+        <!-- Import Interface Container -->
+        <div id="importTagihanContainer">
+            <!-- Import interface will be rendered here -->
+        </div>
+    `;
+
+    // Initialize Import Tagihan Manager
+    setTimeout(() => {
+        try {
+            // Initialize components
+            let auditLogger = null;
+            if (typeof AuditLogger !== 'undefined') {
+                auditLogger = new AuditLogger();
+            }
+
+            // Initialize Import Manager
+            if (typeof ImportTagihanManager !== 'undefined') {
+                const importManager = new ImportTagihanManager(null, auditLogger);
+                
+                // Initialize Upload Interface
+                if (typeof ImportUploadInterface !== 'undefined') {
+                    const uploadInterface = new ImportUploadInterface(importManager);
+                    uploadInterface.renderAndAttach('importTagihanContainer');
+                }
+            } else {
+                console.error('ImportTagihanManager not available');
+                content.innerHTML += `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Error:</strong> Fitur Import Tagihan Pembayaran belum tersedia. Silakan hubungi administrator.
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error initializing Import Tagihan:', error);
+            content.innerHTML += `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> Gagal memuat fitur Import Tagihan Pembayaran. ${error.message}
+                </div>
+            `;
+        }
+    }, 100);
+}
