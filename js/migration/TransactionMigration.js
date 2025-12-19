@@ -363,8 +363,7 @@ if (typeof window !== 'undefined') {
     window.TransactionMigration = TransactionMigration;
 }
 
-// ES Module export
-export default TransactionMigration;
+// Browser compatibility - exports handled via window object
 
 // Auto-run migration on load if needed
 if (typeof window !== 'undefined') {

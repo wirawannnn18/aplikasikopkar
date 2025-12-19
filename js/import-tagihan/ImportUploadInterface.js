@@ -573,8 +573,7 @@ if (typeof window !== 'undefined') {
     window.ImportUploadInterface = ImportUploadInterface;
 }
 
-// ES6 export for modern environments
-export { ImportUploadInterface };
+// Browser compatibility - exports handled via window object
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { ImportUploadInterface };

@@ -509,8 +509,7 @@ if (typeof window !== 'undefined') {
     }
 }
 
-// ES6 export for modern environments
-export { UnifiedTransactionModel, createManualTransaction, createImportTransaction };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

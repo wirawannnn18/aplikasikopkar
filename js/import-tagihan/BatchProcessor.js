@@ -731,8 +731,7 @@ if (typeof window !== 'undefined') {
     window.BatchProcessor = BatchProcessor;
 }
 
-// ES Module export
-export { BatchProcessor };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

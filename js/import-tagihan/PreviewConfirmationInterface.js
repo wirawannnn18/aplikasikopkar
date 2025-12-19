@@ -752,8 +752,7 @@ if (typeof window !== 'undefined') {
     window.PreviewConfirmationInterface = PreviewConfirmationInterface;
 }
 
-// ES6 export for modern environments
-export { PreviewConfirmationInterface };
+// Browser compatibility - exports handled via window object
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { PreviewConfirmationInterface };

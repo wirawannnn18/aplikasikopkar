@@ -189,8 +189,7 @@ if (typeof window !== 'undefined') {
     window.PreviewGenerator = PreviewGenerator;
 }
 
-// ES Module export
-export { PreviewGenerator };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

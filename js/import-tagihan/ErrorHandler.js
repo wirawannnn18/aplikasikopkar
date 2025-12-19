@@ -460,8 +460,7 @@ if (typeof window !== 'undefined') {
     window.ImportTagihanErrorHandler = ImportTagihanErrorHandler;
 }
 
-// ES6 export for modern environments
-export { ImportTagihanErrorHandler };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

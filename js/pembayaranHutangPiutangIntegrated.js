@@ -2798,8 +2798,7 @@ if (typeof window !== 'undefined') {
     window.renderPembayaranHutangPiutangIntegrated = renderPembayaranHutangPiutangIntegrated;
 }
 
-// ES6 export for modern environments
-export { PembayaranHutangPiutangIntegrated };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

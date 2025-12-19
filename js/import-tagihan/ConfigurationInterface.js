@@ -575,8 +575,7 @@ class ConfigurationInterface {
     }
 }
 
-// ES6 export for modern environments
-export { ConfigurationInterface };
+// Browser compatibility - exports handled via window object
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

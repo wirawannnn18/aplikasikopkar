@@ -789,8 +789,7 @@ if (typeof window !== 'undefined') {
     window.ImportTagihanManager = ImportTagihanManager;
 }
 
-// ES6 export for modern environments
-export { ImportTagihanManager };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

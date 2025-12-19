@@ -677,5 +677,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { AuditLogger };
 }
 
-// ES6 export for modern environments
-export { AuditLogger };
+// Browser compatibility - exports handled via window object

@@ -437,8 +437,7 @@ if (typeof window !== 'undefined') {
     window.RollbackManager = RollbackManager;
 }
 
-// ES6 export for modern environments
-export { RollbackManager };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

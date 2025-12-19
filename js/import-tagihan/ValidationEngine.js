@@ -379,8 +379,7 @@ if (typeof window !== 'undefined') {
     window.ValidationEngine = ValidationEngine;
 }
 
-// ES Module export
-export { ValidationEngine };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

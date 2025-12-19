@@ -917,8 +917,7 @@ if (typeof window !== 'undefined') {
     window.ProgressResultsInterface = ProgressResultsInterface;
 }
 
-// ES6 export for modern environments
-export { ProgressResultsInterface };
+// Browser compatibility - exports handled via window object
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { ProgressResultsInterface };

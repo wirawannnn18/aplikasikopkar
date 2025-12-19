@@ -490,8 +490,7 @@ if (typeof window !== 'undefined') {
     window._enhancedAuditLogger = new EnhancedAuditLogger();
 }
 
-// ES6 export for modern environments
-export { EnhancedAuditLogger, saveAuditLogEnhanced };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {

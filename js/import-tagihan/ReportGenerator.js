@@ -646,5 +646,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { ReportGenerator };
 }
 
-// ES6 export for modern environments
-export { ReportGenerator };
+// Browser compatibility - exports handled via window object

@@ -330,8 +330,7 @@ if (typeof window !== 'undefined') {
     window.FileParser = FileParser;
 }
 
-// ES Module export
-export { FileParser };
+// Browser compatibility - exports handled via window object
 
 // CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {
