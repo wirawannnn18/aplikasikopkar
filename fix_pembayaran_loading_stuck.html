@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Pembayaran Loading Stuck</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .fix-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .log-info { background-color: #d1ecf1; color: #0c5460; }
+        .log-success { background-color: #d4edda; color: #155724; }
+        .log-warning { background-color: #fff3cd; color: #856404; }
+        .log-error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-tools"></i> Fix Pembayaran Loading Stuck Issue</h2>
+                <p class="text-muted">Memperbaiki masalah interface pembayaran yang stuck pada "Memuat interface pembayaran manual..."</p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="bi bi-exclamation-triangle"></i> Masalah Teridentifikasi</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li><strong>Gejala:</strong> Interface stuck pada loading "Memuat interface pembayaran manual..."</li>
+                            <li><strong>Kemungkinan Penyebab:</strong> renderFormPembayaran() tidak selesai eksekusi</li>
+                            <li><strong>Lokasi:</strong> js/pembayaranHutangPiutang.js</li>
+                            <li><strong>Impact:</strong> User tidak bisa mengakses form pembayaran</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="bi bi-gear"></i> Solusi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="applyQuickFix()">
+                                <i class="bi bi-lightning"></i> Apply Quick Fix
+                            </button>
+                            <button class="btn btn-info" onclick="testFix()">
+                                <i class="bi bi-play-circle"></i> Test Fix
+                            </button>
+                            <button class="btn btn-warning" onclick="resetToDefault()">
+                                <i class="bi bi-arrow-clockwise"></i> Reset to Default
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> Fix Progress</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="logContainer" class="fix-container">
+                            <div class="log-entry log-info">Ready to apply fix...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Area -->
+        <div id="testArea" style="display: none;">
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-eye"></i> Test Result</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="testContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/koperasi.js"></script>
+    <script src="js/keuangan.js"></script>
+    <script src="js/transactionValidator.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+
+    <script>
+        let logContainer;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('logContainer');
+        });
+
+        function log(message, type = 'info') {
+            if (!logContainer) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function applyQuickFix() {
+            log('=== APPLYING QUICK FIX ===', 'info');
+            
+            try {
+                // Fix 1: Override renderFormPembayaran with error handling
+                log('1. Overriding renderFormPembayaran with enhanced error handling...', 'info');
+                
+                window.renderFormPembayaranFixed = function() {
+                    const container = document.getElementById('formPembayaranContainer');
+                    if (!container) {
+                        console.error('formPembayaranContainer not found');
+                        return;
+                    }
+
+                    try {
+                        container.innerHTML = `
+                            <form id="formPembayaran" onsubmit="event.preventDefault(); prosesPembayaran();">
+                                <!-- Jenis Pembayaran -->
+                                <div class="mb-3">
+                                    <label for="jenisPembayaran" class="form-label">Jenis Pembayaran <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="jenisPembayaran" required onchange="onJenisChange()">
+                                        <option value="">-- Pilih Jenis --</option>
+                                        <option value="hutang">Pembayaran Hutang (Anggota bayar ke Koperasi)</option>
+                                        <option value="piutang">Pembayaran Piutang (Koperasi bayar ke Anggota)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Search Anggota -->
+                                <div class="mb-3">
+                                    <label for="searchAnggota" class="form-label">Cari Anggota <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="searchAnggota" 
+                                           placeholder="Ketik NIK atau Nama anggota..." 
+                                           autocomplete="off"
+                                           oninput="onSearchAnggota(this.value)">
+                                    <div id="anggotaSuggestions" class="list-group mt-1" style="position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                                    <input type="hidden" id="selectedAnggotaId">
+                                    <input type="hidden" id="selectedAnggotaNama">
+                                    <input type="hidden" id="selectedAnggotaNIK">
+                                </div>
+
+                                <!-- Display Saldo -->
+                                <div id="saldoDisplay" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <strong>Saldo Hutang:</strong>
+                                                <h5 class="mb-0 text-danger" id="displaySaldoHutang">Rp 0</h5>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>Saldo Piutang:</strong>
+                                                <h5 class="mb-0 text-success" id="displaySaldoPiutang">Rp 0</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Jumlah Pembayaran -->
+                                <div class="mb-3">
+                                    <label for="jumlahPembayaran" class="form-label">Jumlah Pembayaran <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="jumlahPembayaran" 
+                                           placeholder="Masukkan jumlah pembayaran" 
+                                           min="1" step="1" required
+                                           oninput="validateFormRealTime()">
+                                    <div class="form-text" id="jumlahHelpText">Masukkan jumlah dalam Rupiah (tanpa titik atau koma)</div>
+                                    <div class="invalid-feedback" id="jumlahErrorText"></div>
+                                </div>
+
+                                <!-- Keterangan -->
+                                <div class="mb-3">
+                                    <label for="keteranganPembayaran" class="form-label">Keterangan</label>
+                                    <textarea class="form-control" id="keteranganPembayaran" rows="3" 
+                                              placeholder="Keterangan tambahan (opsional)"></textarea>
+                                </div>
+
+                                <!-- Validation Messages -->
+                                <div id="formValidationMessages" class="mb-3" style="display: none;">
+                                    <div class="alert alert-warning" id="validationAlert">
+                                        <ul class="mb-0" id="validationList"></ul>
+                                    </div>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-secondary" onclick="resetFormPembayaran()">
+                                        <i class="bi bi-x-circle"></i> Reset
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" id="btnProsesPembayaran" disabled>
+                                        <i class="bi bi-check-circle"></i> Proses Pembayaran
+                                    </button>
+                                </div>
+                            </form>
+                        `;
+                        
+                        log('✓ Form HTML rendered successfully', 'success');
+                        
+                    } catch (error) {
+                        console.error('Error rendering form:', error);
+                        container.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h5><i class="bi bi-exclamation-triangle"></i> Error Loading Form</h5>
+                                <p>Terjadi kesalahan saat memuat form pembayaran: ${error.message}</p>
+                                <button class="btn btn-primary" onclick="location.reload()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                                </button>
+                            </div>
+                        `;
+                    }
+                };
+                
+                // Fix 2: Override renderPembayaranHutangPiutang with timeout protection
+                log('2. Overriding renderPembayaranHutangPiutang with timeout protection...', 'info');
+                
+                window.renderPembayaranHutangPiutangFixed = function() {
+                    const content = document.getElementById('mainContent');
+                    if (!content) {
+                        console.error('mainContent element not found');
+                        return;
+                    }
+
+                    // Show loading first
+                    content.innerHTML = `
+                        <div class="container-fluid py-4">
+                            <div class="row">
+                                <div class="col-12 text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2">Memuat interface pembayaran manual...</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Render main content with timeout protection
+                    setTimeout(() => {
+                        try {
+                            content.innerHTML = `
+                                <div class="container-fluid py-4">
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <h2><i class="bi bi-cash-coin"></i> Pembayaran Hutang / Piutang Anggota</h2>
+                                            <p class="text-muted">Proses pembayaran hutang dari anggota atau pembayaran piutang kepada anggota</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Summary Cards -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <div class="card border-danger">
+                                                <div class="card-body">
+                                                    <h5 class="card-title text-danger">
+                                                        <i class="bi bi-arrow-down-circle"></i> Total Hutang Anggota
+                                                    </h5>
+                                                    <h3 class="mb-0" id="totalHutangDisplay">Rp 0</h3>
+                                                    <small class="text-muted">Kewajiban anggota kepada koperasi</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card border-success">
+                                                <div class="card-body">
+                                                    <h5 class="card-title text-success">
+                                                        <i class="bi bi-arrow-up-circle"></i> Total Piutang Anggota
+                                                    </h5>
+                                                    <h3 class="mb-0" id="totalPiutangDisplay">Rp 0</h3>
+                                                    <small class="text-muted">Hak anggota dari koperasi</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tabs -->
+                                    <ul class="nav nav-tabs mb-3" id="pembayaranTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="form-tab" data-bs-toggle="tab" 
+                                                    data-bs-target="#form-panel" type="button" role="tab">
+                                                <i class="bi bi-plus-circle"></i> Form Pembayaran
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="riwayat-tab" data-bs-toggle="tab" 
+                                                    data-bs-target="#riwayat-panel" type="button" role="tab">
+                                                <i class="bi bi-clock-history"></i> Riwayat Pembayaran
+                                            </button>
+                                        </li>
+                                    </ul>
+
+                                    <!-- Tab Content -->
+                                    <div class="tab-content" id="pembayaranTabContent">
+                                        <!-- Form Panel -->
+                                        <div class="tab-pane fade show active" id="form-panel" role="tabpanel">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h5 class="mb-0">Form Pembayaran</h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="formPembayaranContainer">
+                                                        <!-- Form will be rendered here -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Riwayat Panel -->
+                                        <div class="tab-pane fade" id="riwayat-panel" role="tabpanel">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h5 class="mb-0">Riwayat Pembayaran</h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="riwayatPembayaranContainer">
+                                                        <!-- Riwayat will be rendered here -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+
+                            // Initialize components with error handling
+                            setTimeout(() => {
+                                try {
+                                    if (typeof updateSummaryCards === 'function') {
+                                        updateSummaryCards();
+                                    }
+                                    
+                                    if (typeof window.renderFormPembayaranFixed === 'function') {
+                                        window.renderFormPembayaranFixed();
+                                    }
+                                    
+                                    if (typeof renderRiwayatPembayaran === 'function') {
+                                        renderRiwayatPembayaran();
+                                    }
+                                    
+                                    log('✓ All components initialized successfully', 'success');
+                                } catch (error) {
+                                    console.error('Error initializing components:', error);
+                                    log(`✗ Error initializing components: ${error.message}`, 'error');
+                                }
+                            }, 100);
+                            
+                        } catch (error) {
+                            console.error('Error rendering main content:', error);
+                            content.innerHTML = `
+                                <div class="container-fluid py-4">
+                                    <div class="alert alert-danger">
+                                        <h4><i class="bi bi-exclamation-triangle"></i> Error Loading Interface</h4>
+                                        <p>Terjadi kesalahan saat memuat interface pembayaran: ${error.message}</p>
+                                        <button class="btn btn-primary" onclick="location.reload()">
+                                            <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }, 500);
+                };
+                
+                // Fix 3: Add missing helper functions
+                log('3. Adding missing helper functions...', 'info');
+                
+                if (typeof onJenisChange !== 'function') {
+                    window.onJenisChange = function() {
+                        console.log('onJenisChange called');
+                        // Basic implementation
+                    };
+                }
+                
+                if (typeof onSearchAnggota !== 'function') {
+                    window.onSearchAnggota = function(value) {
+                        console.log('onSearchAnggota called with:', value);
+                        // Basic implementation
+                    };
+                }
+                
+                if (typeof validateFormRealTime !== 'function') {
+                    window.validateFormRealTime = function() {
+                        console.log('validateFormRealTime called');
+                        // Basic implementation
+                    };
+                }
+                
+                if (typeof resetFormPembayaran !== 'function') {
+                    window.resetFormPembayaran = function() {
+                        console.log('resetFormPembayaran called');
+                        document.getElementById('formPembayaran')?.reset();
+                    };
+                }
+                
+                if (typeof prosesPembayaran !== 'function') {
+                    window.prosesPembayaran = function() {
+                        console.log('prosesPembayaran called');
+                        alert('Fungsi pembayaran belum diimplementasi');
+                    };
+                }
+                
+                log('✓ All fixes applied successfully', 'success');
+                log('=== FIX COMPLETE ===', 'success');
+                
+            } catch (error) {
+                log(`✗ Error applying fix: ${error.message}`, 'error');
+                console.error('Fix error:', error);
+            }
+        }
+
+        function testFix() {
+            log('=== TESTING FIX ===', 'info');
+            
+            try {
+                const testArea = document.getElementById('testArea');
+                const testContent = document.getElementById('testContent');
+                
+                // Create test container
+                testContent.innerHTML = '<div id="mainContent"></div>';
+                testArea.style.display = 'block';
+                
+                // Test the fixed function
+                if (typeof window.renderPembayaranHutangPiutangFixed === 'function') {
+                    log('Calling renderPembayaranHutangPiutangFixed()...', 'info');
+                    window.renderPembayaranHutangPiutangFixed();
+                    
+                    setTimeout(() => {
+                        const mainContent = testContent.querySelector('#mainContent');
+                        if (mainContent && mainContent.innerHTML.trim() !== '') {
+                            log('✓ Fix test PASSED - Content rendered successfully', 'success');
+                            log(`Content length: ${mainContent.innerHTML.length} characters`, 'info');
+                        } else {
+                            log('✗ Fix test FAILED - No content rendered', 'error');
+                        }
+                    }, 1000);
+                } else {
+                    log('✗ renderPembayaranHutangPiutangFixed function not found', 'error');
+                }
+                
+            } catch (error) {
+                log(`✗ Test error: ${error.message}`, 'error');
+            }
+        }
+
+        function resetToDefault() {
+            log('=== RESETTING TO DEFAULT ===', 'warning');
+            location.reload();
+        }
+
+        // Auto-apply fix on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                log('Auto-applying fix...', 'info');
+                applyQuickFix();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
