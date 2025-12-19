@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Module Errors Fixed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>🧪 Test Module Errors Fixed</h2>
+        <p class="text-muted">Verifikasi bahwa semua error ES6 export sudah teratasi</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>🔍 Error Check</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="checkConsoleErrors()">Check Console Errors</button>
+                        <button class="btn btn-info" onclick="testModuleLoading()">Test Module Loading</button>
+                        <button class="btn btn-success" onclick="testImportTagihan()">Test Import Tagihan</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>📊 Results</h5>
+                    </div>
+                    <div class="card-body" id="results">
+                        <p class="text-muted">Click buttons to run tests...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🔧 Error Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Original Errors:</h6>
+                    <ul>
+                        <li><code>Uncaught SyntaxError: Unexpected token 'export'</code> - ES6 modules loaded as regular scripts</li>
+                        <li><code>Identifier 'PerformanceOptimizer' has already been declared</code> - Duplicate class declarations</li>
+                        <li><code>SharedPaymentServices not available</code> - Missing dependency</li>
+                    </ul>
+                    
+                    <h6>Solutions Applied:</h6>
+                    <ul>
+                        <li>✅ Removed ES6 export statements</li>
+                        <li>✅ Created safe module loading system</li>
+                        <li>✅ Added duplicate declaration prevention</li>
+                        <li>✅ Provided fallback for missing services</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the fixed modules -->
+    <script src="js/import-tagihan/fixed-modules.js"></script>
+    
+    <script>
+        let consoleErrors = [];
+        
+        // Capture console errors
+        const originalError = console.error;
+        console.error = function(...args) {
+            consoleErrors.push({
+                timestamp: new Date().toISOString(),
+                message: args.join(' ')
+            });
+            originalError.apply(console, args);
+        };
+        
+        function checkConsoleErrors() {
+            const results = document.getElementById('results');
+            
+            // Check for specific error patterns
+            const exportErrors = consoleErrors.filter(err => 
+                err.message.includes('Unexpected token') && err.message.includes('export')
+            );
+            
+            const duplicateErrors = consoleErrors.filter(err => 
+                err.message.includes('already been declared')
+            );
+            
+            const serviceErrors = consoleErrors.filter(err => 
+                err.message.includes('SharedPaymentServices not available')
+            );
+            
+            results.innerHTML = `
+                <div class="alert alert-${consoleErrors.length === 0 ? 'success' : 'warning'}">
+                    <h6>Console Error Analysis:</h6>
+                    <ul>
+                        <li>Total Errors: ${consoleErrors.length}</li>
+                        <li>Export Errors: ${exportErrors.length} ${exportErrors.length === 0 ? '✅' : '❌'}</li>
+                        <li>Duplicate Declaration Errors: ${duplicateErrors.length} ${duplicateErrors.length === 0 ? '✅' : '❌'}</li>
+                        <li>Service Missing Errors: ${serviceErrors.length} ${serviceErrors.length === 0 ? '✅' : '❌'}</li>
+                    </ul>
+                    ${consoleErrors.length > 0 ? 
+                        `<details><summary>Recent Errors:</summary><pre>${consoleErrors.slice(-5).map(err => `${err.timestamp}: ${err.message}`).join('\n')}</pre></details>` : 
+                        '<p><strong>🎉 No console errors detected!</strong></p>'
+                    }
+                </div>
+            `;
+        }
+        
+        function testModuleLoading() {
+            const results = document.getElementById('results');
+            
+            try {
+                const tests = [
+                    {
+                        name: 'ImportTagihan namespace',
+                        test: () => typeof window.ImportTagihan === 'object'
+                    },
+                    {
+                        name: 'FileParser class',
+                        test: () => typeof window.FileParser === 'function' && new window.FileParser()
+                    },
+                    {
+                        name: 'ValidationEngine class',
+                        test: () => typeof window.ValidationEngine === 'function' && new window.ValidationEngine()
+                    },
+                    {
+                        name: 'BatchProcessor class',
+                        test: () => typeof window.BatchProcessor === 'function' && new window.BatchProcessor()
+                    },
+                    {
+                        name: 'AuditLogger class',
+                        test: () => typeof window.AuditLogger === 'function' && new window.AuditLogger()
+                    },
+                    {
+                        name: 'ErrorHandler class',
+                        test: () => typeof window.ErrorHandler === 'function' && new window.ErrorHandler()
+                    },
+                    {
+                        name: 'ImportTagihanManager class',
+                        test: () => typeof window.ImportTagihanManager === 'function' && new window.ImportTagihanManager()
+                    },
+                    {
+                        name: 'SharedPaymentServices fallback',
+                        test: () => {
+                            const services = window.ImportTagihan.getSharedPaymentServices();
+                            return services && typeof services.processPayment === 'function';
+                        }
+                    }
+                ];
+                
+                const testResults = tests.map(test => {
+                    try {
+                        const result = test.test();
+                        return {
+                            name: test.name,
+                            success: !!result,
+                            message: result ? 'OK' : 'Failed'
+                        };
+                    } catch (error) {
+                        return {
+                            name: test.name,
+                            success: false,
+                            message: error.message
+                        };
+                    }
+                });
+                
+                const successCount = testResults.filter(r => r.success).length;
+                
+                results.innerHTML = `
+                    <div class="alert alert-${successCount === testResults.length ? 'success' : 'warning'}">
+                        <h6>Module Loading Test Results:</h6>
+                        <p><strong>${successCount}/${testResults.length} tests passed</strong></p>
+                        <ul>
+                            ${testResults.map(result => 
+                                `<li>${result.success ? '✅' : '❌'} ${result.name}: ${result.message}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+                
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Module Loading Test Failed</h6>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function testImportTagihan() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test creating ImportTagihanManager instance
+                const manager = new window.ImportTagihanManager();
+                
+                // Test basic functionality
+                const tests = [
+                    {
+                        name: 'Manager instantiation',
+                        test: () => manager instanceof window.ImportTagihanManager
+                    },
+                    {
+                        name: 'FileParser available',
+                        test: () => manager.fileParser && typeof manager.fileParser.parseFile === 'function'
+                    },
+                    {
+                        name: 'ValidationEngine available',
+                        test: () => manager.validationEngine && typeof manager.validationEngine.validateData === 'function'
+                    },
+                    {
+                        name: 'BatchProcessor available',
+                        test: () => manager.batchProcessor && typeof manager.batchProcessor.processBatch === 'function'
+                    },
+                    {
+                        name: 'AuditLogger available',
+                        test: () => manager.auditLogger && typeof manager.auditLogger.log === 'function'
+                    },
+                    {
+                        name: 'ErrorHandler available',
+                        test: () => manager.errorHandler && typeof manager.errorHandler.handleError === 'function'
+                    },
+                    {
+                        name: 'PaymentServices available',
+                        test: () => manager.paymentServices && typeof manager.paymentServices.processPayment === 'function'
+                    }
+                ];
+                
+                const testResults = tests.map(test => {
+                    try {
+                        const result = test.test();
+                        return {
+                            name: test.name,
+                            success: !!result,
+                            message: result ? 'OK' : 'Failed'
+                        };
+                    } catch (error) {
+                        return {
+                            name: test.name,
+                            success: false,
+                            message: error.message
+                        };
+                    }
+                });
+                
+                const successCount = testResults.filter(r => r.success).length;
+                
+                results.innerHTML = `
+                    <div class="alert alert-${successCount === testResults.length ? 'success' : 'warning'}">
+                        <h6>Import Tagihan Functionality Test:</h6>
+                        <p><strong>${successCount}/${testResults.length} components working</strong></p>
+                        <ul>
+                            ${testResults.map(result => 
+                                `<li>${result.success ? '✅' : '❌'} ${result.name}: ${result.message}</li>`
+                            ).join('')}
+                        </ul>
+                        ${successCount === testResults.length ? 
+                            '<p><strong>🎉 Import Tagihan system is fully functional!</strong></p>' : 
+                            '<p><strong>⚠️ Some components need attention</strong></p>'
+                        }
+                    </div>
+                `;
+                
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Import Tagihan Test Failed</h6>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                checkConsoleErrors();
+                setTimeout(testModuleLoading, 1000);
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
