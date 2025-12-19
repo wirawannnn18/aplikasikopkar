@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Integrated Interface Fix - Final Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .log-container {
+            background: #1e1e1e;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-warning { color: #ffc107; }
+        .log-info { color: #17a2b8; }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 6px 12px;
+        }
+        .test-result {
+            border-left: 4px solid #28a745;
+            background: #d4edda;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .test-result.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .test-result.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4><i class="bi bi-check-circle"></i> Test Integrated Interface Fix - Final Verification</h4>
+                        <p class="mb-0">Memverifikasi bahwa interface pembayaran terintegrasi berfungsi dengan benar setelah perbaikan</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Test Status Overview -->
+                        <div class="row mb-4">
+                            <div class="col-md-2">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Interface</h6>
+                                        <span id="interfaceStatus" class="badge bg-secondary status-badge">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Tabs</h6>
+                                        <span id="tabsStatus" class="badge bg-secondary status-badge">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Manual Tab</h6>
+                                        <span id="manualStatus" class="badge bg-secondary status-badge">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Import Tab</h6>
+                                        <span id="importStatus" class="badge bg-secondary status-badge">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Navigation</h6>
+                                        <span id="navigationStatus" class="badge bg-secondary status-badge">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Overall</h6>
+                                        <span id="overallStatus" class="badge bg-secondary status-badge">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="btn-group me-2" role="group">
+                                    <button class="btn btn-primary" onclick="runAllTests()">
+                                        <i class="bi bi-play-circle"></i> Run All Tests
+                                    </button>
+                                    <button class="btn btn-success" onclick="testIntegratedInterface()">
+                                        <i class="bi bi-check-circle"></i> Test Interface
+                                    </button>
+                                    <button class="btn btn-info" onclick="testTabSwitching()">
+                                        <i class="bi bi-arrow-left-right"></i> Test Tab Switching
+                                    </button>
+                                </div>
+                                <div class="btn-group me-2" role="group">
+                                    <button class="btn btn-warning" onclick="simulateUserFlow()">
+                                        <i class="bi bi-person-check"></i> Simulate User Flow
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="clearResults()">
+                                        <i class="bi bi-trash"></i> Clear Results
+                                    </button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-primary" onclick="openIntegratedInterface()">
+                                        <i class="bi bi-box-arrow-up-right"></i> Open Interface
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Test Results -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Test Results</h5>
+                                <div id="testResults">
+                                    <div class="test-result">
+                                        <strong>Ready to run tests</strong><br>
+                                        Click "Run All Tests" to start comprehensive testing.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Test Log</h5>
+                                <div id="logContainer" class="log-container">
+                                    <div class="log-entry log-info">[Ready] Test system initialized</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Interface Container (Hidden) -->
+    <div id="testInterfaceContainer" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; height: 90%; background: white; border-radius: 8px; overflow: hidden;">
+            <div style="padding: 20px; height: 100%; overflow-y: auto;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>Integrated Interface Test</h4>
+                    <button class="btn btn-secondary" onclick="closeTestInterface()">
+                        <i class="bi bi-x"></i> Close
+                    </button>
+                </div>
+                <div id="testMainContent" style="height: calc(100% - 80px); overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load required dependencies -->
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+
+    <script>
+        let logContainer;
+        let testResults;
+        let testCount = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('logContainer');
+            testResults = document.getElementById('testResults');
+            log('System ready for testing', 'info');
+        });
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStatus(elementId, text, type) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = text;
+                element.className = `badge status-badge bg-${type}`;
+            }
+        }
+
+        function addTestResult(title, message, type = 'success') {
+            const result = document.createElement('div');
+            result.className = `test-result ${type}`;
+            result.innerHTML = `<strong>${title}</strong><br>${message}`;
+            testResults.appendChild(result);
+            
+            testCount++;
+            if (type === 'success') {
+                passedTests++;
+            } else {
+                failedTests++;
+            }
+        }
+
+        function clearResults() {
+            testResults.innerHTML = '<div class="test-result"><strong>Results cleared</strong><br>Ready for new tests.</div>';
+            logContainer.innerHTML = '<div class="log-entry log-info">[Ready] Logs cleared</div>';
+            
+            // Reset status badges
+            ['interfaceStatus', 'tabsStatus', 'manualStatus', 'importStatus', 'navigationStatus', 'overallStatus'].forEach(id => {
+                updateStatus(id, 'Pending', 'secondary');
+            });
+            
+            testCount = 0;
+            passedTests = 0;
+            failedTests = 0;
+        }
+
+        async function runAllTests() {
+            log('🚀 Starting comprehensive test suite...', 'info');
+            clearResults();
+
+            try {
+                // Test 1: Check dependencies
+                await testDependencies();
+                
+                // Test 2: Test integrated interface
+                await testIntegratedInterface();
+                
+                // Test 3: Test tab switching
+                await testTabSwitching();
+                
+                // Test 4: Test manual payment tab
+                await testManualPaymentTab();
+                
+                // Test 5: Test import batch tab
+                await testImportBatchTab();
+                
+                // Test 6: Test navigation
+                await testNavigation();
+                
+                // Final summary
+                const successRate = Math.round((passedTests / testCount) * 100);
+                log(`🏁 Test suite completed: ${passedTests}/${testCount} passed (${successRate}%)`, 
+                    successRate >= 80 ? 'success' : 'warning');
+                
+                updateStatus('overallStatus', 
+                    successRate >= 80 ? 'Passed' : 'Issues', 
+                    successRate >= 80 ? 'success' : 'warning');
+                
+                addTestResult('Test Suite Complete', 
+                    `${passedTests} passed, ${failedTests} failed (${successRate}% success rate)`,
+                    successRate >= 80 ? 'success' : 'warning');
+
+            } catch (error) {
+                log(`❌ Test suite failed: ${error.message}`, 'error');
+                updateStatus('overallStatus', 'Failed', 'danger');
+                addTestResult('Test Suite Error', error.message, 'error');
+            }
+        }
+
+        async function testDependencies() {
+            log('1️⃣ Testing dependencies...', 'info');
+            
+            const dependencies = [
+                { name: 'PembayaranHutangPiutangIntegrated', obj: window.PembayaranHutangPiutangIntegrated },
+                { name: 'renderPembayaranHutangPiutangIntegrated', obj: window.renderPembayaranHutangPiutangIntegrated },
+                { name: 'renderPembayaranHutangPiutang', obj: window.renderPembayaranHutangPiutang }
+            ];
+            
+            let allDepsAvailable = true;
+            
+            dependencies.forEach(dep => {
+                if (typeof dep.obj === 'function') {
+                    log(`   ✅ ${dep.name} available`, 'success');
+                } else {
+                    log(`   ❌ ${dep.name} missing`, 'error');
+                    allDepsAvailable = false;
+                }
+            });
+            
+            if (allDepsAvailable) {
+                addTestResult('Dependencies Check', 'All required dependencies are available', 'success');
+                updateStatus('interfaceStatus', 'Ready', 'success');
+            } else {
+                addTestResult('Dependencies Check', 'Some dependencies are missing', 'error');
+                updateStatus('interfaceStatus', 'Missing Deps', 'danger');
+            }
+        }
+
+        async function testIntegratedInterface() {
+            log('2️⃣ Testing integrated interface creation...', 'info');
+            
+            try {
+                if (typeof window.renderPembayaranHutangPiutangIntegrated !== 'function') {
+                    throw new Error('renderPembayaranHutangPiutangIntegrated function not available');
+                }
+                
+                // Create test container
+                const testContainer = document.createElement('div');
+                testContainer.id = 'mainContent';
+                testContainer.style.cssText = 'position: absolute; top: -9999px; left: -9999px; width: 1000px; height: 800px;';
+                document.body.appendChild(testContainer);
+                
+                try {
+                    // Call the render function
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    
+                    // Wait for initialization
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    // Check if integrated interface was created
+                    const integratedContainer = testContainer.querySelector('.integrated-payment-container');
+                    if (integratedContainer) {
+                        log('   ✅ Integrated interface container created', 'success');
+                        
+                        // Check for tab navigation
+                        const tabNavigation = testContainer.querySelector('.tab-navigation');
+                        if (tabNavigation) {
+                            log('   ✅ Tab navigation created', 'success');
+                            updateStatus('tabsStatus', 'Created', 'success');
+                            
+                            const tabButtons = testContainer.querySelectorAll('.tab-btn');
+                            log(`   📊 Found ${tabButtons.length} tab buttons`, 'info');
+                            
+                            if (tabButtons.length >= 2) {
+                                addTestResult('Interface Creation', 'Integrated interface created successfully with tabs', 'success');
+                                updateStatus('interfaceStatus', 'Working', 'success');
+                            } else {
+                                addTestResult('Interface Creation', 'Interface created but missing tabs', 'warning');
+                                updateStatus('interfaceStatus', 'Partial', 'warning');
+                            }
+                        } else {
+                            log('   ❌ Tab navigation not found', 'error');
+                            addTestResult('Interface Creation', 'Interface created but tab navigation missing', 'error');
+                            updateStatus('tabsStatus', 'Missing', 'danger');
+                        }
+                    } else {
+                        log('   ❌ Integrated interface container not found', 'error');
+                        addTestResult('Interface Creation', 'Failed to create integrated interface', 'error');
+                        updateStatus('interfaceStatus', 'Failed', 'danger');
+                    }
+                    
+                } finally {
+                    // Clean up test container
+                    document.body.removeChild(testContainer);
+                }
+                
+            } catch (error) {
+                log(`   ❌ Interface test failed: ${error.message}`, 'error');
+                addTestResult('Interface Creation', `Test failed: ${error.message}`, 'error');
+                updateStatus('interfaceStatus', 'Error', 'danger');
+            }
+        }
+
+        async function testTabSwitching() {
+            log('3️⃣ Testing tab switching functionality...', 'info');
+            
+            try {
+                // Create test interface
+                const testContainer = document.createElement('div');
+                testContainer.id = 'mainContent';
+                testContainer.style.cssText = 'position: absolute; top: -9999px; left: -9999px; width: 1000px; height: 800px;';
+                document.body.appendChild(testContainer);
+                
+                try {
+                    // Render interface
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    const tabButtons = testContainer.querySelectorAll('.tab-btn');
+                    const tabPanes = testContainer.querySelectorAll('.tab-pane');
+                    
+                    if (tabButtons.length >= 2 && tabPanes.length >= 2) {
+                        // Test switching to import tab
+                        const importButton = testContainer.querySelector('[data-tab="import"]');
+                        const manualButton = testContainer.querySelector('[data-tab="manual"]');
+                        
+                        if (importButton && manualButton) {
+                            // Click import tab
+                            importButton.click();
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            
+                            const activeImportTab = testContainer.querySelector('#import-tab-pane.active');
+                            if (activeImportTab) {
+                                log('   ✅ Successfully switched to import tab', 'success');
+                                
+                                // Switch back to manual
+                                manualButton.click();
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                
+                                const activeManualTab = testContainer.querySelector('#manual-tab-pane.active');
+                                if (activeManualTab) {
+                                    log('   ✅ Successfully switched back to manual tab', 'success');
+                                    addTestResult('Tab Switching', 'Tab switching works correctly', 'success');
+                                    updateStatus('navigationStatus', 'Working', 'success');
+                                } else {
+                                    log('   ❌ Failed to switch back to manual tab', 'error');
+                                    addTestResult('Tab Switching', 'Failed to switch back to manual tab', 'error');
+                                    updateStatus('navigationStatus', 'Partial', 'warning');
+                                }
+                            } else {
+                                log('   ❌ Failed to switch to import tab', 'error');
+                                addTestResult('Tab Switching', 'Failed to switch to import tab', 'error');
+                                updateStatus('navigationStatus', 'Failed', 'danger');
+                            }
+                        } else {
+                            log('   ❌ Tab buttons not found', 'error');
+                            addTestResult('Tab Switching', 'Tab buttons not found', 'error');
+                            updateStatus('navigationStatus', 'Missing', 'danger');
+                        }
+                    } else {
+                        log('   ❌ Insufficient tabs for testing', 'error');
+                        addTestResult('Tab Switching', 'Insufficient tabs found', 'error');
+                        updateStatus('navigationStatus', 'Incomplete', 'danger');
+                    }
+                    
+                } finally {
+                    document.body.removeChild(testContainer);
+                }
+                
+            } catch (error) {
+                log(`   ❌ Tab switching test failed: ${error.message}`, 'error');
+                addTestResult('Tab Switching', `Test failed: ${error.message}`, 'error');
+                updateStatus('navigationStatus', 'Error', 'danger');
+            }
+        }
+
+        async function testManualPaymentTab() {
+            log('4️⃣ Testing manual payment tab...', 'info');
+            
+            try {
+                // Create test interface
+                const testContainer = document.createElement('div');
+                testContainer.id = 'mainContent';
+                testContainer.style.cssText = 'position: absolute; top: -9999px; left: -9999px; width: 1000px; height: 800px;';
+                document.body.appendChild(testContainer);
+                
+                try {
+                    // Render interface
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    const manualTabPane = testContainer.querySelector('#manual-tab-pane');
+                    if (manualTabPane) {
+                        log('   ✅ Manual payment tab pane found', 'success');
+                        
+                        const manualContainer = testContainer.querySelector('#manual-payment-container');
+                        if (manualContainer) {
+                            log('   ✅ Manual payment container found', 'success');
+                            
+                            // Check if content was loaded
+                            if (manualContainer.innerHTML.trim().length > 100) {
+                                log('   ✅ Manual payment content loaded', 'success');
+                                addTestResult('Manual Payment Tab', 'Manual payment tab working correctly', 'success');
+                                updateStatus('manualStatus', 'Working', 'success');
+                            } else {
+                                log('   ⚠️ Manual payment content appears empty', 'warning');
+                                addTestResult('Manual Payment Tab', 'Manual payment tab found but content may be incomplete', 'warning');
+                                updateStatus('manualStatus', 'Partial', 'warning');
+                            }
+                        } else {
+                            log('   ❌ Manual payment container not found', 'error');
+                            addTestResult('Manual Payment Tab', 'Manual payment container missing', 'error');
+                            updateStatus('manualStatus', 'Missing', 'danger');
+                        }
+                    } else {
+                        log('   ❌ Manual payment tab pane not found', 'error');
+                        addTestResult('Manual Payment Tab', 'Manual payment tab pane not found', 'error');
+                        updateStatus('manualStatus', 'Not Found', 'danger');
+                    }
+                    
+                } finally {
+                    document.body.removeChild(testContainer);
+                }
+                
+            } catch (error) {
+                log(`   ❌ Manual payment tab test failed: ${error.message}`, 'error');
+                addTestResult('Manual Payment Tab', `Test failed: ${error.message}`, 'error');
+                updateStatus('manualStatus', 'Error', 'danger');
+            }
+        }
+
+        async function testImportBatchTab() {
+            log('5️⃣ Testing import batch tab...', 'info');
+            
+            try {
+                // Create test interface
+                const testContainer = document.createElement('div');
+                testContainer.id = 'mainContent';
+                testContainer.style.cssText = 'position: absolute; top: -9999px; left: -9999px; width: 1000px; height: 800px;';
+                document.body.appendChild(testContainer);
+                
+                try {
+                    // Render interface
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    // Switch to import tab
+                    const importButton = testContainer.querySelector('[data-tab="import"]');
+                    if (importButton) {
+                        importButton.click();
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                    const importTabPane = testContainer.querySelector('#import-tab-pane');
+                    if (importTabPane) {
+                        log('   ✅ Import batch tab pane found', 'success');
+                        
+                        const importContainer = testContainer.querySelector('#import-batch-container');
+                        if (importContainer) {
+                            log('   ✅ Import batch container found', 'success');
+                            
+                            // Check if content was loaded
+                            if (importContainer.innerHTML.trim().length > 50) {
+                                log('   ✅ Import batch content loaded', 'success');
+                                addTestResult('Import Batch Tab', 'Import batch tab working correctly', 'success');
+                                updateStatus('importStatus', 'Working', 'success');
+                            } else {
+                                log('   ⚠️ Import batch content appears minimal', 'warning');
+                                addTestResult('Import Batch Tab', 'Import batch tab found but content may be incomplete', 'warning');
+                                updateStatus('importStatus', 'Partial', 'warning');
+                            }
+                        } else {
+                            log('   ❌ Import batch container not found', 'error');
+                            addTestResult('Import Batch Tab', 'Import batch container missing', 'error');
+                            updateStatus('importStatus', 'Missing', 'danger');
+                        }
+                    } else {
+                        log('   ❌ Import batch tab pane not found', 'error');
+                        addTestResult('Import Batch Tab', 'Import batch tab pane not found', 'error');
+                        updateStatus('importStatus', 'Not Found', 'danger');
+                    }
+                    
+                } finally {
+                    document.body.removeChild(testContainer);
+                }
+                
+            } catch (error) {
+                log(`   ❌ Import batch tab test failed: ${error.message}`, 'error');
+                addTestResult('Import Batch Tab', `Test failed: ${error.message}`, 'error');
+                updateStatus('importStatus', 'Error', 'danger');
+            }
+        }
+
+        async function testNavigation() {
+            log('6️⃣ Testing navigation integration...', 'info');
+            
+            try {
+                // Test if renderPage function properly routes to integrated interface
+                if (typeof window.renderPage === 'function') {
+                    log('   ✅ renderPage function available', 'success');
+                    
+                    // Create test container
+                    const testContainer = document.createElement('div');
+                    testContainer.id = 'mainContent';
+                    testContainer.style.cssText = 'position: absolute; top: -9999px; left: -9999px; width: 1000px; height: 800px;';
+                    document.body.appendChild(testContainer);
+                    
+                    try {
+                        // Test navigation to integrated interface
+                        window.renderPage('pembayaran-hutang-piutang-integrated');
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        const integratedInterface = testContainer.querySelector('.integrated-payment-container');
+                        if (integratedInterface) {
+                            log('   ✅ Navigation to integrated interface works', 'success');
+                            addTestResult('Navigation Integration', 'Menu navigation works correctly', 'success');
+                            updateStatus('navigationStatus', 'Working', 'success');
+                        } else {
+                            log('   ❌ Navigation did not create integrated interface', 'error');
+                            addTestResult('Navigation Integration', 'Navigation failed to create integrated interface', 'error');
+                            updateStatus('navigationStatus', 'Failed', 'danger');
+                        }
+                        
+                    } finally {
+                        document.body.removeChild(testContainer);
+                    }
+                } else {
+                    log('   ❌ renderPage function not available', 'error');
+                    addTestResult('Navigation Integration', 'renderPage function not available', 'error');
+                    updateStatus('navigationStatus', 'Missing', 'danger');
+                }
+                
+            } catch (error) {
+                log(`   ❌ Navigation test failed: ${error.message}`, 'error');
+                addTestResult('Navigation Integration', `Test failed: ${error.message}`, 'error');
+                updateStatus('navigationStatus', 'Error', 'danger');
+            }
+        }
+
+        async function simulateUserFlow() {
+            log('👤 Simulating user workflow...', 'info');
+            
+            try {
+                addTestResult('User Flow Simulation', 'Starting user workflow simulation...', 'success');
+                
+                // Step 1: User opens integrated interface
+                log('   1️⃣ User opens integrated payment interface', 'info');
+                await testIntegratedInterface();
+                
+                // Step 2: User switches between tabs
+                log('   2️⃣ User switches between tabs', 'info');
+                await testTabSwitching();
+                
+                // Step 3: User interacts with manual payment
+                log('   3️⃣ User checks manual payment tab', 'info');
+                await testManualPaymentTab();
+                
+                // Step 4: User checks import batch
+                log('   4️⃣ User checks import batch tab', 'info');
+                await testImportBatchTab();
+                
+                log('   ✅ User workflow simulation completed', 'success');
+                addTestResult('User Flow Complete', 'User workflow simulation completed successfully', 'success');
+                
+            } catch (error) {
+                log(`   ❌ User flow simulation failed: ${error.message}`, 'error');
+                addTestResult('User Flow Error', `Simulation failed: ${error.message}`, 'error');
+            }
+        }
+
+        function openIntegratedInterface() {
+            log('🔗 Opening integrated interface in test container...', 'info');
+            
+            const testContainer = document.getElementById('testInterfaceContainer');
+            const testMainContent = document.getElementById('testMainContent');
+            
+            // Show test container
+            testContainer.style.display = 'block';
+            
+            // Create mainContent for testing
+            testMainContent.innerHTML = '<div id="mainContent" style="width: 100%; height: 100%;"></div>';
+            
+            // Render integrated interface
+            if (typeof window.renderPembayaranHutangPiutangIntegrated === 'function') {
+                try {
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    log('   ✅ Integrated interface opened in test container', 'success');
+                } catch (error) {
+                    log(`   ❌ Failed to open integrated interface: ${error.message}`, 'error');
+                    testMainContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h4>Error</h4>
+                            <p>Failed to load integrated interface: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            } else {
+                log('   ❌ Integrated interface function not available', 'error');
+                testMainContent.innerHTML = `
+                    <div class="alert alert-warning">
+                        <h4>Function Not Available</h4>
+                        <p>renderPembayaranHutangPiutangIntegrated function is not available.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function closeTestInterface() {
+            document.getElementById('testInterfaceContainer').style.display = 'none';
+            log('🔒 Test interface closed', 'info');
+        }
+
+        // Auto-run basic tests on page load
+        setTimeout(() => {
+            log('🔄 Running initial dependency check...', 'info');
+            testDependencies();
+        }, 1000);
+    </script>
+</body>
+</html>

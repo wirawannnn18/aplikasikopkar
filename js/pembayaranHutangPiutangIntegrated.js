@@ -1563,7 +1563,125 @@ class PembayaranHutangPiutangIntegrated {
                 container.innerHTML = '<div id="manual-mainContent"></div>';
                 const manualMainContent = container.querySelector('#manual-mainContent');
                 
-                // Temporarily replace the global mainContent reference
+                // Temporarily replace mainContent to capture the render output
+                const originalMainContent = document.getElementById('mainContent');
+                const tempMainContent = document.createElement('div');
+                tempMainContent.id = 'mainContent';
+                
+                // Replace mainContent temporarily
+                if (originalMainContent && originalMainContent.parentNode) {
+                    originalMainContent.parentNode.insertBefore(tempMainContent, originalMainContent);
+                    originalMainContent.style.display = 'none';
+                } else {
+                    document.body.appendChild(tempMainContent);
+                }
+                
+                try {
+                    // Call the render function
+                    window.renderPembayaranHutangPiutang();
+                    
+                    // Initialize shared services if available
+                    if (this.sharedServices && typeof this.sharedServices.initialize === 'function') {
+                        await this.sharedServices.initialize();
+                    }
+                    
+                    // Move the rendered content to our container
+                    manualMainContent.innerHTML = tempMainContent.innerHTML;
+                    
+                    // Re-initialize any JavaScript components that were in the original content
+                    this._reinitializeManualComponents(manualMainContent);
+                    
+                } finally {
+                    // Restore original mainContent
+                    if (originalMainContent && originalMainContent.parentNode) {
+                        originalMainContent.style.display = '';
+                        originalMainContent.parentNode.removeChild(tempMainContent);
+                    } else if (tempMainContent.parentNode) {
+                        tempMainContent.parentNode.removeChild(tempMainContent);
+                    }
+                }
+                
+            } else {
+                // Fallback manual payment interface
+                container.innerHTML = `
+                    <div class="container-fluid py-4">
+                        <div class="alert alert-warning">
+                            <h5><i class="bi bi-exclamation-triangle"></i> Fungsi Tidak Tersedia</h5>
+                            <p>Fungsi <code>renderPembayaranHutangPiutang</code> tidak ditemukan.</p>
+                            <p>Pastikan file <code>js/pembayaranHutangPiutang.js</code> sudah dimuat dengan benar.</p>
+                            <button class="btn btn-primary" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="bi bi-info-circle"></i> Pembayaran Manual</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Interface pembayaran manual memungkinkan pemrosesan pembayaran hutang/piutang secara satuan.</p>
+                                <p>Fitur ini sedang dalam proses pemuatan. Silakan refresh halaman atau hubungi administrator jika masalah berlanjut.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                console.warn('renderPembayaranHutangPiutang function not available, using fallback interface');
+            }
+        } catch (error) {
+            console.error('Error rendering manual payment interface:', error);
+            container.innerHTML = `
+                <div class="container-fluid py-4">
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-exclamation-triangle"></i> Error</h5>
+                        <p>Gagal memuat interface pembayaran manual: ${error.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Reinitialize manual payment components after DOM manipulation
+     * @private
+     * @param {HTMLElement} container - Container element
+     */
+    _reinitializeManualComponents(container) {
+        try {
+            // Find and reinitialize form elements
+            const forms = container.querySelectorAll('form');
+            forms.forEach(form => {
+                // Reinitialize form event listeners if needed
+                if (form.id === 'formPembayaran') {
+                    // Setup form submission handler
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        if (typeof window.prosesPembayaran === 'function') {
+                            window.prosesPembayaran();
+                        }
+                    });
+                }
+            });
+
+            // Reinitialize autocomplete if available
+            const autocompleteInputs = container.querySelectorAll('[data-autocomplete]');
+            autocompleteInputs.forEach(input => {
+                if (typeof window.initializeAutocomplete === 'function') {
+                    window.initializeAutocomplete(input);
+                }
+            });
+
+            // Reinitialize any other components
+            if (typeof window.initializePembayaranComponents === 'function') {
+                window.initializePembayaranComponents(container);
+            }
+
+        } catch (error) {
+            console.error('Failed to reinitialize manual components:', error);
+        }
+    }he global mainContent reference
                 const originalMainContent = document.getElementById('mainContent');
                 let originalId = null;
                 

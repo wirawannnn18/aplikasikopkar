@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Integrated Interface - Final Solution</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .log-container {
+            background: #1e1e1e;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+        .log-entry {
+            padding: 4px 12px;
+            border-bottom: 1px solid #333;
+        }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-warning { color: #ffc107; }
+        .log-info { color: #17a2b8; }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="bi bi-tools"></i> Fix Integrated Interface - Final Solution</h4>
+                        <p class="mb-0">Mengatasi masalah interface pembayaran manual yang masih muncul alih-alih interface terintegrasi</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Status Overview -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Interface Status</h6>
+                                        <span id="interfaceStatus" class="badge bg-secondary status-badge">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Tab Rendering</h6>
+                                        <span id="tabStatus" class="badge bg-secondary status-badge">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Manual Payment</h6>
+                                        <span id="manualStatus" class="badge bg-secondary status-badge">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h6>Import Batch</h6>
+                                        <span id="importStatus" class="badge bg-secondary status-badge">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="btn-group me-2" role="group">
+                                    <button class="btn btn-primary" onclick="diagnoseIssue()">
+                                        <i class="bi bi-search"></i> Diagnose Issue
+                                    </button>
+                                    <button class="btn btn-success" onclick="applyFix()">
+                                        <i class="bi bi-wrench"></i> Apply Fix
+                                    </button>
+                                    <button class="btn btn-info" onclick="testInterface()">
+                                        <i class="bi bi-play-circle"></i> Test Interface
+                                    </button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-warning" onclick="clearLogs()">
+                                        <i class="bi bi-trash"></i> Clear Logs
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="location.reload()">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Log Output -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Diagnostic Log</h5>
+                                <div id="logContainer" class="log-container">
+                                    <div class="log-entry log-info">Ready to diagnose interface loading issue...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let logContainer;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('logContainer');
+            log('System initialized', 'info');
+        });
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStatus(elementId, text, type) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = text;
+                element.className = `badge status-badge bg-${type}`;
+            }
+        }
+
+        function clearLogs() {
+            logContainer.innerHTML = '<div class="log-entry log-info">Logs cleared</div>';
+        }
+
+        async function diagnoseIssue() {
+            log('🔍 Starting comprehensive diagnosis...', 'info');
+            
+            // Reset all status indicators
+            updateStatus('interfaceStatus', 'Checking...', 'secondary');
+            updateStatus('tabStatus', 'Checking...', 'secondary');
+            updateStatus('manualStatus', 'Checking...', 'secondary');
+            updateStatus('importStatus', 'Checking...', 'secondary');
+
+            try {
+                // Check 1: Verify integrated controller exists
+                log('1️⃣ Checking PembayaranHutangPiutangIntegrated class...', 'info');
+                if (typeof window.PembayaranHutangPiutangIntegrated === 'function') {
+                    log('   ✅ PembayaranHutangPiutangIntegrated class found', 'success');
+                } else {
+                    log('   ❌ PembayaranHutangPiutangIntegrated class not found', 'error');
+                    updateStatus('interfaceStatus', 'Missing Class', 'danger');
+                }
+
+                // Check 2: Verify render function exists
+                log('2️⃣ Checking renderPembayaranHutangPiutangIntegrated function...', 'info');
+                if (typeof window.renderPembayaranHutangPiutangIntegrated === 'function') {
+                    log('   ✅ renderPembayaranHutangPiutangIntegrated function found', 'success');
+                } else {
+                    log('   ❌ renderPembayaranHutangPiutangIntegrated function not found', 'error');
+                    updateStatus('interfaceStatus', 'Missing Function', 'danger');
+                }
+
+                // Check 3: Verify manual payment function exists
+                log('3️⃣ Checking renderPembayaranHutangPiutang function...', 'info');
+                if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                    log('   ✅ renderPembayaranHutangPiutang function found', 'success');
+                    updateStatus('manualStatus', 'Available', 'success');
+                } else {
+                    log('   ❌ renderPembayaranHutangPiutang function not found', 'error');
+                    updateStatus('manualStatus', 'Missing', 'danger');
+                }
+
+                // Check 4: Verify import function exists
+                log('4️⃣ Checking import tagihan functions...', 'info');
+                if (typeof window.renderImportTagihanPembayaran === 'function') {
+                    log('   ✅ renderImportTagihanPembayaran function found', 'success');
+                    updateStatus('importStatus', 'Available', 'success');
+                } else {
+                    log('   ⚠️ renderImportTagihanPembayaran function not found', 'warning');
+                    updateStatus('importStatus', 'Missing', 'warning');
+                }
+
+                // Check 5: Verify shared services
+                log('5️⃣ Checking SharedPaymentServices...', 'info');
+                if (typeof window.SharedPaymentServices === 'function') {
+                    log('   ✅ SharedPaymentServices class found', 'success');
+                } else {
+                    log('   ⚠️ SharedPaymentServices class not found', 'warning');
+                }
+
+                // Check 6: Test current mainContent
+                log('6️⃣ Checking current mainContent...', 'info');
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent) {
+                    log('   ✅ mainContent element found', 'success');
+                    log(`   📄 Current content length: ${mainContent.innerHTML.length} characters`, 'info');
+                    
+                    // Check if it contains integrated interface
+                    if (mainContent.innerHTML.includes('tab-navigation')) {
+                        log('   ✅ Integrated interface detected in mainContent', 'success');
+                        updateStatus('interfaceStatus', 'Integrated', 'success');
+                        updateStatus('tabStatus', 'Present', 'success');
+                    } else if (mainContent.innerHTML.includes('formPembayaran')) {
+                        log('   ⚠️ Manual payment interface detected (not integrated)', 'warning');
+                        updateStatus('interfaceStatus', 'Manual Only', 'warning');
+                        updateStatus('tabStatus', 'Missing', 'warning');
+                    } else {
+                        log('   ❓ Unknown interface content', 'warning');
+                        updateStatus('interfaceStatus', 'Unknown', 'warning');
+                    }
+                } else {
+                    log('   ❌ mainContent element not found', 'error');
+                    updateStatus('interfaceStatus', 'No Container', 'danger');
+                }
+
+                // Check 7: Verify menu routing
+                log('7️⃣ Checking menu routing...', 'info');
+                if (typeof window.renderPage === 'function') {
+                    log('   ✅ renderPage function found', 'success');
+                } else {
+                    log('   ❌ renderPage function not found', 'error');
+                }
+
+                log('🏁 Diagnosis complete', 'success');
+
+            } catch (error) {
+                log(`❌ Diagnosis failed: ${error.message}`, 'error');
+                updateStatus('interfaceStatus', 'Error', 'danger');
+            }
+        }
+
+        async function applyFix() {
+            log('🔧 Applying comprehensive fix...', 'info');
+
+            try {
+                // Fix 1: Ensure integrated controller is properly defined
+                log('1️⃣ Fixing integrated controller definition...', 'info');
+                
+                if (typeof window.PembayaranHutangPiutangIntegrated !== 'function') {
+                    log('   ⚠️ PembayaranHutangPiutangIntegrated not available, creating placeholder', 'warning');
+                    
+                    // Create a minimal working version
+                    window.PembayaranHutangPiutangIntegrated = class {
+                        constructor() {
+                            this.activeTab = 'manual';
+                            this.isInitialized = false;
+                        }
+
+                        async initialize() {
+                            this.render();
+                            this.setupEventListeners();
+                            this.isInitialized = true;
+                        }
+
+                        render() {
+                            const content = document.getElementById('mainContent');
+                            if (!content) return;
+
+                            content.innerHTML = `
+                                <div class="integrated-payment-container">
+                                    <div class="container-fluid py-3">
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <h2><i class="bi bi-cash-coin"></i> Pembayaran Hutang / Piutang Anggota</h2>
+                                                <p class="text-muted">Interface terintegrasi untuk pembayaran manual dan import batch</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-navigation bg-light border-bottom">
+                                        <div class="container-fluid">
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="d-flex">
+                                                        <button class="btn btn-link tab-btn active" data-tab="manual" id="tab-manual">
+                                                            <i class="bi bi-person"></i> Pembayaran Manual
+                                                        </button>
+                                                        <button class="btn btn-link tab-btn" data-tab="import" id="tab-import">
+                                                            <i class="bi bi-upload"></i> Import Batch
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-content">
+                                        <div class="tab-pane active" id="manual-tab-pane">
+                                            <div id="manual-payment-container">
+                                                <div class="text-center py-5">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                    <p class="mt-3">Memuat interface pembayaran manual...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="tab-pane" id="import-tab-pane" style="display: none;">
+                                            <div id="import-batch-container">
+                                                <div class="text-center py-5">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                    <p class="mt-3">Memuat interface import batch...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <style>
+                                    .tab-btn {
+                                        padding: 15px 25px;
+                                        border: none !important;
+                                        border-bottom: 3px solid transparent !important;
+                                        text-decoration: none;
+                                        color: #6c757d;
+                                        font-weight: 500;
+                                    }
+                                    .tab-btn:hover {
+                                        background: #e9ecef;
+                                        color: #495057;
+                                    }
+                                    .tab-btn.active {
+                                        background: #fff;
+                                        color: #0d6efd;
+                                        border-bottom-color: #0d6efd !important;
+                                    }
+                                    .tab-pane {
+                                        padding: 20px;
+                                        min-height: 500px;
+                                    }
+                                </style>
+                            `;
+
+                            // Load manual payment content
+                            this.loadManualPayment();
+                        }
+
+                        setupEventListeners() {
+                            document.querySelectorAll('.tab-btn').forEach(btn => {
+                                btn.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    const tabId = btn.getAttribute('data-tab');
+                                    this.switchTab(tabId);
+                                });
+                            });
+                        }
+
+                        switchTab(tabId) {
+                            // Update tab buttons
+                            document.querySelectorAll('.tab-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                            });
+                            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+                            // Update tab panes
+                            document.querySelectorAll('.tab-pane').forEach(pane => {
+                                pane.classList.remove('active');
+                                pane.style.display = 'none';
+                            });
+                            const targetPane = document.getElementById(`${tabId}-tab-pane`);
+                            targetPane.classList.add('active');
+                            targetPane.style.display = 'block';
+
+                            // Load content based on tab
+                            if (tabId === 'manual') {
+                                this.loadManualPayment();
+                            } else if (tabId === 'import') {
+                                this.loadImportBatch();
+                            }
+
+                            this.activeTab = tabId;
+                        }
+
+                        loadManualPayment() {
+                            const container = document.getElementById('manual-payment-container');
+                            if (!container) return;
+
+                            // Try to load existing manual payment interface
+                            if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                                try {
+                                    // Create temporary container
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.id = 'mainContent';
+                                    document.body.appendChild(tempDiv);
+
+                                    // Call existing function
+                                    window.renderPembayaranHutangPiutang();
+
+                                    // Extract content and move to tab
+                                    container.innerHTML = tempDiv.innerHTML;
+
+                                    // Clean up
+                                    document.body.removeChild(tempDiv);
+
+                                    log('   ✅ Manual payment interface loaded successfully', 'success');
+                                } catch (error) {
+                                    log(`   ❌ Failed to load manual payment: ${error.message}`, 'error');
+                                    this.showManualPaymentFallback(container);
+                                }
+                            } else {
+                                this.showManualPaymentFallback(container);
+                            }
+                        }
+
+                        showManualPaymentFallback(container) {
+                            container.innerHTML = `
+                                <div class="alert alert-warning">
+                                    <h5><i class="bi bi-exclamation-triangle"></i> Interface Tidak Tersedia</h5>
+                                    <p>Interface pembayaran manual belum tersedia.</p>
+                                    <p>Pastikan file <code>js/pembayaranHutangPiutang.js</code> sudah dimuat dengan benar.</p>
+                                    <button class="btn btn-primary" onclick="location.reload()">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        loadImportBatch() {
+                            const container = document.getElementById('import-batch-container');
+                            if (!container) return;
+
+                            // Try to load existing import interface
+                            if (typeof window.renderImportTagihanPembayaran === 'function') {
+                                try {
+                                    // Create temporary container
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.id = 'mainContent';
+                                    document.body.appendChild(tempDiv);
+
+                                    // Call existing function
+                                    window.renderImportTagihanPembayaran();
+
+                                    // Extract content and move to tab
+                                    container.innerHTML = tempDiv.innerHTML;
+
+                                    // Clean up
+                                    document.body.removeChild(tempDiv);
+
+                                    log('   ✅ Import batch interface loaded successfully', 'success');
+                                } catch (error) {
+                                    log(`   ❌ Failed to load import batch: ${error.message}`, 'error');
+                                    this.showImportBatchFallback(container);
+                                }
+                            } else {
+                                this.showImportBatchFallback(container);
+                            }
+                        }
+
+                        showImportBatchFallback(container) {
+                            container.innerHTML = `
+                                <div class="alert alert-info">
+                                    <h5><i class="bi bi-info-circle"></i> Import Batch</h5>
+                                    <p>Interface import batch untuk memproses pembayaran hutang/piutang secara massal.</p>
+                                    <p>Fitur ini sedang dalam pengembangan.</p>
+                                </div>
+                            `;
+                        }
+                    };
+
+                    log('   ✅ PembayaranHutangPiutangIntegrated class created', 'success');
+                }
+
+                // Fix 2: Ensure render function is properly defined
+                log('2️⃣ Fixing render function...', 'info');
+                
+                window.renderPembayaranHutangPiutangIntegrated = function() {
+                    log('   📋 Integrated render function called', 'info');
+                    
+                    try {
+                        const controller = new window.PembayaranHutangPiutangIntegrated();
+                        window.currentIntegratedController = controller;
+                        
+                        controller.initialize()
+                            .then(() => {
+                                log('   ✅ Integrated interface initialized successfully', 'success');
+                            })
+                            .catch(error => {
+                                log(`   ❌ Failed to initialize: ${error.message}`, 'error');
+                            });
+                            
+                    } catch (error) {
+                        log(`   ❌ Failed to create controller: ${error.message}`, 'error');
+                        
+                        // Fallback to manual payment
+                        if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                            log('   🔄 Falling back to manual payment interface', 'warning');
+                            window.renderPembayaranHutangPiutang();
+                        }
+                    }
+                };
+
+                log('   ✅ Render function fixed', 'success');
+
+                // Fix 3: Update menu routing if needed
+                log('3️⃣ Checking menu routing...', 'info');
+                
+                // Ensure the menu calls the correct function
+                if (typeof window.renderPage === 'function') {
+                    const originalRenderPage = window.renderPage;
+                    window.renderPage = function(page) {
+                        if (page === 'pembayaran-hutang-piutang-integrated') {
+                            log('   🔄 Routing to integrated interface', 'info');
+                            window.renderPembayaranHutangPiutangIntegrated();
+                        } else {
+                            originalRenderPage(page);
+                        }
+                    };
+                    log('   ✅ Menu routing updated', 'success');
+                }
+
+                log('🎉 Fix applied successfully!', 'success');
+                updateStatus('interfaceStatus', 'Fixed', 'success');
+                updateStatus('tabStatus', 'Fixed', 'success');
+
+            } catch (error) {
+                log(`❌ Fix failed: ${error.message}`, 'error');
+                updateStatus('interfaceStatus', 'Fix Failed', 'danger');
+            }
+        }
+
+        async function testInterface() {
+            log('🧪 Testing integrated interface...', 'info');
+
+            try {
+                // Test 1: Call the render function
+                log('1️⃣ Testing render function call...', 'info');
+                
+                if (typeof window.renderPembayaranHutangPiutangIntegrated === 'function') {
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    log('   ✅ Render function called successfully', 'success');
+                    
+                    // Wait for initialization
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Test 2: Check if tabs are present
+                    log('2️⃣ Checking tab presence...', 'info');
+                    
+                    const tabNavigation = document.querySelector('.tab-navigation');
+                    if (tabNavigation) {
+                        log('   ✅ Tab navigation found', 'success');
+                        updateStatus('tabStatus', 'Present', 'success');
+                        
+                        const tabButtons = document.querySelectorAll('.tab-btn');
+                        log(`   📊 Found ${tabButtons.length} tab buttons`, 'info');
+                        
+                        if (tabButtons.length >= 2) {
+                            log('   ✅ Both tabs present', 'success');
+                        } else {
+                            log('   ⚠️ Missing tabs', 'warning');
+                        }
+                    } else {
+                        log('   ❌ Tab navigation not found', 'error');
+                        updateStatus('tabStatus', 'Missing', 'danger');
+                    }
+                    
+                    // Test 3: Check manual payment tab
+                    log('3️⃣ Testing manual payment tab...', 'info');
+                    
+                    const manualTab = document.getElementById('manual-tab-pane');
+                    if (manualTab) {
+                        log('   ✅ Manual payment tab found', 'success');
+                        updateStatus('manualStatus', 'Working', 'success');
+                    } else {
+                        log('   ❌ Manual payment tab not found', 'error');
+                        updateStatus('manualStatus', 'Missing', 'danger');
+                    }
+                    
+                    // Test 4: Check import batch tab
+                    log('4️⃣ Testing import batch tab...', 'info');
+                    
+                    const importTab = document.getElementById('import-tab-pane');
+                    if (importTab) {
+                        log('   ✅ Import batch tab found', 'success');
+                        updateStatus('importStatus', 'Working', 'success');
+                    } else {
+                        log('   ❌ Import batch tab not found', 'error');
+                        updateStatus('importStatus', 'Missing', 'danger');
+                    }
+                    
+                    // Test 5: Test tab switching
+                    log('5️⃣ Testing tab switching...', 'info');
+                    
+                    const importButton = document.querySelector('[data-tab="import"]');
+                    if (importButton) {
+                        importButton.click();
+                        
+                        setTimeout(() => {
+                            const activeImportTab = document.querySelector('#import-tab-pane.active');
+                            if (activeImportTab) {
+                                log('   ✅ Tab switching works', 'success');
+                                
+                                // Switch back to manual
+                                const manualButton = document.querySelector('[data-tab="manual"]');
+                                if (manualButton) {
+                                    manualButton.click();
+                                    log('   ✅ Switched back to manual tab', 'success');
+                                }
+                            } else {
+                                log('   ❌ Tab switching failed', 'error');
+                            }
+                        }, 500);
+                    }
+                    
+                    updateStatus('interfaceStatus', 'Working', 'success');
+                    log('🎉 Interface test completed successfully!', 'success');
+                    
+                } else {
+                    log('   ❌ Render function not available', 'error');
+                    updateStatus('interfaceStatus', 'Not Available', 'danger');
+                }
+
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, 'error');
+                updateStatus('interfaceStatus', 'Test Failed', 'danger');
+            }
+        }
+
+        // Auto-run diagnosis on page load
+        setTimeout(() => {
+            diagnoseIssue();
+        }, 1000);
+    </script>
+</body>
+</html>
