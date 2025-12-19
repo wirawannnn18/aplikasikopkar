@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Unified Dashboard & Real-time Updates</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h1>Test Unified Dashboard & Real-time Updates</h1>
+        <p class="text-muted">Testing task 8.1 and 8.2 implementation</p>
+
+        <!-- Test Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-primary w-100 mb-2" onclick="testDashboard()">
+                                    <i class="bi bi-graph-up"></i> Test Dashboard
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-success w-100 mb-2" onclick="simulateManualPayment()">
+                                    <i class="bi bi-person-check"></i> Simulate Manual Payment
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-info w-100 mb-2" onclick="simulateImportBatch()">
+                                    <i class="bi bi-upload"></i> Simulate Import Batch
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button class="btn btn-warning w-100 mb-2" onclick="testRealTimeUpdates()">
+                                    <i class="bi bi-arrow-repeat"></i> Test Real-time Updates
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-secondary w-100 mb-2" onclick="clearTestData()">
+                                    <i class="bi bi-trash"></i> Clear Test Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Container -->
+        <div id="unified-dashboard-container">
+            <!-- Dashboard will be rendered here -->
+        </div>
+
+        <!-- Test Results -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <p class="text-muted">Test results will appear here...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/shared/UnifiedTransactionModel.js"></script>
+    <script src="js/shared/UnifiedDashboardView.js"></script>
+    <script src="js/shared/RealTimeUpdateManager.js"></script>
+
+    <script>
+        // Test variables
+        let sharedServices;
+        let dashboardView;
+        let updateManager;
+        let testResults = [];
+
+        // Initialize test environment
+        function initializeTest() {
+            try {
+                // Create mock user
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 'test_user_001',
+                    nama: 'Test User',
+                    role: 'kasir'
+                }));
+
+                // Initialize shared services
+                sharedServices = new SharedPaymentServices();
+                
+                // Initialize update manager
+                updateManager = new RealTimeUpdateManager(sharedServices);
+                
+                // Initialize dashboard
+                dashboardView = new UnifiedDashboardView(sharedServices);
+                
+                logResult('✓ Test environment initialized successfully');
+                
+            } catch (error) {
+                logResult('✗ Failed to initialize test environment: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Test dashboard functionality
+        function testDashboard() {
+            try {
+                logResult('Testing unified dashboard...');
+                
+                // Generate sample data
+                generateSampleData();
+                
+                // Render dashboard
+                dashboardView.render('unified-dashboard-container');
+                
+                logResult('✓ Dashboard rendered successfully');
+                
+                // Test dashboard refresh
+                setTimeout(() => {
+                    dashboardView.refreshDashboard();
+                    logResult('✓ Dashboard refresh completed');
+                }, 1000);
+                
+            } catch (error) {
+                logResult('✗ Dashboard test failed: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Simulate manual payment
+        function simulateManualPayment() {
+            try {
+                logResult('Simulating manual payment...');
+                
+                const paymentData = {
+                    id: generateId(),
+                    anggotaId: 'A001',
+                    anggotaNama: 'John Doe',
+                    anggotaNIK: '1234567890',
+                    jenis: 'hutang',
+                    jumlah: 500000,
+                    keterangan: 'Pembayaran hutang manual test',
+                    tanggal: new Date().toISOString().split('T')[0]
+                };
+                
+                // Process payment
+                const result = sharedServices.processPayment(paymentData, 'manual');
+                
+                // Trigger real-time update
+                updateManager.triggerManualPaymentCompleted(paymentData);
+                
+                logResult('✓ Manual payment simulated: ' + formatRupiah(paymentData.jumlah));
+                
+            } catch (error) {
+                logResult('✗ Manual payment simulation failed: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Simulate import batch
+        function simulateImportBatch() {
+            try {
+                logResult('Simulating import batch...');
+                
+                const batchData = {
+                    batchId: 'BATCH_' + Date.now(),
+                    successCount: 15,
+                    failureCount: 2,
+                    totalAmount: 7500000,
+                    transactions: []
+                };
+                
+                // Generate batch transactions
+                for (let i = 0; i < batchData.successCount; i++) {
+                    const transaction = {
+                        id: generateId(),
+                        anggotaId: 'A' + String(i + 1).padStart(3, '0'),
+                        anggotaNama: 'Member ' + (i + 1),
+                        jenis: i % 2 === 0 ? 'hutang' : 'piutang',
+                        jumlah: Math.floor(Math.random() * 1000000) + 100000,
+                        mode: 'import',
+                        batchId: batchData.batchId
+                    };
+                    batchData.transactions.push(transaction);
+                }
+                
+                // Trigger real-time update
+                updateManager.triggerImportBatchCompleted(batchData);
+                
+                logResult('✓ Import batch simulated: ' + batchData.successCount + ' transactions');
+                
+            } catch (error) {
+                logResult('✗ Import batch simulation failed: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Test real-time updates
+        function testRealTimeUpdates() {
+            try {
+                logResult('Testing real-time updates...');
+                
+                // Subscribe to updates
+                const subscriptionId = updateManager.subscribe('manualPaymentCompleted', (data) => {
+                    logResult('📡 Real-time update received: Manual payment completed');
+                });
+                
+                // Simulate multiple updates
+                setTimeout(() => simulateManualPayment(), 500);
+                setTimeout(() => simulateImportBatch(), 1500);
+                setTimeout(() => {
+                    const status = updateManager.getQueueStatus();
+                    logResult('📊 Update queue status: ' + JSON.stringify(status));
+                }, 2500);
+                
+                logResult('✓ Real-time update test initiated');
+                
+            } catch (error) {
+                logResult('✗ Real-time update test failed: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Generate sample data
+        function generateSampleData() {
+            const sampleTransactions = [];
+            const today = new Date();
+            
+            // Generate transactions for the last 7 days
+            for (let day = 0; day < 7; day++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - day);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                // Generate 5-15 transactions per day
+                const transactionCount = Math.floor(Math.random() * 10) + 5;
+                
+                for (let i = 0; i < transactionCount; i++) {
+                    const transaction = {
+                        id: generateId(),
+                        tanggal: dateStr,
+                        anggotaId: 'A' + String(Math.floor(Math.random() * 100) + 1).padStart(3, '0'),
+                        anggotaNama: 'Member ' + (Math.floor(Math.random() * 100) + 1),
+                        jenis: Math.random() > 0.5 ? 'hutang' : 'piutang',
+                        jumlah: Math.floor(Math.random() * 2000000) + 100000,
+                        mode: Math.random() > 0.3 ? 'manual' : 'import',
+                        status: 'selesai',
+                        createdAt: date.toISOString()
+                    };
+                    sampleTransactions.push(transaction);
+                }
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(sampleTransactions));
+            
+            logResult('✓ Generated ' + sampleTransactions.length + ' sample transactions');
+        }
+
+        // Clear test data
+        function clearTestData() {
+            try {
+                localStorage.removeItem('pembayaranHutangPiutang');
+                localStorage.removeItem('jurnal');
+                localStorage.removeItem('auditLog');
+                
+                // Clear dashboard
+                const container = document.getElementById('unified-dashboard-container');
+                if (container) {
+                    container.innerHTML = '<p class="text-muted">Dashboard cleared. Click "Test Dashboard" to reload.</p>';
+                }
+                
+                logResult('✓ Test data cleared');
+                
+            } catch (error) {
+                logResult('✗ Failed to clear test data: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Utility functions
+        function generateId() {
+            return Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function logResult(message) {
+            testResults.push({
+                timestamp: new Date().toLocaleTimeString(),
+                message: message
+            });
+            
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = testResults.map(result => 
+                `<div class="mb-1">
+                    <small class="text-muted">[${result.timestamp}]</small> 
+                    ${result.message}
+                </div>`
+            ).join('');
+            
+            // Scroll to bottom
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+            
+            console.log(message);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTest();
+        });
+    </script>
+</body>
+</html>

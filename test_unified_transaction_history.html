@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Unified Transaction History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="mb-4">Test Unified Transaction History - Task 7</h1>
+        
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100" onclick="setupTestData()">
+                        Setup Test Data
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-success w-100" onclick="testUnifiedView()">
+                        Test Unified View
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-info w-100" onclick="testDataQueries()">
+                        Test Data Queries
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-warning w-100" onclick="testExportFunctionality()">
+                        Test Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+
+        <!-- Unified Transaction History View -->
+        <div class="test-section">
+            <h3>Unified Transaction History View</h3>
+            <div id="unifiedHistoryContainer"></div>
+        </div>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Utility Functions -->
+    <script>
+        // Utility functions for formatting
+        function formatRupiah(amount) {
+            if (!amount && amount !== 0) return 'Rp 0';
+            return 'Rp ' + parseFloat(amount).toLocaleString('id-ID');
+        }
+
+        function formatTanggal(date) {
+            if (!date) return '';
+            return new Date(date).toLocaleDateString('id-ID');
+        }
+
+        function formatWaktu(datetime) {
+            if (!datetime) return '';
+            return new Date(datetime).toLocaleTimeString('id-ID');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNotification(message, type = 'info') {
+            Swal.fire({
+                icon: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
+                title: type === 'error' ? 'Error' : type === 'success' ? 'Berhasil' : 'Info',
+                text: message,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
+
+        // Test result logging
+        function logTestResult(testName, success, message) {
+            const resultsContainer = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'test-success' : 'test-error'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}:</strong> ${success ? '✅ PASS' : '❌ FAIL'} - ${message}
+            `;
+            resultsContainer.appendChild(resultDiv);
+        }
+    </script>
+
+    <!-- Load Components -->
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/shared/UnifiedTransactionHistoryView.js"></script>
+    <script src="js/shared/UnifiedTransactionExporter.js"></script>
+
+    <script>
+        // Global variables
+        let sharedServices;
+        let unifiedHistoryView;
+        let unifiedExporter;
+
+        // Initialize components
+        function initializeComponents() {
+            try {
+                sharedServices = new SharedPaymentServices();
+                unifiedHistoryView = new UnifiedTransactionHistoryView(sharedServices);
+                unifiedExporter = new UnifiedTransactionExporter(sharedServices);
+                
+                logTestResult('Component Initialization', true, 'All components initialized successfully');
+                return true;
+            } catch (error) {
+                logTestResult('Component Initialization', false, error.message);
+                return false;
+            }
+        }
+
+        // Setup test data
+        function setupTestData() {
+            try {
+                const testTransactions = [
+                    // Manual transactions
+                    {
+                        id: 'TXN-001',
+                        anggotaId: 'A001',
+                        anggotaNama: 'John Doe',
+                        anggotaNIK: '1234567890123456',
+                        jenis: 'hutang',
+                        mode: 'manual',
+                        jumlah: 500000,
+                        saldoSebelum: 1000000,
+                        saldoSesudah: 500000,
+                        kasirNama: 'Admin',
+                        kasirId: 'K001',
+                        tanggal: '2024-01-15',
+                        createdAt: '2024-01-15T10:30:00Z',
+                        keterangan: 'Pembayaran hutang manual'
+                    },
+                    {
+                        id: 'TXN-002',
+                        anggotaId: 'A002',
+                        anggotaNama: 'Jane Smith',
+                        anggotaNIK: '2345678901234567',
+                        jenis: 'piutang',
+                        mode: 'manual',
+                        jumlah: 300000,
+                        saldoSebelum: 0,
+                        saldoSesudah: 300000,
+                        kasirNama: 'Admin',
+                        kasirId: 'K001',
+                        tanggal: '2024-01-16',
+                        createdAt: '2024-01-16T14:20:00Z',
+                        keterangan: 'Pembayaran piutang manual'
+                    },
+                    // Import transactions
+                    {
+                        id: 'TXN-003',
+                        anggotaId: 'A003',
+                        anggotaNama: 'Bob Johnson',
+                        anggotaNIK: '3456789012345678',
+                        jenis: 'hutang',
+                        mode: 'import',
+                        batchId: 'BATCH-001',
+                        jumlah: 750000,
+                        saldoSebelum: 1500000,
+                        saldoSesudah: 750000,
+                        kasirNama: 'Admin',
+                        kasirId: 'K001',
+                        tanggal: '2024-01-17',
+                        createdAt: '2024-01-17T09:15:00Z',
+                        keterangan: 'Pembayaran hutang import batch'
+                    },
+                    {
+                        id: 'TXN-004',
+                        anggotaId: 'A004',
+                        anggotaNama: 'Alice Brown',
+                        anggotaNIK: '4567890123456789',
+                        jenis: 'piutang',
+                        mode: 'import',
+                        batchId: 'BATCH-001',
+                        jumlah: 200000,
+                        saldoSebelum: 0,
+                        saldoSesudah: 200000,
+                        kasirNama: 'Admin',
+                        kasirId: 'K001',
+                        tanggal: '2024-01-17',
+                        createdAt: '2024-01-17T09:16:00Z',
+                        keterangan: 'Pembayaran piutang import batch'
+                    }
+                ];
+
+                // Store test data
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(testTransactions));
+                
+                logTestResult('Test Data Setup', true, `${testTransactions.length} test transactions created`);
+                
+                // Refresh view if it exists
+                if (unifiedHistoryView) {
+                    unifiedHistoryView.loadTransactions();
+                }
+                
+            } catch (error) {
+                logTestResult('Test Data Setup', false, error.message);
+            }
+        }
+
+        // Test unified view (Task 7.1)
+        function testUnifiedView() {
+            try {
+                if (!unifiedHistoryView) {
+                    throw new Error('UnifiedTransactionHistoryView not initialized');
+                }
+
+                // Test rendering
+                unifiedHistoryView.render('unifiedHistoryContainer');
+                
+                // Verify mode column exists
+                const modeHeader = document.querySelector('th[data-field="mode"]');
+                if (!modeHeader) {
+                    throw new Error('Mode column not found in table header');
+                }
+
+                // Verify mode filter exists
+                const modeFilter = document.getElementById('filterMode');
+                if (!modeFilter) {
+                    throw new Error('Mode filter not found');
+                }
+
+                // Test filter options
+                const filterOptions = Array.from(modeFilter.options).map(opt => opt.value);
+                const expectedOptions = ['', 'manual', 'import'];
+                const hasAllOptions = expectedOptions.every(opt => filterOptions.includes(opt));
+                
+                if (!hasAllOptions) {
+                    throw new Error('Mode filter missing expected options');
+                }
+
+                logTestResult('Unified View (Task 7.1)', true, 'Mode column and filter implemented correctly');
+                
+            } catch (error) {
+                logTestResult('Unified View (Task 7.1)', false, error.message);
+            }
+        }
+
+        // Test data queries (Task 7.2)
+        function testDataQueries() {
+            try {
+                if (!sharedServices) {
+                    throw new Error('SharedPaymentServices not initialized');
+                }
+
+                // Test 1: Get all transactions
+                const allTransactions = sharedServices.getTransactionHistory();
+                if (!Array.isArray(allTransactions)) {
+                    throw new Error('getTransactionHistory should return an array');
+                }
+
+                // Test 2: Filter by mode
+                const manualTransactions = sharedServices.getTransactionHistory({ mode: 'manual' });
+                const importTransactions = sharedServices.getTransactionHistory({ mode: 'import' });
+                
+                if (manualTransactions.length === 0 && importTransactions.length === 0) {
+                    throw new Error('No transactions found for mode filtering');
+                }
+
+                // Test 3: Combined filtering
+                const combinedFilter = sharedServices.getTransactionHistory({
+                    mode: 'manual',
+                    jenis: 'hutang'
+                });
+
+                // Test 4: Pagination
+                const paginatedResult = sharedServices.getTransactionHistory({}, {
+                    pagination: { page: 1, pageSize: 2 }
+                });
+
+                if (!paginatedResult.data || !paginatedResult.pagination) {
+                    throw new Error('Pagination not working correctly');
+                }
+
+                // Test 5: Sorting
+                const sortedTransactions = sharedServices.getTransactionHistory({}, {
+                    sort: { field: 'jumlah', direction: 'desc' }
+                });
+
+                // Test 6: Statistics
+                const stats = sharedServices.getTransactionStatistics();
+                if (!stats || !stats.total || !stats.manual || !stats.import) {
+                    throw new Error('Transaction statistics not working correctly');
+                }
+
+                // Test 7: Search functionality
+                const searchResults = sharedServices.searchTransactions('John');
+                if (!Array.isArray(searchResults)) {
+                    throw new Error('Search functionality not working');
+                }
+
+                logTestResult('Data Queries (Task 7.2)', true, 
+                    `All: ${allTransactions.length}, Manual: ${manualTransactions.length}, Import: ${importTransactions.length}`);
+                
+            } catch (error) {
+                logTestResult('Data Queries (Task 7.2)', false, error.message);
+            }
+        }
+
+        // Test export functionality (Task 7.3)
+        function testExportFunctionality() {
+            try {
+                if (!unifiedExporter) {
+                    throw new Error('UnifiedTransactionExporter not initialized');
+                }
+
+                // Test export configuration
+                const testConfig = {
+                    format: 'csv',
+                    filters: { mode: 'manual' },
+                    groupByMode: true,
+                    includeSummary: true,
+                    includeHeaders: true
+                };
+
+                // Test CSV generation (without actual download)
+                const transactions = sharedServices.getTransactionHistory(testConfig.filters);
+                
+                if (transactions.length === 0) {
+                    throw new Error('No transactions available for export test');
+                }
+
+                // Test filename generation
+                const filename = unifiedExporter._generateFilename('csv', testConfig.filters);
+                if (!filename.endsWith('.csv')) {
+                    throw new Error('Filename generation not working correctly');
+                }
+
+                // Test summary calculation
+                const summary = unifiedExporter._calculateSummaryStats(transactions);
+                if (!summary || typeof summary.totalCount !== 'number') {
+                    throw new Error('Summary calculation not working correctly');
+                }
+
+                // Test grouping
+                const grouped = unifiedExporter._groupTransactionsByMode(transactions);
+                if (!grouped || (!grouped.manual && !grouped.import)) {
+                    throw new Error('Transaction grouping not working correctly');
+                }
+
+                logTestResult('Export Functionality (Task 7.3)', true, 
+                    `Export ready: ${transactions.length} transactions, filename: ${filename}`);
+                
+            } catch (error) {
+                logTestResult('Export Functionality (Task 7.3)', false, error.message);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeComponents();
+        });
+    </script>
+</body>
+</html>

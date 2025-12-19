@@ -1,555 +1,562 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Role-Based Access Control Test</title>
-    
-    <!-- Bootstrap CSS -->
+    <title>Test Role-Based Access Control - Integrated Payment</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8f9fa;
-            padding-top: 20px;
-        }
-        
-        .dashboard-container {
-            background: white;
-            border-radius: 8px;
+        .test-section {
+            margin: 20px 0;
             padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .dashboard-widget {
-            background: white;
-            border: 1px solid #e9ecef;
+            border: 1px solid #ddd;
             border-radius: 8px;
-            padding: 15px;
-            margin: 10px;
-            min-height: 120px;
-            position: relative;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            display: inline-block;
-            width: 250px;
-            vertical-align: top;
         }
-        
-        .widget-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .widget-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin: 0;
-            color: #333;
-        }
-        
-        .widget-content {
-            text-align: center;
-            padding: 10px 0;
-        }
-        
-        .widget-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #007bff;
-        }
-        
-        .widget-label {
-            font-size: 0.85rem;
-            color: #666;
-        }
-        
-        .role-selector {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            min-width: 250px;
-        }
-        
-        .permissions-panel {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        
-        .permission-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .permission-item:last-child {
-            border-bottom: none;
-        }
-        
-        .permission-status {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-left: 10px;
-        }
-        
-        .permission-status.granted {
-            background: #28a745;
-        }
-        
-        .permission-status.denied {
-            background: #dc3545;
-        }
-        
-        .menu-item {
-            padding: 8px 15px;
-            margin: 5px 0;
-            background: #e9ecef;
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
             border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        
-        .menu-item.hidden {
-            opacity: 0.3;
-            text-decoration: line-through;
+        .test-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
         }
-        
-        .user-info {
-            background: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+        .test-failure {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
         }
-        
-        .widget-sensitivity {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 3px;
-            color: white;
+        .test-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
         }
-        
-        .sensitivity-basic {
-            background: #28a745;
-        }
-        
-        .sensitivity-financial {
-            background: #ffc107;
-            color: #333;
-        }
-        
-        .sensitivity-sensitive {
-            background: #dc3545;
-        }
-        
-        /* Role-specific themes */
-        .theme-admin {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .theme-professional {
-            background: #343a40;
-            color: white;
-        }
-        
-        .theme-business {
-            background: #007bff;
-            color: white;
-        }
-        
-        .theme-standard {
-            background: #28a745;
-            color: white;
-        }
-        
-        .theme-clean {
-            background: #17a2b8;
-            color: white;
-        }
-        
-        .theme-minimal {
-            background: #6c757d;
-            color: white;
+        .log-viewer {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <h2>Role-Based Access Control Test</h2>
-                <p class="text-muted">Test different user roles and their dashboard permissions</p>
-            </div>
-        </div>
-        
-        <!-- Current User Info -->
-        <div class="row">
-            <div class="col-md-8">
-                <div class="user-info">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong id="current-user-name">Loading...</strong>
-                            <div id="current-user-role" class="small">Role: Loading...</div>
-                        </div>
-                        <div>
-                            <i class="fas fa-user-circle fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Dashboard Widgets -->
-        <div class="dashboard-container">
-            <h4>Dashboard Widgets</h4>
-            <div id="widgets-container">
-                <!-- Basic Widgets -->
-                <div class="dashboard-widget" data-type="kpi" data-metric="basic">
-                    <div class="widget-sensitivity sensitivity-basic">Basic</div>
-                    <div class="widget-header">
-                        <h6 class="widget-title">Total Members</h6>
-                    </div>
-                    <div class="widget-content">
-                        <div class="widget-value">1,247</div>
-                        <div class="widget-label">Active Members</div>
-                    </div>
-                </div>
-                
-                <div class="dashboard-widget" data-type="kpi" data-metric="basic">
-                    <div class="widget-sensitivity sensitivity-basic">Basic</div>
-                    <div class="widget-header">
-                        <h6 class="widget-title">Daily Transactions</h6>
-                    </div>
-                    <div class="widget-content">
-                        <div class="widget-value">156</div>
-                        <div class="widget-label">Today</div>
-                    </div>
-                </div>
-                
-                <!-- Financial Widgets -->
-                <div class="dashboard-widget" data-type="chart" data-metric="financial">
-                    <div class="widget-sensitivity sensitivity-financial">Financial</div>
-                    <div class="widget-header">
-                        <h6 class="widget-title">Revenue Trends</h6>
-                    </div>
-                    <div class="widget-content">
-                        <div class="widget-value">Rp 2.5M</div>
-                        <div class="widget-label">This Month</div>
-                    </div>
-                </div>
-                
-                <div class="dashboard-widget" data-type="kpi" data-metric="financial">
-                    <div class="widget-sensitivity sensitivity-financial">Financial</div>
-                    <div class="widget-header">
-                        <h6 class="widget-title">Total Savings</h6>
-                    </div>
-                    <div class="widget-content">
-                        <div class="widget-value">Rp 15.2M</div>
-                        <div class="widget-label">All Accounts</div>
-                    </div>
-                </div>
-                
-                <!-- Sensitive Widgets -->
-                <div class="dashboard-widget" data-type="table" data-metric="sensitive">
-                    <div class="widget-sensitivity sensitivity-sensitive">Sensitive</div>
-                    <div class="widget-header">
-                        <h6 class="widget-title">Member Financial Details</h6>
-                    </div>
-                    <div class="widget-content">
-                        <div class="widget-value">Confidential</div>
-                        <div class="widget-label">Personal Data</div>
-                    </div>
-                </div>
-                
-                <div class="dashboard-widget" data-type="chart" data-metric="sensitive">
-                    <div class="widget-sensitivity sensitivity-sensitive">Sensitive</div>
-                    <div class="widget-header">
-                        <h6 class="widget-title">Audit Logs</h6>
-                    </div>
-                    <div class="widget-content">
-                        <div class="widget-value">System</div>
-                        <div class="widget-label">Security Data</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Menu Items -->
-        <div class="dashboard-container">
-            <h4>Menu Items</h4>
+    <div class="container-fluid py-4">
+        <h1><i class="bi bi-shield-check"></i> Test Role-Based Access Control</h1>
+        <p class="text-muted">Testing tab-level permissions and security audit logging for integrated payment interface</p>
+
+        <!-- User Context Controls -->
+        <div class="test-section">
+            <h3>User Context Controls</h3>
             <div class="row">
                 <div class="col-md-6">
-                    <div class="menu-item menu-analytics">
-                        <span><i class="fas fa-chart-line"></i> Basic Analytics</span>
-                        <span class="permission-status" data-permission="analytics.basic"></span>
-                    </div>
-                    <div class="menu-item menu-advanced-analytics">
-                        <span><i class="fas fa-chart-area"></i> Advanced Analytics</span>
-                        <span class="permission-status" data-permission="analytics.advanced"></span>
-                    </div>
-                    <div class="menu-item menu-export">
-                        <span><i class="fas fa-download"></i> Export Reports</span>
-                        <span class="permission-status" data-permission="analytics.export"></span>
-                    </div>
+                    <label class="form-label">Select Test User:</label>
+                    <select class="form-select" id="userSelect" onchange="switchUser()">
+                        <option value="">No User (Anonymous)</option>
+                        <option value="super_admin">Super Admin</option>
+                        <option value="administrator">Administrator</option>
+                        <option value="kasir">Kasir</option>
+                        <option value="keuangan">Keuangan</option>
+                        <option value="inactive_user">Inactive User</option>
+                    </select>
                 </div>
                 <div class="col-md-6">
-                    <div class="menu-item menu-settings">
-                        <span><i class="fas fa-cog"></i> System Settings</span>
-                        <span class="permission-status" data-permission="system.settings"></span>
-                    </div>
-                    <div class="menu-item menu-user-management">
-                        <span><i class="fas fa-users-cog"></i> User Management</span>
-                        <span class="permission-status" data-permission="system.user_management"></span>
-                    </div>
-                    <div class="menu-item menu-audit">
-                        <span><i class="fas fa-shield-alt"></i> Audit Logs</span>
-                        <span class="permission-status" data-permission="system.audit"></span>
+                    <label class="form-label">Current User Info:</label>
+                    <div id="currentUserInfo" class="alert alert-info">
+                        No user selected
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Customization Controls -->
-        <div class="dashboard-container">
-            <h4>Dashboard Controls</h4>
-            <div class="d-flex gap-2 flex-wrap">
-                <button id="customize-dashboard-btn" class="btn btn-primary">
-                    <i class="fas fa-edit"></i> Customize Dashboard
-                </button>
-                <button id="add-widget-btn" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Add Widget
-                </button>
-                <button class="btn btn-info">
-                    <i class="fas fa-download"></i> Export Data
-                </button>
-                <button class="btn btn-warning">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
+
+        <!-- Permission Tests -->
+        <div class="test-section">
+            <h3>Permission Tests</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-primary me-2" onclick="testTabPermissions()">Test Tab Permissions</button>
+                    <button class="btn btn-secondary me-2" onclick="testTabSwitching()">Test Tab Switching</button>
+                    <button class="btn btn-info me-2" onclick="testAvailableTabs()">Test Available Tabs</button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-warning me-2" onclick="testPermissionViolations()">Test Violations</button>
+                    <button class="btn btn-success me-2" onclick="clearTestResults()">Clear Results</button>
+                </div>
             </div>
+            <div id="permissionTestResults" class="mt-3"></div>
         </div>
-        
-        <!-- Permissions Panel -->
-        <div class="permissions-panel">
-            <h5>Current Permissions</h5>
-            <div id="permissions-list">
-                <!-- Permissions will be populated by JavaScript -->
+
+        <!-- Security Audit Tests -->
+        <div class="test-section">
+            <h3>Security Audit Tests</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-primary me-2" onclick="testSecurityLogging()">Test Security Logging</button>
+                    <button class="btn btn-secondary me-2" onclick="testSuspiciousActivity()">Test Suspicious Activity</button>
+                    <button class="btn btn-info me-2" onclick="viewSecurityLogs()">View Security Logs</button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-warning me-2" onclick="exportSecurityLogs()">Export Logs</button>
+                    <button class="btn btn-danger me-2" onclick="clearSecurityLogs()">Clear Security Logs</button>
+                </div>
+            </div>
+            <div id="securityTestResults" class="mt-3"></div>
+        </div>
+
+        <!-- Integrated Interface Test -->
+        <div class="test-section">
+            <h3>Integrated Interface Test</h3>
+            <div class="row">
+                <div class="col-md-12">
+                    <button class="btn btn-success me-2" onclick="initializeIntegratedInterface()">Initialize Interface</button>
+                    <button class="btn btn-primary me-2" onclick="testInterfacePermissions()">Test Interface Permissions</button>
+                    <button class="btn btn-secondary me-2" onclick="destroyIntegratedInterface()">Destroy Interface</button>
+                </div>
+            </div>
+            <div id="interfaceTestResults" class="mt-3"></div>
+            <div id="integratedInterfaceContainer" class="mt-3" style="min-height: 200px; border: 1px solid #ddd; border-radius: 4px;"></div>
+        </div>
+
+        <!-- Security Logs Viewer -->
+        <div class="test-section">
+            <h3>Security Logs Viewer</h3>
+            <div class="log-viewer" id="securityLogsViewer">
+                Security logs will appear here...
             </div>
         </div>
     </div>
+
+    <!-- Load Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Mock Dashboard Controller -->
+    <!-- Load Application Scripts -->
+    <script src="js/shared/EnhancedAuditLogger.js"></script>
+    <script src="js/shared/SecurityAuditLogger.js"></script>
+    <script src="js/shared/TabPermissionManager.js"></script>
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+
     <script>
-        class MockDashboardController {
-            constructor() {
-                this.currentTemplate = null;
+        // Test users for different roles
+        const testUsers = {
+            super_admin: {
+                id: 1,
+                username: 'superadmin',
+                name: 'Super Administrator',
+                role: 'super_admin',
+                active: true
+            },
+            administrator: {
+                id: 2,
+                username: 'admin',
+                name: 'Administrator',
+                role: 'administrator',
+                active: true
+            },
+            kasir: {
+                id: 3,
+                username: 'kasir1',
+                name: 'Kasir Utama',
+                role: 'kasir',
+                active: true
+            },
+            keuangan: {
+                id: 4,
+                username: 'keuangan1',
+                name: 'Staff Keuangan',
+                role: 'keuangan',
+                active: true
+            },
+            inactive_user: {
+                id: 5,
+                username: 'inactive',
+                name: 'Inactive User',
+                role: 'kasir',
+                active: false
             }
-            
-            refresh() {
-                console.log('Dashboard refreshed');
-                // Simulate dashboard refresh
-                setTimeout(() => {
-                    window.location.reload();
-                }, 500);
+        };
+
+        let currentUser = null;
+        let permissionManager = null;
+        let securityAuditLogger = null;
+        let integratedController = null;
+
+        // Initialize test environment
+        function initializeTestEnvironment() {
+            try {
+                // Initialize permission manager
+                if (window.TabPermissionManager) {
+                    permissionManager = new window.TabPermissionManager();
+                    addTestResult('permissionTestResults', 'Permission manager initialized', 'success');
+                } else {
+                    addTestResult('permissionTestResults', 'TabPermissionManager not available', 'failure');
+                }
+
+                // Initialize security audit logger
+                if (window.SecurityAuditLogger) {
+                    securityAuditLogger = new window.SecurityAuditLogger();
+                    addTestResult('securityTestResults', 'Security audit logger initialized', 'success');
+                } else {
+                    addTestResult('securityTestResults', 'SecurityAuditLogger not available', 'failure');
+                }
+
+                updateSecurityLogsViewer();
+            } catch (error) {
+                addTestResult('permissionTestResults', `Initialization error: ${error.message}`, 'failure');
             }
         }
-    </script>
-    
-    <!-- Role-Based Access Control -->
-    <script src="js/dashboard/RoleBasedAccessControl.js"></script>
-    
-    <script>
-        // Initialize RBAC
-        const mockController = new MockDashboardController();
-        const rbac = new RoleBasedAccessControl(mockController);
-        
-        // Add role selector to page
-        const roleSelector = rbac.createRoleSelector();
-        document.body.appendChild(roleSelector);
-        
-        // Update UI based on current user
-        function updateUI() {
-            const user = rbac.getCurrentUser();
+
+        // Switch user context
+        function switchUser() {
+            const userSelect = document.getElementById('userSelect');
+            const selectedUser = userSelect.value;
             
-            // Update user info
-            document.getElementById('current-user-name').textContent = user.name;
-            document.getElementById('current-user-role').textContent = `Role: ${user.role}`;
+            if (selectedUser) {
+                currentUser = testUsers[selectedUser];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            } else {
+                currentUser = null;
+                localStorage.removeItem('currentUser');
+            }
+
+            // Update permission manager context
+            if (permissionManager) {
+                permissionManager.updateUserContext(currentUser);
+            }
+
+            // Update security audit logger context
+            if (securityAuditLogger) {
+                securityAuditLogger.updateUserContext(currentUser);
+            }
+
+            // Update UI
+            updateCurrentUserInfo();
             
-            // Update permissions list
-            updatePermissionsList();
-            
-            // Update menu item status
-            updateMenuStatus();
-            
-            // Apply role restrictions
-            rbac.applyRoleRestrictions();
+            addTestResult('permissionTestResults', 
+                `User context switched to: ${currentUser ? currentUser.name : 'Anonymous'}`, 'info');
         }
-        
-        // Update permissions list
-        function updatePermissionsList() {
-            const permissions = rbac.getUserPermissions();
-            const allPermissions = [
-                'dashboard.view',
-                'dashboard.customize',
-                'widgets.view_basic',
-                'widgets.view_financial',
-                'widgets.view_sensitive',
-                'widgets.create',
-                'analytics.basic',
-                'analytics.advanced',
-                'analytics.export',
-                'system.settings',
-                'system.user_management',
-                'system.audit'
-            ];
-            
-            const permissionsList = document.getElementById('permissions-list');
-            permissionsList.innerHTML = '';
-            
-            allPermissions.forEach(permission => {
-                const hasPermission = permissions.includes(permission);
-                const item = document.createElement('div');
-                item.className = 'permission-item';
-                item.innerHTML = `
-                    <span>${permission.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                    <span class="permission-status ${hasPermission ? 'granted' : 'denied'}"></span>
+
+        // Update current user info display
+        function updateCurrentUserInfo() {
+            const userInfo = document.getElementById('currentUserInfo');
+            if (currentUser) {
+                userInfo.innerHTML = `
+                    <strong>${currentUser.name}</strong><br>
+                    Role: ${currentUser.role}<br>
+                    Status: ${currentUser.active ? 'Active' : 'Inactive'}
                 `;
-                permissionsList.appendChild(item);
-            });
+                userInfo.className = 'alert alert-success';
+            } else {
+                userInfo.innerHTML = 'No user selected';
+                userInfo.className = 'alert alert-warning';
+            }
         }
-        
-        // Update menu status
-        function updateMenuStatus() {
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                const statusElement = item.querySelector('.permission-status');
-                const permission = statusElement.dataset.permission;
+
+        // Test tab permissions
+        function testTabPermissions() {
+            if (!permissionManager) {
+                addTestResult('permissionTestResults', 'Permission manager not initialized', 'failure');
+                return;
+            }
+
+            const tabs = ['manual', 'import'];
+            let results = [];
+
+            tabs.forEach(tabId => {
+                const hasAccess = permissionManager.hasTabAccess(tabId);
+                const accessLevel = permissionManager.getTabAccessLevel(tabId);
                 
-                if (rbac.hasPermission(permission)) {
-                    item.classList.remove('hidden');
-                    statusElement.className = 'permission-status granted';
+                results.push(`${tabId}: ${hasAccess ? 'GRANTED' : 'DENIED'} (Level: ${accessLevel})`);
+            });
+
+            addTestResult('permissionTestResults', 
+                `Tab permissions for ${currentUser ? currentUser.role : 'anonymous'}:<br>${results.join('<br>')}`, 
+                'info');
+        }
+
+        // Test tab switching
+        function testTabSwitching() {
+            if (!permissionManager) {
+                addTestResult('permissionTestResults', 'Permission manager not initialized', 'failure');
+                return;
+            }
+
+            const switchTests = [
+                { from: 'manual', to: 'import' },
+                { from: 'import', to: 'manual' },
+                { from: null, to: 'manual' },
+                { from: null, to: 'import' }
+            ];
+
+            let results = [];
+
+            switchTests.forEach(test => {
+                const validation = permissionManager.validateTabSwitch(test.from, test.to);
+                results.push(`${test.from || 'none'} → ${test.to}: ${validation.allowed ? 'ALLOWED' : 'DENIED'} (${validation.reason})`);
+            });
+
+            addTestResult('permissionTestResults', 
+                `Tab switching validation:<br>${results.join('<br>')}`, 
+                'info');
+        }
+
+        // Test available tabs
+        function testAvailableTabs() {
+            if (!permissionManager) {
+                addTestResult('permissionTestResults', 'Permission manager not initialized', 'failure');
+                return;
+            }
+
+            const availableTabs = permissionManager.getAvailableTabs();
+            
+            if (availableTabs.length > 0) {
+                const tabList = availableTabs.map(tab => 
+                    `${tab.name} (${tab.id}) - ${tab.description}`
+                ).join('<br>');
+                
+                addTestResult('permissionTestResults', 
+                    `Available tabs (${availableTabs.length}):<br>${tabList}`, 
+                    'success');
+            } else {
+                addTestResult('permissionTestResults', 'No tabs available for current user', 'warning');
+            }
+        }
+
+        // Test permission violations
+        function testPermissionViolations() {
+            if (!permissionManager) {
+                addTestResult('permissionTestResults', 'Permission manager not initialized', 'failure');
+                return;
+            }
+
+            // Test access to restricted tab
+            const restrictedAccess = permissionManager.checkTabAccessOrDeny('import', (tabId, user) => {
+                addTestResult('permissionTestResults', 
+                    `Access denied callback triggered for tab: ${tabId}`, 'warning');
+            });
+
+            addTestResult('permissionTestResults', 
+                `Restricted tab access test: ${restrictedAccess ? 'GRANTED' : 'DENIED'}`, 
+                restrictedAccess ? 'success' : 'warning');
+        }
+
+        // Test security logging
+        function testSecurityLogging() {
+            if (!securityAuditLogger) {
+                addTestResult('securityTestResults', 'Security audit logger not initialized', 'failure');
+                return;
+            }
+
+            // Test various security events
+            securityAuditLogger.logTabAccessAttempt('manual', 'granted', {
+                test: true,
+                reason: 'test_access_granted'
+            });
+
+            securityAuditLogger.logTabAccessAttempt('import', 'denied', {
+                test: true,
+                reason: 'test_access_denied'
+            });
+
+            securityAuditLogger.logTabSwitchAttempt('manual', 'import', 'denied', {
+                test: true,
+                reason: 'test_switch_denied'
+            });
+
+            securityAuditLogger.logPermissionViolation('TEST_VIOLATION', {
+                test: true,
+                violationType: 'test_permission_violation'
+            });
+
+            addTestResult('securityTestResults', 'Security logging test completed', 'success');
+            updateSecurityLogsViewer();
+        }
+
+        // Test suspicious activity detection
+        function testSuspiciousActivity() {
+            if (!securityAuditLogger) {
+                addTestResult('securityTestResults', 'Security audit logger not initialized', 'failure');
+                return;
+            }
+
+            // Simulate repeated access denials
+            for (let i = 0; i < 6; i++) {
+                securityAuditLogger.logTabAccessAttempt('import', 'denied', {
+                    test: true,
+                    repeated: true,
+                    attempt: i + 1
+                });
+            }
+
+            // Simulate rapid tab switching
+            for (let i = 0; i < 12; i++) {
+                securityAuditLogger.logTabSwitchAttempt('manual', 'import', 'success', {
+                    test: true,
+                    rapid: true,
+                    switch: i + 1
+                });
+            }
+
+            addTestResult('securityTestResults', 'Suspicious activity simulation completed', 'warning');
+            updateSecurityLogsViewer();
+        }
+
+        // View security logs
+        function viewSecurityLogs() {
+            if (!securityAuditLogger) {
+                addTestResult('securityTestResults', 'Security audit logger not initialized', 'failure');
+                return;
+            }
+
+            const logs = securityAuditLogger.getSecurityLogs();
+            addTestResult('securityTestResults', 
+                `Retrieved ${logs.length} security log entries`, 'info');
+            
+            updateSecurityLogsViewer();
+        }
+
+        // Export security logs
+        function exportSecurityLogs() {
+            if (!securityAuditLogger) {
+                addTestResult('securityTestResults', 'Security audit logger not initialized', 'failure');
+                return;
+            }
+
+            const csvData = securityAuditLogger.exportSecurityLogs({}, 'csv');
+            
+            // Create download link
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `security_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            addTestResult('securityTestResults', 'Security logs exported to CSV', 'success');
+        }
+
+        // Clear security logs
+        function clearSecurityLogs() {
+            localStorage.removeItem('securityAuditLog');
+            addTestResult('securityTestResults', 'Security logs cleared', 'info');
+            updateSecurityLogsViewer();
+        }
+
+        // Initialize integrated interface
+        function initializeIntegratedInterface() {
+            try {
+                if (window.PembayaranHutangPiutangIntegrated) {
+                    integratedController = new window.PembayaranHutangPiutangIntegrated();
+                    
+                    // Mock the mainContent element
+                    const container = document.getElementById('integratedInterfaceContainer');
+                    container.innerHTML = '<div id="mainContent"></div>';
+                    
+                    integratedController.initialize().then(() => {
+                        addTestResult('interfaceTestResults', 'Integrated interface initialized successfully', 'success');
+                    }).catch(error => {
+                        addTestResult('interfaceTestResults', `Interface initialization failed: ${error.message}`, 'failure');
+                    });
                 } else {
-                    item.classList.add('hidden');
-                    statusElement.className = 'permission-status denied';
+                    addTestResult('interfaceTestResults', 'PembayaranHutangPiutangIntegrated not available', 'failure');
+                }
+            } catch (error) {
+                addTestResult('interfaceTestResults', `Interface initialization error: ${error.message}`, 'failure');
+            }
+        }
+
+        // Test interface permissions
+        function testInterfacePermissions() {
+            if (!integratedController) {
+                addTestResult('interfaceTestResults', 'Integrated controller not initialized', 'failure');
+                return;
+            }
+
+            // Test tab switching with permissions
+            const testSwitches = ['manual', 'import'];
+            
+            testSwitches.forEach(async (tabId) => {
+                try {
+                    const result = await integratedController.switchTab(tabId);
+                    addTestResult('interfaceTestResults', 
+                        `Switch to ${tabId}: ${result ? 'SUCCESS' : 'FAILED'}`, 
+                        result ? 'success' : 'warning');
+                } catch (error) {
+                    addTestResult('interfaceTestResults', 
+                        `Switch to ${tabId} error: ${error.message}`, 'failure');
                 }
             });
         }
-        
-        // Test role switching
-        function testRoleSwitch() {
-            const roles = ['viewer', 'staff', 'supervisor', 'manager', 'admin', 'super_admin'];
-            let currentIndex = 0;
-            
-            setInterval(() => {
-                const role = roles[currentIndex];
-                console.log(`Switching to role: ${role}`);
-                rbac.switchRole(role);
-                currentIndex = (currentIndex + 1) % roles.length;
-            }, 5000);
+
+        // Destroy integrated interface
+        function destroyIntegratedInterface() {
+            if (integratedController) {
+                integratedController.destroy();
+                integratedController = null;
+                document.getElementById('integratedInterfaceContainer').innerHTML = '';
+                addTestResult('interfaceTestResults', 'Integrated interface destroyed', 'info');
+            }
         }
-        
-        // Initialize UI
-        updateUI();
-        
-        // Add event listeners
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'customize-dashboard-btn') {
-                if (rbac.hasPermission('dashboard.customize')) {
-                    alert('Customization mode activated!');
-                } else {
-                    alert('Access denied: Insufficient permissions');
-                }
-            }
+
+        // Update security logs viewer
+        function updateSecurityLogsViewer() {
+            const viewer = document.getElementById('securityLogsViewer');
             
-            if (e.target.id === 'add-widget-btn') {
-                if (rbac.hasPermission('widgets.create')) {
-                    alert('Add widget dialog opened!');
-                } else {
-                    alert('Access denied: Cannot create widgets');
+            try {
+                const logs = JSON.parse(localStorage.getItem('securityAuditLog') || '[]');
+                
+                if (logs.length === 0) {
+                    viewer.innerHTML = 'No security logs available';
+                    return;
                 }
+
+                const logEntries = logs.slice(-10).reverse().map(log => {
+                    const timestamp = new Date(log.timestamp).toLocaleString();
+                    const eventType = log.eventType;
+                    const user = log.details.userInfo?.userName || 'Unknown';
+                    const riskLevel = log.details.riskLevel || 'unknown';
+                    
+                    return `[${timestamp}] ${eventType} - User: ${user} - Risk: ${riskLevel}`;
+                }).join('\n');
+
+                viewer.innerHTML = logEntries;
+            } catch (error) {
+                viewer.innerHTML = `Error loading logs: ${error.message}`;
             }
-        });
-        
-        // Test widget filtering
-        function testWidgetFiltering() {
-            const widgets = [
-                { type: 'kpi', metric: 'basic' },
-                { type: 'chart', metric: 'financial' },
-                { type: 'table', metric: 'sensitive', sensitivity: 'high' }
-            ];
-            
-            const filtered = rbac.filterWidgetsByPermissions(widgets);
-            console.log('Filtered widgets:', filtered);
         }
-        
-        // Keyboard shortcuts for testing
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                switch (e.key) {
-                    case '1':
-                        e.preventDefault();
-                        rbac.switchRole('viewer');
-                        break;
-                    case '2':
-                        e.preventDefault();
-                        rbac.switchRole('staff');
-                        break;
-                    case '3':
-                        e.preventDefault();
-                        rbac.switchRole('supervisor');
-                        break;
-                    case '4':
-                        e.preventDefault();
-                        rbac.switchRole('manager');
-                        break;
-                    case '5':
-                        e.preventDefault();
-                        rbac.switchRole('admin');
-                        break;
-                    case '6':
-                        e.preventDefault();
-                        rbac.switchRole('super_admin');
-                        break;
-                }
-            }
+
+        // Clear test results
+        function clearTestResults() {
+            document.getElementById('permissionTestResults').innerHTML = '';
+            document.getElementById('securityTestResults').innerHTML = '';
+            document.getElementById('interfaceTestResults').innerHTML = '';
+        }
+
+        // Add test result
+        function addTestResult(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${type}`;
+            resultDiv.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            container.appendChild(resultDiv);
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTestEnvironment();
+            updateCurrentUserInfo();
+            
+            // Auto-refresh logs viewer every 5 seconds
+            setInterval(updateSecurityLogsViewer, 5000);
         });
-        
-        // Log available shortcuts
-        console.log('Role-Based Access Control Test initialized');
-        console.log('Keyboard shortcuts:');
-        console.log('- Ctrl+1: Switch to Viewer');
-        console.log('- Ctrl+2: Switch to Staff');
-        console.log('- Ctrl+3: Switch to Supervisor');
-        console.log('- Ctrl+4: Switch to Manager');
-        console.log('- Ctrl+5: Switch to Admin');
-        console.log('- Ctrl+6: Switch to Super Admin');
-        
-        // Test widget filtering
-        testWidgetFiltering();
-        
-        // Uncomment to test automatic role switching
-        // testRoleSwitch();
     </script>
 </body>
 </html>

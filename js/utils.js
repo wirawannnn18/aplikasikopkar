@@ -50,10 +50,19 @@ function hitungTotalPembayaranHutang(anggotaId) {
     }
     
     try {
+        // Use updated query functions if available
+        if (typeof window.transactionQueries !== 'undefined') {
+            const filters = { anggotaId, jenis: 'hutang', status: 'selesai' };
+            const transactions = window.transactionQueries.getAllTransactions(filters);
+            return transactions.reduce((sum, t) => sum + (parseFloat(t.jumlah) || 0), 0);
+        }
+        
+        // Fallback to original method with mode field support
         const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
         
-        // Sum all completed hutang payments
+        // Sum all completed hutang payments (ensure mode field exists)
         const totalPembayaran = pembayaran
+            .map(p => ({ ...p, mode: p.mode || 'manual' })) // Add mode field if missing
             .filter(p => p.anggotaId === anggotaId && p.jenis === 'hutang' && p.status === 'selesai')
             .reduce((sum, p) => sum + (p.jumlah || 0), 0);
         
@@ -106,15 +115,23 @@ function getPembayaranHutangHistory(anggotaId) {
     }
     
     try {
+        // Use updated query functions if available
+        if (typeof window.transactionQueries !== 'undefined') {
+            const filters = { anggotaId, jenis: 'hutang', status: 'selesai' };
+            return window.transactionQueries.getAllTransactions(filters);
+        }
+        
+        // Fallback to original method with mode field support
         const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
         
-        // Filter hutang payments for this anggota
+        // Filter hutang payments for this anggota (ensure mode field exists)
         const history = pembayaran
+            .map(p => ({ ...p, mode: p.mode || 'manual' })) // Add mode field if missing
             .filter(p => p.anggotaId === anggotaId && p.jenis === 'hutang' && p.status === 'selesai')
             .sort((a, b) => {
                 // Sort by date descending (newest first)
-                const dateA = new Date(a.tanggal || 0);
-                const dateB = new Date(b.tanggal || 0);
+                const dateA = new Date(a.createdAt || a.tanggal || 0);
+                const dateB = new Date(b.createdAt || b.tanggal || 0);
                 return dateB - dateA;
             });
         
@@ -168,15 +185,23 @@ function getPembayaranPiutangHistory(anggotaId) {
     }
     
     try {
+        // Use updated query functions if available
+        if (typeof window.transactionQueries !== 'undefined') {
+            const filters = { anggotaId, jenis: 'piutang', status: 'selesai' };
+            return window.transactionQueries.getAllTransactions(filters);
+        }
+        
+        // Fallback to original method with mode field support
         const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
         
-        // Filter piutang payments for this anggota
+        // Filter piutang payments for this anggota (ensure mode field exists)
         const history = pembayaran
+            .map(p => ({ ...p, mode: p.mode || 'manual' })) // Add mode field if missing
             .filter(p => p.anggotaId === anggotaId && p.jenis === 'piutang' && p.status === 'selesai')
             .sort((a, b) => {
                 // Sort by date descending (newest first)
-                const dateA = new Date(a.tanggal || 0);
-                const dateB = new Date(b.tanggal || 0);
+                const dateA = new Date(a.createdAt || a.tanggal || 0);
+                const dateB = new Date(b.createdAt || b.tanggal || 0);
                 return dateB - dateA;
             });
         

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Integration Controller - Task 3</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Test Integration Controller - Task 3</h1>
+                
+                <!-- Test Results -->
+                <div id="testResults" class="mb-4"></div>
+                
+                <!-- Test Buttons -->
+                <div class="mb-4">
+                    <button class="btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+                    <button class="btn btn-secondary" onclick="initializeController()">Initialize Controller</button>
+                    <button class="btn btn-info" onclick="testTabSwitching()">Test Tab Switching</button>
+                    <button class="btn btn-warning" onclick="testUnsavedData()">Test Unsaved Data</button>
+                    <button class="btn btn-success" onclick="testKeyboardNavigation()">Test Keyboard Navigation</button>
+                </div>
+                
+                <!-- Main Content Area -->
+                <div id="mainContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load Dependencies -->
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/import-tagihan/ImportTagihanManager.js"></script>
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+
+    <script>
+        let integrationController = null;
+        let testResults = [];
+
+        // Mock user data
+        localStorage.setItem('currentUser', JSON.stringify({
+            id: 'test-user-1',
+            nama: 'Test User',
+            role: 'kasir'
+        }));
+
+        function logTest(testName, passed, message = '') {
+            testResults.push({
+                name: testName,
+                passed: passed,
+                message: message,
+                timestamp: new Date().toISOString()
+            });
+            updateTestDisplay();
+        }
+
+        function updateTestDisplay() {
+            const container = document.getElementById('testResults');
+            const html = testResults.map(test => `
+                <div class="alert ${test.passed ? 'alert-success' : 'alert-danger'}" role="alert">
+                    <strong>${test.passed ? '✓' : '✗'} ${test.name}</strong>
+                    ${test.message ? `<br><small>${test.message}</small>` : ''}
+                    <small class="text-muted d-block">${new Date(test.timestamp).toLocaleTimeString()}</small>
+                </div>
+            `).join('');
+            container.innerHTML = html;
+        }
+
+        async function initializeController() {
+            try {
+                integrationController = new PembayaranHutangPiutangIntegrated();
+                await integrationController.initialize();
+                logTest('Controller Initialization', true, 'Controller initialized successfully');
+                return true;
+            } catch (error) {
+                logTest('Controller Initialization', false, `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function testTabSwitching() {
+            if (!integrationController) {
+                logTest('Tab Switching', false, 'Controller not initialized');
+                return false;
+            }
+
+            try {
+                // Test switching to import tab
+                const switchResult1 = await integrationController.switchTab('import');
+                logTest('Switch to Import Tab', switchResult1, switchResult1 ? 'Successfully switched' : 'Failed to switch');
+
+                // Test switching back to manual tab
+                const switchResult2 = await integrationController.switchTab('manual');
+                logTest('Switch to Manual Tab', switchResult2, switchResult2 ? 'Successfully switched' : 'Failed to switch');
+
+                // Test invalid tab
+                const switchResult3 = await integrationController.switchTab('invalid');
+                logTest('Invalid Tab Handling', !switchResult3, !switchResult3 ? 'Correctly rejected invalid tab' : 'Should have rejected invalid tab');
+
+                return switchResult1 && switchResult2 && !switchResult3;
+            } catch (error) {
+                logTest('Tab Switching', false, `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function testUnsavedData() {
+            if (!integrationController) {
+                logTest('Unsaved Data Handling', false, 'Controller not initialized');
+                return false;
+            }
+
+            try {
+                // Test setting unsaved data
+                integrationController.setUnsavedData('manual', true);
+                const hasUnsaved1 = integrationController.tabs.manual.hasUnsavedData;
+                logTest('Set Unsaved Data', hasUnsaved1, hasUnsaved1 ? 'Unsaved data flag set correctly' : 'Failed to set unsaved data flag');
+
+                // Test clearing unsaved data
+                integrationController.setUnsavedData('manual', false);
+                const hasUnsaved2 = integrationController.tabs.manual.hasUnsavedData;
+                logTest('Clear Unsaved Data', !hasUnsaved2, !hasUnsaved2 ? 'Unsaved data flag cleared correctly' : 'Failed to clear unsaved data flag');
+
+                // Test unsaved data indicator visibility
+                const indicator = document.getElementById('unsaved-manual');
+                const indicatorVisible = indicator && indicator.style.display !== 'none';
+                logTest('Unsaved Data Indicator', !indicatorVisible, !indicatorVisible ? 'Indicator hidden correctly' : 'Indicator should be hidden');
+
+                return hasUnsaved1 && !hasUnsaved2;
+            } catch (error) {
+                logTest('Unsaved Data Handling', false, `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        function testKeyboardNavigation() {
+            if (!integrationController) {
+                logTest('Keyboard Navigation', false, 'Controller not initialized');
+                return false;
+            }
+
+            try {
+                // Test keyboard shortcut methods exist
+                const hasKeyboardMethods = 
+                    typeof integrationController._handleKeyboardTabSwitch === 'function' &&
+                    typeof integrationController._handleKeyboardSave === 'function' &&
+                    typeof integrationController._handleKeyboardReset === 'function' &&
+                    typeof integrationController._focusTabButton === 'function';
+
+                logTest('Keyboard Methods', hasKeyboardMethods, hasKeyboardMethods ? 'All keyboard methods exist' : 'Some keyboard methods missing');
+
+                // Test ARIA attributes
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                const hasAriaAttributes = Array.from(tabButtons).every(btn => 
+                    btn.hasAttribute('role') && 
+                    btn.hasAttribute('aria-selected') &&
+                    btn.hasAttribute('tabindex')
+                );
+
+                logTest('ARIA Attributes', hasAriaAttributes, hasAriaAttributes ? 'All ARIA attributes present' : 'Missing ARIA attributes');
+
+                // Test keyboard shortcuts help
+                const helpElement = document.getElementById('keyboard-shortcuts');
+                const hasKeyboardHelp = helpElement !== null;
+                logTest('Keyboard Help', hasKeyboardHelp, hasKeyboardHelp ? 'Keyboard help element exists' : 'Keyboard help element missing');
+
+                return hasKeyboardMethods && hasAriaAttributes && hasKeyboardHelp;
+            } catch (error) {
+                logTest('Keyboard Navigation', false, `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function runAllTests() {
+            testResults = [];
+            updateTestDisplay();
+
+            console.log('Starting integration controller tests...');
+
+            // Test 1: Initialize controller
+            const initResult = await initializeController();
+            
+            if (initResult) {
+                // Test 2: Tab switching
+                await testTabSwitching();
+                
+                // Test 3: Unsaved data handling
+                await testUnsavedData();
+                
+                // Test 4: Keyboard navigation
+                testKeyboardNavigation();
+            }
+
+            const passedTests = testResults.filter(t => t.passed).length;
+            const totalTests = testResults.length;
+            
+            console.log(`Tests completed: ${passedTests}/${totalTests} passed`);
+            
+            // Show summary
+            const summaryAlert = document.createElement('div');
+            summaryAlert.className = `alert ${passedTests === totalTests ? 'alert-success' : 'alert-warning'}`;
+            summaryAlert.innerHTML = `
+                <h5>Test Summary</h5>
+                <p>Passed: ${passedTests}/${totalTests} tests</p>
+                <p>Success Rate: ${((passedTests/totalTests) * 100).toFixed(1)}%</p>
+            `;
+            document.getElementById('testResults').insertBefore(summaryAlert, document.getElementById('testResults').firstChild);
+        }
+
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+
+        // Test keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'h') {
+                console.log('Ctrl+H detected - should toggle keyboard help');
+            }
+            if (e.ctrlKey && e.key === '1') {
+                console.log('Ctrl+1 detected - should switch to manual tab');
+            }
+            if (e.ctrlKey && e.key === '2') {
+                console.log('Ctrl+2 detected - should switch to import tab');
+            }
+        });
+    </script>
+</body>
+</html>

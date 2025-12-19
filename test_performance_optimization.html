@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Performance Optimization - Lazy Loading & Data Query Optimizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .performance-metrics {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            background: #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .success { background-color: #d1edff; }
+        .error { background-color: #f8d7da; }
+        .warning { background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1><i class="bi bi-speedometer2"></i> Performance Optimization Test</h1>
+                <p class="text-muted">Testing lazy loading and data query optimization for integrated payment interface</p>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-play-circle"></i> Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group me-2" role="group">
+                            <button type="button" class="btn btn-primary" onclick="testLazyLoading()">
+                                <i class="bi bi-hourglass-split"></i> Test Lazy Loading
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="testDataQueryOptimizer()">
+                                <i class="bi bi-database"></i> Test Query Optimizer
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="testIntegratedPerformance()">
+                                <i class="bi bi-speedometer"></i> Test Integrated Performance
+                            </button>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-warning" onclick="clearAllTests()">
+                                <i class="bi bi-arrow-clockwise"></i> Clear Results
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="generateTestData()">
+                                <i class="bi bi-database-add"></i> Generate Test Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-graph-up"></i> Lazy Loading Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="lazyLoadingMetrics" class="performance-metrics">
+                            <div class="text-muted">No metrics available yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-bar-chart"></i> Query Optimizer Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="queryOptimizerMetrics" class="performance-metrics">
+                            <div class="text-muted">No metrics available yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clipboard-data"></i> Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <div class="text-muted">No test results yet. Click a test button to start.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lazy Loading Test Section -->
+        <div class="test-section">
+            <h4><i class="bi bi-hourglass-split"></i> Lazy Loading Test</h4>
+            <p>This test verifies that controllers are loaded only when needed, optimizing initial page load time.</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Manual Controller Test</h6>
+                    <button class="btn btn-outline-primary btn-sm" onclick="testManualControllerLoading()">
+                        Load Manual Controller
+                    </button>
+                    <div id="manualControllerResult" class="test-result mt-2" style="display: none;"></div>
+                </div>
+                <div class="col-md-6">
+                    <h6>Import Controller Test</h6>
+                    <button class="btn btn-outline-success btn-sm" onclick="testImportControllerLoading()">
+                        Load Import Controller
+                    </button>
+                    <div id="importControllerResult" class="test-result mt-2" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Query Optimizer Test Section -->
+        <div class="test-section">
+            <h4><i class="bi bi-database"></i> Data Query Optimizer Test</h4>
+            <p>This test verifies efficient database queries, caching, and pagination functionality.</p>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <h6>Transaction History Query</h6>
+                    <button class="btn btn-outline-info btn-sm" onclick="testTransactionHistoryQuery()">
+                        Test Query Performance
+                    </button>
+                    <div id="transactionQueryResult" class="test-result mt-2" style="display: none;"></div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Statistics Calculation</h6>
+                    <button class="btn btn-outline-warning btn-sm" onclick="testStatisticsCalculation()">
+                        Test Statistics
+                    </button>
+                    <div id="statisticsResult" class="test-result mt-2" style="display: none;"></div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Anggota Search</h6>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="testAnggotaSearch()">
+                        Test Search
+                    </button>
+                    <div id="searchResult" class="test-result mt-2" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Required Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/shared/LazyLoadingManager.js"></script>
+    <script src="js/shared/DataQueryOptimizer.js"></script>
+    <script src="js/shared/SharedPaymentServices.js"></script>
+
+    <script>
+        // Global test variables
+        let lazyLoadingManager;
+        let dataQueryOptimizer;
+        let sharedServices;
+        let testStartTime;
+
+        // Initialize test environment
+        function initializeTestEnvironment() {
+            try {
+                // Initialize shared services
+                sharedServices = new SharedPaymentServices();
+                
+                // Initialize lazy loading manager
+                lazyLoadingManager = new LazyLoadingManager();
+                
+                // Initialize data query optimizer
+                dataQueryOptimizer = new DataQueryOptimizer(sharedServices);
+                
+                addTestResult('Test environment initialized successfully', 'success');
+                
+            } catch (error) {
+                addTestResult(`Failed to initialize test environment: ${error.message}`, 'error');
+            }
+        }
+
+        // Generate test data for performance testing
+        function generateTestData() {
+            try {
+                const anggotaList = [];
+                const transactionList = [];
+                
+                // Generate anggota data
+                for (let i = 1; i <= 1000; i++) {
+                    anggotaList.push({
+                        id: `A${String(i).padStart(4, '0')}`,
+                        nama: `Anggota Test ${i}`,
+                        nik: `NIK${String(i).padStart(6, '0')}`,
+                        status: i % 10 === 0 ? 'inactive' : 'active'
+                    });
+                }
+                
+                // Generate transaction data
+                const modes = ['manual', 'import'];
+                const jenis = ['hutang', 'piutang'];
+                
+                for (let i = 1; i <= 5000; i++) {
+                    const anggotaIndex = Math.floor(Math.random() * anggotaList.length);
+                    const anggota = anggotaList[anggotaIndex];
+                    
+                    transactionList.push({
+                        id: `T${String(i).padStart(6, '0')}`,
+                        anggotaId: anggota.id,
+                        anggotaNama: anggota.nama,
+                        jenisPembayaran: jenis[Math.floor(Math.random() * jenis.length)],
+                        jumlah: Math.floor(Math.random() * 1000000) + 10000,
+                        tanggal: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+                        mode: modes[Math.floor(Math.random() * modes.length)],
+                        kasir: 'Test User',
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('anggotaList', JSON.stringify(anggotaList));
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(transactionList));
+                
+                addTestResult(`Generated test data: ${anggotaList.length} anggota, ${transactionList.length} transactions`, 'success');
+                
+            } catch (error) {
+                addTestResult(`Failed to generate test data: ${error.message}`, 'error');
+            }
+        }
+
+        // Test lazy loading functionality
+        function testLazyLoading() {
+            addTestResult('Starting lazy loading test...', 'info');
+            
+            if (!lazyLoadingManager) {
+                addTestResult('LazyLoadingManager not available', 'error');
+                return;
+            }
+            
+            // Test controller loading performance
+            testControllerLoadingPerformance();
+            
+            // Update metrics display
+            updateLazyLoadingMetrics();
+        }
+
+        // Test manual controller loading
+        async function testManualControllerLoading() {
+            const startTime = performance.now();
+            const resultDiv = document.getElementById('manualControllerResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = 'Loading manual controller...';
+            
+            try {
+                const controller = await lazyLoadingManager.loadController('manual', sharedServices);
+                const loadTime = performance.now() - startTime;
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    Manual controller loaded successfully<br>
+                    Load time: ${loadTime.toFixed(2)}ms<br>
+                    Controller type: ${controller.type}<br>
+                    Is initialized: ${controller.isInitialized}
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `Failed to load manual controller: ${error.message}`;
+            }
+        }
+
+        // Test import controller loading
+        async function testImportControllerLoading() {
+            const startTime = performance.now();
+            const resultDiv = document.getElementById('importControllerResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = 'Loading import controller...';
+            
+            try {
+                const controller = await lazyLoadingManager.loadController('import', sharedServices);
+                const loadTime = performance.now() - startTime;
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    Import controller loaded successfully<br>
+                    Load time: ${loadTime.toFixed(2)}ms<br>
+                    Controller type: ${controller.type}<br>
+                    Is initialized: ${controller.isInitialized}
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `Failed to load import controller: ${error.message}`;
+            }
+        }
+
+        // Test controller loading performance
+        async function testControllerLoadingPerformance() {
+            try {
+                // Test multiple controller loads to measure caching effectiveness
+                const iterations = 5;
+                const results = [];
+                
+                for (let i = 0; i < iterations; i++) {
+                    const startTime = performance.now();
+                    await lazyLoadingManager.loadController('manual', sharedServices);
+                    const loadTime = performance.now() - startTime;
+                    results.push(loadTime);
+                }
+                
+                const avgTime = results.reduce((a, b) => a + b, 0) / results.length;
+                const firstLoad = results[0];
+                const subsequentLoads = results.slice(1);
+                const avgSubsequent = subsequentLoads.reduce((a, b) => a + b, 0) / subsequentLoads.length;
+                
+                addTestResult(`Controller loading performance:
+                    First load: ${firstLoad.toFixed(2)}ms
+                    Subsequent loads (cached): ${avgSubsequent.toFixed(2)}ms
+                    Average: ${avgTime.toFixed(2)}ms
+                    Cache effectiveness: ${((firstLoad - avgSubsequent) / firstLoad * 100).toFixed(1)}%`, 'success');
+                
+            } catch (error) {
+                addTestResult(`Controller loading performance test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test data query optimizer
+        function testDataQueryOptimizer() {
+            addTestResult('Starting data query optimizer test...', 'info');
+            
+            if (!dataQueryOptimizer) {
+                addTestResult('DataQueryOptimizer not available', 'error');
+                return;
+            }
+            
+            // Test various query scenarios
+            testQueryPerformance();
+            
+            // Update metrics display
+            updateQueryOptimizerMetrics();
+        }
+
+        // Test transaction history query performance
+        function testTransactionHistoryQuery() {
+            const startTime = performance.now();
+            const resultDiv = document.getElementById('transactionQueryResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = 'Testing transaction history query...';
+            
+            try {
+                // Test with different filters and pagination
+                const filters = { mode: 'manual' };
+                const options = { page: 1, pageSize: 20, sortField: 'tanggal', sortDirection: 'desc' };
+                
+                const result = dataQueryOptimizer.getTransactionHistory(filters, options);
+                const queryTime = performance.now() - startTime;
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    Query completed successfully<br>
+                    Query time: ${queryTime.toFixed(2)}ms<br>
+                    Records returned: ${result.data.length}<br>
+                    Total records: ${result.pagination.totalRecords}<br>
+                    Cache hit: ${result.performance.cacheHit}<br>
+                    Records processed: ${result.performance.recordsProcessed}
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `Query failed: ${error.message}`;
+            }
+        }
+
+        // Test statistics calculation
+        function testStatisticsCalculation() {
+            const startTime = performance.now();
+            const resultDiv = document.getElementById('statisticsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = 'Calculating statistics...';
+            
+            try {
+                const filters = {};
+                const stats = dataQueryOptimizer.getTransactionStatistics(filters);
+                const queryTime = performance.now() - startTime;
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    Statistics calculated successfully<br>
+                    Query time: ${queryTime.toFixed(2)}ms<br>
+                    Total transactions: ${stats.totalTransactions}<br>
+                    Total amount: ${formatRupiah(stats.totalAmount)}<br>
+                    Manual count: ${stats.manualCount}<br>
+                    Import count: ${stats.importCount}<br>
+                    Cache hit: ${stats.performance.cacheHit}
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `Statistics calculation failed: ${error.message}`;
+            }
+        }
+
+        // Test anggota search
+        function testAnggotaSearch() {
+            const startTime = performance.now();
+            const resultDiv = document.getElementById('searchResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = 'Testing anggota search...';
+            
+            try {
+                const searchTerm = 'Test';
+                const options = { limit: 10 };
+                
+                const results = dataQueryOptimizer.searchAnggota(searchTerm, options);
+                const queryTime = performance.now() - startTime;
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.innerHTML = `
+                    Search completed successfully<br>
+                    Query time: ${queryTime.toFixed(2)}ms<br>
+                    Search term: "${searchTerm}"<br>
+                    Results found: ${results.length}<br>
+                    First result: ${results[0] ? results[0].nama : 'None'}
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `Search failed: ${error.message}`;
+            }
+        }
+
+        // Test query performance with multiple scenarios
+        function testQueryPerformance() {
+            try {
+                const scenarios = [
+                    { name: 'No filters', filters: {}, options: {} },
+                    { name: 'Mode filter', filters: { mode: 'manual' }, options: {} },
+                    { name: 'Date range', filters: { startDate: '2024-01-01', endDate: '2024-12-31' }, options: {} },
+                    { name: 'Pagination', filters: {}, options: { page: 1, pageSize: 10 } },
+                    { name: 'Complex query', filters: { mode: 'import', jenis: 'hutang' }, options: { page: 2, pageSize: 20 } }
+                ];
+                
+                let totalTime = 0;
+                let cacheHits = 0;
+                
+                scenarios.forEach(scenario => {
+                    const startTime = performance.now();
+                    const result = dataQueryOptimizer.getTransactionHistory(scenario.filters, scenario.options);
+                    const queryTime = performance.now() - startTime;
+                    
+                    totalTime += queryTime;
+                    if (result.performance && result.performance.cacheHit) {
+                        cacheHits++;
+                    }
+                    
+                    addTestResult(`${scenario.name}: ${queryTime.toFixed(2)}ms, ${result.data ? result.data.length : 0} records`, 'info');
+                });
+                
+                // Test cache effectiveness by running same queries again
+                let cachedTotalTime = 0;
+                scenarios.forEach(scenario => {
+                    const startTime = performance.now();
+                    dataQueryOptimizer.getTransactionHistory(scenario.filters, scenario.options);
+                    cachedTotalTime += performance.now() - startTime;
+                });
+                
+                const improvement = ((totalTime - cachedTotalTime) / totalTime * 100).toFixed(1);
+                
+                addTestResult(`Query performance summary:
+                    Initial queries: ${totalTime.toFixed(2)}ms
+                    Cached queries: ${cachedTotalTime.toFixed(2)}ms
+                    Performance improvement: ${improvement}%
+                    Cache hits: ${cacheHits}/${scenarios.length}`, 'success');
+                
+            } catch (error) {
+                addTestResult(`Query performance test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test integrated performance
+        function testIntegratedPerformance() {
+            addTestResult('Starting integrated performance test...', 'info');
+            
+            // Test the complete workflow
+            testCompleteWorkflow();
+        }
+
+        // Test complete workflow performance
+        async function testCompleteWorkflow() {
+            try {
+                const startTime = performance.now();
+                
+                // 1. Initialize lazy loading manager
+                const lazyManager = new LazyLoadingManager();
+                
+                // 2. Load manual controller
+                const manualController = await lazyManager.loadController('manual', sharedServices);
+                
+                // 3. Perform data queries
+                const queryOptimizer = new DataQueryOptimizer(sharedServices);
+                const transactions = queryOptimizer.getTransactionHistory({}, { page: 1, pageSize: 20 });
+                const statistics = queryOptimizer.getTransactionStatistics({});
+                
+                // 4. Load import controller (lazy)
+                const importController = await lazyManager.loadController('import', sharedServices);
+                
+                const totalTime = performance.now() - startTime;
+                
+                addTestResult(`Integrated workflow completed:
+                    Total time: ${totalTime.toFixed(2)}ms
+                    Controllers loaded: 2
+                    Transactions queried: ${transactions.data ? transactions.data.length : 0}
+                    Statistics calculated: ${statistics.totalTransactions || 0} records
+                    Memory usage: ${getMemoryUsage()}`, 'success');
+                
+            } catch (error) {
+                addTestResult(`Integrated workflow test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Update lazy loading metrics display
+        function updateLazyLoadingMetrics() {
+            const metricsDiv = document.getElementById('lazyLoadingMetrics');
+            
+            if (lazyLoadingManager) {
+                const metrics = lazyLoadingManager.getPerformanceMetrics();
+                
+                metricsDiv.innerHTML = `
+                    <div class="metric-item">
+                        <span>Loaded Controllers:</span>
+                        <span>${metrics.loadedControllers.join(', ') || 'None'}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Cache Size:</span>
+                        <span>${metrics.cacheSize} items</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Loaded Components:</span>
+                        <span>${metrics.loadedComponents.length}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Manual Controller Load Time:</span>
+                        <span>${metrics.controllerLoadTimes.get('manual')?.toFixed(2) || 'N/A'}ms</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Import Controller Load Time:</span>
+                        <span>${metrics.controllerLoadTimes.get('import')?.toFixed(2) || 'N/A'}ms</span>
+                    </div>
+                `;
+            } else {
+                metricsDiv.innerHTML = '<div class="text-muted">LazyLoadingManager not available</div>';
+            }
+        }
+
+        // Update query optimizer metrics display
+        function updateQueryOptimizerMetrics() {
+            const metricsDiv = document.getElementById('queryOptimizerMetrics');
+            
+            if (dataQueryOptimizer) {
+                const metrics = dataQueryOptimizer.getPerformanceMetrics();
+                
+                metricsDiv.innerHTML = `
+                    <div class="metric-item">
+                        <span>Total Queries:</span>
+                        <span>${metrics.queryCount}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Cache Hit Rate:</span>
+                        <span>${metrics.cacheHitRate}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Average Query Time:</span>
+                        <span>${metrics.averageQueryTime.toFixed(2)}ms</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Cache Size:</span>
+                        <span>${metrics.cacheSize} items</span>
+                    </div>
+                    <div class="metric-item">
+                        <span>Slow Queries:</span>
+                        <span>${metrics.slowQueries.length}</span>
+                    </div>
+                `;
+            } else {
+                metricsDiv.innerHTML = '<div class="text-muted">DataQueryOptimizer not available</div>';
+            }
+        }
+
+        // Add test result to display
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const resultElement = document.createElement('div');
+            resultElement.className = `test-result ${type}`;
+            resultElement.innerHTML = `<strong>[${timestamp}]</strong> ${message.replace(/\n/g, '<br>')}`;
+            
+            if (resultsDiv.children.length === 1 && resultsDiv.children[0].classList.contains('text-muted')) {
+                resultsDiv.innerHTML = '';
+            }
+            
+            resultsDiv.appendChild(resultElement);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // Clear all test results
+        function clearAllTests() {
+            document.getElementById('testResults').innerHTML = '<div class="text-muted">No test results yet. Click a test button to start.</div>';
+            document.getElementById('lazyLoadingMetrics').innerHTML = '<div class="text-muted">No metrics available yet</div>';
+            document.getElementById('queryOptimizerMetrics').innerHTML = '<div class="text-muted">No metrics available yet</div>';
+            
+            // Hide individual test results
+            ['manualControllerResult', 'importControllerResult', 'transactionQueryResult', 'statisticsResult', 'searchResult'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+        }
+
+        // Utility functions
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR'
+            }).format(amount);
+        }
+
+        function getMemoryUsage() {
+            if (performance.memory) {
+                return `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`;
+            }
+            return 'N/A';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTestEnvironment();
+        });
+    </script>
+</body>
+</html>

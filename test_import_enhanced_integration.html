@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Import Enhanced Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <h2>Test Import Enhanced Integration</h2>
+        <p>Testing ImportTagihanEnhanced integration with SharedPaymentServices</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-results"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Integration Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="integration-status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary me-2" onclick="testBasicIntegration()">
+                            Test Basic Integration
+                        </button>
+                        <button class="btn btn-success me-2" onclick="testCallbacks()">
+                            Test Callbacks
+                        </button>
+                        <button class="btn btn-info me-2" onclick="testSharedServices()">
+                            Test Shared Services
+                        </button>
+                        <button class="btn btn-warning me-2" onclick="testTabCompatibility()">
+                            Test Tab Compatibility
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearResults()">
+                            Clear Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/import-tagihan/ImportTagihanManager.js"></script>
+    <script src="js/import-tagihan/ImportTagihanEnhanced.js"></script>
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+
+    <script>
+        // Test setup
+        let testResults = [];
+        let importEnhanced = null;
+        let sharedServices = null;
+        let integrationController = null;
+
+        // Initialize test environment
+        function initializeTestEnvironment() {
+            try {
+                // Initialize shared services
+                sharedServices = new SharedPaymentServices();
+                
+                // Initialize enhanced import controller
+                importEnhanced = new ImportTagihanEnhanced(sharedServices);
+                
+                // Initialize integration controller
+                integrationController = new PembayaranHutangPiutangIntegrated();
+                
+                addTestResult('✅ Test environment initialized successfully', 'success');
+                return true;
+            } catch (error) {
+                addTestResult(`❌ Failed to initialize test environment: ${error.message}`, 'danger');
+                return false;
+            }
+        }
+
+        // Test basic integration
+        function testBasicIntegration() {
+            addTestResult('🧪 Testing basic integration...', 'info');
+            
+            if (!initializeTestEnvironment()) {
+                return;
+            }
+
+            try {
+                // Test 1: Check if ImportTagihanEnhanced is properly initialized
+                if (importEnhanced && importEnhanced.sharedServices) {
+                    addTestResult('✅ ImportTagihanEnhanced initialized with SharedPaymentServices', 'success');
+                } else {
+                    addTestResult('❌ ImportTagihanEnhanced not properly initialized', 'danger');
+                    return;
+                }
+
+                // Test 2: Check integration mode setting
+                importEnhanced.setIntegrationMode(true, integrationController);
+                const state = importEnhanced.getState();
+                
+                if (state.integrationMode && state.hasParentController) {
+                    addTestResult('✅ Integration mode set successfully', 'success');
+                } else {
+                    addTestResult('❌ Integration mode not set properly', 'danger');
+                }
+
+                // Test 3: Check shared services methods
+                const methods = ['processPayment', 'processBatchPayments', 'validatePaymentData', 'getTransactionHistory'];
+                let allMethodsAvailable = true;
+                
+                methods.forEach(method => {
+                    if (typeof sharedServices[method] === 'function') {
+                        addTestResult(`✅ SharedPaymentServices.${method} available`, 'success');
+                    } else {
+                        addTestResult(`❌ SharedPaymentServices.${method} not available`, 'danger');
+                        allMethodsAvailable = false;
+                    }
+                });
+
+                if (allMethodsAvailable) {
+                    addTestResult('✅ All required SharedPaymentServices methods available', 'success');
+                }
+
+                // Test 4: Check tab compatibility
+                const compatibility = importEnhanced.getTabCompatibilityStatus();
+                if (compatibility.integrationReady) {
+                    addTestResult('✅ Tab compatibility ready', 'success');
+                } else {
+                    addTestResult('❌ Tab compatibility not ready', 'danger');
+                }
+
+            } catch (error) {
+                addTestResult(`❌ Basic integration test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test callbacks
+        function testCallbacks() {
+            addTestResult('🧪 Testing integration callbacks...', 'info');
+            
+            if (!importEnhanced) {
+                addTestResult('❌ ImportTagihanEnhanced not initialized', 'danger');
+                return;
+            }
+
+            try {
+                let batchCompleteCallbackTriggered = false;
+                let transactionUpdateCallbackTriggered = false;
+
+                // Test batch complete callback
+                importEnhanced.onBatchComplete((results) => {
+                    batchCompleteCallbackTriggered = true;
+                    addTestResult('✅ Batch complete callback triggered', 'success');
+                });
+
+                // Test transaction update callback
+                importEnhanced.onTransactionUpdate((transaction) => {
+                    transactionUpdateCallbackTriggered = true;
+                    addTestResult('✅ Transaction update callback triggered', 'success');
+                });
+
+                // Simulate batch completion
+                const mockResults = {
+                    batchId: 'TEST_BATCH_001',
+                    successCount: 5,
+                    failureCount: 0,
+                    summary: { totalAmount: 1000000 }
+                };
+
+                if (importEnhanced.integrationCallbacks.onBatchComplete) {
+                    importEnhanced.integrationCallbacks.onBatchComplete(mockResults);
+                }
+
+                // Simulate transaction update
+                const mockTransaction = {
+                    id: 'TEST_TXN_001',
+                    jumlah: 200000,
+                    jenis: 'hutang',
+                    anggotaNama: 'Test User'
+                };
+
+                if (importEnhanced.integrationCallbacks.onTransactionUpdate) {
+                    importEnhanced.integrationCallbacks.onTransactionUpdate(mockTransaction);
+                }
+
+                // Check if callbacks were set up properly
+                if (importEnhanced.integrationCallbacks.onBatchComplete && 
+                    importEnhanced.integrationCallbacks.onTransactionUpdate) {
+                    addTestResult('✅ Integration callbacks properly configured', 'success');
+                } else {
+                    addTestResult('❌ Integration callbacks not properly configured', 'danger');
+                }
+
+            } catch (error) {
+                addTestResult(`❌ Callback test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test shared services integration
+        function testSharedServices() {
+            addTestResult('🧪 Testing shared services integration...', 'info');
+            
+            if (!importEnhanced || !sharedServices) {
+                addTestResult('❌ Required components not initialized', 'danger');
+                return;
+            }
+
+            try {
+                // Test validation integration
+                const mockPaymentData = {
+                    anggotaId: 'TEST_001',
+                    anggotaNama: 'Test User',
+                    jenis: 'hutang',
+                    jumlah: 100000
+                };
+
+                const validation = sharedServices.validatePaymentData(mockPaymentData, 'import');
+                if (validation && typeof validation.valid === 'boolean') {
+                    addTestResult('✅ Shared services validation working', 'success');
+                } else {
+                    addTestResult('❌ Shared services validation not working', 'danger');
+                }
+
+                // Test transaction history integration
+                const history = sharedServices.getTransactionHistory({ mode: 'import' });
+                if (Array.isArray(history)) {
+                    addTestResult('✅ Shared services transaction history working', 'success');
+                } else {
+                    addTestResult('❌ Shared services transaction history not working', 'danger');
+                }
+
+                // Test audit logging
+                sharedServices.logAudit('TEST_INTEGRATION', {
+                    testId: 'INTEGRATION_TEST_001',
+                    mode: 'import',
+                    timestamp: new Date().toISOString()
+                });
+                addTestResult('✅ Shared services audit logging working', 'success');
+
+            } catch (error) {
+                addTestResult(`❌ Shared services test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test tab compatibility
+        function testTabCompatibility() {
+            addTestResult('🧪 Testing tab compatibility...', 'info');
+            
+            if (!importEnhanced) {
+                addTestResult('❌ ImportTagihanEnhanced not initialized', 'danger');
+                return;
+            }
+
+            try {
+                // Test compatibility status
+                const compatibility = importEnhanced.getTabCompatibilityStatus();
+                
+                addTestResult(`Tab switching allowed: ${compatibility.canSwitchTabs ? '✅' : '❌'}`, 
+                             compatibility.canSwitchTabs ? 'success' : 'warning');
+                
+                addTestResult(`Has unsaved data: ${compatibility.hasUnsavedData ? '⚠️' : '✅'}`, 
+                             compatibility.hasUnsavedData ? 'warning' : 'success');
+                
+                addTestResult(`Workflow state: ${compatibility.currentWorkflowState}`, 'info');
+                
+                addTestResult(`Integration ready: ${compatibility.integrationReady ? '✅' : '❌'}`, 
+                             compatibility.integrationReady ? 'success' : 'danger');
+
+                // Test state management
+                const state = importEnhanced.getState();
+                addTestResult(`Integration mode: ${state.integrationMode ? '✅' : '❌'}`, 
+                             state.integrationMode ? 'success' : 'warning');
+                
+                addTestResult(`Parent controller: ${state.hasParentController ? '✅' : '❌'}`, 
+                             state.hasParentController ? 'success' : 'warning');
+
+            } catch (error) {
+                addTestResult(`❌ Tab compatibility test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Helper function to add test results
+        function addTestResult(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const result = {
+                message,
+                type,
+                timestamp
+            };
+            
+            testResults.push(result);
+            updateTestResultsDisplay();
+        }
+
+        // Update test results display
+        function updateTestResultsDisplay() {
+            const container = document.getElementById('test-results');
+            if (!container) return;
+
+            container.innerHTML = testResults.map(result => `
+                <div class="alert alert-${result.type} py-2 mb-2">
+                    <small class="text-muted">${result.timestamp}</small><br>
+                    ${result.message}
+                </div>
+            `).join('');
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Update integration status
+        function updateIntegrationStatus() {
+            const container = document.getElementById('integration-status');
+            if (!container) return;
+
+            const status = {
+                sharedServices: !!sharedServices,
+                importEnhanced: !!importEnhanced,
+                integrationController: !!integrationController,
+                integrationMode: importEnhanced ? importEnhanced.getState().integrationMode : false
+            };
+
+            container.innerHTML = `
+                <div class="mb-2">
+                    <strong>SharedPaymentServices:</strong> 
+                    <span class="badge bg-${status.sharedServices ? 'success' : 'danger'}">
+                        ${status.sharedServices ? 'Loaded' : 'Not Loaded'}
+                    </span>
+                </div>
+                <div class="mb-2">
+                    <strong>ImportTagihanEnhanced:</strong> 
+                    <span class="badge bg-${status.importEnhanced ? 'success' : 'danger'}">
+                        ${status.importEnhanced ? 'Loaded' : 'Not Loaded'}
+                    </span>
+                </div>
+                <div class="mb-2">
+                    <strong>Integration Controller:</strong> 
+                    <span class="badge bg-${status.integrationController ? 'success' : 'danger'}">
+                        ${status.integrationController ? 'Loaded' : 'Not Loaded'}
+                    </span>
+                </div>
+                <div class="mb-2">
+                    <strong>Integration Mode:</strong> 
+                    <span class="badge bg-${status.integrationMode ? 'success' : 'warning'}">
+                        ${status.integrationMode ? 'Active' : 'Inactive'}
+                    </span>
+                </div>
+            `;
+        }
+
+        // Clear results
+        function clearResults() {
+            testResults = [];
+            updateTestResultsDisplay();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateIntegrationStatus();
+            addTestResult('🚀 Test page loaded. Ready to run tests.', 'info');
+        });
+    </script>
+</body>
+</html>

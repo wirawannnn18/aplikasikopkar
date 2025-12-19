@@ -1,6 +1,115 @@
 // Pembayaran Hutang Piutang Module
 // Handles payment processing for member debts (hutang) and receivables (piutang)
 // Requirements: 1.1-8.5
+// Updated to use SharedPaymentServices for integration compatibility
+
+// Initialize shared services for integration
+let sharedPaymentServices = null;
+
+// Integration-specific features
+let integrationCallbacks = {
+    onTransactionComplete: null,
+    onSummaryUpdate: null
+};
+let integrationMode = false;
+
+/**
+ * Initialize shared payment services
+ * Requirements: 6.1, 6.2, 6.3 - Use SharedPaymentServices
+ */
+function initializeSharedServices() {
+    if (typeof window.SharedPaymentServices !== 'undefined') {
+        sharedPaymentServices = new window.SharedPaymentServices();
+        console.log('SharedPaymentServices initialized for manual payments');
+    } else {
+        console.warn('SharedPaymentServices not available, using fallback methods');
+    }
+}
+
+/**
+ * Set integration mode and callbacks
+ * Requirements: 2.4, 2.5, 5.5 - Integration-specific features
+ * @param {boolean} enabled - Enable integration mode
+ * @param {Object} callbacks - Integration callbacks
+ */
+function setIntegrationMode(enabled, callbacks = {}) {
+    integrationMode = enabled;
+    integrationCallbacks = {
+        onTransactionComplete: callbacks.onTransactionComplete || null,
+        onSummaryUpdate: callbacks.onSummaryUpdate || null
+    };
+    console.log('Integration mode:', enabled ? 'enabled' : 'disabled');
+}
+
+/**
+ * Refresh summary data (for integration callbacks)
+ * Requirements: 2.4, 2.5, 5.5 - Method to refresh summary data
+ */
+function refreshSummaryData() {
+    updateSummaryCards();
+    renderRiwayatPembayaran();
+}
+
+/**
+ * Check for unsaved data (for tab switching compatibility)
+ * Requirements: 2.4, 2.5 - Tab switching compatibility
+ */
+function hasUnsavedData() {
+    const anggotaId = document.getElementById('selectedAnggotaId')?.value || '';
+    const jenis = document.getElementById('jenisPembayaran')?.value || '';
+    const jumlah = document.getElementById('jumlahPembayaran')?.value || '';
+    
+    return anggotaId || jenis || jumlah;
+}
+
+/**
+ * Save current state for tab switching
+ * Requirements: 2.4, 2.5 - Tab switching compatibility
+ */
+function saveManualPaymentState() {
+    return {
+        anggotaId: document.getElementById('selectedAnggotaId')?.value || '',
+        anggotaNama: document.getElementById('selectedAnggotaNama')?.value || '',
+        anggotaNIK: document.getElementById('selectedAnggotaNIK')?.value || '',
+        jenis: document.getElementById('jenisPembayaran')?.value || '',
+        jumlah: document.getElementById('jumlahPembayaran')?.value || '',
+        keterangan: document.getElementById('keteranganPembayaran')?.value || ''
+    };
+}
+
+/**
+ * Restore state after tab switching
+ * Requirements: 2.4, 2.5 - Tab switching compatibility
+ */
+function restoreManualPaymentState(state) {
+    if (state.anggotaId) {
+        document.getElementById('selectedAnggotaId').value = state.anggotaId;
+        document.getElementById('selectedAnggotaNama').value = state.anggotaNama;
+        document.getElementById('selectedAnggotaNIK').value = state.anggotaNIK;
+        document.getElementById('searchAnggota').value = `${state.anggotaNama} (${state.anggotaNIK})`;
+        displaySaldoAnggotaAutomatic(state.anggotaId);
+    }
+    
+    if (state.jenis) {
+        document.getElementById('jenisPembayaran').value = state.jenis;
+        onJenisChange();
+    }
+    
+    if (state.jumlah) {
+        document.getElementById('jumlahPembayaran').value = state.jumlah;
+    }
+    
+    if (state.keterangan) {
+        document.getElementById('keteranganPembayaran').value = state.keterangan;
+    }
+    
+    validateFormRealTime();
+}
+
+// Initialize on load
+if (typeof window !== 'undefined') {
+    window.addEventListener('load', initializeSharedServices);
+}
 
 /**
  * Check if current user has permission to access pembayaran hutang piutang
@@ -288,6 +397,7 @@ function renderPembayaranHutangPiutang() {
 
 /**
  * Update summary cards with total hutang and piutang
+ * Requirements: 2.4, 2.5, 5.5 - Trigger callback for integration
  */
 function updateSummaryCards() {
     try {
@@ -303,6 +413,15 @@ function updateSummaryCards() {
 
         document.getElementById('totalHutangDisplay').textContent = formatRupiah(totalHutang);
         document.getElementById('totalPiutangDisplay').textContent = formatRupiah(totalPiutang);
+        
+        // Trigger callback for integration
+        if (integrationMode && integrationCallbacks.onSummaryUpdate) {
+            integrationCallbacks.onSummaryUpdate({
+                totalHutang,
+                totalPiutang,
+                source: 'manual'
+            });
+        }
     } catch (error) {
         console.error('Error updating summary cards:', error);
     }
@@ -569,13 +688,19 @@ function resetFormPembayaran() {
 }
 
 /**
- * Calculate hutang saldo for an anggota
- * Requirements: 1.1
+ * Calculate hutang saldo for an anggota using shared services
+ * Requirements: 1.1, 6.2 - Use shared saldo calculation functions
  * @param {string} anggotaId - ID of the anggota
  * @returns {number} Current hutang balance
  */
 function hitungSaldoHutang(anggotaId) {
     try {
+        // Use shared services if available
+        if (sharedPaymentServices) {
+            return sharedPaymentServices.hitungSaldoHutang(anggotaId);
+        }
+        
+        // Fallback to original calculation
         const penjualan = JSON.parse(localStorage.getItem('penjualan') || '[]');
         const pembayaran = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
         
@@ -597,13 +722,19 @@ function hitungSaldoHutang(anggotaId) {
 }
 
 /**
- * Calculate piutang saldo for an anggota
- * Requirements: 2.1
+ * Calculate piutang saldo for an anggota using shared services
+ * Requirements: 2.1, 6.2 - Use shared saldo calculation functions
  * @param {string} anggotaId - ID of the anggota
  * @returns {number} Current piutang balance
  */
 function hitungSaldoPiutang(anggotaId) {
     try {
+        // Use shared services if available
+        if (sharedPaymentServices) {
+            return sharedPaymentServices.hitungSaldoPiutang(anggotaId);
+        }
+        
+        // Fallback to original calculation
         // Piutang comes from simpanan that need to be returned to anggota
         // This includes pengembalian simpanan for anggota keluar
         const simpananList = JSON.parse(localStorage.getItem('simpanan') || '[]');
@@ -653,18 +784,20 @@ function renderRiwayatPembayaran() {
                 </select>
             </div>
             <div class="col-md-3">
+                <label class="form-label">Mode Pembayaran</label>
+                <select class="form-select" id="filterMode" onchange="applyFilters()">
+                    <option value="">Semua Mode</option>
+                    <option value="manual">Manual</option>
+                    <option value="import">Import Batch</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Dari Tanggal</label>
                 <input type="date" class="form-control" id="filterTanggalDari" onchange="applyFilters()">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Sampai Tanggal</label>
                 <input type="date" class="form-control" id="filterTanggalSampai" onchange="applyFilters()">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Anggota</label>
-                <select class="form-select" id="filterAnggota" onchange="applyFilters()">
-                    <option value="">Semua Anggota</option>
-                </select>
             </div>
         </div>
         
@@ -676,6 +809,7 @@ function renderRiwayatPembayaran() {
                         <th>Tanggal</th>
                         <th>Anggota</th>
                         <th>Jenis</th>
+                        <th>Mode</th>
                         <th>Jumlah</th>
                         <th>Saldo Sebelum</th>
                         <th>Saldo Sesudah</th>
@@ -685,7 +819,7 @@ function renderRiwayatPembayaran() {
                 </thead>
                 <tbody id="riwayatTableBody">
                     <tr>
-                        <td colspan="8" class="text-center">Memuat data...</td>
+                        <td colspan="9" class="text-center">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -754,13 +888,54 @@ function loadRiwayatPembayaran() {
     }
     
     try {
-        let pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+        let pembayaranList;
         
-        // Apply filters
-        pembayaranList = applyRiwayatFilters(pembayaranList);
-        
-        // Sort by date descending
-        pembayaranList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Use shared services if available for unified transaction history
+        if (sharedPaymentServices) {
+            const filters = {
+                jenis: document.getElementById('filterJenis')?.value || '',
+                mode: document.getElementById('filterMode')?.value || '',
+                tanggalDari: document.getElementById('filterTanggalDari')?.value || '',
+                tanggalSampai: document.getElementById('filterTanggalSampai')?.value || ''
+            };
+            pembayaranList = sharedPaymentServices.getTransactionHistory(filters);
+        } else {
+            // Use updated query functions with mode support
+            if (typeof window.transactionQueries !== 'undefined') {
+                const filters = {
+                    jenis: document.getElementById('filterJenis')?.value || '',
+                    mode: document.getElementById('filterMode')?.value || '',
+                    tanggalDari: document.getElementById('filterTanggalDari')?.value || '',
+                    tanggalSampai: document.getElementById('filterTanggalSampai')?.value || '',
+                    anggotaId: document.getElementById('filterAnggota')?.value || '',
+                    status: document.getElementById('filterStatus')?.value || ''
+                };
+                
+                // Remove empty filters
+                Object.keys(filters).forEach(key => {
+                    if (!filters[key]) {
+                        delete filters[key];
+                    }
+                });
+                
+                pembayaranList = window.transactionQueries.getAllTransactions(filters);
+            } else {
+                // Fallback to original method with mode field migration
+                pembayaranList = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                
+                // Add mode field to existing transactions if not present
+                pembayaranList = pembayaranList.map(transaction => ({
+                    ...transaction,
+                    mode: transaction.mode || 'manual' // Default to manual for existing transactions
+                }));
+                
+                // Apply filters
+                pembayaranList = applyRiwayatFilters(pembayaranList);
+                
+                // Sort by date descending
+                pembayaranList.sort((a, b) => new Date(b.createdAt || b.tanggal) - new Date(a.createdAt || a.tanggal));
+            }
+        }
         
         const tbody = document.getElementById('riwayatTableBody');
         if (!tbody) return;
@@ -768,7 +943,7 @@ function loadRiwayatPembayaran() {
         if (pembayaranList.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center">Tidak ada data pembayaran</td>
+                    <td colspan="9" class="text-center">Tidak ada data pembayaran</td>
                 </tr>
             `;
             return;
@@ -777,6 +952,8 @@ function loadRiwayatPembayaran() {
         tbody.innerHTML = pembayaranList.map(p => {
             const jenisClass = p.jenis === 'hutang' ? 'text-danger' : 'text-success';
             const jenisText = p.jenis === 'hutang' ? 'Hutang' : 'Piutang';
+            const modeClass = p.mode === 'import' ? 'bg-info' : 'bg-secondary';
+            const modeText = p.mode === 'import' ? 'Import' : 'Manual';
             
             return `
                 <tr>
@@ -786,6 +963,7 @@ function loadRiwayatPembayaran() {
                         <small class="text-muted">${escapeHtml(p.anggotaNIK)}</small>
                     </td>
                     <td><span class="badge bg-${p.jenis === 'hutang' ? 'danger' : 'success'}">${jenisText}</span></td>
+                    <td><span class="badge ${modeClass}">${modeText}</span></td>
                     <td class="${jenisClass}"><strong>${formatRupiah(p.jumlah)}</strong></td>
                     <td>${formatRupiah(p.saldoSebelum)}</td>
                     <td>${formatRupiah(p.saldoSesudah)}</td>
@@ -804,7 +982,7 @@ function loadRiwayatPembayaran() {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center text-danger">Error memuat data</td>
+                    <td colspan="9" class="text-center text-danger">Error memuat data</td>
                 </tr>
             `;
         }
@@ -819,6 +997,7 @@ function loadRiwayatPembayaran() {
  */
 function applyRiwayatFilters(list) {
     const filterJenis = document.getElementById('filterJenis')?.value || '';
+    const filterMode = document.getElementById('filterMode')?.value || '';
     const filterTanggalDari = document.getElementById('filterTanggalDari')?.value || '';
     const filterTanggalSampai = document.getElementById('filterTanggalSampai')?.value || '';
     const filterAnggota = document.getElementById('filterAnggota')?.value || '';
@@ -826,6 +1005,11 @@ function applyRiwayatFilters(list) {
     return list.filter(p => {
         // Filter by jenis
         if (filterJenis && p.jenis !== filterJenis) {
+            return false;
+        }
+        
+        // Filter by mode
+        if (filterMode && p.mode !== filterMode) {
             return false;
         }
         
@@ -1526,12 +1710,12 @@ async function prosesPembayaran() {
             return;
         }
         
-        // Save transaction
+        // Save transaction with unified model
         const transaksi = savePembayaran({
             ...data,
             saldoSebelum,
             saldoSesudah: saldoSebelum - jumlah
-        });
+        }, 'manual'); // Specify manual mode for manual payments
         
         // Record journal
         try {
@@ -1546,8 +1730,8 @@ async function prosesPembayaran() {
             throw new Error('Gagal mencatat jurnal. Transaksi dibatalkan.');
         }
         
-        // Save audit log
-        saveAuditLog('PEMBAYARAN_' + jenis.toUpperCase(), transaksi);
+        // Save audit log with mode tracking
+        saveAuditLog('PEMBAYARAN_' + jenis.toUpperCase(), transaksi, 'manual', 'pembayaran-hutang-piutang');
         
         // Show success notification with details
         showSuccessNotification(transaksi, jenisText);
@@ -1557,6 +1741,15 @@ async function prosesPembayaran() {
         updateSummaryCards();
         renderRiwayatPembayaran();
         
+        // Trigger callback for integration
+        if (integrationMode && integrationCallbacks.onTransactionComplete) {
+            integrationCallbacks.onTransactionComplete({
+                transaction: transaksi,
+                mode: 'manual',
+                source: 'manual-tab'
+            });
+        }
+        
     } catch (error) {
         console.error('Error proses pembayaran:', error);
         showErrorNotification(error, 'Gagal memproses pembayaran');
@@ -1564,12 +1757,23 @@ async function prosesPembayaran() {
 }
 
 /**
- * Save pembayaran transaction
- * Requirements: 1.3, 2.3
+ * Save pembayaran transaction with unified model
+ * Requirements: 1.3, 2.3, 4.2, 4.5 - Create unified transaction model
  * @param {Object} data - Payment data
+ * @param {string} mode - Payment mode ('manual' or 'import') - optional for backward compatibility
+ * @param {string} batchId - Batch ID for import transactions - optional
  * @returns {Object} Saved transaction
  */
-function savePembayaran(data) {
+function savePembayaran(data, mode = 'manual', batchId = null) {
+    // Use unified transaction model if available
+    if (typeof window.UnifiedTransactionModel !== 'undefined') {
+        const model = new window.UnifiedTransactionModel();
+        const unifiedTransaction = model.createTransaction(data, mode, batchId);
+        model.saveTransaction(unifiedTransaction);
+        return unifiedTransaction;
+    }
+    
+    // Fallback to original implementation with enhanced fields
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const timestamp = new Date().toISOString();
     
@@ -1588,6 +1792,9 @@ function savePembayaran(data) {
         kasirNama: currentUser.nama || '',
         jurnalId: '',
         status: 'selesai',
+        // NEW UNIFIED FIELDS
+        mode: mode, // 'manual' or 'import'
+        batchId: batchId, // For import transactions
         createdAt: timestamp,
         updatedAt: timestamp
     };
@@ -1616,43 +1823,82 @@ function rollbackPembayaran(transaksiId) {
 }
 
 /**
- * Create journal entry for hutang payment
- * Requirements: 1.4, 7.1, 7.3
+ * Create journal entry for hutang payment using shared services
+ * Requirements: 1.4, 7.1, 7.3, 6.1 - Use shared journal recording functions
  * @param {Object} transaksi - Transaction data
  */
 function createJurnalPembayaranHutang(transaksi) {
-    const keterangan = `Pembayaran Hutang - ${transaksi.anggotaNama}`;
-    const entries = [
-        { akun: '1-1000', debit: transaksi.jumlah, kredit: 0 },  // Kas bertambah
-        { akun: '2-1000', debit: 0, kredit: transaksi.jumlah }   // Hutang berkurang
-    ];
-    
-    addJurnal(keterangan, entries, transaksi.tanggal);
+    try {
+        // Use shared services if available
+        if (sharedPaymentServices) {
+            const jurnalId = sharedPaymentServices.createJurnalPembayaranHutang(transaksi, 'manual');
+            transaksi.jurnalId = jurnalId;
+            return jurnalId;
+        }
+        
+        // Fallback to original method
+        const keterangan = `Pembayaran Hutang - ${transaksi.anggotaNama}`;
+        const entries = [
+            { akun: '1-1000', debit: transaksi.jumlah, kredit: 0 },  // Kas bertambah
+            { akun: '2-1000', debit: 0, kredit: transaksi.jumlah }   // Hutang berkurang
+        ];
+        
+        return addJurnal(keterangan, entries, transaksi.tanggal);
+    } catch (error) {
+        console.error('Error creating hutang journal:', error);
+        throw error;
+    }
 }
 
 /**
- * Create journal entry for piutang payment
- * Requirements: 2.4, 7.2, 7.3
+ * Create journal entry for piutang payment using shared services
+ * Requirements: 2.4, 7.2, 7.3, 6.1 - Use shared journal recording functions
  * @param {Object} transaksi - Transaction data
  */
 function createJurnalPembayaranPiutang(transaksi) {
-    const keterangan = `Pembayaran Piutang - ${transaksi.anggotaNama}`;
-    const entries = [
-        { akun: '1-1200', debit: transaksi.jumlah, kredit: 0 },  // Piutang berkurang
-        { akun: '1-1000', debit: 0, kredit: transaksi.jumlah }   // Kas berkurang
-    ];
-    
-    addJurnal(keterangan, entries, transaksi.tanggal);
+    try {
+        // Use shared services if available
+        if (sharedPaymentServices) {
+            const jurnalId = sharedPaymentServices.createJurnalPembayaranPiutang(transaksi, 'manual');
+            transaksi.jurnalId = jurnalId;
+            return jurnalId;
+        }
+        
+        // Fallback to original method
+        const keterangan = `Pembayaran Piutang - ${transaksi.anggotaNama}`;
+        const entries = [
+            { akun: '1-1200', debit: transaksi.jumlah, kredit: 0 },  // Piutang berkurang
+            { akun: '1-1000', debit: 0, kredit: transaksi.jumlah }   // Kas berkurang
+        ];
+        
+        return addJurnal(keterangan, entries, transaksi.tanggal);
+    } catch (error) {
+        console.error('Error creating piutang journal:', error);
+        throw error;
+    }
 }
 
 /**
- * Save audit log
- * Requirements: 5.1, 5.2, 5.3
+ * Save audit log with enhanced mode tracking using shared services
+ * Requirements: 5.1, 5.2, 5.3, 6.3, 8.3 - Enhanced audit logging for mode tracking
  * @param {string} action - Action type
  * @param {Object} details - Transaction details
+ * @param {string} mode - Payment mode ('manual' or 'import') - optional for backward compatibility
+ * @param {string} module - Module name - optional
  */
-function saveAuditLog(action, details) {
+function saveAuditLog(action, details, mode = null, module = null) {
     try {
+        // Use shared services if available
+        if (sharedPaymentServices) {
+            sharedPaymentServices.logAudit(action, {
+                ...details,
+                mode: mode || details.mode || 'manual',
+                module: module || 'pembayaran-hutang-piutang'
+            });
+            return;
+        }
+        
+        // Fallback to original method
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const auditLog = JSON.parse(localStorage.getItem('auditLog') || '[]');
         
@@ -1662,8 +1908,17 @@ function saveAuditLog(action, details) {
             userId: currentUser.id || '',
             userName: currentUser.nama || '',
             action: action,
-            details: details,
-            module: 'pembayaran-hutang-piutang'
+            details: {
+                ...details,
+                // Enhanced tracking fields
+                mode: mode || details.mode || 'manual', // Default to manual for backward compatibility
+                sessionId: _getSessionId(),
+                userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'
+            },
+            module: module || 'pembayaran-hutang-piutang',
+            // New fields for enhanced tracking
+            mode: mode || details.mode || 'manual',
+            version: '2.0' // Version to distinguish enhanced logs
         };
         
         auditLog.push(logEntry);
@@ -1671,6 +1926,18 @@ function saveAuditLog(action, details) {
     } catch (error) {
         console.error('Error saving audit log:', error);
     }
+}
+
+/**
+ * Get session ID for audit logging
+ * @private
+ */
+let _sessionId = null;
+function _getSessionId() {
+    if (!_sessionId) {
+        _sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    }
+    return _sessionId;
 }
 
 /**
@@ -2442,13 +2709,13 @@ function cetakBuktiPembayaran(transaksiId) {
         printWindow.document.write(receiptHTML);
         printWindow.document.close();
         
-        // Log print action
+        // Log print action with mode tracking
         saveAuditLog('CETAK_BUKTI_PEMBAYARAN', {
             transaksiId: transaksi.id,
             jenis: transaksi.jenis,
             anggotaNama: transaksi.anggotaNama,
             jumlah: transaksi.jumlah
-        });
+        }, transaksi.mode || 'manual', 'pembayaran-hutang-piutang');
         
     } catch (error) {
         console.error('Error printing receipt:', error);
@@ -2479,6 +2746,13 @@ if (typeof window !== 'undefined') {
     window.checkPembayaranAccess = checkPembayaranAccess;
     window.checkOperationPermission = checkOperationPermission;
     window.validateUserSession = validateUserSession;
+    
+    // Integration-specific functions
+    window.setIntegrationMode = setIntegrationMode;
+    window.refreshSummaryData = refreshSummaryData;
+    window.hasUnsavedData = hasUnsavedData;
+    window.saveManualPaymentState = saveManualPaymentState;
+    window.restoreManualPaymentState = restoreManualPaymentState;
     
     // Also create module object for testing
     window.PembayaranHutangPiutangModule = {
@@ -2553,6 +2827,12 @@ if (typeof module !== 'undefined' && module.exports) {
         showSuccessNotification,
         showErrorNotification,
         showValidationErrors,
-        showToastNotification
+        showToastNotification,
+        // Integration-specific functions
+        setIntegrationMode,
+        refreshSummaryData,
+        hasUnsavedData,
+        saveManualPaymentState,
+        restoreManualPaymentState
     };
 }

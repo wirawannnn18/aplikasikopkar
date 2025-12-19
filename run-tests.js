@@ -18,18 +18,11 @@ console.log('🧪 Starting Test Suite for Pembayaran Hutang Piutang...\n');
 function runJest() {
     return new Promise((resolve, reject) => {
         const jestPath = join(__dirname, 'node_modules', '.bin', 'jest');
-        const args = [
-            '--experimental-vm-modules',
-            '--no-cache',
-            '--verbose',
-            '--detectOpenHandles',
-            '--forceExit'
-        ];
-
+        
         console.log('📋 Running Jest with ES Module support...');
-        console.log(`Command: node ${args.join(' ')} ${jestPath}\n`);
+        console.log(`Command: npx jest --verbose\n`);
 
-        const child = spawn('node', [...args, jestPath], {
+        const child = spawn('npx', ['jest', '--verbose'], {
             stdio: 'inherit',
             shell: true,
             cwd: __dirname

@@ -677,8 +677,7 @@ function renderMenu() {
             { icon: 'bi-journal-text', text: 'Chart of Account', page: 'coa' },
             { icon: 'bi-book', text: 'Jurnal', page: 'jurnal' },
             { icon: 'bi-calculator', text: 'SHU', page: 'shu' },
-            { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
-            { icon: 'bi-upload', text: 'Import Tagihan Pembayaran', page: 'import-tagihan-pembayaran' },
+            { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang-integrated' },
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
             { icon: 'bi-clipboard-check', text: 'Kelola Pengajuan Modal', page: 'kelola-pengajuan-modal' },
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
@@ -709,8 +708,7 @@ function renderMenu() {
             { icon: 'bi-journal-text', text: 'Chart of Account', page: 'coa' },
             { icon: 'bi-book', text: 'Jurnal', page: 'jurnal' },
             { icon: 'bi-calculator', text: 'SHU', page: 'shu' },
-            { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
-            { icon: 'bi-upload', text: 'Import Tagihan Pembayaran', page: 'import-tagihan-pembayaran' },
+            { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang-integrated' },
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
             { icon: 'bi-clipboard-check', text: 'Kelola Pengajuan Modal', page: 'kelola-pengajuan-modal' },
             { icon: 'bi-clock-history', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-admin' },
@@ -742,8 +740,7 @@ function renderMenu() {
         ],
         kasir: [
             { icon: 'bi-cart', text: 'Point of Sales', page: 'pos' },
-            { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang' },
-            { icon: 'bi-upload', text: 'Import Tagihan Pembayaran', page: 'import-tagihan-pembayaran' },
+            { icon: 'bi-currency-exchange', text: 'Pembayaran Hutang/Piutang', page: 'pembayaran-hutang-piutang-integrated' },
             { icon: 'bi-receipt', text: 'Riwayat Transaksi', page: 'riwayat' },
             { icon: 'bi-file-earmark-text', text: 'Riwayat Pengajuan Modal', page: 'riwayat-pengajuan-kasir' },
             { icon: 'bi-trash', text: 'Hapus Transaksi', page: 'hapus-transaksi' },
@@ -824,6 +821,9 @@ function renderPage(page) {
             break;
         case 'pembayaran-hutang-piutang':
             renderPembayaranHutangPiutang();
+            break;
+        case 'pembayaran-hutang-piutang-integrated':
+            renderPembayaranHutangPiutangIntegrated();
             break;
         case 'import-tagihan-pembayaran':
             renderImportTagihanPembayaran();

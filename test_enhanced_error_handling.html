@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Enhanced Error Handling - Integrasi Pembayaran Laporan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-shield-exclamation"></i> Test Enhanced Error Handling</h2>
+                <p class="text-muted">Testing cross-mode error handling and data consistency validation</p>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-primary w-100 mb-2" onclick="testCrossModeErrorHandling()">
+                                    <i class="bi bi-exclamation-triangle"></i> Test Cross-Mode Error Handling
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-success w-100 mb-2" onclick="testDataConsistencyValidation()">
+                                    <i class="bi bi-check-circle"></i> Test Data Consistency Validation
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-warning w-100 mb-2" onclick="testRollbackMechanism()">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Test Rollback Mechanism
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-info w-100 mb-2" onclick="testErrorRecovery()">
+                                    <i class="bi bi-arrow-repeat"></i> Test Error Recovery
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-secondary w-100 mb-2" onclick="testSaldoConsistency()">
+                                    <i class="bi bi-calculator"></i> Test Saldo Consistency
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-danger w-100 mb-2" onclick="clearTestData()">
+                                    <i class="bi bi-trash"></i> Clear Test Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <p class="text-muted">Click a test button to see results...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Log -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Error Log</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="errorLog">
+                            <p class="text-muted">No errors logged yet...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validation History -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Validation History</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="validationHistory">
+                            <p class="text-muted">No validations performed yet...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/shared/CrossModeErrorHandler.js"></script>
+    <script src="js/shared/DataConsistencyValidator.js"></script>
+
+    <script>
+        // Initialize test environment
+        let sharedServices;
+        let errorHandler;
+        let consistencyValidator;
+
+        // Initialize components
+        function initializeComponents() {
+            try {
+                // Create mock user context
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: 'test_user',
+                    nama: 'Test User',
+                    role: 'admin'
+                }));
+
+                // Initialize shared services
+                sharedServices = new SharedPaymentServices();
+                
+                // Get error handler and validator
+                errorHandler = sharedServices.getErrorHandler();
+                consistencyValidator = sharedServices.getConsistencyValidator();
+
+                console.log('Components initialized:', {
+                    sharedServices: !!sharedServices,
+                    errorHandler: !!errorHandler,
+                    consistencyValidator: !!consistencyValidator
+                });
+
+                return true;
+            } catch (error) {
+                console.error('Failed to initialize components:', error);
+                showResult('Initialization Error', `Failed to initialize: ${error.message}`, 'danger');
+                return false;
+            }
+        }
+
+        // Test cross-mode error handling
+        async function testCrossModeErrorHandling() {
+            if (!initializeComponents()) return;
+
+            showResult('Cross-Mode Error Handling Test', 'Running tests...', 'info');
+
+            try {
+                const testResults = [];
+
+                // Test 1: Insufficient balance error
+                try {
+                    const paymentData = {
+                        anggotaId: 'test_anggota_1',
+                        anggotaNama: 'Test Anggota',
+                        anggotaNIK: '1234567890',
+                        jenis: 'hutang',
+                        jumlah: 1000000, // Large amount to trigger insufficient balance
+                        keterangan: 'Test payment'
+                    };
+
+                    await sharedServices.processPayment(paymentData, 'manual');
+                    testResults.push('❌ Should have failed with insufficient balance');
+                } catch (error) {
+                    const errorResult = sharedServices.handleError(error, {
+                        operation: 'processPayment',
+                        mode: 'manual',
+                        anggotaId: 'test_anggota_1'
+                    });
+                    testResults.push(`✅ Insufficient balance error handled: ${errorResult.message}`);
+                }
+
+                // Test 2: Data not found error
+                try {
+                    const paymentData = {
+                        anggotaId: 'nonexistent_anggota',
+                        anggotaNama: 'Nonexistent',
+                        anggotaNIK: '0000000000',
+                        jenis: 'hutang',
+                        jumlah: 100000,
+                        keterangan: 'Test payment'
+                    };
+
+                    await sharedServices.processPayment(paymentData, 'manual');
+                    testResults.push('❌ Should have failed with data not found');
+                } catch (error) {
+                    const errorResult = sharedServices.handleError(error, {
+                        operation: 'processPayment',
+                        mode: 'manual',
+                        dataType: 'anggota',
+                        anggotaId: 'nonexistent_anggota'
+                    });
+                    testResults.push(`✅ Data not found error handled: ${errorResult.message}`);
+                }
+
+                // Test 3: Cross-mode error simulation
+                if (errorHandler) {
+                    const crossModeError = new Error('Journal entry failed - affects both modes');
+                    const errorResult = errorHandler.handleError(crossModeError, {
+                        operation: 'createJournalEntry',
+                        mode: 'manual',
+                        affectsSharedData: true,
+                        transactionId: 'test_transaction_123'
+                    });
+                    testResults.push(`✅ Cross-mode error handled: ${errorResult.message}`);
+                }
+
+                showResult('Cross-Mode Error Handling Test', testResults.join('<br>'), 'success');
+                updateErrorLog();
+
+            } catch (error) {
+                showResult('Cross-Mode Error Handling Test', `Test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test data consistency validation
+        async function testDataConsistencyValidation() {
+            if (!initializeComponents()) return;
+
+            showResult('Data Consistency Validation Test', 'Running validation tests...', 'info');
+
+            try {
+                const testResults = [];
+
+                if (!consistencyValidator) {
+                    testResults.push('❌ Consistency validator not available');
+                    showResult('Data Consistency Validation Test', testResults.join('<br>'), 'warning');
+                    return;
+                }
+
+                // Test 1: Saldo consistency validation
+                const saldoValidation = consistencyValidator.validateSaldoConsistency();
+                testResults.push(`✅ Saldo consistency validation: ${saldoValidation.valid ? 'PASSED' : 'FAILED'}`);
+                if (!saldoValidation.valid) {
+                    testResults.push(`   Errors: ${saldoValidation.errors.join(', ')}`);
+                }
+
+                // Test 2: Journal integrity validation
+                const journalValidation = consistencyValidator.validateJournalIntegrity();
+                testResults.push(`✅ Journal integrity validation: ${journalValidation.valid ? 'PASSED' : 'FAILED'}`);
+                if (!journalValidation.valid) {
+                    testResults.push(`   Errors: ${journalValidation.errors.join(', ')}`);
+                }
+
+                // Test 3: Cross-mode consistency validation
+                const crossModeValidation = consistencyValidator.validateCrossModeConsistency();
+                testResults.push(`✅ Cross-mode consistency validation: ${crossModeValidation.valid ? 'PASSED' : 'FAILED'}`);
+                if (!crossModeValidation.valid) {
+                    testResults.push(`   Errors: ${crossModeValidation.errors.join(', ')}`);
+                }
+
+                // Test 4: System consistency validation via shared services
+                const systemValidation = sharedServices.validateSystemConsistency();
+                testResults.push(`✅ System consistency validation: ${systemValidation.valid ? 'PASSED' : 'FAILED'}`);
+
+                showResult('Data Consistency Validation Test', testResults.join('<br>'), 'success');
+                updateValidationHistory();
+
+            } catch (error) {
+                showResult('Data Consistency Validation Test', `Test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test rollback mechanism
+        async function testRollbackMechanism() {
+            if (!initializeComponents()) return;
+
+            showResult('Rollback Mechanism Test', 'Testing rollback functionality...', 'info');
+
+            try {
+                const testResults = [];
+
+                if (!errorHandler) {
+                    testResults.push('❌ Error handler not available');
+                    showResult('Rollback Mechanism Test', testResults.join('<br>'), 'warning');
+                    return;
+                }
+
+                // Create a test transaction first
+                const testTransaction = {
+                    id: 'test_rollback_transaction',
+                    anggotaId: 'test_anggota_rollback',
+                    anggotaNama: 'Test Rollback Anggota',
+                    jenis: 'hutang',
+                    jumlah: 50000,
+                    mode: 'manual',
+                    jurnalId: 'test_journal_rollback'
+                };
+
+                // Save test transaction
+                const transactions = JSON.parse(localStorage.getItem('pembayaranHutangPiutang') || '[]');
+                transactions.push(testTransaction);
+                localStorage.setItem('pembayaranHutangPiutang', JSON.stringify(transactions));
+
+                // Save test journal
+                const journals = JSON.parse(localStorage.getItem('journals') || '[]');
+                journals.push({
+                    id: 'test_journal_rollback',
+                    keterangan: 'Test journal for rollback',
+                    entries: [
+                        { akun: '1-1000', debit: 50000, kredit: 0 },
+                        { akun: '2-1000', debit: 0, kredit: 50000 }
+                    ]
+                });
+                localStorage.setItem('journals', JSON.stringify(journals));
+
+                testResults.push('✅ Test transaction and journal created');
+
+                // Test rollback
+                const rollbackResult = await errorHandler.performCrossModeRollback('test_rollback_transaction', {
+                    reason: 'test_rollback',
+                    mode: 'manual'
+                });
+
+                testResults.push(`✅ Rollback executed: ${rollbackResult.success ? 'SUCCESS' : 'FAILED'}`);
+                testResults.push(`   Message: ${rollbackResult.message}`);
+
+                if (rollbackResult.verification) {
+                    testResults.push(`   Verification: ${rollbackResult.verification.success ? 'PASSED' : 'FAILED'}`);
+                }
+
+                // Test via shared services
+                const sharedRollbackResult = await sharedServices.performRollback('test_rollback_transaction_2', {
+                    reason: 'test_via_shared_services',
+                    mode: 'manual'
+                });
+
+                testResults.push(`✅ Shared services rollback: ${sharedRollbackResult.success ? 'SUCCESS' : 'FAILED'}`);
+
+                showResult('Rollback Mechanism Test', testResults.join('<br>'), 'success');
+
+            } catch (error) {
+                showResult('Rollback Mechanism Test', `Test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test error recovery
+        async function testErrorRecovery() {
+            if (!initializeComponents()) return;
+
+            showResult('Error Recovery Test', 'Testing error recovery mechanisms...', 'info');
+
+            try {
+                const testResults = [];
+
+                if (!errorHandler) {
+                    testResults.push('❌ Error handler not available');
+                    showResult('Error Recovery Test', testResults.join('<br>'), 'warning');
+                    return;
+                }
+
+                // Test 1: Insufficient balance recovery
+                const insufficientBalanceError = new Error('Insufficient balance. Available: 0, Required: 100000');
+                const recoveryResult1 = await errorHandler.attemptRecovery(insufficientBalanceError, {
+                    anggotaId: 'test_anggota_1',
+                    jenis: 'hutang'
+                });
+                testResults.push(`✅ Insufficient balance recovery: ${recoveryResult1.success ? 'SUCCESS' : 'FAILED'}`);
+                testResults.push(`   Message: ${recoveryResult1.message}`);
+
+                // Test 2: Data not found recovery
+                const dataNotFoundError = new Error('Anggota dengan ID test_anggota tidak ditemukan');
+                const recoveryResult2 = await errorHandler.attemptRecovery(dataNotFoundError, {
+                    dataType: 'anggota',
+                    anggotaId: 'test_anggota'
+                });
+                testResults.push(`✅ Data not found recovery: ${recoveryResult2.success ? 'SUCCESS' : 'FAILED'}`);
+                testResults.push(`   Message: ${recoveryResult2.message}`);
+
+                // Test 3: Journal entry failed recovery
+                const journalError = new Error('Failed to create journal entry');
+                const recoveryResult3 = await errorHandler.attemptRecovery(journalError, {
+                    transactionId: 'test_transaction_journal_fail',
+                    mode: 'manual'
+                });
+                testResults.push(`✅ Journal error recovery: ${recoveryResult3.success ? 'SUCCESS' : 'FAILED'}`);
+                testResults.push(`   Message: ${recoveryResult3.message}`);
+
+                showResult('Error Recovery Test', testResults.join('<br>'), 'success');
+
+            } catch (error) {
+                showResult('Error Recovery Test', `Test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test saldo consistency
+        async function testSaldoConsistency() {
+            if (!initializeComponents()) return;
+
+            showResult('Saldo Consistency Test', 'Testing saldo consistency validation...', 'info');
+
+            try {
+                const testResults = [];
+
+                if (!consistencyValidator) {
+                    testResults.push('❌ Consistency validator not available');
+                    showResult('Saldo Consistency Test', testResults.join('<br>'), 'warning');
+                    return;
+                }
+
+                // Create test anggota data
+                const testAnggota = [
+                    {
+                        id: 'test_anggota_saldo_1',
+                        nama: 'Test Anggota Saldo 1',
+                        nik: '1111111111'
+                    },
+                    {
+                        id: 'test_anggota_saldo_2',
+                        nama: 'Test Anggota Saldo 2',
+                        nik: '2222222222'
+                    }
+                ];
+
+                localStorage.setItem('anggota', JSON.stringify(testAnggota));
+
+                // Test individual anggota saldo consistency
+                const saldoValidation1 = consistencyValidator.validateSaldoConsistency('test_anggota_saldo_1');
+                testResults.push(`✅ Anggota 1 saldo consistency: ${saldoValidation1.valid ? 'VALID' : 'INVALID'}`);
+                if (!saldoValidation1.valid) {
+                    testResults.push(`   Errors: ${saldoValidation1.errors.join(', ')}`);
+                }
+
+                // Test all anggota saldo consistency
+                const allSaldoValidation = consistencyValidator.validateSaldoConsistency();
+                testResults.push(`✅ All anggota saldo consistency: ${allSaldoValidation.valid ? 'VALID' : 'INVALID'}`);
+                if (!allSaldoValidation.valid) {
+                    testResults.push(`   Errors: ${allSaldoValidation.errors.join(', ')}`);
+                }
+
+                // Test data repair if needed
+                if (!allSaldoValidation.valid) {
+                    const repairResult = await consistencyValidator.attemptDataRepair(allSaldoValidation);
+                    testResults.push(`✅ Data repair attempt: ${repairResult.success ? 'SUCCESS' : 'FAILED'}`);
+                    testResults.push(`   Repaired: ${repairResult.repaired.length} items`);
+                    testResults.push(`   Failed: ${repairResult.failed.length} items`);
+                }
+
+                showResult('Saldo Consistency Test', testResults.join('<br>'), 'success');
+
+            } catch (error) {
+                showResult('Saldo Consistency Test', `Test failed: ${error.message}`, 'danger');
+            }
+        }
+
+        // Clear test data
+        function clearTestData() {
+            const keysToRemove = [
+                'pembayaranHutangPiutang',
+                'importBatchTransactions',
+                'journals',
+                'anggota'
+            ];
+
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+            });
+
+            // Clear error log and validation history
+            if (errorHandler) {
+                errorHandler.clearErrorLog();
+            }
+            if (consistencyValidator) {
+                consistencyValidator.clearValidationHistory();
+            }
+
+            showResult('Clear Test Data', 'All test data cleared successfully', 'info');
+            document.getElementById('errorLog').innerHTML = '<p class="text-muted">No errors logged yet...</p>';
+            document.getElementById('validationHistory').innerHTML = '<p class="text-muted">No validations performed yet...</p>';
+        }
+
+        // Update error log display
+        function updateErrorLog() {
+            if (!errorHandler) return;
+
+            const errorLog = errorHandler.getErrorLog();
+            const errorLogDiv = document.getElementById('errorLog');
+
+            if (errorLog.length === 0) {
+                errorLogDiv.innerHTML = '<p class="text-muted">No errors logged yet...</p>';
+                return;
+            }
+
+            const logHtml = errorLog.map(entry => `
+                <div class="alert alert-${entry.severity === 'high' ? 'danger' : entry.severity === 'medium' ? 'warning' : 'info'} mb-2">
+                    <div class="d-flex justify-content-between">
+                        <strong>${entry.error.name}: ${entry.error.message}</strong>
+                        <small>${new Date(entry.timestamp).toLocaleString()}</small>
+                    </div>
+                    <div class="mt-2">
+                        <small>
+                            Mode: ${entry.context.mode} | 
+                            Operation: ${entry.context.operation} | 
+                            Affects Both Modes: ${entry.affectsBothModes ? 'Yes' : 'No'}
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+
+            errorLogDiv.innerHTML = logHtml;
+        }
+
+        // Update validation history display
+        function updateValidationHistory() {
+            if (!consistencyValidator) return;
+
+            const validationHistory = consistencyValidator.getValidationHistory();
+            const historyDiv = document.getElementById('validationHistory');
+
+            if (validationHistory.length === 0) {
+                historyDiv.innerHTML = '<p class="text-muted">No validations performed yet...</p>';
+                return;
+            }
+
+            const historyHtml = validationHistory.map(entry => `
+                <div class="alert alert-${entry.result.valid ? 'success' : 'warning'} mb-2">
+                    <div class="d-flex justify-content-between">
+                        <strong>${entry.type.replace('_', ' ').toUpperCase()}</strong>
+                        <small>${new Date(entry.timestamp).toLocaleString()}</small>
+                    </div>
+                    <div class="mt-2">
+                        <small>
+                            Valid: ${entry.result.valid ? 'Yes' : 'No'} | 
+                            Errors: ${entry.result.errors.length} | 
+                            Warnings: ${entry.result.warnings.length}
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+
+            historyDiv.innerHTML = historyHtml;
+        }
+
+        // Show test result
+        function showResult(title, message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'danger' ? 'alert-danger' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+
+            const resultHtml = `
+                <div class="alert ${alertClass}">
+                    <h6><i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'x-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i> ${title}</h6>
+                    <div>${message}</div>
+                    <small class="text-muted">Tested at: ${new Date().toLocaleString()}</small>
+                </div>
+            `;
+
+            document.getElementById('testResults').innerHTML = resultHtml;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Enhanced Error Handling Test Page Loaded');
+        });
+    </script>
+</body>
+</html>
