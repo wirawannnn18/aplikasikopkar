@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Integrated Interface Fix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .test-container {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+        .test-header {
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+        .test-content {
+            padding: 1rem;
+        }
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .log-info { background-color: #d1ecf1; color: #0c5460; }
+        .log-success { background-color: #d4edda; color: #155724; }
+        .log-warning { background-color: #fff3cd; color: #856404; }
+        .log-error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-check-circle"></i> Test Integrated Interface Fix</h2>
+                <p class="text-muted">Memverifikasi bahwa perbaikan interface terintegrasi berfungsi dengan benar</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-container">
+                    <div class="test-header">
+                        <i class="bi bi-play-circle"></i> Test Controls
+                    </div>
+                    <div class="test-content">
+                        <button class="btn btn-primary mb-3" onclick="runComprehensiveTest()">
+                            <i class="bi bi-check-all"></i> Run Comprehensive Test
+                        </button>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testIntegratedRender()">Test Render</button>
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testTabSwitching()">Test Tabs</button>
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testManualInterface()">Test Manual</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="testImportInterface()">Test Import</button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <small>
+                                <strong>Expected Result:</strong> Interface should show tabs for "Pembayaran Manual" and "Import Batch" 
+                                instead of just the manual payment interface.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-container">
+                    <div class="test-header">
+                        <i class="bi bi-terminal"></i> Test Log
+                    </div>
+                    <div class="test-content">
+                        <div id="testLog" class="log-container">
+                            <div class="log-entry log-info">Ready to run tests...</div>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm mt-2" onclick="clearLog()">
+                            <i class="bi bi-trash"></i> Clear Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="test-container">
+                    <div class="test-header">
+                        <i class="bi bi-display"></i> Live Interface Test
+                    </div>
+                    <div class="test-content">
+                        <div id="interfaceTestArea" style="min-height: 500px; border: 1px dashed #dee2e6; padding: 1rem;">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-arrow-up"></i><br>
+                                Interface will be tested here
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="test-container">
+                    <div class="test-header">
+                        <i class="bi bi-clipboard-check"></i> Test Results Summary
+                    </div>
+                    <div class="test-content">
+                        <div id="testResults">
+                            <div class="text-muted">Test results will appear here after running tests...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+    <script>
+        let testResults = {
+            renderTest: false,
+            tabsFound: false,
+            tabSwitching: false,
+            manualInterface: false,
+            importInterface: false
+        };
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '<div class="log-entry log-info">Log cleared...</div>';
+        }
+
+        function updateTestResults() {
+            const resultsContainer = document.getElementById('testResults');
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(result => result).length;
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Test Summary</h6>
+                        <div class="progress mb-3">
+                            <div class="progress-bar ${passedTests === totalTests ? 'bg-success' : 'bg-warning'}" 
+                                 style="width: ${(passedTests/totalTests)*100}%">
+                                ${passedTests}/${totalTests} Tests Passed
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Overall Status</h6>
+                        <div class="alert ${passedTests === totalTests ? 'alert-success' : 'alert-warning'} py-2">
+                            ${passedTests === totalTests ? 
+                                '<i class="bi bi-check-circle"></i> All tests passed - Fix successful!' : 
+                                '<i class="bi bi-exclamation-triangle"></i> Some tests failed - Fix needs improvement'
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Detailed Results</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Integrated Render Function
+                                <span class="badge ${testResults.renderTest ? 'bg-success' : 'bg-danger'}">
+                                    ${testResults.renderTest ? 'PASS' : 'FAIL'}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Tab Navigation Found
+                                <span class="badge ${testResults.tabsFound ? 'bg-success' : 'bg-danger'}">
+                                    ${testResults.tabsFound ? 'PASS' : 'FAIL'}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Tab Switching Works
+                                <span class="badge ${testResults.tabSwitching ? 'bg-success' : 'bg-danger'}">
+                                    ${testResults.tabSwitching ? 'PASS' : 'FAIL'}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Manual Interface in Tab
+                                <span class="badge ${testResults.manualInterface ? 'bg-success' : 'bg-danger'}">
+                                    ${testResults.manualInterface ? 'PASS' : 'FAIL'}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Import Interface in Tab
+                                <span class="badge ${testResults.importInterface ? 'bg-success' : 'bg-danger'}">
+                                    ${testResults.importInterface ? 'PASS' : 'FAIL'}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            resultsContainer.innerHTML = html;
+        }
+
+        async function runComprehensiveTest() {
+            log('🧪 Starting comprehensive test of integrated interface fix...', 'info');
+            
+            // Reset test results
+            testResults = {
+                renderTest: false,
+                tabsFound: false,
+                tabSwitching: false,
+                manualInterface: false,
+                importInterface: false
+            };
+            
+            try {
+                await testIntegratedRender();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                await testTabSwitching();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                await testManualInterface();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                await testImportInterface();
+                
+                log('✅ Comprehensive test completed', 'success');
+                updateTestResults();
+                
+            } catch (error) {
+                log(`❌ Comprehensive test failed: ${error.message}`, 'error');
+                updateTestResults();
+            }
+        }
+
+        async function testIntegratedRender() {
+            log('🎨 Testing integrated interface rendering...', 'info');
+            
+            const testArea = document.getElementById('interfaceTestArea');
+            
+            try {
+                // Clear test area and create mainContent
+                testArea.innerHTML = '<div id="mainContent" style="width: 100%; min-height: 400px;"></div>';
+                
+                // Test the render function
+                if (typeof window.renderPembayaranHutangPiutangIntegrated === 'function') {
+                    log('   🔄 Calling renderPembayaranHutangPiutangIntegrated...', 'info');
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    
+                    testResults.renderTest = true;
+                    log('   ✅ Render function called successfully', 'success');
+                    
+                    // Wait for initialization and check results
+                    setTimeout(() => {
+                        const mainContent = testArea.querySelector('#mainContent');
+                        
+                        // Check for tab navigation
+                        const tabNavigation = mainContent.querySelector('.tab-navigation');
+                        if (tabNavigation) {
+                            testResults.tabsFound = true;
+                            log('   ✅ Tab navigation found - integrated interface working!', 'success');
+                            
+                            // Count tab buttons
+                            const tabButtons = mainContent.querySelectorAll('.tab-btn');
+                            log(`   ✅ Found ${tabButtons.length} tab buttons`, 'success');
+                            
+                            tabButtons.forEach((btn, index) => {
+                                const tabName = btn.textContent.trim();
+                                log(`     Tab ${index + 1}: ${tabName}`, 'info');
+                            });
+                            
+                        } else {
+                            log('   ❌ Tab navigation not found', 'error');
+                            
+                            // Check if manual interface loaded instead
+                            if (mainContent.innerHTML.includes('Pembayaran Hutang') && 
+                                !mainContent.innerHTML.includes('tab-navigation')) {
+                                log('   ⚠️ Manual interface loaded instead of integrated interface', 'warning');
+                            }
+                        }
+                        
+                        updateTestResults();
+                    }, 2000);
+                    
+                } else {
+                    log('   ❌ renderPembayaranHutangPiutangIntegrated function not available', 'error');
+                    testResults.renderTest = false;
+                }
+                
+            } catch (error) {
+                log(`   ❌ Error testing render: ${error.message}`, 'error');
+                testResults.renderTest = false;
+            }
+        }
+
+        async function testTabSwitching() {
+            log('🔄 Testing tab switching functionality...', 'info');
+            
+            try {
+                const testArea = document.getElementById('interfaceTestArea');
+                const tabButtons = testArea.querySelectorAll('.tab-btn');
+                
+                if (tabButtons.length >= 2) {
+                    log('   🔄 Testing tab switching...', 'info');
+                    
+                    // Find import tab
+                    const importTab = Array.from(tabButtons).find(btn => 
+                        btn.textContent.includes('Import') || btn.getAttribute('data-tab') === 'import'
+                    );
+                    
+                    if (importTab) {
+                        log('   🔄 Clicking import tab...', 'info');
+                        importTab.click();
+                        
+                        setTimeout(() => {
+                            const importPane = testArea.querySelector('#import-tab-pane');
+                            if (importPane && importPane.classList.contains('active')) {
+                                log('   ✅ Import tab activated successfully', 'success');
+                                
+                                // Switch back to manual tab
+                                const manualTab = Array.from(tabButtons).find(btn => 
+                                    btn.textContent.includes('Manual') || btn.getAttribute('data-tab') === 'manual'
+                                );
+                                
+                                if (manualTab) {
+                                    log('   🔄 Switching back to manual tab...', 'info');
+                                    manualTab.click();
+                                    
+                                    setTimeout(() => {
+                                        const manualPane = testArea.querySelector('#manual-tab-pane');
+                                        if (manualPane && manualPane.classList.contains('active')) {
+                                            testResults.tabSwitching = true;
+                                            log('   ✅ Tab switching works correctly', 'success');
+                                        } else {
+                                            log('   ❌ Manual tab switch failed', 'error');
+                                        }
+                                        updateTestResults();
+                                    }, 500);
+                                }
+                                
+                            } else {
+                                log('   ❌ Import tab switch failed', 'error');
+                                updateTestResults();
+                            }
+                        }, 500);
+                        
+                    } else {
+                        log('   ❌ Import tab button not found', 'error');
+                    }
+                    
+                } else {
+                    log('   ❌ Insufficient tab buttons for testing', 'error');
+                }
+                
+            } catch (error) {
+                log(`   ❌ Error testing tab switching: ${error.message}`, 'error');
+            }
+        }
+
+        async function testManualInterface() {
+            log('👤 Testing manual payment interface in tab...', 'info');
+            
+            try {
+                const testArea = document.getElementById('interfaceTestArea');
+                const manualPane = testArea.querySelector('#manual-tab-pane');
+                
+                if (manualPane) {
+                    // Check if manual interface content is loaded
+                    const manualContainer = manualPane.querySelector('#manual-payment-container');
+                    if (manualContainer) {
+                        log('   ✅ Manual payment container found', 'success');
+                        
+                        // Check for manual payment content
+                        if (manualContainer.innerHTML.includes('Pembayaran') || 
+                            manualContainer.innerHTML.includes('Anggota') ||
+                            manualContainer.innerHTML.includes('Hutang')) {
+                            testResults.manualInterface = true;
+                            log('   ✅ Manual payment interface content loaded', 'success');
+                        } else {
+                            log('   ⚠️ Manual payment container exists but content may not be loaded', 'warning');
+                        }
+                    } else {
+                        log('   ❌ Manual payment container not found', 'error');
+                    }
+                } else {
+                    log('   ❌ Manual tab pane not found', 'error');
+                }
+                
+                updateTestResults();
+                
+            } catch (error) {
+                log(`   ❌ Error testing manual interface: ${error.message}`, 'error');
+            }
+        }
+
+        async function testImportInterface() {
+            log('📤 Testing import batch interface in tab...', 'info');
+            
+            try {
+                const testArea = document.getElementById('interfaceTestArea');
+                const importPane = testArea.querySelector('#import-tab-pane');
+                
+                if (importPane) {
+                    // Check if import interface content is loaded
+                    const importContainer = importPane.querySelector('#import-batch-container');
+                    if (importContainer) {
+                        log('   ✅ Import batch container found', 'success');
+                        
+                        // Check for import content
+                        if (importContainer.innerHTML.includes('Import') || 
+                            importContainer.innerHTML.includes('Batch') ||
+                            importContainer.innerHTML.includes('Upload')) {
+                            testResults.importInterface = true;
+                            log('   ✅ Import batch interface content loaded', 'success');
+                        } else {
+                            log('   ⚠️ Import batch container exists but content may not be loaded', 'warning');
+                        }
+                    } else {
+                        log('   ❌ Import batch container not found', 'error');
+                    }
+                } else {
+                    log('   ❌ Import tab pane not found', 'error');
+                }
+                
+                updateTestResults();
+                
+            } catch (error) {
+                log(`   ❌ Error testing import interface: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run basic test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('🚀 Auto-running basic interface test...', 'info');
+                testIntegratedRender();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

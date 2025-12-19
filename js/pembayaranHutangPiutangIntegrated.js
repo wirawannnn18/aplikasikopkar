@@ -2903,50 +2903,103 @@ class PembayaranHutangPiutangIntegrated {
  */
 function renderPembayaranHutangPiutangIntegrated() {
     try {
+        console.log('Starting integrated payment interface initialization...');
+        
+        // Clear any existing content first
+        const content = document.getElementById('mainContent');
+        if (content) {
+            content.innerHTML = `
+                <div class="container-fluid py-4">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Memuat interface pembayaran terintegrasi...</p>
+                    </div>
+                </div>
+            `;
+        }
+        
         // Create and initialize the integrated controller
         const controller = new PembayaranHutangPiutangIntegrated();
         
-        // Initialize and render
-        controller.initialize().catch(error => {
-            console.error('Failed to initialize integrated payment interface:', error);
-            
-            // Show error message
-            const content = document.getElementById('mainContent');
-            if (content) {
-                content.innerHTML = `
-                    <div class="container-fluid py-4">
-                        <div class="alert alert-danger">
-                            <h4><i class="bi bi-exclamation-triangle"></i> Error</h4>
-                            <p>Gagal memuat interface pembayaran terintegrasi.</p>
-                            <p>Error: ${error.message}</p>
-                            <button class="btn btn-primary" onclick="location.reload()">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
-                            </button>
+        // Store controller globally for debugging
+        window.currentIntegratedController = controller;
+        
+        // Initialize and render with proper async handling
+        controller.initialize()
+            .then(() => {
+                console.log('Integrated payment interface initialized successfully');
+            })
+            .catch(error => {
+                console.error('Failed to initialize integrated payment interface:', error);
+                
+                // Show error message with fallback option
+                if (content) {
+                    content.innerHTML = `
+                        <div class="container-fluid py-4">
+                            <div class="alert alert-warning">
+                                <h4><i class="bi bi-exclamation-triangle"></i> Interface Loading Issue</h4>
+                                <p>Gagal memuat interface pembayaran terintegrasi.</p>
+                                <p>Error: ${error.message}</p>
+                                <div class="mt-3">
+                                    <button class="btn btn-primary me-2" onclick="location.reload()">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="loadManualPaymentFallback()">
+                                        <i class="bi bi-person"></i> Gunakan Pembayaran Manual
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }
-        });
+                    `;
+                }
+                
+                // Define fallback function
+                window.loadManualPaymentFallback = function() {
+                    if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                        console.log('Loading manual payment as fallback...');
+                        window.renderPembayaranHutangPiutang();
+                    } else {
+                        alert('Manual payment interface juga tidak tersedia. Silakan refresh halaman.');
+                    }
+                };
+            });
         
     } catch (error) {
         console.error('Failed to create integrated payment controller:', error);
         
-        // Show error message
+        // Show error message with fallback option
         const content = document.getElementById('mainContent');
         if (content) {
             content.innerHTML = `
                 <div class="container-fluid py-4">
                     <div class="alert alert-danger">
-                        <h4><i class="bi bi-exclamation-triangle"></i> Error</h4>
+                        <h4><i class="bi bi-exclamation-triangle"></i> Critical Error</h4>
                         <p>Gagal membuat controller pembayaran terintegrasi.</p>
                         <p>Error: ${error.message}</p>
-                        <button class="btn btn-primary" onclick="location.reload()">
-                            <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
-                        </button>
+                        <div class="mt-3">
+                            <button class="btn btn-primary me-2" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadManualPaymentFallback()">
+                                <i class="bi bi-person"></i> Gunakan Pembayaran Manual
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
         }
+        
+        // Define fallback function
+        window.loadManualPaymentFallback = function() {
+            if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                console.log('Loading manual payment as fallback...');
+                window.renderPembayaranHutangPiutang();
+            } else {
+                alert('Manual payment interface juga tidak tersedia. Silakan refresh halaman.');
+            }
+        };
     }
 }
 

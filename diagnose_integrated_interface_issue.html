@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnose Integrated Interface Issue</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .log-info { background-color: #d1ecf1; color: #0c5460; }
+        .log-success { background-color: #d4edda; color: #155724; }
+        .log-warning { background-color: #fff3cd; color: #856404; }
+        .log-error { background-color: #f8d7da; color: #721c24; }
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+        .test-header {
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+        .test-content {
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-bug"></i> Diagnose Integrated Interface Issue</h2>
+                <p class="text-muted">Investigating why manual payment interface loads instead of integrated interface with tabs</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-section">
+                    <div class="test-header">
+                        <i class="bi bi-search"></i> Diagnostic Tests
+                    </div>
+                    <div class="test-content">
+                        <button class="btn btn-primary mb-3" onclick="runDiagnostics()">
+                            <i class="bi bi-play-circle"></i> Run Full Diagnostics
+                        </button>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testMenuRouting()">Test Menu Routing</button>
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testFunctionAvailability()">Test Functions</button>
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testControllerInit()">Test Controller</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="testIntegratedRender()">Test Render</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <div class="test-header">
+                        <i class="bi bi-tools"></i> Quick Fixes
+                    </div>
+                    <div class="test-content">
+                        <button class="btn btn-success me-2" onclick="attemptQuickFix()">
+                            <i class="bi bi-wrench"></i> Apply Quick Fix
+                        </button>
+                        <button class="btn btn-info me-2" onclick="testFixedInterface()">
+                            <i class="bi bi-check-circle"></i> Test Fixed Interface
+                        </button>
+                        <button class="btn btn-warning" onclick="clearCache()">
+                            <i class="bi bi-arrow-clockwise"></i> Clear Cache
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="test-section">
+                    <div class="test-header">
+                        <i class="bi bi-terminal"></i> Diagnostic Log
+                    </div>
+                    <div class="test-content">
+                        <div id="diagnosticLog" class="log-container">
+                            <div class="log-entry log-info">Ready to run diagnostics...</div>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm mt-2" onclick="clearLog()">
+                            <i class="bi bi-trash"></i> Clear Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="test-section">
+                    <div class="test-header">
+                        <i class="bi bi-display"></i> Live Test Area
+                    </div>
+                    <div class="test-content">
+                        <div id="liveTestArea" style="min-height: 300px; border: 1px dashed #dee2e6; padding: 1rem;">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-arrow-up"></i><br>
+                                Test results will appear here
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pembayaranHutangPiutang.js"></script>
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('diagnosticLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('diagnosticLog').innerHTML = '<div class="log-entry log-info">Log cleared...</div>';
+        }
+
+        async function runDiagnostics() {
+            log('🔍 Starting comprehensive diagnostics...', 'info');
+            
+            await testMenuRouting();
+            await testFunctionAvailability();
+            await testControllerInit();
+            await testIntegratedRender();
+            
+            log('✅ Diagnostics completed', 'success');
+        }
+
+        async function testMenuRouting() {
+            log('📋 Testing menu routing configuration...', 'info');
+            
+            try {
+                // Check if auth.js is loaded
+                if (typeof window.renderPage === 'function') {
+                    log('   ✓ auth.js loaded successfully', 'success');
+                    
+                    // Check menu configuration
+                    const menuItems = window.menuItems || {};
+                    let foundIntegratedRoute = false;
+                    
+                    Object.keys(menuItems).forEach(role => {
+                        const items = menuItems[role];
+                        if (Array.isArray(items)) {
+                            items.forEach(item => {
+                                if (item.page === 'pembayaran-hutang-piutang-integrated') {
+                                    foundIntegratedRoute = true;
+                                    log(`   ✓ Found integrated route in ${role} menu: "${item.text}"`, 'success');
+                                }
+                            });
+                        }
+                    });
+                    
+                    if (!foundIntegratedRoute) {
+                        log('   ⚠ Integrated route not found in menu configuration', 'warning');
+                    }
+                    
+                } else {
+                    log('   ✗ auth.js not loaded or renderPage function missing', 'error');
+                }
+                
+                // Test route handling
+                if (typeof window.renderPage === 'function') {
+                    log('   ✓ renderPage function available', 'success');
+                } else {
+                    log('   ✗ renderPage function not available', 'error');
+                }
+                
+            } catch (error) {
+                log(`   ✗ Error testing menu routing: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFunctionAvailability() {
+            log('🔧 Testing function availability...', 'info');
+            
+            const requiredFunctions = [
+                'renderPembayaranHutangPiutang',
+                'renderPembayaranHutangPiutangIntegrated',
+                'PembayaranHutangPiutangIntegrated'
+            ];
+            
+            requiredFunctions.forEach(funcName => {
+                if (typeof window[funcName] !== 'undefined') {
+                    log(`   ✓ ${funcName} is available`, 'success');
+                } else {
+                    log(`   ✗ ${funcName} is missing`, 'error');
+                }
+            });
+            
+            // Test if integrated controller class is properly defined
+            if (typeof window.PembayaranHutangPiutangIntegrated === 'function') {
+                try {
+                    const controller = new window.PembayaranHutangPiutangIntegrated();
+                    log('   ✓ PembayaranHutangPiutangIntegrated can be instantiated', 'success');
+                    
+                    // Check key methods
+                    const keyMethods = ['initialize', 'render', 'switchTab'];
+                    keyMethods.forEach(method => {
+                        if (typeof controller[method] === 'function') {
+                            log(`   ✓ Method ${method} exists`, 'success');
+                        } else {
+                            log(`   ✗ Method ${method} missing`, 'error');
+                        }
+                    });
+                    
+                } catch (error) {
+                    log(`   ✗ Error instantiating controller: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testControllerInit() {
+            log('⚙️ Testing controller initialization...', 'info');
+            
+            try {
+                if (typeof window.PembayaranHutangPiutangIntegrated === 'function') {
+                    const controller = new window.PembayaranHutangPiutangIntegrated();
+                    
+                    // Test initialization
+                    log('   Attempting to initialize controller...', 'info');
+                    await controller.initialize();
+                    log('   ✓ Controller initialized successfully', 'success');
+                    
+                    // Check if tabs are properly configured
+                    if (controller.tabs) {
+                        Object.keys(controller.tabs).forEach(tabId => {
+                            const tab = controller.tabs[tabId];
+                            log(`   ✓ Tab "${tab.name}" (${tabId}) configured`, 'success');
+                        });
+                    }
+                    
+                } else {
+                    log('   ✗ PembayaranHutangPiutangIntegrated class not available', 'error');
+                }
+                
+            } catch (error) {
+                log(`   ✗ Controller initialization failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testIntegratedRender() {
+            log('🎨 Testing integrated interface rendering...', 'info');
+            
+            const liveTestArea = document.getElementById('liveTestArea');
+            
+            try {
+                // Clear test area
+                liveTestArea.innerHTML = '<div id="mainContent"></div>';
+                
+                // Call the integrated render function
+                if (typeof window.renderPembayaranHutangPiutangIntegrated === 'function') {
+                    window.renderPembayaranHutangPiutangIntegrated();
+                    log('✓ Integrated interface render function called', 'success');
+                    
+                    // Wait a bit for async initialization
+                    setTimeout(() => {
+                        const mainContent = document.getElementById('mainContent');
+                        if (mainContent && mainContent.innerHTML.includes('tab-navigation')) {
+                            log('✓ Tab navigation detected in rendered content', 'success');
+                        } else if (mainContent && mainContent.innerHTML.includes('Pembayaran Hutang')) {
+                            log('⚠ Content rendered but no tab navigation found', 'warning');
+                            log('   This might indicate the manual interface is loading instead', 'warning');
+                        } else {
+                            log('✗ No expected content found in mainContent', 'error');
+                        }
+                        
+                        // Check for specific tab elements
+                        const tabButtons = document.querySelectorAll('.tab-btn');
+                        if (tabButtons.length > 0) {
+                            log(`✓ Found ${tabButtons.length} tab buttons`, 'success');
+                            tabButtons.forEach((btn, index) => {
+                                const tabName = btn.textContent.trim();
+                                log(`   Tab ${index + 1}: ${tabName}`, 'info');
+                            });
+                        } else {
+                            log('✗ No tab buttons found - integrated interface not working', 'error');
+                        }
+                    }, 1000);
+                    
+                } else {
+                    log('✗ renderPembayaranHutangPiutangIntegrated function not available', 'error');
+                    liveTestArea.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-x-circle"></i> Function Not Available</h5>
+                            <p>The renderPembayaranHutangPiutangIntegrated function is not available.</p>
+                            <p>Make sure all required JavaScript files are loaded.</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                log(`✗ Error testing integrated render: ${error.message}`, 'error');
+                liveTestArea.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-exclamation-triangle"></i> Render Error</h5>
+                        <p>Error occurred while testing integrated interface: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function attemptQuickFix() {
+            log('🔧 Attempting quick fix for integrated interface...', 'info');
+            
+            try {
+                // Check if the issue is with the render function
+                if (typeof window.renderPembayaranHutangPiutangIntegrated === 'function') {
+                    log('   ✓ Integrated render function exists', 'success');
+                    
+                    // Check if the controller class exists
+                    if (typeof window.PembayaranHutangPiutangIntegrated === 'function') {
+                        log('   ✓ Controller class exists', 'success');
+                        
+                        // Try to patch the render function if needed
+                        const originalRender = window.renderPembayaranHutangPiutangIntegrated;
+                        
+                        window.renderPembayaranHutangPiutangIntegrated = function() {
+                            log('   🔄 Patched render function called', 'info');
+                            
+                            try {
+                                const controller = new window.PembayaranHutangPiutangIntegrated();
+                                
+                                controller.initialize().then(() => {
+                                    log('   ✓ Controller initialized successfully via patch', 'success');
+                                }).catch(error => {
+                                    log(`   ✗ Controller initialization failed: ${error.message}`, 'error');
+                                    
+                                    // Fallback to original function
+                                    originalRender();
+                                });
+                                
+                            } catch (error) {
+                                log(`   ✗ Error in patched function: ${error.message}`, 'error');
+                                
+                                // Fallback to original function
+                                originalRender();
+                            }
+                        };
+                        
+                        log('   ✓ Render function patched successfully', 'success');
+                        
+                    } else {
+                        log('   ✗ Controller class missing - cannot apply fix', 'error');
+                    }
+                    
+                } else {
+                    log('   ✗ Integrated render function missing - cannot apply fix', 'error');
+                }
+                
+            } catch (error) {
+                log(`   ✗ Quick fix failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFixedInterface() {
+            log('🧪 Testing fixed interface...', 'info');
+            
+            const liveTestArea = document.getElementById('liveTestArea');
+            liveTestArea.innerHTML = '<div id="mainContent"></div>';
+            
+            try {
+                // Call the (potentially fixed) render function
+                window.renderPembayaranHutangPiutangIntegrated();
+                
+                setTimeout(() => {
+                    const mainContent = document.getElementById('mainContent');
+                    const tabButtons = document.querySelectorAll('.tab-btn');
+                    
+                    if (tabButtons.length >= 2) {
+                        log('✅ Fixed interface working - found tab buttons', 'success');
+                        
+                        // Test tab switching
+                        const importTab = Array.from(tabButtons).find(btn => 
+                            btn.textContent.includes('Import')
+                        );
+                        
+                        if (importTab) {
+                            log('   Testing tab switching...', 'info');
+                            importTab.click();
+                            
+                            setTimeout(() => {
+                                const importPane = document.getElementById('import-tab-pane');
+                                if (importPane && !importPane.classList.contains('d-none')) {
+                                    log('   ✓ Tab switching works correctly', 'success');
+                                } else {
+                                    log('   ⚠ Tab switching may have issues', 'warning');
+                                }
+                            }, 500);
+                        }
+                        
+                    } else {
+                        log('✗ Fixed interface still not working properly', 'error');
+                    }
+                }, 1500);
+                
+            } catch (error) {
+                log(`✗ Error testing fixed interface: ${error.message}`, 'error');
+            }
+        }
+
+        function clearCache() {
+            log('🗑️ Clearing cache and reloading...', 'info');
+            
+            // Clear localStorage
+            if (typeof localStorage !== 'undefined') {
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.includes('pembayaran') || key.includes('integrated')) {
+                        localStorage.removeItem(key);
+                        log(`   Cleared: ${key}`, 'info');
+                    }
+                });
+            }
+            
+            // Reload page
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+
+        // Auto-run basic diagnostics on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('🚀 Auto-running basic diagnostics...', 'info');
+                testFunctionAvailability();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
