@@ -256,5 +256,5 @@ class PaymentProcessor {
   }
 }
 
-// Export untuk digunakan di browser dan Node.js
-export default PaymentProcessor;
+// Browser compatibility - assign to window object
+window.PaymentProcessor = PaymentProcessor;

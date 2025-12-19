@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix ES6 Export Syntax Errors - Comprehensive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="bi bi-tools"></i> Fix ES6 Export Syntax Errors - Comprehensive</h4>
+                        <p class="mb-0">Memperbaiki semua file JavaScript yang menggunakan ES6 export syntax</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h5><i class="bi bi-info-circle"></i> Informasi</h5>
+                            <p>Script ini akan memperbaiki semua file JavaScript yang menggunakan ES6 export syntax dengan mengkonversinya ke format yang kompatibel dengan browser.</p>
+                            <p><strong>Perubahan yang akan dilakukan:</strong></p>
+                            <ul>
+                                <li>Mengubah <code>export class ClassName</code> menjadi <code>window.ClassName = class ClassName</code></li>
+                                <li>Mengubah <code>export const CONSTANT</code> menjadi <code>window.CONSTANT = ...</code></li>
+                                <li>Mengubah <code>export default ClassName</code> menjadi <code>window.ClassName = ClassName</code></li>
+                                <li>Mengubah <code>export { ... }</code> menjadi assignment ke window object</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button id="btnFixAll" class="btn btn-primary btn-lg">
+                                <i class="bi bi-play-circle"></i> Mulai Perbaikan
+                            </button>
+                            <button id="btnReset" class="btn btn-secondary ms-2" disabled>
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </button>
+                        </div>
+                        
+                        <div id="progressContainer" style="display: none;">
+                            <div class="progress mb-3">
+                                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div id="currentFile" class="text-muted mb-3"></div>
+                        </div>
+                        
+                        <div id="results" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Files that need ES6 export fixes
+        const filesToFix = [
+            'js/billingManager.js',
+            'js/billingRepository.js',
+            'js/enhanced-tutup-kasir-data-persistence.js',
+            'js/paymentProcessor.js',
+            'js/riwayat-tutup-kasir-reporting.js',
+            'js/schedulerService.js',
+            'js/master-barang/types.js',
+            'js/master-barang/BaseManager.js',
+            'js/master-barang/BarangManager.js',
+            'js/master-barang/KategoriManager.js',
+            'js/master-barang/SatuanManager.js',
+            'js/master-barang/ValidationEngine.js',
+            'js/master-barang/DataValidator.js',
+            'js/master-barang/ErrorHandler.js',
+            'js/master-barang/FormManager.js',
+            'js/master-barang/DataTableManager.js',
+            'js/master-barang/SearchEngine.js',
+            'js/master-barang/FilterManager.js',
+            'js/master-barang/QueryBuilder.js',
+            'js/master-barang/ExportManager.js',
+            'js/master-barang/ImportManager.js',
+            'js/master-barang/FileProcessor.js',
+            'js/master-barang/BulkOperationsManager.js',
+            'js/master-barang/AuditLogger.js',
+            'js/master-barang/AuditExporter.js',
+            'js/master-barang/AuditViewer.js',
+            'js/master-barang/UXManager.js',
+            'js/master-barang/PerformanceMonitor.js',
+            'js/master-barang/OptimizedStorageManager.js',
+            'js/master-barang/ConcurrentAccessManager.js',
+            'js/master-barang/TemplateManager.js',
+            'js/master-barang/BusinessRuleValidator.js',
+            'js/master-barang/KoperasiSystemIntegration.js',
+            'js/master-barang/MasterBarangController.js',
+            'js/master-barang/MasterBarangSystem.js',
+            'js/master-barang/AdvancedFeatureManager.js',
+            'js/upload-excel/BatchProcessor.js',
+            'js/upload-excel/ImportResultsManager.js',
+            'js/upload-excel/MasterBarangIntegration.js',
+            'setup-production.js',
+            'verify-production-readiness.js'
+        ];
+
+        let currentIndex = 0;
+        let results = [];
+
+        document.getElementById('btnFixAll').addEventListener('click', startFix);
+        document.getElementById('btnReset').addEventListener('click', resetResults);
+
+        async function startFix() {
+            document.getElementById('btnFixAll').disabled = true;
+            document.getElementById('btnReset').disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+            
+            currentIndex = 0;
+            results = [];
+
+            for (let i = 0; i < filesToFix.length; i++) {
+                currentIndex = i;
+                const fileName = filesToFix[i];
+                
+                updateProgress(fileName, i, filesToFix.length);
+                
+                try {
+                    await fixFile(fileName);
+                    results.push({
+                        file: fileName,
+                        status: 'success',
+                        message: 'Berhasil diperbaiki'
+                    });
+                } catch (error) {
+                    results.push({
+                        file: fileName,
+                        status: 'error',
+                        message: error.message
+                    });
+                }
+                
+                // Small delay to show progress
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            updateProgress('Selesai', filesToFix.length, filesToFix.length);
+            displayResults();
+            
+            document.getElementById('btnFixAll').disabled = false;
+            document.getElementById('btnReset').disabled = false;
+        }
+
+        function updateProgress(fileName, current, total) {
+            const percentage = Math.round((current / total) * 100);
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressBar').textContent = percentage + '%';
+            document.getElementById('currentFile').textContent = `Memproses: ${fileName}`;
+        }
+
+        async function fixFile(fileName) {
+            try {
+                // Read file content
+                const response = await fetch(fileName);
+                if (!response.ok) {
+                    throw new Error(`File tidak ditemukan: ${fileName}`);
+                }
+                
+                let content = await response.text();
+                let modified = false;
+
+                // Fix export class
+                content = content.replace(/^export\s+class\s+(\w+)/gm, (match, className) => {
+                    modified = true;
+                    return `class ${className}`;
+                });
+
+                // Fix export const/let/var
+                content = content.replace(/^export\s+(const|let|var)\s+(\w+)/gm, (match, type, varName) => {
+                    modified = true;
+                    return `${type} ${varName}`;
+                });
+
+                // Fix export default
+                content = content.replace(/^export\s+default\s+(\w+);?$/gm, (match, className) => {
+                    modified = true;
+                    return `window.${className} = ${className};`;
+                });
+
+                // Fix export { ... }
+                content = content.replace(/^export\s*\{([^}]+)\};?$/gm, (match, exports) => {
+                    modified = true;
+                    const exportItems = exports.split(',').map(item => item.trim());
+                    const assignments = exportItems.map(item => {
+                        const [name, alias] = item.split(' as ').map(s => s.trim());
+                        const exportName = alias || name;
+                        return `window.${exportName} = ${name};`;
+                    });
+                    return assignments.join('\n');
+                });
+
+                // Add window assignments for classes and constants at the end
+                if (modified) {
+                    // Find all class declarations and add window assignments
+                    const classMatches = content.match(/^class\s+(\w+)/gm);
+                    if (classMatches) {
+                        const windowAssignments = classMatches.map(match => {
+                            const className = match.replace('class ', '');
+                            return `window.${className} = ${className};`;
+                        });
+                        content += '\n\n// Window assignments for browser compatibility\n' + windowAssignments.join('\n');
+                    }
+
+                    // Find all const declarations that look like exports
+                    const constMatches = content.match(/^const\s+([A-Z_][A-Z0-9_]*)\s*=/gm);
+                    if (constMatches) {
+                        const windowAssignments = constMatches.map(match => {
+                            const constName = match.replace(/^const\s+([A-Z_][A-Z0-9_]*)\s*=.*/, '$1');
+                            return `window.${constName} = ${constName};`;
+                        });
+                        content += '\n\n// Constant assignments for browser compatibility\n' + windowAssignments.join('\n');
+                    }
+                }
+
+                if (modified) {
+                    // Save the modified content
+                    await saveFile(fileName, content);
+                }
+
+                return modified;
+            } catch (error) {
+                throw new Error(`Error processing ${fileName}: ${error.message}`);
+            }
+        }
+
+        async function saveFile(fileName, content) {
+            // Create a download link for the fixed file
+            const blob = new Blob([content], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            
+            const successCount = results.filter(r => r.status === 'success').length;
+            const errorCount = results.filter(r => r.status === 'error').length;
+
+            let html = `
+                <div class="alert alert-info">
+                    <h5><i class="bi bi-check-circle"></i> Hasil Perbaikan</h5>
+                    <p><strong>Total file:</strong> ${results.length}</p>
+                    <p><strong>Berhasil:</strong> ${successCount}</p>
+                    <p><strong>Error:</strong> ${errorCount}</p>
+                </div>
+            `;
+
+            if (results.length > 0) {
+                html += '<div class="table-responsive"><table class="table table-striped">';
+                html += '<thead><tr><th>File</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>';
+                
+                results.forEach(result => {
+                    const statusClass = result.status === 'success' ? 'text-success' : 'text-danger';
+                    const statusIcon = result.status === 'success' ? 'bi-check-circle' : 'bi-x-circle';
+                    
+                    html += `
+                        <tr>
+                            <td><code>${result.file}</code></td>
+                            <td class="${statusClass}"><i class="bi ${statusIcon}"></i> ${result.status}</td>
+                            <td>${result.message}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function resetResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('progressContainer').style.display = 'none';
+            currentIndex = 0;
+            results = [];
+        }
+    </script>
+</body>
+</html>

@@ -136,7 +136,7 @@
 /**
  * LocalStorage Keys
  */
-export const STORAGE_KEYS = {
+const STORAGE_KEYS = {
     BARANG: 'master_barang_data',
     KATEGORI: 'master_kategori_data',
     SATUAN: 'master_satuan_data',
@@ -147,7 +147,7 @@ export const STORAGE_KEYS = {
 /**
  * Default Values
  */
-export const DEFAULTS = {
+const DEFAULTS = {
     PAGE_SIZE: 20,
     SORT_BY: 'nama',
     SORT_ORDER: 'asc',
@@ -158,7 +158,7 @@ export const DEFAULTS = {
 /**
  * Validation Rules
  */
-export const VALIDATION_RULES = {
+const VALIDATION_RULES = {
     BARANG: {
         KODE: {
             MIN_LENGTH: 2,
@@ -212,7 +212,7 @@ export const VALIDATION_RULES = {
 /**
  * File Upload Limits
  */
-export const FILE_LIMITS = {
+const FILE_LIMITS = {
     MAX_SIZE: 5 * 1024 * 1024, // 5MB
     ALLOWED_TYPES: ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv'],
     ALLOWED_EXTENSIONS: ['.xlsx', '.xls', '.csv']
@@ -221,7 +221,7 @@ export const FILE_LIMITS = {
 /**
  * Error Messages
  */
-export const ERROR_MESSAGES = {
+const ERROR_MESSAGES = {
     REQUIRED_FIELD: 'Field ini wajib diisi',
     INVALID_FORMAT: 'Format tidak valid',
     DUPLICATE_CODE: 'Kode barang sudah ada',
@@ -234,8 +234,15 @@ export const ERROR_MESSAGES = {
     UNIT_IN_USE: 'Satuan tidak dapat dihapus karena masih digunakan'
 };
 
-// Export all types for use in other modules
-export default {
+// Browser compatibility - assign to window object
+window.STORAGE_KEYS = STORAGE_KEYS;
+window.DEFAULTS = DEFAULTS;
+window.VALIDATION_RULES = VALIDATION_RULES;
+window.FILE_LIMITS = FILE_LIMITS;
+window.ERROR_MESSAGES = ERROR_MESSAGES;
+
+// Default export equivalent
+window.MasterBarangTypes = {
     STORAGE_KEYS,
     DEFAULTS,
     VALIDATION_RULES,

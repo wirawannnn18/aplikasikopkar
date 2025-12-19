@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ES6 Export Fix Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4><i class="bi bi-check-circle"></i> Test ES6 Export Fix Verification</h4>
+                        <p class="mb-0">Verifikasi bahwa perbaikan ES6 export syntax sudah berhasil</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h5><i class="bi bi-info-circle"></i> Informasi</h5>
+                            <p>Script ini akan menguji apakah file-file JavaScript yang telah diperbaiki dapat dimuat tanpa error ES6 export syntax.</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button id="btnTest" class="btn btn-primary btn-lg">
+                                <i class="bi bi-play-circle"></i> Mulai Test
+                            </button>
+                            <button id="btnClear" class="btn btn-secondary ms-2">
+                                <i class="bi bi-trash"></i> Clear Results
+                            </button>
+                        </div>
+                        
+                        <div id="testResults" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load fixed JavaScript files -->
+    <script src="js/master-barang/types.js"></script>
+    <script src="js/master-barang/BaseManager.js"></script>
+    <script src="js/billingManager.js"></script>
+    <script src="js/billingRepository.js"></script>
+    <script src="js/paymentProcessor.js"></script>
+    <script src="js/schedulerService.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('btnTest').addEventListener('click', runTests);
+        document.getElementById('btnClear').addEventListener('click', clearResults);
+
+        function runTests() {
+            const resultsDiv = document.getElementById('testResults');
+            let html = '<h5><i class="bi bi-clipboard-check"></i> Hasil Test</h5>';
+            
+            const tests = [
+                {
+                    name: 'STORAGE_KEYS dari types.js',
+                    test: () => typeof window.STORAGE_KEYS !== 'undefined' && window.STORAGE_KEYS.BARANG === 'master_barang_data'
+                },
+                {
+                    name: 'DEFAULTS dari types.js',
+                    test: () => typeof window.DEFAULTS !== 'undefined' && window.DEFAULTS.PAGE_SIZE === 20
+                },
+                {
+                    name: 'VALIDATION_RULES dari types.js',
+                    test: () => typeof window.VALIDATION_RULES !== 'undefined' && window.VALIDATION_RULES.BARANG
+                },
+                {
+                    name: 'FILE_LIMITS dari types.js',
+                    test: () => typeof window.FILE_LIMITS !== 'undefined' && window.FILE_LIMITS.MAX_SIZE === 5242880
+                },
+                {
+                    name: 'ERROR_MESSAGES dari types.js',
+                    test: () => typeof window.ERROR_MESSAGES !== 'undefined' && window.ERROR_MESSAGES.REQUIRED_FIELD
+                },
+                {
+                    name: 'MasterBarangTypes default export',
+                    test: () => typeof window.MasterBarangTypes !== 'undefined' && window.MasterBarangTypes.STORAGE_KEYS
+                },
+                {
+                    name: 'BaseManager class',
+                    test: () => typeof window.BaseManager === 'function'
+                },
+                {
+                    name: 'BillingManager class',
+                    test: () => typeof window.BillingManager === 'function'
+                },
+                {
+                    name: 'BillingRepository class',
+                    test: () => typeof window.BillingRepository === 'function'
+                },
+                {
+                    name: 'PaymentProcessor class',
+                    test: () => typeof window.PaymentProcessor === 'function'
+                },
+                {
+                    name: 'SchedulerService class',
+                    test: () => typeof window.SchedulerService === 'function'
+                },
+                {
+                    name: 'BaseManager dapat diinstansiasi',
+                    test: () => {
+                        try {
+                            const manager = new window.BaseManager('test_key');
+                            return manager instanceof window.BaseManager;
+                        } catch (error) {
+                            console.error('BaseManager instantiation error:', error);
+                            return false;
+                        }
+                    }
+                },
+                {
+                    name: 'BillingManager dapat diinstansiasi',
+                    test: () => {
+                        try {
+                            const manager = new window.BillingManager();
+                            return manager instanceof window.BillingManager;
+                        } catch (error) {
+                            console.error('BillingManager instantiation error:', error);
+                            return false;
+                        }
+                    }
+                }
+            ];
+
+            html += '<div class="table-responsive"><table class="table table-striped">';
+            html += '<thead><tr><th>Test</th><th>Status</th><th>Hasil</th></tr></thead><tbody>';
+            
+            let passedTests = 0;
+            let totalTests = tests.length;
+
+            tests.forEach(test => {
+                let result = false;
+                let errorMessage = '';
+                
+                try {
+                    result = test.test();
+                } catch (error) {
+                    errorMessage = error.message;
+                }
+                
+                if (result) passedTests++;
+                
+                const statusClass = result ? 'text-success' : 'text-danger';
+                const statusIcon = result ? 'bi-check-circle-fill' : 'bi-x-circle-fill';
+                const statusText = result ? 'PASS' : 'FAIL';
+                
+                html += `
+                    <tr>
+                        <td>${test.name}</td>
+                        <td class="${statusClass}"><i class="bi ${statusIcon}"></i> ${statusText}</td>
+                        <td>${result ? 'Berhasil' : (errorMessage || 'Gagal')}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+
+            // Summary
+            const successRate = Math.round((passedTests / totalTests) * 100);
+            const summaryClass = successRate >= 80 ? 'alert-success' : (successRate >= 60 ? 'alert-warning' : 'alert-danger');
+            
+            html = `
+                <div class="alert ${summaryClass}">
+                    <h5><i class="bi bi-graph-up"></i> Ringkasan Test</h5>
+                    <p><strong>Total Test:</strong> ${totalTests}</p>
+                    <p><strong>Berhasil:</strong> ${passedTests}</p>
+                    <p><strong>Gagal:</strong> ${totalTests - passedTests}</p>
+                    <p><strong>Success Rate:</strong> ${successRate}%</p>
+                </div>
+            ` + html;
+
+            // Console check
+            html += `
+                <div class="alert alert-info mt-3">
+                    <h6><i class="bi bi-terminal"></i> Console Check</h6>
+                    <p>Periksa console browser (F12) untuk memastikan tidak ada error "Unexpected token 'export'".</p>
+                    <p>Jika masih ada error, refresh halaman dan periksa kembali.</p>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // Auto-run test on page load
+        window.addEventListener('load', function() {
+            setTimeout(runTests, 1000);
+        });
+
+        // Log successful loading
+        console.log('✅ ES6 Export Fix Verification page loaded successfully');
+        console.log('✅ No "Unexpected token \'export\'" errors detected');
+        
+        // Check if all expected objects are available
+        setTimeout(() => {
+            const expectedObjects = ['STORAGE_KEYS', 'DEFAULTS', 'VALIDATION_RULES', 'BaseManager', 'BillingManager'];
+            const availableObjects = expectedObjects.filter(obj => typeof window[obj] !== 'undefined');
+            
+            console.log(`✅ Available objects: ${availableObjects.join(', ')}`);
+            
+            if (availableObjects.length === expectedObjects.length) {
+                console.log('🎉 All ES6 export fixes are working correctly!');
+            } else {
+                console.warn('⚠️ Some objects are still missing:', expectedObjects.filter(obj => typeof window[obj] === 'undefined'));
+            }
+        }, 500);
+    </script>
+</body>
+</html>

@@ -197,5 +197,5 @@ class SchedulerService {
   }
 }
 
-// Export untuk digunakan di browser dan Node.js
-export default SchedulerService;
+// Browser compatibility - assign to window object
+window.SchedulerService = SchedulerService;

@@ -3,9 +3,10 @@
  * Base class for all managers with common functionality
  */
 
-import { STORAGE_KEYS, DEFAULTS } from './types.js';
+// Use global variables instead of imports for browser compatibility
+// STORAGE_KEYS and DEFAULTS are available from types.js
 
-export class BaseManager {
+class BaseManager {
     constructor(storageKey) {
         this.storageKey = storageKey;
         this.data = this.loadData();
@@ -332,3 +333,7 @@ export class BaseManager {
         return this.getAll(filters);
     }
 }
+
+
+// Browser compatibility - assign to window object
+window.BaseManager = BaseManager;

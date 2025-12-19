@@ -292,5 +292,5 @@ class BillingManager {
   }
 }
 
-// Export untuk digunakan di browser dan Node.js
-export default BillingManager;
+// Browser compatibility - assign to window object
+window.BillingManager = BillingManager;

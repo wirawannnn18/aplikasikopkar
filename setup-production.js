@@ -148,4 +148,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     });
 }
 
-export { updateSupabaseConfig };
+// Browser compatibility - assign to window object
+if (typeof window !== 'undefined') {
+    window.updateSupabaseConfig = updateSupabaseConfig;
+}
+
+// Node.js compatibility
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { updateSupabaseConfig };
+}

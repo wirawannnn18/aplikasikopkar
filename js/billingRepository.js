@@ -203,5 +203,5 @@ class BillingRepository {
   }
 }
 
-// Export untuk digunakan di browser dan Node.js
-export default BillingRepository;
+// Browser compatibility - assign to window object
+window.BillingRepository = BillingRepository;

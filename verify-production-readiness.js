@@ -620,4 +620,12 @@ if (isMainModule) {
     });
 }
 
-export default ProductionReadinessVerifier;
+// Browser compatibility - assign to window object
+if (typeof window !== 'undefined') {
+    window.ProductionReadinessVerifier = ProductionReadinessVerifier;
+}
+
+// Node.js compatibility
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ProductionReadinessVerifier;
+}
