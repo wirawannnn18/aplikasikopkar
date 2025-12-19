@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Pembayaran Manual Interface Loading</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-tools"></i> Fix Pembayaran Manual Interface Loading</h2>
+                <p class="text-muted">Memperbaiki masalah interface pembayaran manual yang tidak tampil</p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-bug"></i> Diagnosis & Perbaikan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="logContainer" class="mb-3" style="height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px;"></div>
+                        <button class="btn btn-primary" onclick="runFix()">
+                            <i class="bi bi-play-fill"></i> Jalankan Perbaikan
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="testInterface()">
+                            <i class="bi bi-check-circle"></i> Test Interface
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-eye"></i> Test Area</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testArea" style="min-height: 400px; border: 2px dashed #dee2e6; padding: 20px;">
+                            <p class="text-muted text-center">Area test akan muncul di sini setelah perbaikan dijalankan</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#0dcaf0',
+                success: '#198754',
+                warning: '#ffc107',
+                error: '#dc3545'
+            };
+            
+            logContainer.innerHTML += `
+                <div style="color: ${colors[type]}; margin-bottom: 5px;">
+                    [${timestamp}] ${message}
+                </div>
+            `;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function runFix() {
+            log('🔧 Memulai perbaikan interface pembayaran manual...', 'info');
+            
+            try {
+                // Step 1: Check if required functions exist
+                log('1. Memeriksa fungsi yang diperlukan...', 'info');
+                
+                const requiredFunctions = [
+                    'renderPembayaranHutangPiutang',
+                    'renderFormPembayaran', 
+                    'updateSummaryCards',
+                    'renderRiwayatPembayaran'
+                ];
+                
+                const missingFunctions = [];
+                requiredFunctions.forEach(func => {
+                    if (typeof window[func] !== 'function') {
+                        missingFunctions.push(func);
+                    } else {
+                        log(`   ✓ ${func} tersedia`, 'success');
+                    }
+                });
+                
+                if (missingFunctions.length > 0) {
+                    log(`   ⚠ Fungsi yang hilang: ${missingFunctions.join(', ')}`, 'warning');
+                    await loadMissingFunctions(missingFunctions);
+                }
+                
+                // Step 2: Fix the integrated controller's _renderManualPayment method
+                log('2. Memperbaiki method _renderManualPayment...', 'info');
+                
+                if (typeof window.PembayaranHutangPiutangIntegrated !== 'undefined') {
+                    // Override the _renderManualPayment method
+                    window.PembayaranHutangPiutangIntegrated.prototype._renderManualPaymentFixed = async function() {
+                        const container = document.getElementById('manual-payment-container');
+                        if (!container) {
+                            log('   ✗ Container manual-payment-container tidak ditemukan', 'error');
+                            return;
+                        }
+
+                        log('   📝 Merender interface pembayaran manual...', 'info');
+                        
+                        try {
+                            // Clear loading spinner
+                            container.innerHTML = '';
+                            
+                            // Create a proper container structure
+                            container.innerHTML = `
+                                <div id="manual-payment-content">
+                                    <div id="mainContent"></div>
+                                </div>
+                            `;
+                            
+                            // Get the mainContent element within our container
+                            const mainContent = container.querySelector('#mainContent');
+                            
+                            if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                                // Temporarily set the mainContent for the render function
+                                const originalMainContent = document.getElementById('mainContent');
+                                
+                                // Temporarily replace the global mainContent
+                                if (originalMainContent) {
+                                    originalMainContent.id = 'mainContent-temp';
+                                }
+                                mainContent.id = 'mainContent';
+                                
+                                // Call the render function
+                                window.renderPembayaranHutangPiutang();
+                                
+                                // Restore original mainContent
+                                mainContent.id = 'manual-payment-mainContent';
+                                if (originalMainContent) {
+                                    originalMainContent.id = 'mainContent';
+                                }
+                                
+                                log('   ✓ Interface pembayaran manual berhasil dirender', 'success');
+                            } else {
+                                // Fallback interface
+                                container.innerHTML = `
+                                    <div class="container-fluid py-4">
+                                        <div class="alert alert-info">
+                                            <h5><i class="bi bi-info-circle"></i> Pembayaran Manual</h5>
+                                            <p>Interface pembayaran manual sedang dimuat...</p>
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                log('   ⚠ Menggunakan interface fallback', 'warning');
+                            }
+                        } catch (error) {
+                            log(`   ✗ Error saat merender: ${error.message}`, 'error');
+                            container.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <h5><i class="bi bi-exclamation-triangle"></i> Error</h5>
+                                    <p>Gagal memuat interface pembayaran manual: ${error.message}</p>
+                                </div>
+                            `;
+                        }
+                    };
+                    
+                    // Override the original method
+                    window.PembayaranHutangPiutangIntegrated.prototype._renderManualPayment = 
+                        window.PembayaranHutangPiutangIntegrated.prototype._renderManualPaymentFixed;
+                    
+                    log('   ✓ Method _renderManualPayment berhasil diperbaiki', 'success');
+                } else {
+                    log('   ⚠ PembayaranHutangPiutangIntegrated tidak ditemukan', 'warning');
+                }
+                
+                // Step 3: Create enhanced render function for direct use
+                log('3. Membuat fungsi render yang ditingkatkan...', 'info');
+                
+                window.renderPembayaranManualEnhanced = function(containerId = 'manual-payment-container') {
+                    const container = document.getElementById(containerId);
+                    if (!container) {
+                        log(`   ✗ Container ${containerId} tidak ditemukan`, 'error');
+                        return;
+                    }
+                    
+                    // Clear container
+                    container.innerHTML = '';
+                    
+                    // Create main content structure
+                    const mainContentDiv = document.createElement('div');
+                    mainContentDiv.id = 'mainContent';
+                    container.appendChild(mainContentDiv);
+                    
+                    // Call the original render function
+                    if (typeof window.renderPembayaranHutangPiutang === 'function') {
+                        window.renderPembayaranHutangPiutang();
+                        log('   ✓ Interface pembayaran manual berhasil dirender', 'success');
+                    } else {
+                        mainContentDiv.innerHTML = `
+                            <div class="container-fluid py-4">
+                                <div class="alert alert-warning">
+                                    <h5><i class="bi bi-exclamation-triangle"></i> Fungsi Tidak Tersedia</h5>
+                                    <p>Fungsi renderPembayaranHutangPiutang tidak ditemukan.</p>
+                                    <p>Pastikan file js/pembayaranHutangPiutang.js sudah dimuat dengan benar.</p>
+                                </div>
+                            </div>
+                        `;
+                        log('   ✗ Fungsi renderPembayaranHutangPiutang tidak tersedia', 'error');
+                    }
+                };
+                
+                log('   ✓ Fungsi renderPembayaranManualEnhanced dibuat', 'success');
+                
+                // Step 4: Fix the tab switching issue
+                log('4. Memperbaiki masalah tab switching...', 'info');
+                
+                // Create a global function to refresh manual payment tab
+                window.refreshManualPaymentTab = function() {
+                    const container = document.getElementById('manual-payment-container');
+                    if (container && typeof window.renderPembayaranManualEnhanced === 'function') {
+                        window.renderPembayaranManualEnhanced('manual-payment-container');
+                        log('   ✓ Tab pembayaran manual di-refresh', 'success');
+                    }
+                };
+                
+                log('   ✓ Fungsi refresh tab dibuat', 'success');
+                
+                // Step 5: Test the fix
+                log('5. Testing perbaikan...', 'info');
+                await testFix();
+                
+                log('🎉 Perbaikan selesai!', 'success');
+                log('💡 Untuk menggunakan: panggil refreshManualPaymentTab() atau renderPembayaranManualEnhanced()', 'info');
+                
+            } catch (error) {
+                log(`❌ Error during fix: ${error.message}`, 'error');
+                console.error('Fix error:', error);
+            }
+        }
+        
+        async function loadMissingFunctions(missingFunctions) {
+            log('   📦 Memuat fungsi yang hilang...', 'info');
+            
+            // Create basic fallback functions
+            missingFunctions.forEach(funcName => {
+                if (funcName === 'renderPembayaranHutangPiutang') {
+                    window[funcName] = function() {
+                        const content = document.getElementById('mainContent');
+                        if (content) {
+                            content.innerHTML = `
+                                <div class="container-fluid py-4">
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <h2><i class="bi bi-cash-coin"></i> Pembayaran Hutang / Piutang Anggota</h2>
+                                            <p class="text-muted">Interface terintegrasi untuk pembayaran manual dan import batch</p>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info">
+                                        <h5><i class="bi bi-info-circle"></i> Interface Pembayaran Manual</h5>
+                                        <p>Interface pembayaran manual telah dimuat dengan fungsi fallback.</p>
+                                        <p>Untuk fungsionalitas penuh, pastikan semua file JavaScript telah dimuat dengan benar.</p>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    };
+                } else {
+                    // Create placeholder functions
+                    window[funcName] = function() {
+                        console.log(`Placeholder function ${funcName} called`);
+                    };
+                }
+                log(`   ✓ Fungsi fallback ${funcName} dibuat`, 'success');
+            });
+        }
+        
+        async function testFix() {
+            log('   🧪 Testing interface rendering...', 'info');
+            
+            try {
+                // Test the enhanced render function
+                if (typeof window.renderPembayaranManualEnhanced === 'function') {
+                    // Create test container
+                    const testDiv = document.createElement('div');
+                    testDiv.id = 'test-manual-container';
+                    testDiv.style.display = 'none';
+                    document.body.appendChild(testDiv);
+                    
+                    // Test render
+                    window.renderPembayaranManualEnhanced('test-manual-container');
+                    
+                    // Check result
+                    if (testDiv.innerHTML.includes('Pembayaran Hutang')) {
+                        log('   ✓ Test render berhasil', 'success');
+                    } else {
+                        log('   ⚠ Test render menghasilkan output tidak lengkap', 'warning');
+                    }
+                    
+                    // Cleanup
+                    document.body.removeChild(testDiv);
+                } else {
+                    log('   ✗ Fungsi renderPembayaranManualEnhanced tidak tersedia', 'error');
+                }
+            } catch (error) {
+                log(`   ✗ Test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testInterface() {
+            log('🧪 Testing interface di area test...', 'info');
+            
+            const testArea = document.getElementById('testArea');
+            testArea.innerHTML = '<div id="test-payment-container"></div>';
+            
+            try {
+                if (typeof window.renderPembayaranManualEnhanced === 'function') {
+                    window.renderPembayaranManualEnhanced('test-payment-container');
+                    log('✓ Interface berhasil dirender di area test', 'success');
+                } else {
+                    log('✗ Fungsi renderPembayaranManualEnhanced tidak tersedia', 'error');
+                    testArea.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-x-circle"></i> Test Gagal</h5>
+                            <p>Fungsi renderPembayaranManualEnhanced tidak tersedia.</p>
+                            <p>Jalankan perbaikan terlebih dahulu.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                log(`✗ Error saat test: ${error.message}`, 'error');
+                testArea.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-x-circle"></i> Test Error</h5>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-run fix on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Halaman dimuat, siap untuk perbaikan', 'info');
+        });
+    </script>
+</body>
+</html>
