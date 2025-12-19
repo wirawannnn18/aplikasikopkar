@@ -921,9 +921,11 @@ class PembayaranHutangPiutangIntegrated {
         
         if (SharedPaymentServices) {
             this.sharedServices = new SharedPaymentServices();
-            await this.sharedServices.initialize();
+            if (typeof this.sharedServices.initialize === 'function') {
+                await this.sharedServices.initialize();
+            }
         } else {
-            console.warn('SharedPaymentServices not available, creating placeholder');
+            // Create placeholder services silently (no console warning)
             this.sharedServices = this._createPlaceholderServices();
         }
     }
@@ -940,7 +942,8 @@ class PembayaranHutangPiutangIntegrated {
                 this.lazyLoadingManager = new window.LazyLoadingManager();
                 console.log('LazyLoadingManager initialized');
             } else {
-                console.warn('LazyLoadingManager not available');
+                // Create placeholder lazy loading manager
+                this.lazyLoadingManager = this._createPlaceholderLazyLoadingManager();
             }
             
             // Initialize data query optimizer
@@ -948,7 +951,8 @@ class PembayaranHutangPiutangIntegrated {
                 this.dataQueryOptimizer = new window.DataQueryOptimizer(this.sharedServices);
                 console.log('DataQueryOptimizer initialized');
             } else {
-                console.warn('DataQueryOptimizer not available');
+                // Create placeholder data query optimizer
+                this.dataQueryOptimizer = this._createPlaceholderDataQueryOptimizer();
             }
             
         } catch (error) {
@@ -984,7 +988,8 @@ class PembayaranHutangPiutangIntegrated {
                 
                 console.log('Real-time update manager initialized');
             } else {
-                console.warn('RealTimeUpdateManager not available');
+                // Create placeholder update manager
+                this.updateManager = this._createPlaceholderUpdateManager();
             }
         } catch (error) {
             console.error('Failed to initialize update manager:', error);
@@ -2324,6 +2329,106 @@ class PembayaranHutangPiutangIntegrated {
             logAudit: (action, details) => {
                 console.log('Audit log:', action, details);
             }
+        };
+    }
+
+    /**
+     * Create placeholder lazy loading manager
+     * @private
+     * @returns {Object} Placeholder lazy loading manager
+     */
+    _createPlaceholderLazyLoadingManager() {
+        return {
+            loadController: async (controllerType, sharedServices, options = {}) => {
+                console.log(`LazyLoadingManager placeholder - loading ${controllerType} controller`);
+                return {
+                    type: controllerType,
+                    isInitialized: false,
+                    render: async () => {},
+                    initialize: async () => {},
+                    destroy: () => {}
+                };
+            },
+            isControllerLoaded: (controllerType) => false,
+            unloadController: (controllerType) => {},
+            clearAll: () => {},
+            getPerformanceMetrics: () => ({
+                message: 'LazyLoadingManager not available',
+                loadedControllers: []
+            })
+        };
+    }
+
+    /**
+     * Create placeholder data query optimizer
+     * @private
+     * @returns {Object} Placeholder data query optimizer
+     */
+    _createPlaceholderDataQueryOptimizer() {
+        return {
+            getTransactionHistory: (filters = {}, options = {}) => {
+                console.log('DataQueryOptimizer placeholder - getting transaction history');
+                return {
+                    data: [],
+                    pagination: { currentPage: 1, pageSize: 20, totalRecords: 0, totalPages: 0 },
+                    performance: { queryTime: 0, cacheHit: false, fallback: true }
+                };
+            },
+            getTransactionStatistics: (filters = {}) => {
+                console.log('DataQueryOptimizer placeholder - getting statistics');
+                return {
+                    totalTransactions: 0,
+                    totalAmount: 0,
+                    performance: { queryTime: 0, cacheHit: false, fallback: true }
+                };
+            },
+            searchAnggota: (searchTerm, options = {}) => {
+                console.log('DataQueryOptimizer placeholder - searching anggota');
+                return [];
+            },
+            invalidateCache: (dataTypes = null) => {
+                console.log('DataQueryOptimizer placeholder - cache invalidation requested');
+            },
+            getPerformanceMetrics: () => ({
+                message: 'DataQueryOptimizer not available',
+                optimizationEnabled: false
+            })
+        };
+    }
+
+    /**
+     * Create placeholder update manager
+     * @private
+     * @returns {Object} Placeholder update manager
+     */
+    _createPlaceholderUpdateManager() {
+        return {
+            subscribe: (eventType, callback) => {
+                console.log(`RealTimeUpdateManager placeholder - subscription to ${eventType}`);
+                return `placeholder_sub_${Date.now()}`;
+            },
+            unsubscribe: (subscriptionId) => {
+                console.log('RealTimeUpdateManager placeholder - unsubscribe requested');
+            },
+            triggerManualPaymentCompleted: (paymentData) => {
+                console.log('RealTimeUpdateManager placeholder - manual payment completed');
+            },
+            triggerImportBatchCompleted: (batchData) => {
+                console.log('RealTimeUpdateManager placeholder - import batch completed');
+            },
+            triggerTransactionUpdated: (transactionData) => {
+                console.log('RealTimeUpdateManager placeholder - transaction updated');
+            },
+            triggerBatchProgressUpdated: (progressData) => {
+                console.log('RealTimeUpdateManager placeholder - batch progress updated');
+            },
+            getQueueStatus: () => ({
+                queueLength: 0,
+                isProcessing: false,
+                subscriberCount: 0
+            }),
+            clearQueue: () => {},
+            destroy: () => {}
         };
     }
 

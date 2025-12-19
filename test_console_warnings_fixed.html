@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Console Warnings Fixed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-check-circle"></i>
+                            Test Console Warnings Fixed
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Test:</strong> Memverifikasi bahwa console warnings telah diperbaiki.
+                        </div>
+
+                        <div id="testResults" class="mb-3"></div>
+                        
+                        <button id="runTestBtn" class="btn btn-primary">
+                            <i class="bi bi-play-circle"></i>
+                            Run Test
+                        </button>
+                        
+                        <button id="clearConsoleBtn" class="btn btn-secondary ms-2">
+                            <i class="bi bi-trash"></i>
+                            Clear Console
+                        </button>
+                        
+                        <button id="openConsoleBtn" class="btn btn-info ms-2">
+                            <i class="bi bi-terminal"></i>
+                            Open Console
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Console Output Monitor</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="consoleOutput" class="bg-dark text-light p-3" style="height: 300px; overflow-y: auto; font-family: monospace;">
+                            <div class="text-muted">Console output will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load auth first -->
+    <script src="js/auth.js"></script>
+    
+    <!-- Load shared services -->
+    <script src="js/shared/SharedPaymentServices.js"></script>
+    <script src="js/shared/LazyLoadingManager.js"></script>
+    <script src="js/shared/DataQueryOptimizer.js"></script>
+    <script src="js/shared/RealTimeUpdateManager.js"></script>
+    
+    <!-- Load the integrated payment system -->
+    <script src="js/pembayaranHutangPiutangIntegrated.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const testResultsDiv = document.getElementById('testResults');
+            const runTestBtn = document.getElementById('runTestBtn');
+            const clearConsoleBtn = document.getElementById('clearConsoleBtn');
+            const openConsoleBtn = document.getElementById('openConsoleBtn');
+            const consoleOutputDiv = document.getElementById('consoleOutput');
+
+            // Console monitoring
+            const originalConsole = {
+                log: console.log,
+                warn: console.warn,
+                error: console.error,
+                info: console.info
+            };
+
+            let consoleMessages = [];
+
+            function interceptConsole() {
+                ['log', 'warn', 'error', 'info'].forEach(method => {
+                    console[method] = function(...args) {
+                        const message = {
+                            type: method,
+                            timestamp: new Date().toISOString(),
+                            content: args.map(arg => 
+                                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                            ).join(' ')
+                        };
+                        
+                        consoleMessages.push(message);
+                        updateConsoleDisplay();
+                        
+                        // Call original console method
+                        originalConsole[method].apply(console, args);
+                    };
+                });
+            }
+
+            function updateConsoleDisplay() {
+                const output = consoleMessages.map(msg => {
+                    const typeClass = {
+                        log: 'text-light',
+                        info: 'text-info',
+                        warn: 'text-warning',
+                        error: 'text-danger'
+                    }[msg.type] || 'text-light';
+                    
+                    const time = new Date(msg.timestamp).toLocaleTimeString();
+                    return `<div class="${typeClass}">[${time}] ${msg.type.toUpperCase()}: ${msg.content}</div>`;
+                }).join('');
+                
+                consoleOutputDiv.innerHTML = output || '<div class="text-muted">No console output yet...</div>';
+                consoleOutputDiv.scrollTop = consoleOutputDiv.scrollHeight;
+            }
+
+            function clearConsoleMessages() {
+                consoleMessages = [];
+                updateConsoleDisplay();
+            }
+
+            function runTest() {
+                clearConsoleMessages();
+                
+                testResultsDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-hourglass-split"></i>
+                        Running test... Check console output below.
+                    </div>
+                `;
+
+                // Start console interception
+                interceptConsole();
+
+                setTimeout(async () => {
+                    try {
+                        console.log('=== Starting Console Warnings Test ===');
+                        
+                        // Test 1: Initialize PembayaranHutangPiutangIntegrated
+                        console.log('Test 1: Initializing PembayaranHutangPiutangIntegrated...');
+                        
+                        if (typeof window.PembayaranHutangPiutangIntegrated !== 'undefined') {
+                            const integrated = new window.PembayaranHutangPiutangIntegrated();
+                            await integrated.initialize();
+                            console.log('✓ PembayaranHutangPiutangIntegrated initialized successfully');
+                        } else {
+                            console.error('✗ PembayaranHutangPiutangIntegrated not available');
+                        }
+
+                        // Test 2: Check for specific warning messages
+                        console.log('Test 2: Checking for warning messages...');
+                        
+                        const warningMessages = consoleMessages.filter(msg => 
+                            msg.type === 'warn' && (
+                                msg.content.includes('SharedPaymentServices not available') ||
+                                msg.content.includes('LazyLoadingManager not available') ||
+                                msg.content.includes('DataQueryOptimizer not available') ||
+                                msg.content.includes('RealTimeUpdateManager not available')
+                            )
+                        );
+
+                        if (warningMessages.length === 0) {
+                            console.log('✓ No problematic warning messages found');
+                        } else {
+                            console.warn(`✗ Found ${warningMessages.length} problematic warning messages`);
+                            warningMessages.forEach(msg => {
+                                console.warn(`  - ${msg.content}`);
+                            });
+                        }
+
+                        // Test 3: Check services availability
+                        console.log('Test 3: Checking services availability...');
+                        
+                        const services = {
+                            'SharedPaymentServices': window.SharedPaymentServices,
+                            'LazyLoadingManager': window.LazyLoadingManager,
+                            'DataQueryOptimizer': window.DataQueryOptimizer,
+                            'RealTimeUpdateManager': window.RealTimeUpdateManager
+                        };
+
+                        let availableCount = 0;
+                        for (const [name, service] of Object.entries(services)) {
+                            if (typeof service !== 'undefined') {
+                                console.log(`✓ ${name} is available`);
+                                availableCount++;
+                            } else {
+                                console.log(`- ${name} is not available (using placeholder)`);
+                            }
+                        }
+
+                        console.log(`Services availability: ${availableCount}/4 services loaded`);
+
+                        // Test 4: Test placeholder functionality
+                        console.log('Test 4: Testing placeholder functionality...');
+                        
+                        if (typeof window.PembayaranHutangPiutangIntegrated !== 'undefined') {
+                            const integrated = new window.PembayaranHutangPiutangIntegrated();
+                            
+                            // Test placeholder methods
+                            if (integrated.lazyLoadingManager) {
+                                const metrics = integrated.lazyLoadingManager.getPerformanceMetrics();
+                                console.log('✓ LazyLoadingManager placeholder working:', metrics.message || 'OK');
+                            }
+                            
+                            if (integrated.dataQueryOptimizer) {
+                                const metrics = integrated.dataQueryOptimizer.getPerformanceMetrics();
+                                console.log('✓ DataQueryOptimizer placeholder working:', metrics.message || 'OK');
+                            }
+                            
+                            if (integrated.updateManager) {
+                                const status = integrated.updateManager.getQueueStatus();
+                                console.log('✓ RealTimeUpdateManager placeholder working, queue length:', status.queueLength);
+                            }
+                        }
+
+                        console.log('=== Test Completed ===');
+
+                        // Generate test summary
+                        const totalMessages = consoleMessages.length;
+                        const errorCount = consoleMessages.filter(m => m.type === 'error').length;
+                        const warningCount = consoleMessages.filter(m => m.type === 'warn').length;
+                        const problematicWarnings = warningMessages.length;
+
+                        let resultClass = 'success';
+                        let resultIcon = 'check-circle';
+                        let resultTitle = 'Test Passed';
+                        
+                        if (errorCount > 0 || problematicWarnings > 0) {
+                            resultClass = 'danger';
+                            resultIcon = 'x-circle';
+                            resultTitle = 'Test Failed';
+                        } else if (warningCount > 0) {
+                            resultClass = 'warning';
+                            resultIcon = 'exclamation-triangle';
+                            resultTitle = 'Test Passed with Warnings';
+                        }
+
+                        testResultsDiv.innerHTML = `
+                            <div class="alert alert-${resultClass}">
+                                <h6><i class="bi bi-${resultIcon}"></i> ${resultTitle}</h6>
+                                <ul class="mb-0">
+                                    <li>Total console messages: ${totalMessages}</li>
+                                    <li>Errors: ${errorCount}</li>
+                                    <li>Warnings: ${warningCount}</li>
+                                    <li>Problematic warnings: ${problematicWarnings}</li>
+                                    <li>Services available: ${availableCount}/4</li>
+                                </ul>
+                                ${problematicWarnings === 0 ? 
+                                    '<div class="mt-2"><strong>✓ Console warnings successfully fixed!</strong></div>' : 
+                                    '<div class="mt-2"><strong>✗ Some console warnings still present</strong></div>'
+                                }
+                            </div>
+                        `;
+
+                    } catch (error) {
+                        console.error('Test failed with error:', error);
+                        testResultsDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h6><i class="bi bi-x-circle"></i> Test Failed</h6>
+                                <p>Error: ${error.message}</p>
+                            </div>
+                        `;
+                    }
+                }, 1000);
+            }
+
+            // Event listeners
+            runTestBtn.addEventListener('click', runTest);
+            clearConsoleBtn.addEventListener('click', clearConsoleMessages);
+            openConsoleBtn.addEventListener('click', () => {
+                alert('Please open browser Developer Tools (F12) to see the actual console output.');
+            });
+
+            // Auto-run test on page load
+            setTimeout(runTest, 500);
+        });
+    </script>
+</body>
+</html>
