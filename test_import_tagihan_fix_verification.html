@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Perbaikan Import Tagihan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-check-circle text-success"></i> Verifikasi Perbaikan Import Tagihan</h2>
+                <p class="text-muted">Memverifikasi bahwa semua perbaikan telah berhasil diterapkan</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="bi bi-gear"></i> Component Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="componentStatus">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <span class="ms-2">Checking...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="bi bi-play-circle"></i> Functionality Test</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="functionalityTest">
+                            <div class="text-center text-muted">
+                                Waiting for components...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="bi bi-clipboard-check"></i> Test Results</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">
+                            <div class="text-center text-muted">
+                                No tests run yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-upload"></i> Live Import Interface Test</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="liveInterface">
+                            <!-- Interface will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load all required scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/import-tagihan/interfaces.js"></script>
+    <script src="js/import-tagihan/FileParser.js"></script>
+    <script src="js/import-tagihan/ValidationEngine.js"></script>
+    <script src="js/import-tagihan/PreviewGenerator.js"></script>
+    <script src="js/import-tagihan/BatchProcessor.js"></script>
+    <script src="js/import-tagihan/AuditLogger.js"></script>
+    <script src="js/import-tagihan/ReportGenerator.js"></script>
+    <script src="js/import-tagihan/ErrorHandler.js"></script>
+    <script src="js/import-tagihan/RollbackManager.js"></script>
+    <script src="js/import-tagihan/ConfigurationInterface.js"></script>
+    <script src="js/import-tagihan/ImportUploadInterface.js"></script>
+    <script src="js/import-tagihan/PreviewConfirmationInterface.js"></script>
+    <script src="js/import-tagihan/ProgressResultsInterface.js"></script>
+    <script src="js/import-tagihan/ImportTagihanManager.js"></script>
+
+    <script>
+        let testManager = null;
+        let testResults = {
+            componentsLoaded: 0,
+            totalComponents: 9,
+            functionalityTests: 0,
+            totalFunctionality: 3,
+            errors: []
+        };
+
+        const requiredComponents = [
+            'ImportTagihanManager',
+            'FileParser',
+            'ValidationEngine',
+            'PreviewGenerator',
+            'BatchProcessor',
+            'AuditLogger',
+            'ReportGenerator',
+            'ErrorHandler',
+            'ImportUploadInterface'
+        ];
+
+        function updateComponentStatus() {
+            const statusDiv = document.getElementById('componentStatus');
+            let html = '';
+            let loadedCount = 0;
+
+            requiredComponents.forEach(comp => {
+                const available = typeof window[comp] !== 'undefined';
+                if (available) loadedCount++;
+
+                html += `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">${comp}</span>
+                        <span class="badge ${available ? 'bg-success' : 'bg-danger'} badge-sm">
+                            ${available ? '✓' : '✗'}
+                        </span>
+                    </div>
+                `;
+            });
+
+            html += `
+                <hr class="my-2">
+                <div class="text-center">
+                    <strong>${loadedCount}/${requiredComponents.length}</strong> Components Loaded
+                </div>
+            `;
+
+            statusDiv.innerHTML = html;
+            testResults.componentsLoaded = loadedCount;
+
+            return loadedCount === requiredComponents.length;
+        }
+
+        function testFunctionality() {
+            const testDiv = document.getElementById('functionalityTest');
+            let html = '';
+            let passedTests = 0;
+
+            // Test 1: Create ImportTagihanManager
+            try {
+                testManager = new ImportTagihanManager();
+                html += `<div class="alert alert-success py-1 mb-1 small">✓ Manager Creation</div>`;
+                passedTests++;
+            } catch (error) {
+                html += `<div class="alert alert-danger py-1 mb-1 small">✗ Manager Creation: ${error.message}</div>`;
+                testResults.errors.push(`Manager Creation: ${error.message}`);
+            }
+
+            // Test 2: Template Generation
+            try {
+                const template = testManager.generateTemplate();
+                if (template && template.filename && template.content) {
+                    html += `<div class="alert alert-success py-1 mb-1 small">✓ Template Generation</div>`;
+                    passedTests++;
+                } else {
+                    html += `<div class="alert alert-warning py-1 mb-1 small">⚠ Template Generation: Invalid result</div>`;
+                }
+            } catch (error) {
+                html += `<div class="alert alert-danger py-1 mb-1 small">✗ Template Generation: ${error.message}</div>`;
+                testResults.errors.push(`Template Generation: ${error.message}`);
+            }
+
+            // Test 3: Upload Interface Creation
+            try {
+                const uploadInterface = new ImportUploadInterface(testManager);
+                if (uploadInterface && typeof uploadInterface.renderAndAttach === 'function') {
+                    html += `<div class="alert alert-success py-1 mb-1 small">✓ Upload Interface</div>`;
+                    passedTests++;
+                } else {
+                    html += `<div class="alert alert-warning py-1 mb-1 small">⚠ Upload Interface: Missing methods</div>`;
+                }
+            } catch (error) {
+                html += `<div class="alert alert-danger py-1 mb-1 small">✗ Upload Interface: ${error.message}</div>`;
+                testResults.errors.push(`Upload Interface: ${error.message}`);
+            }
+
+            html += `
+                <hr class="my-2">
+                <div class="text-center">
+                    <strong>${passedTests}/${testResults.totalFunctionality}</strong> Tests Passed
+                </div>
+            `;
+
+            testDiv.innerHTML = html;
+            testResults.functionalityTests = passedTests;
+
+            return passedTests === testResults.totalFunctionality;
+        }
+
+        function testLiveInterface() {
+            const interfaceDiv = document.getElementById('liveInterface');
+
+            try {
+                if (!testManager) {
+                    interfaceDiv.innerHTML = '<div class="alert alert-warning">Manager not available for live test</div>';
+                    return;
+                }
+
+                const uploadInterface = new ImportUploadInterface(testManager);
+                uploadInterface.renderAndAttach('liveInterface');
+
+                // Add success message
+                interfaceDiv.innerHTML = `
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-check-circle"></i> Live interface loaded successfully! 
+                        You can test template download and file upload.
+                    </div>
+                ` + interfaceDiv.innerHTML;
+
+            } catch (error) {
+                interfaceDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Live interface test failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function updateTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            
+            const allComponentsLoaded = testResults.componentsLoaded === testResults.totalComponents;
+            const allFunctionalityPassed = testResults.functionalityTests === testResults.totalFunctionality;
+            const hasErrors = testResults.errors.length > 0;
+
+            let status = 'warning';
+            let statusText = 'Partial Success';
+            let statusIcon = 'exclamation-triangle';
+
+            if (allComponentsLoaded && allFunctionalityPassed && !hasErrors) {
+                status = 'success';
+                statusText = 'All Tests Passed';
+                statusIcon = 'check-circle';
+            } else if (!allComponentsLoaded) {
+                status = 'danger';
+                statusText = 'Components Missing';
+                statusIcon = 'x-circle';
+            } else if (hasErrors) {
+                status = 'danger';
+                statusText = 'Tests Failed';
+                statusIcon = 'x-circle';
+            }
+
+            let html = `
+                <div class="alert alert-${status} py-2 mb-2">
+                    <i class="bi bi-${statusIcon}"></i> <strong>${statusText}</strong>
+                </div>
+                
+                <div class="small">
+                    <div class="mb-1">
+                        <strong>Components:</strong> ${testResults.componentsLoaded}/${testResults.totalComponents}
+                    </div>
+                    <div class="mb-1">
+                        <strong>Functionality:</strong> ${testResults.functionalityTests}/${testResults.totalFunctionality}
+                    </div>
+                    <div>
+                        <strong>Errors:</strong> ${testResults.errors.length}
+                    </div>
+                </div>
+            `;
+
+            if (testResults.errors.length > 0) {
+                html += `
+                    <hr class="my-2">
+                    <div class="small">
+                        <strong>Error Details:</strong>
+                        ${testResults.errors.map(error => `<div class="text-danger">• ${error}</div>`).join('')}
+                    </div>
+                `;
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function runAllTests() {
+            // Test 1: Check components
+            const componentsOK = updateComponentStatus();
+            
+            if (componentsOK) {
+                // Test 2: Test functionality
+                const functionalityOK = testFunctionality();
+                
+                if (functionalityOK) {
+                    // Test 3: Test live interface
+                    testLiveInterface();
+                }
+            }
+
+            // Update results
+            updateTestResults();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

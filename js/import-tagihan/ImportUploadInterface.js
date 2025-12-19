@@ -10,12 +10,29 @@
 class ImportUploadInterface {
     constructor(importManager, containerId) {
         this.importManager = importManager;
-        this.container = document.getElementById(containerId);
+        this.containerId = containerId;
+        this.container = null;
         this.currentFile = null;
         this.isDragOver = false;
         
+        // Don't initialize immediately if container doesn't exist yet
+        if (containerId && document.getElementById(containerId)) {
+            this.container = document.getElementById(containerId);
+            this.render();
+            this.attachEventListeners();
+        }
+    }
+    
+    /**
+     * Render and attach to a container
+     * @param {string} containerId - Container element ID
+     */
+    renderAndAttach(containerId) {
+        this.containerId = containerId || this.containerId;
+        this.container = document.getElementById(this.containerId);
+        
         if (!this.container) {
-            throw new Error(`Container element with ID '${containerId}' not found`);
+            throw new Error(`Container element with ID '${this.containerId}' not found`);
         }
         
         this.render();

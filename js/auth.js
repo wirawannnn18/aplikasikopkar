@@ -3194,6 +3194,27 @@ function renderImportTagihanPembayaran() {
     // Initialize Import Tagihan Manager
     setTimeout(() => {
         try {
+            // Check if all required components are available
+            const missingComponents = [];
+            
+            if (typeof ImportTagihanManager === 'undefined') missingComponents.push('ImportTagihanManager');
+            if (typeof ImportUploadInterface === 'undefined') missingComponents.push('ImportUploadInterface');
+            if (typeof FileParser === 'undefined') missingComponents.push('FileParser');
+            if (typeof ValidationEngine === 'undefined') missingComponents.push('ValidationEngine');
+            
+            if (missingComponents.length > 0) {
+                console.error('Missing components:', missingComponents);
+                document.getElementById('importTagihanContainer').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Error:</strong> Fitur Import Tagihan Pembayaran belum tersedia. 
+                        <br>Komponen yang hilang: ${missingComponents.join(', ')}
+                        <br>Silakan hubungi administrator.
+                    </div>
+                `;
+                return;
+            }
+
             // Initialize components
             let auditLogger = null;
             if (typeof AuditLogger !== 'undefined') {
@@ -3201,31 +3222,90 @@ function renderImportTagihanPembayaran() {
             }
 
             // Initialize Import Manager
-            if (typeof ImportTagihanManager !== 'undefined') {
-                const importManager = new ImportTagihanManager(null, auditLogger);
+            const importManager = new ImportTagihanManager(null, auditLogger);
+            
+            // Initialize Upload Interface
+            const uploadInterface = new ImportUploadInterface(importManager);
+            uploadInterface.renderAndAttach('importTagihanContainer');
+            
+            // Set up event listeners for the workflow
+            const container = document.getElementById('importTagihanContainer');
+            
+            // Handle file process request
+            container.addEventListener('fileProcessRequested', async (event) => {
+                const { file } = event.detail;
                 
-                // Initialize Upload Interface
-                if (typeof ImportUploadInterface !== 'undefined') {
-                    const uploadInterface = new ImportUploadInterface(importManager);
-                    uploadInterface.renderAndAttach('importTagihanContainer');
+                try {
+                    // Show loading state
+                    showLoadingState('Processing file...');
+                    
+                    // Execute workflow
+                    const result = await importManager.executeCompleteWorkflow(file);
+                    
+                    if (result.success && result.requiresConfirmation) {
+                        // Show preview for confirmation
+                        showPreviewInterface(result);
+                    }
+                } catch (error) {
+                    console.error('File processing error:', error);
+                    showErrorMessage(`File processing failed: ${error.message}`);
                 }
-            } else {
-                console.error('ImportTagihanManager not available');
-                content.innerHTML += `
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <strong>Error:</strong> Fitur Import Tagihan Pembayaran belum tersedia. Silakan hubungi administrator.
-                    </div>
-                `;
-            }
+            });
+            
+            // Handle upload cancellation
+            container.addEventListener('uploadCancelled', (event) => {
+                importManager.reset();
+            });
+            
         } catch (error) {
             console.error('Error initializing Import Tagihan:', error);
-            content.innerHTML += `
+            document.getElementById('importTagihanContainer').innerHTML = `
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>Error:</strong> Gagal memuat fitur Import Tagihan Pembayaran. ${error.message}
+                    <strong>Error:</strong> Gagal memuat fitur Import Tagihan Pembayaran. 
+                    <br>Detail error: ${error.message}
                 </div>
             `;
         }
     }, 100);
+    
+    // Helper functions for the import workflow
+    function showLoadingState(message) {
+        const container = document.getElementById('importTagihanContainer');
+        container.innerHTML += `
+            <div class="alert alert-info" id="loadingState">
+                <i class="bi bi-hourglass-split me-2"></i>
+                ${message}
+            </div>
+        `;
+    }
+    
+    function showErrorMessage(message) {
+        const loadingState = document.getElementById('loadingState');
+        if (loadingState) loadingState.remove();
+        
+        const container = document.getElementById('importTagihanContainer');
+        container.innerHTML += `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                ${message}
+            </div>
+        `;
+    }
+    
+    function showPreviewInterface(result) {
+        const loadingState = document.getElementById('loadingState');
+        if (loadingState) loadingState.remove();
+        
+        // This would show the preview interface
+        // For now, just show a success message
+        const container = document.getElementById('importTagihanContainer');
+        container.innerHTML += `
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                File processed successfully! Found ${result.validatedData.length} rows.
+                <br>Valid: ${result.batch.validRows}, Invalid: ${result.batch.invalidRows}
+            </div>
+        `;
+    }
 }

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Import Tagihan - Simple</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2><i class="bi bi-upload"></i> Test Import Tagihan Pembayaran</h2>
+        
+        <div class="alert alert-info">
+            <strong>Status:</strong> Testing import tagihan functionality
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Component Loading Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="componentStatus">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults">Waiting for components...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Import Interface Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="importInterface">
+                            <!-- Interface will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts in correct order -->
+    <script src="js/auth.js"></script>
+    <script src="js/import-tagihan/interfaces.js"></script>
+    <script src="js/import-tagihan/FileParser.js"></script>
+    <script src="js/import-tagihan/ValidationEngine.js"></script>
+    <script src="js/import-tagihan/PreviewGenerator.js"></script>
+    <script src="js/import-tagihan/BatchProcessor.js"></script>
+    <script src="js/import-tagihan/AuditLogger.js"></script>
+    <script src="js/import-tagihan/ReportGenerator.js"></script>
+    <script src="js/import-tagihan/ErrorHandler.js"></script>
+    <script src="js/import-tagihan/RollbackManager.js"></script>
+    <script src="js/import-tagihan/ConfigurationInterface.js"></script>
+    <script src="js/import-tagihan/ImportUploadInterface.js"></script>
+    <script src="js/import-tagihan/PreviewConfirmationInterface.js"></script>
+    <script src="js/import-tagihan/ProgressResultsInterface.js"></script>
+    <script src="js/import-tagihan/ImportTagihanManager.js"></script>
+
+    <script>
+        let testManager = null;
+        
+        function checkComponents() {
+            const components = [
+                'ImportTagihanManager',
+                'FileParser', 
+                'ValidationEngine',
+                'PreviewGenerator',
+                'BatchProcessor',
+                'AuditLogger',
+                'ReportGenerator',
+                'ErrorHandler',
+                'ImportUploadInterface'
+            ];
+            
+            const statusDiv = document.getElementById('componentStatus');
+            let html = '';
+            let allLoaded = true;
+            
+            components.forEach(comp => {
+                const available = typeof window[comp] !== 'undefined';
+                if (!available) allLoaded = false;
+                
+                html += `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">${comp}</span>
+                        <span class="badge ${available ? 'bg-success' : 'bg-danger'}">${available ? 'OK' : 'Missing'}</span>
+                    </div>
+                `;
+            });
+            
+            statusDiv.innerHTML = html;
+            return allLoaded;
+        }
+        
+        function testImportManager() {
+            const resultsDiv = document.getElementById('testResults');
+            
+            try {
+                if (typeof ImportTagihanManager === 'undefined') {
+                    resultsDiv.innerHTML = '<div class="alert alert-danger">ImportTagihanManager not available</div>';
+                    return;
+                }
+                
+                // Create manager instance
+                testManager = new ImportTagihanManager();
+                
+                // Test template generation
+                const template = testManager.generateTemplate();
+                
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6>✅ Manager Created Successfully</h6>
+                        <p class="mb-1"><strong>Template:</strong> ${template.filename}</p>
+                        <p class="mb-1"><strong>Size:</strong> ${template.size} bytes</p>
+                        <button class="btn btn-sm btn-primary" onclick="downloadTemplate()">
+                            Download Template
+                        </button>
+                    </div>
+                `;
+                
+                // Test upload interface
+                testUploadInterface();
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function testUploadInterface() {
+            const interfaceDiv = document.getElementById('importInterface');
+            
+            try {
+                if (typeof ImportUploadInterface === 'undefined') {
+                    interfaceDiv.innerHTML = '<div class="alert alert-danger">ImportUploadInterface not available</div>';
+                    return;
+                }
+                
+                // Create upload interface
+                const uploadInterface = new ImportUploadInterface(testManager);
+                uploadInterface.renderAndAttach('importInterface');
+                
+                interfaceDiv.innerHTML = '<div class="alert alert-success mb-3">✅ Upload Interface Loaded</div>' + interfaceDiv.innerHTML;
+                
+            } catch (error) {
+                interfaceDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>❌ Upload Interface Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function downloadTemplate() {
+            try {
+                const success = testManager.downloadTemplate();
+                if (success) {
+                    alert('Template downloaded successfully!');
+                } else {
+                    alert('Download failed');
+                }
+            } catch (error) {
+                alert('Download error: ' + error.message);
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check components first
+            setTimeout(() => {
+                const allLoaded = checkComponents();
+                
+                if (allLoaded) {
+                    testImportManager();
+                } else {
+                    document.getElementById('testResults').innerHTML = 
+                        '<div class="alert alert-warning">Some components are missing. Check component status.</div>';
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
