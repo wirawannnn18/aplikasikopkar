@@ -258,6 +258,62 @@ function showAlert(message, type = 'success') {
     }, 5000);
 }
 
+// Additional utility functions for pembayaran hutang piutang
+function filterTransactableAnggota() {
+    try {
+        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        return anggotaList.filter(anggota => 
+            anggota.status === 'Aktif' && 
+            (!anggota.statusKeanggotaan || anggota.statusKeanggotaan !== 'Keluar')
+        );
+    } catch (error) {
+        console.error('Error filtering anggota:', error);
+        return [];
+    }
+}
+
+function validateAnggotaForHutangPiutang(anggotaId) {
+    try {
+        const anggotaList = JSON.parse(localStorage.getItem('anggota') || '[]');
+        const anggota = anggotaList.find(a => a.id === anggotaId);
+        
+        if (!anggota) {
+            return { valid: false, error: 'Anggota tidak ditemukan' };
+        }
+        
+        if (anggota.status !== 'Aktif') {
+            return { valid: false, error: 'Anggota tidak aktif' };
+        }
+        
+        if (anggota.statusKeanggotaan === 'Keluar') {
+            return { valid: false, error: 'Anggota sudah keluar' };
+        }
+        
+        return { valid: true };
+    } catch (error) {
+        return { valid: false, error: 'Error validasi anggota: ' + error.message };
+    }
+}
+
+function addJurnal(keterangan, entries, tanggal) {
+    try {
+        const jurnal = JSON.parse(localStorage.getItem('jurnal') || '[]');
+        const newEntry = {
+            id: generateId(),
+            tanggal: tanggal || new Date().toISOString().split('T')[0],
+            keterangan: keterangan,
+            entries: entries,
+            createdAt: new Date().toISOString()
+        };
+        jurnal.push(newEntry);
+        localStorage.setItem('jurnal', JSON.stringify(jurnal));
+        return newEntry;
+    } catch (error) {
+        console.error('Error adding jurnal:', error);
+        throw error;
+    }
+}
+
 
 // Mobile Sidebar Toggle
 function initializeSidebarToggle() {
