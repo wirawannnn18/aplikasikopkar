@@ -244,14 +244,14 @@ Implementasi integrasi fitur import tagihan ke dalam menu Pembayaran Hutang Piut
 - [x] 16. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 17. Fix interface loading issue - Manual payment interface still showing instead of integrated tabs
+- [-] 17. Fix interface loading issue - Manual payment interface still showing instead of integrated tabs
   - [x] 17.1 Diagnose interface loading problem
     - Investigate why manual payment interface loads instead of integrated interface
     - Check menu routing and function calls
     - Verify integrated controller initialization
     - _Requirements: 1.1, 1.2_
   
-  - [x] 17.2 Fix integrated interface rendering
+  - [-] 17.2 Fix integrated interface rendering
     - Ensure renderPembayaranHutangPiutangIntegrated() properly initializes tabs
     - Fix _renderManualPayment() method to work within tab context
     - Verify tab switching functionality works correctly
