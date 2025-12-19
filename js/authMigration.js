@@ -183,15 +183,17 @@ async function createDefaultSuperAdmin() {
         
         console.log('Creating default super admin...');
         
-        const { data, error: createError } = await supabase.auth.admin.createUser({
+        // Sign up admin user
+        const { data, error: createError } = await client.auth.signUp({
             email: defaultAdmin.email,
             password: defaultAdmin.password,
-            user_metadata: {
-                username: defaultAdmin.username,
-                name: defaultAdmin.name,
-                role: defaultAdmin.role
-            },
-            email_confirm: true
+            options: {
+                data: {
+                    username: defaultAdmin.username,
+                    name: defaultAdmin.name,
+                    role: defaultAdmin.role
+                }
+            }
         });
         
         if (createError) {

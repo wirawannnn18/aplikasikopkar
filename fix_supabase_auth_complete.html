@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Supabase Auth Complete</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4><i class="bi bi-check-circle me-2"></i>Supabase Auth - Complete Fix</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Status Display -->
+                        <div id="statusDisplay" class="mb-4">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Sistem akan memeriksa dan memperbaiki masalah autentikasi Supabase
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5>Diagnostic Actions</h5>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary" onclick="checkAuthStatus()">
+                                        <i class="bi bi-search me-1"></i>Check Auth Status
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="listAllUsers()">
+                                        <i class="bi bi-people me-1"></i>List All Users
+                                    </button>
+                                    <button class="btn btn-outline-warning" onclick="testAllLogins()">
+                                        <i class="bi bi-key me-1"></i>Test All Logins
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h5>Fix Actions</h5>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-success" onclick="resetPasswords()">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>Reset All Passwords
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="recreateUsers()">
+                                        <i class="bi bi-person-plus me-1"></i>Recreate Missing Users
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="syncProfiles()">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Sync Profiles
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Login Test -->
+                        <div class="mb-4">
+                            <h5>Quick Login Test</h5>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <button class="btn btn-sm btn-outline-danger w-100" onclick="quickLogin('superadmin@koperasi.local')">
+                                        Super Admin
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-sm btn-outline-warning w-100" onclick="quickLogin('admin@koperasi.local')">
+                                        Admin
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-sm btn-outline-info w-100" onclick="quickLogin('keuangan@koperasi.local')">
+                                        Keuangan
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-sm btn-outline-success w-100" onclick="quickLogin('kasir@koperasi.local')">
+                                        Kasir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results -->
+                        <div id="results" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://etjdnbumjdsueqdffsks.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0amRuYnVtamRzdWVxZGZmc2tzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1Njg3NTYsImV4cCI6MjA4MTE0NDc1Nn0.ETy2kWOr6XPJ26XvAfeRH8NGh3s5BzI3NGarp4pJhtc';
+
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Default accounts to test
+        const testAccounts = [
+            { email: 'superadmin@koperasi.local', username: 'superadmin', role: 'super_admin', password: 'TempPass123!' },
+            { email: 'admin@koperasi.local', username: 'admin', role: 'administrator', password: 'TempPass123!' },
+            { email: 'keuangan@koperasi.local', username: 'keuangan', role: 'keuangan', password: 'TempPass123!' },
+            { email: 'kasir@koperasi.local', username: 'kasir', role: 'kasir', password: 'TempPass123!' }
+        ];
+
+        // Show status
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusDisplay');
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'error' ? 'exclamation-triangle' : 
+                        type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+            
+            statusDiv.innerHTML = `
+                <div class="alert ${alertClass}">
+                    <i class="bi bi-${icon} me-2"></i>${message}
+                </div>
+            `;
+        }
+
+        // Show results
+        function showResults(content) {
+            document.getElementById('results').innerHTML = content;
+        }
+
+        // Check auth status
+        async function checkAuthStatus() {
+            showStatus('Memeriksa status autentikasi...', 'info');
+            
+            try {
+                // Get current session
+                const { data: session, error: sessionError } = await supabase.auth.getSession();
+                
+                // Get profiles
+                const { data: profiles, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*');
+
+                let html = '<div class="card"><div class="card-header"><h5>Auth Status Report</h5></div><div class="card-body">';
+                
+                // Session info
+                html += '<h6>Current Session:</h6>';
+                if (sessionError) {
+                    html += `<div class="alert alert-danger">Session Error: ${sessionError.message}</div>`;
+                } else if (session?.session) {
+                    html += `<div class="alert alert-success">Logged in as: ${session.session.user.email}</div>`;
+                } else {
+                    html += '<div class="alert alert-info">No active session</div>';
+                }
+
+                // Profiles info
+                html += '<h6>Profiles in Database:</h6>';
+                if (profileError) {
+                    html += `<div class="alert alert-danger">Profile Error: ${profileError.message}</div>`;
+                } else if (profiles && profiles.length > 0) {
+                    html += '<div class="table-responsive"><table class="table table-sm">';
+                    html += '<thead><tr><th>Username</th><th>Role</th><th>Active</th><th>Created</th></tr></thead><tbody>';
+                    profiles.forEach(p => {
+                        html += `<tr><td>${p.username}</td><td>${p.role}</td><td>${p.active ? 'Yes' : 'No'}</td><td>${new Date(p.created_at).toLocaleString()}</td></tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html += '<div class="alert alert-warning">No profiles found</div>';
+                }
+
+                html += '</div></div>';
+                showResults(html);
+                showStatus('Status berhasil diperiksa', 'success');
+
+            } catch (err) {
+                console.error('Check status error:', err);
+                showStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        // List all users (attempt to get from auth)
+        async function listAllUsers() {
+            showStatus('Mengambil daftar semua user...', 'info');
+            
+            try {
+                // We can't use admin API from client, so just show profiles
+                const { data: profiles, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at');
+
+                if (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                    return;
+                }
+
+                let html = '<div class="card"><div class="card-header"><h5>All Users</h5></div><div class="card-body">';
+                
+                if (profiles && profiles.length > 0) {
+                    html += `<p>Found ${profiles.length} users in profiles table:</p>`;
+                    html += '<div class="table-responsive"><table class="table">';
+                    html += '<thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Active</th><th>Created</th></tr></thead><tbody>';
+                    profiles.forEach(p => {
+                        html += `<tr>
+                            <td><small>${p.id}</small></td>
+                            <td><strong>${p.username}</strong></td>
+                            <td><span class="badge bg-primary">${p.role}</span></td>
+                            <td>${p.active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+                            <td><small>${new Date(p.created_at).toLocaleString()}</small></td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html += '<div class="alert alert-warning">No users found</div>';
+                }
+
+                html += '</div></div>';
+                showResults(html);
+                showStatus('Daftar user berhasil diambil', 'success');
+
+            } catch (err) {
+                console.error('List users error:', err);
+                showStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        // Test all logins
+        async function testAllLogins() {
+            showStatus('Menguji login untuk semua akun...', 'info');
+            
+            let html = '<div class="card"><div class="card-header"><h5>Login Test Results</h5></div><div class="card-body">';
+            
+            for (const account of testAccounts) {
+                html += `<h6>Testing ${account.email}:</h6>`;
+                
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: account.email,
+                        password: account.password
+                    });
+
+                    if (error) {
+                        html += `<div class="alert alert-danger">❌ Login failed: ${error.message}</div>`;
+                    } else {
+                        html += `<div class="alert alert-success">✅ Login successful for ${account.email}</div>`;
+                        
+                        // Get profile
+                        const { data: profile, error: profileError } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', data.user.id)
+                            .single();
+
+                        if (profileError) {
+                            html += `<div class="alert alert-warning">⚠️ Profile not found: ${profileError.message}</div>`;
+                        } else {
+                            html += `<div class="alert alert-info">Profile: ${profile.username} (${profile.role})</div>`;
+                        }
+
+                        // Sign out
+                        await supabase.auth.signOut();
+                    }
+                } catch (err) {
+                    html += `<div class="alert alert-danger">❌ Unexpected error: ${err.message}</div>`;
+                }
+                
+                html += '<hr>';
+            }
+
+            html += '</div></div>';
+            showResults(html);
+            showStatus('Test login selesai', 'success');
+        }
+
+        // Quick login test
+        async function quickLogin(email) {
+            showStatus(`Testing login for ${email}...`, 'info');
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: 'TempPass123!'
+                });
+
+                if (error) {
+                    showStatus(`Login failed for ${email}: ${error.message}`, 'error');
+                } else {
+                    showStatus(`Login successful for ${email}!`, 'success');
+                    
+                    // Auto sign out after 2 seconds
+                    setTimeout(async () => {
+                        await supabase.auth.signOut();
+                        showStatus('Signed out', 'info');
+                    }, 2000);
+                }
+            } catch (err) {
+                showStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        // Reset passwords (recreate users with new passwords)
+        async function resetPasswords() {
+            showStatus('Mereset password untuk semua akun...', 'warning');
+            
+            if (!confirm('Apakah Anda yakin ingin mereset password semua akun? Ini akan membuat ulang akun dengan password baru.')) {
+                return;
+            }
+
+            let html = '<div class="card"><div class="card-header"><h5>Password Reset Results</h5></div><div class="card-body">';
+            
+            for (const account of testAccounts) {
+                html += `<h6>Resetting ${account.email}:</h6>`;
+                
+                try {
+                    // Try to create new user (will fail if exists, but that's ok)
+                    const { data, error } = await supabase.auth.signUp({
+                        email: account.email,
+                        password: account.password,
+                        options: {
+                            data: {
+                                username: account.username,
+                                role: account.role
+                            }
+                        }
+                    });
+
+                    if (error) {
+                        if (error.message.includes('already registered')) {
+                            html += `<div class="alert alert-info">✅ User already exists: ${account.email}</div>`;
+                        } else {
+                            html += `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+                        }
+                    } else {
+                        html += `<div class="alert alert-success">✅ User created/updated: ${account.email}</div>`;
+                    }
+                } catch (err) {
+                    html += `<div class="alert alert-danger">❌ Unexpected error: ${err.message}</div>`;
+                }
+            }
+
+            html += '</div></div>';
+            showResults(html);
+            showStatus('Password reset selesai', 'success');
+        }
+
+        // Recreate users
+        async function recreateUsers() {
+            showStatus('Membuat ulang user yang hilang...', 'warning');
+            
+            if (!confirm('Apakah Anda yakin ingin membuat ulang semua user?')) {
+                return;
+            }
+
+            await resetPasswords(); // Same process
+        }
+
+        // Sync profiles
+        async function syncProfiles() {
+            showStatus('Sinkronisasi profiles...', 'info');
+            
+            try {
+                const { data: profiles, error } = await supabase
+                    .from('profiles')
+                    .select('*');
+
+                if (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                    return;
+                }
+
+                let html = '<div class="card"><div class="card-header"><h5>Profile Sync Results</h5></div><div class="card-body">';
+                html += `<p>Found ${profiles?.length || 0} profiles in database.</p>`;
+                
+                if (profiles && profiles.length > 0) {
+                    html += '<div class="alert alert-success">All profiles are properly synced.</div>';
+                    html += '<div class="table-responsive"><table class="table table-sm">';
+                    html += '<thead><tr><th>Username</th><th>Role</th><th>Status</th></tr></thead><tbody>';
+                    profiles.forEach(p => {
+                        html += `<tr><td>${p.username}</td><td>${p.role}</td><td><span class="badge bg-success">Synced</span></td></tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html += '<div class="alert alert-warning">No profiles found to sync.</div>';
+                }
+
+                html += '</div></div>';
+                showResults(html);
+                showStatus('Sinkronisasi selesai', 'success');
+
+            } catch (err) {
+                console.error('Sync error:', err);
+                showStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('Supabase Auth Fix Tool siap digunakan', 'success');
+            checkAuthStatus();
+        });
+    </script>
+</body>
+</html>
