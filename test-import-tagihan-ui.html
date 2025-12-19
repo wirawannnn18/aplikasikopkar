@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Import Tagihan Pembayaran</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-upload"></i> Test Import Tagihan Pembayaran</h2>
+                <p class="text-muted">Testing the core components and interfaces</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-gear"></i> Component Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="componentStatus">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p>Initializing components...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-file-earmark-text"></i> File Validation Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="testFile" class="form-label">Upload Test File</label>
+                            <input type="file" class="form-control" id="testFile" accept=".csv,.xlsx,.xls">
+                        </div>
+                        <div id="fileValidationResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-check2-square"></i> Validation Engine Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Payment Type</label>
+                                <select class="form-select" id="testPaymentType">
+                                    <option value="">Select...</option>
+                                    <option value="hutang">Hutang</option>
+                                    <option value="piutang">Piutang</option>
+                                    <option value="invalid">Invalid</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Amount</label>
+                                <input type="text" class="form-control" id="testAmount" placeholder="Enter amount">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary d-block" onclick="testValidation()">
+                                    <i class="bi bi-play"></i> Test Validation
+                                </button>
+                            </div>
+                        </div>
+                        <div id="validationResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-table"></i> Preview Generator Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="testPreviewGenerator()">
+                            <i class="bi bi-eye"></i> Generate Sample Preview
+                        </button>
+                        <div id="previewResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import { 
+            ImportTagihanManager, 
+            FileParser, 
+            ValidationEngine, 
+            PreviewGenerator,
+            initializeImportTagihan 
+        } from './js/import-tagihan/index.js';
+
+        // Global variables for testing
+        let components = {};
+
+        // Initialize components
+        async function initializeComponents() {
+            try {
+                const mockPaymentEngine = {
+                    processPayment: (data) => Promise.resolve({ success: true, transactionId: 'TEST_' + Date.now() }),
+                    rollbackPayment: (id) => Promise.resolve({ success: true })
+                };
+
+                const mockAuditLogger = {
+                    log: (action, details) => console.log('Audit:', action, details)
+                };
+
+                components = initializeImportTagihan(mockPaymentEngine, mockAuditLogger);
+
+                // Update status display
+                const statusHtml = `
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-gear-fill text-primary"></i> ImportTagihanManager</span>
+                            <span class="badge bg-success rounded-pill">Ready</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-file-earmark text-info"></i> FileParser</span>
+                            <span class="badge bg-success rounded-pill">Ready</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-check-circle text-warning"></i> ValidationEngine</span>
+                            <span class="badge bg-success rounded-pill">Ready</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-layers text-secondary"></i> BatchProcessor</span>
+                            <span class="badge bg-success rounded-pill">Ready</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-eye text-success"></i> PreviewGenerator</span>
+                            <span class="badge bg-success rounded-pill">Ready</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> All components initialized successfully. 
+                            Fast-check property-based testing is available.
+                        </small>
+                    </div>
+                `;
+
+                document.getElementById('componentStatus').innerHTML = statusHtml;
+
+            } catch (error) {
+                document.getElementById('componentStatus').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Initialization failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // File validation test
+        document.getElementById('testFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const parser = components.fileParser;
+            const formatResult = parser.validateFileFormat(file);
+            const sizeResult = parser.validateFileSize(file);
+
+            const resultHtml = `
+                <div class="alert ${formatResult.valid && sizeResult.valid ? 'alert-success' : 'alert-warning'}">
+                    <h6><i class="bi bi-file-check"></i> Validation Results</h6>
+                    <ul class="mb-0">
+                        <li>Format: ${formatResult.valid ? '✓ Valid' : '✗ ' + formatResult.error}</li>
+                        <li>Size: ${sizeResult.valid ? '✓ Valid' : '✗ ' + sizeResult.error}</li>
+                        <li>File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</li>
+                    </ul>
+                </div>
+            `;
+
+            document.getElementById('fileValidationResult').innerHTML = resultHtml;
+        });
+
+        // Validation test function
+        window.testValidation = function() {
+            const paymentType = document.getElementById('testPaymentType').value;
+            const amount = document.getElementById('testAmount').value;
+
+            const engine = components.validationEngine;
+            const typeResult = engine.validatePaymentType(paymentType);
+            const amountResult = engine.validateAmount(amount);
+
+            const resultHtml = `
+                <div class="alert ${typeResult.valid && amountResult.valid ? 'alert-success' : 'alert-warning'}">
+                    <h6><i class="bi bi-check-circle"></i> Validation Results</h6>
+                    <ul class="mb-0">
+                        <li>Payment Type: ${typeResult.valid ? '✓ Valid' : '✗ ' + typeResult.error}</li>
+                        <li>Amount: ${amountResult.valid ? '✓ Valid' : '✗ ' + amountResult.error}</li>
+                    </ul>
+                </div>
+            `;
+
+            document.getElementById('validationResult').innerHTML = resultHtml;
+        };
+
+        // Preview generator test
+        window.testPreviewGenerator = function() {
+            const generator = components.previewGenerator;
+            
+            // Sample data
+            const sampleData = [
+                { isValid: true, paymentType: 'hutang', amount: 500000, memberNumber: '001', memberName: 'John Doe', description: 'Cicilan bulan Januari', validationErrors: [] },
+                { isValid: false, paymentType: 'invalid', amount: -100, memberNumber: '002', memberName: 'Jane Smith', description: 'Invalid payment', validationErrors: ['Invalid payment type', 'Amount must be positive'] },
+                { isValid: true, paymentType: 'piutang', amount: 1000000, memberNumber: '003', memberName: 'Bob Wilson', description: 'Pengembalian simpanan', validationErrors: [] }
+            ];
+
+            const preview = generator.generateCompletePreview(sampleData);
+
+            const resultHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-bar-chart"></i> Summary</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total Rows:</span>
+                                <strong>${preview.summary.totalRows}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Valid Rows:</span>
+                                <strong class="text-success">${preview.summary.validRows}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Invalid Rows:</span>
+                                <strong class="text-danger">${preview.summary.invalidRows}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total Amount:</span>
+                                <strong class="text-primary">${preview.summary.formattedTotalAmount}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-exclamation-triangle"></i> Errors</h6>
+                        ${preview.errors.errorSummary.length > 0 ? 
+                            preview.errors.errorSummary.map(error => 
+                                `<div class="alert alert-warning py-2 mb-2">
+                                    <small>${error.error} (${error.count} occurrences)</small>
+                                </div>`
+                            ).join('') :
+                            '<div class="text-muted">No errors found</div>'
+                        }
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6><i class="bi bi-table"></i> Preview Table</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Member</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${preview.table.rows.map(row => `
+                                    <tr class="${row.statusClass}">
+                                        <td><i class="bi ${row.statusIcon}"></i> ${row.statusText}</td>
+                                        <td>${row.memberName}<br><small class="text-muted">${row.memberNumber}</small></td>
+                                        <td>${row.paymentType}</td>
+                                        <td>${row.formattedAmount}</td>
+                                        <td><small class="text-danger">${row.errorText || '-'}</small></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('previewResult').innerHTML = resultHtml;
+        };
+
+        // Initialize on page load
+        initializeComponents();
+    </script>
+</body>
+</html>

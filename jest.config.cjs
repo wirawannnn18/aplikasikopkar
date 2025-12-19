@@ -1,12 +1,6 @@
 module.exports = {
   testEnvironment: 'jsdom',
   preset: null,
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
   transform: {},
   transformIgnorePatterns: [
     'node_modules/(?!(fast-check)/)'
@@ -21,7 +15,5 @@ module.exports = {
   testEnvironmentOptions: {
     url: 'http://localhost'
   },
-  moduleNameMapping: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
-  }
+  testTimeout: 10000
 };

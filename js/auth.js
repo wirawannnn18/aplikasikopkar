@@ -1954,6 +1954,11 @@ function renderSystemSettings() {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Import Tagihan Configuration Section -->
+                <div id="importConfigContainer">
+                    <!-- Configuration interface will be rendered here -->
+                </div>
             </div>
         </div>
     `;
@@ -1965,6 +1970,18 @@ function renderSystemSettings() {
             btnBackup.addEventListener('click', function() {
                 navigateTo('backup-restore');
             });
+        }
+        
+        // Initialize import configuration interface
+        if (typeof ConfigurationInterface !== 'undefined') {
+            // Import the AuditLogger if available
+            let auditLogger = null;
+            if (typeof AuditLogger !== 'undefined') {
+                auditLogger = new AuditLogger();
+            }
+            
+            const configInterface = new ConfigurationInterface(auditLogger);
+            configInterface.renderAndAttach();
         }
     }, 100);
 }

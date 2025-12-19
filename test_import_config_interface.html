@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Import Configuration Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Test Import Tagihan Configuration Interface</h1>
+        
+        <div class="alert alert-info">
+            <strong>Test Instructions:</strong>
+            <ol>
+                <li>The configuration interface should render below</li>
+                <li>Try changing the settings and saving</li>
+                <li>Check browser console for audit logs</li>
+                <li>Verify settings persist after page reload</li>
+            </ol>
+        </div>
+
+        <div id="importConfigContainer">
+            <!-- Configuration interface will be rendered here -->
+        </div>
+
+        <div class="mt-4">
+            <h3>Test Actions</h3>
+            <button class="btn btn-primary" onclick="testGetConfiguration()">Get Current Configuration</button>
+            <button class="btn btn-secondary" onclick="testIsImportEnabled()">Check Import Enabled</button>
+            <button class="btn btn-info" onclick="testGetMaxFileSize()">Get Max File Size</button>
+            <button class="btn btn-warning" onclick="testGetMaxBatchSize()">Get Max Batch Size</button>
+            <button class="btn btn-danger" onclick="clearConfiguration()">Clear Configuration</button>
+        </div>
+
+        <div class="mt-4">
+            <h3>Test Results</h3>
+            <pre id="testResults" class="bg-light p-3 border rounded"></pre>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/import-tagihan/AuditLogger.js"></script>
+    <script src="js/import-tagihan/ConfigurationInterface.js"></script>
+
+    <script>
+        // Initialize configuration interface
+        let configInterface;
+        let auditLogger;
+
+        // Set up a mock current user for testing
+        localStorage.setItem('currentUser', JSON.stringify({
+            username: 'admin_test',
+            name: 'Admin Test',
+            role: 'admin'
+        }));
+
+        function initializeInterface() {
+            try {
+                auditLogger = new AuditLogger();
+                configInterface = new ConfigurationInterface(auditLogger);
+                configInterface.renderAndAttach();
+                
+                logResult('✅ Configuration interface initialized successfully');
+            } catch (error) {
+                logResult('❌ Error initializing interface: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        function testGetConfiguration() {
+            try {
+                const config = configInterface.getConfiguration();
+                logResult('Current Configuration:', config);
+            } catch (error) {
+                logResult('❌ Error getting configuration: ' + error.message);
+            }
+        }
+
+        function testIsImportEnabled() {
+            try {
+                const enabled = configInterface.isImportEnabled();
+                logResult('Import Enabled: ' + enabled);
+            } catch (error) {
+                logResult('❌ Error checking import enabled: ' + error.message);
+            }
+        }
+
+        function testGetMaxFileSize() {
+            try {
+                const maxSize = configInterface.getMaxFileSize();
+                const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+                logResult('Max File Size: ' + maxSizeMB + ' MB (' + maxSize + ' bytes)');
+            } catch (error) {
+                logResult('❌ Error getting max file size: ' + error.message);
+            }
+        }
+
+        function testGetMaxBatchSize() {
+            try {
+                const maxBatch = configInterface.getMaxBatchSize();
+                logResult('Max Batch Size: ' + maxBatch + ' rows');
+            } catch (error) {
+                logResult('❌ Error getting max batch size: ' + error.message);
+            }
+        }
+
+        function clearConfiguration() {
+            if (confirm('Are you sure you want to clear the configuration?')) {
+                localStorage.removeItem('importTagihanConfig');
+                logResult('✅ Configuration cleared. Reinitializing...');
+                initializeInterface();
+            }
+        }
+
+        function logResult(message, data = null) {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            let output = `[${timestamp}] ${message}`;
+            
+            if (data) {
+                output += '\n' + JSON.stringify(data, null, 2);
+            }
+            
+            resultsDiv.textContent += output + '\n\n';
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            initializeInterface();
+            logResult('✅ Page loaded and interface initialized');
+        });
+
+        // Log configuration changes
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'importTagihanConfig') {
+                logResult('🔄 Configuration changed in storage');
+            }
+        });
+    </script>
+</body>
+</html>

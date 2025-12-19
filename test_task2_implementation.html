@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task 2 Implementation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Test Task 2: File Parsing and Validation Engine</h2>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>FileParser Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="testFile" class="form-label">Upload Test File</label>
+                            <input type="file" class="form-control" id="testFile" accept=".csv,.xlsx,.xls">
+                        </div>
+                        <button class="btn btn-primary" onclick="testFileParser()">Test File Parser</button>
+                        <div id="fileParserResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>ValidationEngine Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testValidationEngine()">Test Validation Engine</button>
+                        <div id="validationEngineResult" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include required libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Include our modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/import-tagihan/FileParser.js"></script>
+    <script src="js/import-tagihan/ValidationEngine.js"></script>
+
+    <script>
+        // Mock localStorage with sample data for testing
+        localStorage.setItem('anggota', JSON.stringify([
+            { id: '001', nama: 'John Doe', statusKeanggotaan: 'Aktif' },
+            { id: '002', nama: 'Jane Smith', statusKeanggotaan: 'Aktif' },
+            { id: '003', nama: 'Bob Johnson', statusKeanggotaan: 'Keluar' }
+        ]));
+
+        // Mock utility functions for testing
+        if (typeof hitungSaldoHutang === 'undefined') {
+            window.hitungSaldoHutang = function(anggotaId) {
+                // Mock implementation - return different balances for different members
+                const balances = { '001': 500000, '002': 300000, '003': 0 };
+                return balances[anggotaId] || 0;
+            };
+        }
+
+        if (typeof hitungSaldoPiutang === 'undefined') {
+            window.hitungSaldoPiutang = function(anggotaId) {
+                // Mock implementation - return different balances for different members
+                const balances = { '001': 200000, '002': 150000, '003': 0 };
+                return balances[anggotaId] || 0;
+            };
+        }
+
+        async function testFileParser() {
+            const resultDiv = document.getElementById('fileParserResult');
+            const fileInput = document.getElementById('testFile');
+            
+            try {
+                const parser = new FileParser();
+                
+                // Test file validation
+                if (fileInput.files.length === 0) {
+                    // Test with mock file objects
+                    const testFiles = [
+                        { name: 'test.csv', size: 1024, type: 'text/csv' },
+                        { name: 'test.xlsx', size: 2048, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                        { name: 'test.txt', size: 512, type: 'text/plain' },
+                        { name: 'large.csv', size: 6 * 1024 * 1024, type: 'text/csv' }
+                    ];
+                    
+                    let results = '<h6>File Validation Tests:</h6>';
+                    testFiles.forEach(file => {
+                        const formatResult = parser.validateFileFormat(file);
+                        const sizeResult = parser.validateFileSize(file);
+                        
+                        results += `<div class="alert ${formatResult.valid && sizeResult.valid ? 'alert-success' : 'alert-danger'} py-2">
+                            <strong>${file.name}</strong><br>
+                            Format: ${formatResult.valid ? '✓' : '✗ ' + formatResult.error}<br>
+                            Size: ${sizeResult.valid ? '✓' : '✗ ' + sizeResult.error}
+                        </div>`;
+                    });
+                    
+                    resultDiv.innerHTML = results;
+                } else {
+                    // Test with actual uploaded file
+                    const file = fileInput.files[0];
+                    
+                    const formatResult = parser.validateFileFormat(file);
+                    const sizeResult = parser.validateFileSize(file);
+                    
+                    let result = `<h6>File: ${file.name}</h6>`;
+                    result += `<div class="alert ${formatResult.valid ? 'alert-success' : 'alert-danger'} py-2">
+                        Format: ${formatResult.valid ? '✓ Valid' : '✗ ' + formatResult.error}
+                    </div>`;
+                    result += `<div class="alert ${sizeResult.valid ? 'alert-success' : 'alert-danger'} py-2">
+                        Size: ${sizeResult.valid ? '✓ Valid' : '✗ ' + sizeResult.error}
+                    </div>`;
+                    
+                    if (formatResult.valid && sizeResult.valid) {
+                        try {
+                            const data = await parser.parse(file);
+                            result += `<div class="alert alert-success py-2">
+                                ✓ File parsed successfully! Found ${data.length} rows.
+                            </div>`;
+                        } catch (error) {
+                            result += `<div class="alert alert-danger py-2">
+                                ✗ Parse error: ${error.message}
+                            </div>`;
+                        }
+                    }
+                    
+                    resultDiv.innerHTML = result;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testValidationEngine() {
+            const resultDiv = document.getElementById('validationEngineResult');
+            
+            try {
+                const engine = new ValidationEngine();
+                
+                // Test data samples
+                const testData = [
+                    { nomor_anggota: '001', nama_anggota: 'John Doe', jenis_pembayaran: 'hutang', jumlah_pembayaran: '100000', keterangan: 'Test payment' },
+                    { nomor_anggota: '002', nama_anggota: 'Jane Smith', jenis_pembayaran: 'piutang', jumlah_pembayaran: '50000', keterangan: 'Test payment' },
+                    { nomor_anggota: '999', nama_anggota: 'Unknown', jenis_pembayaran: 'hutang', jumlah_pembayaran: '10000', keterangan: 'Invalid member' },
+                    { nomor_anggota: '001', nama_anggota: 'John Doe', jenis_pembayaran: 'invalid', jumlah_pembayaran: '10000', keterangan: 'Invalid type' },
+                    { nomor_anggota: '001', nama_anggota: 'John Doe', jenis_pembayaran: 'hutang', jumlah_pembayaran: '-5000', keterangan: 'Negative amount' },
+                    { nomor_anggota: '003', nama_anggota: 'Bob Johnson', jenis_pembayaran: 'hutang', jumlah_pembayaran: '10000', keterangan: 'Inactive member' }
+                ];
+                
+                let results = '<h6>Validation Tests:</h6>';
+                
+                for (let i = 0; i < testData.length; i++) {
+                    const rowData = testData[i];
+                    const result = await engine.validateRow(rowData, i + 1);
+                    
+                    results += `<div class="alert ${result.isValid ? 'alert-success' : 'alert-danger'} py-2">
+                        <strong>Row ${result.rowNumber}: ${result.memberNumber}</strong><br>
+                        Status: ${result.isValid ? '✓ Valid' : '✗ Invalid'}<br>
+                        ${result.validationErrors.length > 0 ? 'Errors: ' + result.validationErrors.join(', ') : ''}
+                    </div>`;
+                }
+                
+                // Test validation report
+                const validatedRows = [];
+                for (let i = 0; i < testData.length; i++) {
+                    validatedRows.push(await engine.validateRow(testData[i], i + 1));
+                }
+                
+                const report = engine.generateValidationReport(validatedRows);
+                results += `<div class="alert alert-info py-2">
+                    <h6>Validation Report:</h6>
+                    Total: ${report.totalRows}, Valid: ${report.validCount}, Invalid: ${report.invalidCount}<br>
+                    Success Rate: ${report.validPercentage}%
+                </div>`;
+                
+                resultDiv.innerHTML = results;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
