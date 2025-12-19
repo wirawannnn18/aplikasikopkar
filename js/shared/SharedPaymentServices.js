@@ -1546,6 +1546,26 @@ class SharedPaymentServices {
             };
         }
     }
+    /**
+     * Get optimized transaction history with caching and pagination
+     * Requirements: 4.1, 5.1 - Efficient database queries and pagination
+     * @param {Object} filters - Query filters
+     * @param {Object} options - Query options (pagination, sorting)
+     * @returns {Object} Paginated transaction results or Array for backward compatibility
+     */
+    getTransactionHistoryOptimized(filters, options) {
+        // Set default values
+        filters = filters || {};
+        options = options || {};
+        
+        // Use data query optimizer if available
+        if (this.dataQueryOptimizer) {
+            return this.dataQueryOptimizer.getTransactionHistory(filters, options);
+        }
+        
+        // Fallback to original method for backward compatibility
+        return this.getTransactionHistory(filters);
+    }
 }
 
 // Export for both browser and Node.js environments
@@ -1560,166 +1580,4 @@ export { SharedPaymentServices };
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { SharedPaymentServices };
 }
-    /**
-     * Get optimized transaction history with caching and pagination
-     * Requirements: 4.1, 5.1 - Efficient database queries and pagination
-     * @param {Object} filters - Query filters
-     * @param {Object} options - Query options (pagination, sorting)
-     * @returns {Object} Paginated transaction results or Array for backward compatibility
-     */
-    getTransactionHistoryOptimized(filters = {}, options = {}) {
         // Use data query optimizer if available
-        if (this.dataQueryOptimizer) {
-            return this.dataQueryOptimizer.getTransactionHistory(filters, options);
-        }
-        
-        // Fallback to original method for backward compatibility
-        return this.getTransactionHistory(filters);
-    }
-
-    /**
-     * Get optimized transaction statistics with caching
-     * Requirements: 5.1 - Efficient data aggregation
-     * @param {Object} filters - Query filters
-     * @returns {Object} Transaction statistics
-     */
-    getTransactionStatistics(filters = {}) {
-        // Use data query optimizer if available
-        if (this.dataQueryOptimizer) {
-            return this.dataQueryOptimizer.getTransactionStatistics(filters);
-        }
-        
-        // Fallback calculation
-        return this._calculateBasicStatistics(filters);
-    }
-
-    /**
-     * Search anggota with optimization
-     * @param {string} searchTerm - Search term
-     * @param {Object} options - Search options
-     * @returns {Array} Matching anggota records
-     */
-    searchAnggotaOptimized(searchTerm, options = {}) {
-        // Use data query optimizer if available
-        if (this.dataQueryOptimizer) {
-            return this.dataQueryOptimizer.searchAnggota(searchTerm, options);
-        }
-        
-        // Fallback to basic search
-        return this._searchAnggotaBasic(searchTerm, options);
-    }
-
-    /**
-     * Invalidate query cache
-     * @param {string|Array} dataTypes - Data types to invalidate
-     */
-    invalidateQueryCache(dataTypes = null) {
-        if (this.dataQueryOptimizer) {
-            this.dataQueryOptimizer.invalidateCache(dataTypes);
-        }
-    }
-
-    /**
-     * Get query performance metrics
-     * @returns {Object} Performance metrics
-     */
-    getQueryPerformanceMetrics() {
-        if (this.dataQueryOptimizer) {
-            return this.dataQueryOptimizer.getPerformanceMetrics();
-        }
-        
-        return {
-            message: 'DataQueryOptimizer not available',
-            optimizationEnabled: false
-        };
-    }
-
-    /**
-     * Fallback basic statistics calculation
-     * @private
-     * @param {Object} filters - Filters
-     * @returns {Object} Basic statistics
-     */
-    _calculateBasicStatistics(filters) {
-        try {
-            const transactions = this.getTransactionHistory(filters);
-            
-            const stats = {
-                totalTransactions: transactions.length,
-                totalAmount: 0,
-                hutangTotal: 0,
-                piutangTotal: 0,
-                manualCount: 0,
-                importCount: 0
-            };
-            
-            for (const transaction of transactions) {
-                const amount = parseFloat(transaction.jumlah) || 0;
-                stats.totalAmount += amount;
-                
-                if (transaction.jenisPembayaran === 'hutang') {
-                    stats.hutangTotal += amount;
-                } else if (transaction.jenisPembayaran === 'piutang') {
-                    stats.piutangTotal += amount;
-                }
-                
-                if (transaction.mode === 'manual') {
-                    stats.manualCount++;
-                } else if (transaction.mode === 'import') {
-                    stats.importCount++;
-                }
-            }
-            
-            return stats;
-        } catch (error) {
-            console.error('Error calculating basic statistics:', error);
-            return {
-                totalTransactions: 0,
-                totalAmount: 0,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Fallback basic anggota search
-     * @private
-     * @param {string} searchTerm - Search term
-     * @param {Object} options - Search options
-     * @returns {Array} Search results
-     */
-    _searchAnggotaBasic(searchTerm, options) {
-        try {
-            if (!searchTerm || searchTerm.length < 2) {
-                return [];
-            }
-            
-            const anggotaList = JSON.parse(localStorage.getItem('anggotaList') || '[]');
-            const { limit = 10 } = options;
-            const term = searchTerm.toLowerCase();
-            
-            const results = [];
-            
-            for (const anggota of anggotaList) {
-                const searchableText = `${anggota.nama || ''} ${anggota.nik || ''}`.toLowerCase();
-                
-                if (searchableText.includes(term)) {
-                    results.push({
-                        id: anggota.id,
-                        nama: anggota.nama,
-                        nik: anggota.nik,
-                        status: anggota.status
-                    });
-                    
-                    if (results.length >= limit) {
-                        break;
-                    }
-                }
-            }
-            
-            return results;
-        } catch (error) {
-            console.error('Error in basic anggota search:', error);
-            return [];
-        }
-    }

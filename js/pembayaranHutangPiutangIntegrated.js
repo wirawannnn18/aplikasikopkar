@@ -1681,76 +1681,9 @@ class PembayaranHutangPiutangIntegrated {
         } catch (error) {
             console.error('Failed to reinitialize manual components:', error);
         }
-    }he global mainContent reference
-                const originalMainContent = document.getElementById('mainContent');
-                let originalId = null;
-                
-                if (originalMainContent) {
-                    originalId = originalMainContent.id;
-                    originalMainContent.id = 'mainContent-temp';
-                }
-                
-                // Set our container as the mainContent
-                manualMainContent.id = 'mainContent';
-                
-                try {
-                    // Call the render function
-                    window.renderPembayaranHutangPiutang();
-                    
-                    // Initialize shared services if available
-                    if (this.sharedServices && typeof initializeSharedServices === 'function') {
-                        initializeSharedServices();
-                    }
-                    
-                    console.log('Manual payment interface rendered successfully');
-                } finally {
-                    // Restore original mainContent
-                    manualMainContent.id = 'manual-mainContent';
-                    if (originalMainContent && originalId) {
-                        originalMainContent.id = originalId;
-                    }
-                }
-            } else {
-                // Enhanced fallback interface
-                container.innerHTML = `
-                    <div class="container-fluid py-4">
-                        <div class="alert alert-warning">
-                            <h5><i class="bi bi-exclamation-triangle"></i> Fungsi Tidak Tersedia</h5>
-                            <p>Fungsi <code>renderPembayaranHutangPiutang</code> tidak ditemukan.</p>
-                            <p>Pastikan file <code>js/pembayaranHutangPiutang.js</code> sudah dimuat dengan benar.</p>
-                            <button class="btn btn-primary" onclick="location.reload()">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
-                            </button>
-                        </div>
-                        
-                        <div class="card">
-                            <div class="card-header">
-                                <h5><i class="bi bi-info-circle"></i> Pembayaran Manual</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>Interface pembayaran manual memungkinkan pemrosesan pembayaran hutang/piutang secara satuan.</p>
-                                <p>Fitur ini sedang dalam proses pemuatan. Silakan refresh halaman atau hubungi administrator jika masalah berlanjut.</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                console.warn('renderPembayaranHutangPiutang function not available, using fallback interface');
-            }
-        } catch (error) {
-            console.error('Error rendering manual payment interface:', error);
-            container.innerHTML = `
-                <div class="container-fluid py-4">
-                    <div class="alert alert-danger">
-                        <h5><i class="bi bi-exclamation-triangle"></i> Error</h5>
-                        <p>Gagal memuat interface pembayaran manual: ${error.message}</p>
-                        <button class="btn btn-primary" onclick="location.reload()">
-                            <i class="bi bi-arrow-clockwise"></i> Refresh Halaman
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
     }
+
+
 
     /**
      * Render import batch interface

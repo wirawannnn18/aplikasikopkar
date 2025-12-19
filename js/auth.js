@@ -668,6 +668,7 @@ function renderMenu() {
             { icon: 'bi-shield-lock', text: 'Audit Log', page: 'audit-log' },
             { icon: 'bi-building', text: 'Data Koperasi', page: 'koperasi' },
             { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+            { icon: 'bi-person-plus-fill', text: 'Registrasi Anggota', page: 'registrasi-anggota' },
             { icon: 'bi-diagram-3', text: 'Master Departemen', page: 'departemen' },
             { icon: 'bi-credit-card-2-front', text: 'Aktivasi Kartu', page: 'aktivasi-kartu' },
             { icon: 'bi-wallet2', text: 'Simpanan', page: 'simpanan' },
@@ -699,6 +700,7 @@ function renderMenu() {
             { icon: 'bi-speedometer2', text: 'Dashboard', page: 'dashboard' },
             { icon: 'bi-building', text: 'Data Koperasi', page: 'koperasi' },
             { icon: 'bi-people', text: 'Master Anggota', page: 'anggota' },
+            { icon: 'bi-person-plus-fill', text: 'Registrasi Anggota', page: 'registrasi-anggota' },
             { icon: 'bi-diagram-3', text: 'Master Departemen', page: 'departemen' },
             { icon: 'bi-credit-card-2-front', text: 'Aktivasi Kartu', page: 'aktivasi-kartu' },
             { icon: 'bi-wallet2', text: 'Simpanan', page: 'simpanan' },
@@ -800,6 +802,13 @@ function renderPage(page) {
             break;
         case 'anggota':
             renderAnggota();
+            break;
+        case 'registrasi-anggota':
+            if (typeof renderAnggotaRegistration === 'function') {
+                renderAnggotaRegistration();
+            } else {
+                content.innerHTML = '<div class="alert alert-danger">Fitur Registrasi Anggota belum tersedia. Pastikan file js/anggotaRegistration.js sudah dimuat.</div>';
+            }
             break;
         case 'aktivasi-kartu':
             renderAktivasiKartu();

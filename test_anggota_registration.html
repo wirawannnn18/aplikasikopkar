@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Registrasi Anggota - Koperasi Karyawan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card mt-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clipboard-check me-2"></i>Test Registrasi Anggota Koperasi
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Test Sistem Registrasi Anggota</strong><br>
+                            Halaman ini untuk menguji integrasi sistem registrasi anggota dengan Supabase authentication.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Status Sistem:</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Supabase Client
+                                        <span id="supabaseStatus" class="badge bg-secondary">Checking...</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Auth Functions
+                                        <span id="authStatus" class="badge bg-secondary">Checking...</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Registration Module
+                                        <span id="registrationStatus" class="badge bg-secondary">Checking...</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        LocalStorage Data
+                                        <span id="localStorageStatus" class="badge bg-secondary">Checking...</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6>Data Anggota Saat Ini:</h6>
+                                <div id="anggotaData" class="border p-3 rounded bg-light">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6>Test Actions:</h6>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-primary" onclick="testRegistrationForm()">
+                                    <i class="bi bi-clipboard-check me-1"></i>Test Form Registrasi
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="testSupabaseConnection()">
+                                    <i class="bi bi-cloud-check me-1"></i>Test Supabase
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="showAnggotaData()">
+                                    <i class="bi bi-people me-1"></i>Lihat Data Anggota
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="clearTestData()">
+                                    <i class="bi bi-trash me-1"></i>Clear Test Data
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="testResults" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Registration Form Modal -->
+    <div class="modal fade" id="testRegistrationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-plus me-2"></i>Test Form Registrasi
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="registrationFormContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Core Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/supabaseAuth.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/anggotaRegistration.js"></script>
+
+    <script>
+        // Global variables
+        let currentUser = { role: 'administrator', name: 'Test Admin' }; // Mock user for testing
+        
+        // Initialize test page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSystemStatus();
+            loadAnggotaData();
+        });
+        
+        function checkSystemStatus() {
+            // Check Supabase Client
+            const supabaseStatus = document.getElementById('supabaseStatus');
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                supabaseStatus.textContent = 'Available';
+                supabaseStatus.className = 'badge bg-success';
+            } else {
+                supabaseStatus.textContent = 'Not Available';
+                supabaseStatus.className = 'badge bg-danger';
+            }
+            
+            // Check Auth Functions
+            const authStatus = document.getElementById('authStatus');
+            if (typeof signUpUser === 'function' && typeof validatePasswordStrength === 'function') {
+                authStatus.textContent = 'Available';
+                authStatus.className = 'badge bg-success';
+            } else {
+                authStatus.textContent = 'Missing Functions';
+                authStatus.className = 'badge bg-danger';
+            }
+            
+            // Check Registration Module
+            const registrationStatus = document.getElementById('registrationStatus');
+            if (typeof renderAnggotaRegistration === 'function') {
+                registrationStatus.textContent = 'Loaded';
+                registrationStatus.className = 'badge bg-success';
+            } else {
+                registrationStatus.textContent = 'Not Loaded';
+                registrationStatus.className = 'badge bg-danger';
+            }
+            
+            // Check LocalStorage
+            const localStorageStatus = document.getElementById('localStorageStatus');
+            try {
+                const testKey = 'test_' + Date.now();
+                localStorage.setItem(testKey, 'test');
+                localStorage.removeItem(testKey);
+                localStorageStatus.textContent = 'Working';
+                localStorageStatus.className = 'badge bg-success';
+            } catch (error) {
+                localStorageStatus.textContent = 'Error';
+                localStorageStatus.className = 'badge bg-danger';
+            }
+        }
+        
+        function loadAnggotaData() {
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const departemen = JSON.parse(localStorage.getItem('departemen') || '[]');
+                
+                const anggotaDataDiv = document.getElementById('anggotaData');
+                anggotaDataDiv.innerHTML = `
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Total Anggota:</strong> ${anggota.length}
+                        </div>
+                        <div class="col-6">
+                            <strong>Total Departemen:</strong> ${departemen.length}
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Last updated: ${new Date().toLocaleString('id-ID')}
+                        </small>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('anggotaData').innerHTML = `
+                    <div class="text-danger">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Error loading data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testRegistrationForm() {
+            const container = document.getElementById('registrationFormContainer');
+            
+            // Create a mock main content div
+            container.innerHTML = '<div id="mainContent"></div>';
+            
+            // Call the registration render function
+            if (typeof renderAnggotaRegistration === 'function') {
+                // Temporarily set mainContent to our container
+                const originalMainContent = document.getElementById('mainContent');
+                const mockMainContent = container.querySelector('#mainContent');
+                
+                // Mock the function call
+                try {
+                    renderAnggotaRegistration();
+                    
+                    // Move the content to our modal
+                    if (mockMainContent.innerHTML) {
+                        container.innerHTML = mockMainContent.innerHTML;
+                    } else {
+                        container.innerHTML = '<div class="alert alert-warning">Form tidak dapat dimuat</div>';
+                    }
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('testRegistrationModal'));
+                    modal.show();
+                    
+                    showTestResult('success', 'Form registrasi berhasil dimuat');
+                } catch (error) {
+                    container.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                    showTestResult('danger', 'Error loading registration form: ' + error.message);
+                }
+            } else {
+                container.innerHTML = '<div class="alert alert-danger">Function renderAnggotaRegistration tidak tersedia</div>';
+                showTestResult('danger', 'Registration function not available');
+            }
+        }
+        
+        async function testSupabaseConnection() {
+            try {
+                showTestResult('info', 'Testing Supabase connection...');
+                
+                if (!window.supabase) {
+                    throw new Error('Supabase client not available');
+                }
+                
+                const client = window.supabase.createClient(
+                    'https://etjdnbumjdsueqdffsks.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0amRuYnVtamRzdWVxZGZmc2tzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1Njg3NTYsImV4cCI6MjA4MTE0NDc1Nn0.ETy2kWOr6XPJ26XvAfeRH8NGh3s5BzI3NGarp4pJhtc'
+                );
+                
+                // Test connection by getting session
+                const { data, error } = await client.auth.getSession();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                showTestResult('success', 'Supabase connection successful');
+                
+            } catch (error) {
+                showTestResult('danger', 'Supabase connection failed: ' + error.message);
+            }
+        }
+        
+        function showAnggotaData() {
+            try {
+                const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                const departemen = JSON.parse(localStorage.getItem('departemen') || '[]');
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                let html = '<div class="row">';
+                
+                // Anggota data
+                html += '<div class="col-md-4"><h6>Data Anggota:</h6>';
+                if (anggota.length > 0) {
+                    html += '<ul class="list-group list-group-flush">';
+                    anggota.slice(0, 5).forEach(a => {
+                        html += `<li class="list-group-item">${a.nama} (${a.kode || 'No Code'})</li>`;
+                    });
+                    if (anggota.length > 5) {
+                        html += `<li class="list-group-item text-muted">... dan ${anggota.length - 5} lainnya</li>`;
+                    }
+                    html += '</ul>';
+                } else {
+                    html += '<p class="text-muted">Belum ada data anggota</p>';
+                }
+                html += '</div>';
+                
+                // Departemen data
+                html += '<div class="col-md-4"><h6>Data Departemen:</h6>';
+                if (departemen.length > 0) {
+                    html += '<ul class="list-group list-group-flush">';
+                    departemen.forEach(d => {
+                        html += `<li class="list-group-item">${d.nama}</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p class="text-muted">Belum ada data departemen</p>';
+                }
+                html += '</div>';
+                
+                // Users data
+                html += '<div class="col-md-4"><h6>Data Users:</h6>';
+                if (users.length > 0) {
+                    html += '<ul class="list-group list-group-flush">';
+                    users.forEach(u => {
+                        html += `<li class="list-group-item">${u.name} (${u.role})</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p class="text-muted">Belum ada data users</p>';
+                }
+                html += '</div>';
+                
+                html += '</div>';
+                
+                showTestResult('info', html);
+                
+            } catch (error) {
+                showTestResult('danger', 'Error loading data: ' + error.message);
+            }
+        }
+        
+        function clearTestData() {
+            if (confirm('Hapus semua data test? Ini akan menghapus data anggota dan users test.')) {
+                try {
+                    // Keep original users but remove test data
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    const originalUsers = users.filter(u => ['superadmin', 'admin', 'keuangan', 'kasir'].includes(u.username));
+                    localStorage.setItem('users', JSON.stringify(originalUsers));
+                    
+                    // Clear anggota test data
+                    const anggota = JSON.parse(localStorage.getItem('anggota') || '[]');
+                    const nonTestAnggota = anggota.filter(a => !a.nama.includes('Test'));
+                    localStorage.setItem('anggota', JSON.stringify(nonTestAnggota));
+                    
+                    loadAnggotaData();
+                    showTestResult('success', 'Test data cleared successfully');
+                } catch (error) {
+                    showTestResult('danger', 'Error clearing test data: ' + error.message);
+                }
+            }
+        }
+        
+        function showTestResult(type, message) {
+            const alertClass = {
+                'success': 'alert-success',
+                'danger': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+            
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString('id-ID');
+            
+            resultsDiv.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show">
+                    <strong>[${timestamp}]</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            ` + resultsDiv.innerHTML;
+        }
+        
+        // Mock functions for testing
+        function showAlert(message, type) {
+            showTestResult(type, message);
+        }
+        
+        function navigateTo(page) {
+            showTestResult('info', `Navigation to: ${page}`);
+        }
+        
+        // Initialize default data for testing
+        function initializeTestData() {
+            // Add test departemen if none exist
+            const departemen = JSON.parse(localStorage.getItem('departemen') || '[]');
+            if (departemen.length === 0) {
+                const testDepartemen = [
+                    { id: 1, nama: 'IT Department', kode: 'IT' },
+                    { id: 2, nama: 'Finance Department', kode: 'FIN' },
+                    { id: 3, nama: 'HR Department', kode: 'HR' }
+                ];
+                localStorage.setItem('departemen', JSON.stringify(testDepartemen));
+                showTestResult('info', 'Test departemen data initialized');
+            }
+        }
+        
+        // Initialize test data on load
+        setTimeout(initializeTestData, 1000);
+    </script>
+</body>
+</html>
